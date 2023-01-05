@@ -24,9 +24,9 @@
 
 addon.name      = 'consolidatedui';
 addon.author    = 'Tirem';
-addon.version   = '1.0';
-addon.desc      = 'Multiple UI element manager';
-addon.link      = 'https://github.com/tirem/'
+addon.version   = '0.1';
+addon.desc      = 'Multiple UI elements with manager';
+addon.link      = 'https://github.com/tirem/ConsolidatedUI'
 
 require('common');
 local imgui = require('imgui');
