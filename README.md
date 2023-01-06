@@ -2,7 +2,7 @@
 Ashita v4 addon containing multiple ui elements:
 
 1) Player Bar
-2) Exp Bar
+2) Target Bar
 3) Enemy List
 4) Exp Bar
 5) Inventory Tracker
