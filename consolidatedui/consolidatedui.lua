@@ -302,8 +302,8 @@ ashita.events.register('command', 'command_cb', function (e)
 			print('CONSOLIDATED UI: /cui giltracker');
 			print('CONSOLIDATED UI: /cui inventorytracker');
 		end
-    end
-
+		
 	e.blocked = true;
+    end
 
 end);
