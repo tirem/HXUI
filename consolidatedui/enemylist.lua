@@ -37,7 +37,7 @@ local function UpdatedClaimedTargets(maxEntries)
 	local tempClaimedTargets = allClaimedTargets;
 	for k,_ in pairs(tempClaimedTargets) do
 		local ent = GetEntity(k);
-		if (ent == nil) then
+		if (ent == nil or ent.HPPercent == 0) then
 			table.remove(allClaimedTargets, k);
 		end
 	end
@@ -90,7 +90,7 @@ enemylist.DrawWindow = function(settings)
 			for k,_ in pairs(allClaimedTargets) do
 
 				local ent = GetEntity(k);
-				if (ent ~= nil) then
+				if (ent ~= nil and ent.HPPercent > 0) then
 
 					-- Obtain and prepare target information..
 					local targetNameText = ent.Name;
