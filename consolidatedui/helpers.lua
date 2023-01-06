@@ -1,5 +1,9 @@
 require('common');
 local imgui = require('imgui');
+local ffi       = require('ffi');
+local d3d       = require('d3d8');
+local C         = ffi.C;
+local d3d8dev   = d3d.get_device();
 
 function draw_rect(top_left, bot_right, color, radius, fill)
     local color = imgui.GetColorU32(color);
@@ -11,6 +15,16 @@ function draw_rect(top_left, bot_right, color, radius, fill)
    		imgui.GetWindowDrawList():AddRectFilled(dimensions[1], dimensions[2], color, radius, ImDrawCornerFlags_All);
 	else
 		imgui.GetWindowDrawList():AddRect(dimensions[1], dimensions[2], color, radius, ImDrawCornerFlags_All, 3);
+	end
+end
+
+function draw_circle(center, radius, color, segments, fill)
+    local color = imgui.GetColorU32(color);
+
+	if (fill == true) then
+   		imgui.GetWindowDrawList():AddCircleFilled(center, radius, color, segments);
+	else
+		imgui.GetWindowDrawList():AddCircle(center, radius, color, segments, 1);
 	end
 end
 
@@ -72,3 +86,43 @@ function GetIsMob(targetEntity)
     end
 	return isMob;
 end
+
+function SeparateNumbers(val, sep)
+    local separated = string.gsub(val, "(%d)(%d%d%d)$", "%1" .. sep .. "%2", 1)
+    local found = 0;
+    while true do
+        separated, found = string.gsub(separated, "(%d)(%d%d%d),", "%1" .. sep .. "%2,", 1)
+        if found == 0 then break end
+    end
+    return separated;
+end
+
+function LoadTexture(textureName)
+    if (theme == nil or theme == "") then
+        theme = "default";
+    end
+
+    local textures = T{}
+    -- Load the texture for usage..
+    local texture_ptr = ffi.new('IDirect3DTexture8*[1]');
+    local res = C.D3DXCreateTextureFromFileA(d3d8dev, string.format('%s/assets/%s.png', addon.path, textureName), texture_ptr);
+    if (res ~= C.S_OK) then
+        error(('Failed to load image texture: %08X (%s)'):fmt(res, d3d.get_error(res)));
+    end;
+    textures.image = ffi.new('IDirect3DTexture8*', texture_ptr[0]);
+    d3d.gc_safe_release(textures.image);
+
+    return textures;
+end
+
+function FormatInt(number)
+
+	local i, j, minus, int, fraction = tostring(number):find('([-]?)(%d+)([.]?%d*)')
+  
+	-- reverse the int-string and append a comma to all blocks of 3 digits
+	int = int:reverse():gsub("(%d%d%d)", "%1,")
+  
+	-- reverse the int-string back remove an optional comma and put the 
+	-- optional minus and fractional part back
+	return minus .. int:reverse():gsub("^,", "") .. fraction
+  end

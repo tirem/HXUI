@@ -34,6 +34,9 @@ local settings = require('settings');
 local playerBar = require('playerbar');
 local targetBar = require('targetbar');
 local enemyList = require('enemylist');
+local expBar = require('expbar');
+local gilTracker = require('giltracker');
+local inventoryTracker = require('inventorytracker');
 
 local default_settings =
 T{
@@ -41,8 +44,8 @@ T{
 	showTargetBar = true;
 	showEnemyList = true;
 	showExpBar = true;
-	showGil = true;
-	showInventory = true;
+	showGilTracker = true;
+	showInventoryTracker = true;
 
 	-- settings for the targetbar
 	targetBarSettings =
@@ -91,10 +94,135 @@ T{
 		maxEntries = 8;
 		entrySpacing = 1;
 	};
+
+	-- settings for the exp bar
+	expBarSettings =
+	T{
+		barWidth = 700;
+		barHeight = 10;
+		jobOffsetY = 0;
+		expOffsetY = 0;
+		percentOffsetY = -2;
+		percentOffsetX = -10;
+		job_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 12,
+			color = 0xFFFFFFFF,
+			bold = false,
+			italic = true;
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = false;
+		};
+		exp_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 12,
+			color = 0xFFFFFFFF,
+			bold = false,
+			italic = true;
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = true;
+		};
+		percent_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 9,
+			color = 0xFFFFFF00,
+			bold = false,
+			italic = true;
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = true;
+		};
+	};
+
+	-- settings for gil tracker
+	gilTrackerSettings = 
+	T{
+		iconScale = 1;
+		offsetX = -5;
+		offsetY = 5;
+		font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 14,
+			color = 0xFFFFFFFF,
+			bold = true,
+			italic = false;
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = true;
+		};
+	};
+
+	inventoryTrackerSettings = 
+	T{
+		columnCount = 5;
+		rowCount = 6;
+		dotRadius = 6;
+		dotSpacing = 3;
+		groupSpacing = 10;
+		textOffsetY = -5;
+		font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 14,
+			color = 0xFFFFFFFF,
+			bold = true,
+			italic = false;
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = true;
+		};
+	};
 };
 
-local settings = settings.load(default_settings);
+local config = settings.load(default_settings);
 
+function UpdateSettings(s)
+    -- Update the settings table..
+    if (s ~= nil) then
+        config = s;
+    end
+
+    -- Save the current settings..
+    settings.save();
+end;
+
+settings.register('settings', 'settings_update', UpdateSettings);
 
 --[[
 * event: d3d_present
@@ -102,38 +230,80 @@ local settings = settings.load(default_settings);
 --]]
 ashita.events.register('d3d_present', 'present_cb', function ()
 
-	if (settings.showPlayerBar) then
-		playerBar.DrawWindow(settings.playerBarSettings);
+	if (config.showPlayerBar) then
+		playerBar.DrawWindow(config.playerBarSettings);
 	end
-	if (settings.showTargetBar) then
-		targetBar.DrawWindow(settings.targetBarSettings);
+	if (config.showTargetBar) then
+		targetBar.DrawWindow(config.targetBarSettings);
 	end
-	if (settings.showEnemyList) then
-		enemyList.DrawWindow(settings.enemyListSettings);
+	if (config.showEnemyList) then
+		enemyList.DrawWindow(config.enemyListSettings);
 	end
-	if (settings.showExpBar) then
-		
+	if (config.showExpBar) then
+		expBar.DrawWindow(config.expBarSettings);
 	end
-	if (settings.showGil) then
-		
+	if (config.showGilTracker) then
+		gilTracker.DrawWindow(config.gilTrackerSettings);
 	end
-	if (settings.showInventory) then
-		
+	if (config.showInventoryTracker) then
+		inventoryTracker.DrawWindow(config.inventoryTrackerSettings);
 	end
 end);
 
 ashita.events.register('load', 'load_cb', function ()
-    playerBar.Initialize(settings.playerBarSettings);
+    playerBar.Initialize(config.playerBarSettings);
+	expBar.Initialize(config.expBarSettings);
+	gilTracker.Initialize(config.gilTrackerSettings);
+	inventoryTracker.Initialize(config.inventoryTrackerSettings);
 end);
 
-ashita.events.register('command', 'command_cb', function (ee)
-    -- Parse the command arguments
-    local args = ee.command:args();
-    if (#args == 0 or args[1] ~= '/consolidatedui, /horizonui') then
-        return;
+ashita.events.register('command', 'command_cb', function (e)
+   
+	-- Parse the command arguments
+	local command_args = e.command:lower():args()
+    if table.contains({'/consolidatedui', '/cui', '/horizonui', '/hui'}, command_args[1]) then
+        if table.contains({'playerbar'}, command_args[2]) then
+			config.showPlayerBar = not config.showPlayerBar;
+			if (config.showPlayerBar == false) then
+				playerBar.SetHidden(true);
+			end
+			UpdateSettings();
+		elseif table.contains({'targetbar'}, command_args[2]) then
+			config.showTargetBar = not config.showTargetBar;
+			UpdateSettings();
+        elseif table.contains({'enemylist'}, command_args[2]) then
+			config.showEnemyList = not config.showEnemyList;
+			UpdateSettings();
+		elseif table.contains({'expbar'}, command_args[2]) then
+			config.showExpBar = not config.showExpBar;
+			if (config.showExpBar == false) then
+				expBar.SetHidden(true);
+			end
+			UpdateSettings();
+		elseif table.contains({'giltracker'}, command_args[2]) then
+			config.showGilTracker = not config.showGilTracker;
+			if (config.showGilTracker == false) then
+				gilTracker.SetHidden(true);
+			end
+			UpdateSettings();
+		elseif table.contains({'inventorytracker'}, command_args[2]) then
+			config.showInventoryTracker = not config.showInventoryTracker;
+			if (config.showInventoryTracker == false) then
+				inventoryTracker.SetHidden(true);
+			end
+			UpdateSettings();
+		else
+			print('CONSOLIDATED UI: HELP /consolidatedui /cui');
+			print('CONSOLIDATED UI: Toggle elements with the following commands');
+			print('CONSOLIDATED UI: /cui playerbar');
+			print('CONSOLIDATED UI: /cui targetbar');
+			print('CONSOLIDATED UI: /cui enemylist');
+			print('CONSOLIDATED UI: /cui expbar');
+			print('CONSOLIDATED UI: /cui giltracker');
+			print('CONSOLIDATED UI: /cui inventorytracker');
+		end
     end
 
-    -- Block all targetinfo related commands
-    ee.blocked = true;
+	e.blocked = true;
 
 end);

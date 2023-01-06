@@ -177,4 +177,10 @@ playerbar.Initialize = function(settings)
 	tpText = fonts.new(settings.font_settings);
 end
 
+playerbar.SetHidden = function(hidden)
+	if (hidden == true) then
+		UpdateTextVisibility(false);
+	end
+end
+
 return playerbar;
