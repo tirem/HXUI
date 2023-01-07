@@ -268,30 +268,66 @@ ashita.events.register('command', 'command_cb', function (e)
 				playerBar.SetHidden(true);
 			end
 			UpdateSettings();
+
+			if (config.showPlayerBar) then
+				print('CONSOLIDATED UI: Enabled PlayerBar');
+			else
+				print('CONSOLIDATED UI: Disabled PlayerBar');
+			end
 		elseif table.contains({'targetbar'}, command_args[2]) then
 			config.showTargetBar = not config.showTargetBar;
 			UpdateSettings();
+
+			if (config.showTargetBar) then
+				print('CONSOLIDATED UI: Enabled TargetBar');
+			else
+				print('CONSOLIDATED UI: Disabled TargetBar');
+			end
         elseif table.contains({'enemylist'}, command_args[2]) then
 			config.showEnemyList = not config.showEnemyList;
 			UpdateSettings();
+
+			if (config.showEnemyList) then
+				print('CONSOLIDATED UI: Enabled EnemyList');
+			else
+				print('CONSOLIDATED UI: Disabled EnemyList');
+			end
 		elseif table.contains({'expbar'}, command_args[2]) then
 			config.showExpBar = not config.showExpBar;
 			if (config.showExpBar == false) then
 				expBar.SetHidden(true);
 			end
 			UpdateSettings();
+
+			if (config.showExpBar) then
+				print('CONSOLIDATED UI: Enabled EXPBar');
+			else
+				print('CONSOLIDATED UI: Disabled EXPBar');
+			end
 		elseif table.contains({'giltracker'}, command_args[2]) then
 			config.showGilTracker = not config.showGilTracker;
 			if (config.showGilTracker == false) then
 				gilTracker.SetHidden(true);
 			end
 			UpdateSettings();
+
+			if (config.showGilTracker) then
+				print('CONSOLIDATED UI: Enabled GilTracker');
+			else
+				print('CONSOLIDATED UI: Disabled GilTracker');
+			end
 		elseif table.contains({'inventorytracker'}, command_args[2]) then
 			config.showInventoryTracker = not config.showInventoryTracker;
 			if (config.showInventoryTracker == false) then
 				inventoryTracker.SetHidden(true);
 			end
 			UpdateSettings();
+
+			if (config.showInventoryTracker) then
+				print('CONSOLIDATED UI: Enabled InventoryTracker');
+			else
+				print('CONSOLIDATED UI: Disabled InventoryTracker');
+			end
 		else
 			print('CONSOLIDATED UI: HELP /consolidatedui /cui');
 			print('CONSOLIDATED UI: Toggle elements with the following commands');

@@ -47,10 +47,6 @@ local function UpdateHealthValue(settings)
 	end
 end
 
---[[
-* event: d3d_present
-* desc : Event called when the Direct3D device is presenting a scene.
---]]
 playerbar.DrawWindow = function(settings)
     -- Obtain the player entity..
     local party     = AshitaCore:GetMemoryManager():GetParty();
@@ -80,24 +76,26 @@ playerbar.DrawWindow = function(settings)
 
 		local SelfHP = party:GetMemberHP(0);
 		local SelfHPMax = player:GetHPMax();
-		local SelfHPPercent = SelfHP / SelfHPMax;
+		local SelfHPPercent = party:GetMemberHPPercent(0) / 100;
 		local interpHP = interpolatedHP / SelfHPMax;
 		local SelfMP = party:GetMemberMP(0);
 		local SelfMPMax = player:GetMPMax();
+		local SelfMPPercent = party:GetMemberMPPercent(0);
 		local SelfTP = party:GetMemberTP(0);
 
 		-- Draw HP Bar (two bars to fake animation
 		local hpX = imgui.GetCursorPosX();
+		local barSize = (settings.barWidth / 3) - settings.barSpacing;
 		imgui.PushStyleColor(ImGuiCol_PlotHistogram, {1, .1, .1, 1});
-		imgui.ProgressBar(interpHP, { settings.barWidth / 3 - settings.barSpacing, settings.barHeight }, '');
+		imgui.ProgressBar(interpHP, { barSize, settings.barHeight }, '');
 		imgui.PopStyleColor(1);
 		imgui.SameLine();
 		local hpEndX = imgui.GetCursorPosX();
-		local hpLocX, hpLocY = imgui.GetCursorScreenPos();			
+		local hpLocX, hpLocY = imgui.GetCursorScreenPos();	
 		if (SelfHPPercent > 0) then
 			imgui.SetCursorPosX(hpX);
 			imgui.PushStyleColor(ImGuiCol_PlotHistogram, {1, .4, .4, 1});
-			imgui.ProgressBar(1, { (settings.barWidth / 3 - settings.barSpacing) * SelfHPPercent, settings.barHeight }, '');
+			imgui.ProgressBar(1, { barSize * SelfHPPercent, settings.barHeight }, '');
 			imgui.PopStyleColor(1);
 			imgui.SameLine();
 		end
@@ -105,7 +103,7 @@ playerbar.DrawWindow = function(settings)
 		-- Draw MP Bar
 		imgui.SetCursorPosX(hpEndX + settings.barSpacing);
 		imgui.PushStyleColor(ImGuiCol_PlotHistogram, {.9, 1, .5, 1});
-		imgui.ProgressBar(SelfMP / SelfMPMax, { settings.barWidth / 3 - settings.barSpacing, settings.barHeight }, '');
+		imgui.ProgressBar(SelfMPPercent, { barSize, settings.barHeight }, '');
 		imgui.PopStyleColor(1);
 		imgui.SameLine();
 		local mpLocX, mpLocY  = imgui.GetCursorScreenPos()
@@ -118,13 +116,13 @@ playerbar.DrawWindow = function(settings)
 		else
 			imgui.PushStyleColor(ImGuiCol_PlotHistogram, {.3, .7, 1, 1});
 		end
-		imgui.ProgressBar(SelfTP / 1000, { settings.barWidth / 3 - settings.barSpacing, settings.barHeight }, '');
+		imgui.ProgressBar(SelfTP / 1000, { barSize, settings.barHeight }, '');
 		imgui.PopStyleColor(1);
 		if (SelfTP > 1000) then
 			imgui.SameLine();
 			imgui.SetCursorPosX(tpX + settings.barSpacing);
 			imgui.PushStyleColor(ImGuiCol_PlotHistogram, {.3, .7, 1, 1});
-			imgui.ProgressBar((SelfTP - 1000) / 2000, { settings.barWidth / 3 - settings.barSpacing, settings.barHeight * 3/5 }, '');
+			imgui.ProgressBar((SelfTP - 1000) / 2000, { barSize, settings.barHeight * 3/5 }, '');
 			imgui.PopStyleColor(1);
 		end
 		imgui.SameLine();
