@@ -252,43 +252,26 @@ T{
 		hpBarWidth = 225,
 		hpBarHeight = 20,
 		mpBarHeight = 15,
-		tpBarWidth = 75,
-		tpBarHeight = 10,
-		entrySpacing = 10,
+		tpBarWidth = 50,
+		tpBarHeight = 5,
+		entrySpacing = 3,
 		hpTextOffsetX = -10,
 		hpTextOffsetY = -3,
 		mpTextOffsetY = -3,
-		nameSpacing = 100;
+		nameSpacing = 75;
 		tpBarOffsetY = 8;
 		hpBarOffsetY = 1;
 		showWhenSolo = false,
-		backgroundPaddingX1 = 30,
-		backgroundPaddingX2 = 200,
-		backgroundPaddingY1 = 20,
+		backgroundPaddingX1 = 20,
+		backgroundPaddingX2 = 150,
+		backgroundPaddingY1 = 15,
 		backgroundPaddingY2 = 10,
-		cursorPaddingX1 = 7,
-		cursorPaddingX2 = 7,
+		cursorPaddingX1 = 5,
+		cursorPaddingX2 = 5,
 		cursorPaddingY1 = 2,
 		cursorPaddingY2 = 10,
-		leaderDotRadius = 4,
+		leaderDotRadius = 3,
 		hp_font_settings = 
-		T{
-			visible = true,
-			locked = true,
-			font_family = 'Consolas',
-			font_height = 14,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
-		};
-		mp_font_settings = 
 		T{
 			visible = true,
 			locked = true,
@@ -305,12 +288,29 @@ T{
 			},
 			right_justified = true;
 		};
+		mp_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 12,
+			color = 0xFFFFFFFF,
+			bold = true,
+			italic = false;
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = true;
+		};
 		name_font_settings = 
 		T{
 			visible = true,
 			locked = true,
 			font_family = 'Consolas',
-			font_height = 15,
+			font_height = 13,
 			color = 0xFFFFFFFF,
 			bold = true,
 			italic = false;
