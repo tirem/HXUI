@@ -324,7 +324,7 @@ T{
 	};
 };
 
-local config = default_settings;
+local config = settings.load(default_settings);
 
 function UpdateSettings(s)
     -- Update the settings table..
