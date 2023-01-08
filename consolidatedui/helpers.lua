@@ -125,4 +125,15 @@ function FormatInt(number)
 	-- reverse the int-string back remove an optional comma and put the 
 	-- optional minus and fractional part back
 	return minus .. int:reverse():gsub("^,", "") .. fraction
-  end
+end
+
+function LimitStringLength(string, length)
+	local output = '';
+	for i = 1, #string do
+		output = output..string[i];
+		if (#output >= length) then
+			break;
+		end
+	end
+	return output;
+end

@@ -33,7 +33,6 @@ local function UpdateHealthValue(settings)
 	if (SelfHP > lastHP) then
 		-- if our HP went up just show it immediately
 		targetHP = SelfHP;
-		interpolatedHP = SelfHP;
 		lastHP = SelfHP;
 	elseif (SelfHP < lastHP) then
 		-- if our HP went down make it a new interpolation target
@@ -49,8 +48,8 @@ end
 
 playerbar.DrawWindow = function(settings)
     -- Obtain the player entity..
-    local party     = AshitaCore:GetMemoryManager():GetParty();
-    local player    = AshitaCore:GetMemoryManager():GetPlayer();
+    local party = AshitaCore:GetMemoryManager():GetParty();
+    local player = AshitaCore:GetMemoryManager():GetPlayer();
 	
 	if (party == nil or player == nil) then
 		UpdateTextVisibility(false);
@@ -76,11 +75,11 @@ playerbar.DrawWindow = function(settings)
 
 		local SelfHP = party:GetMemberHP(0);
 		local SelfHPMax = player:GetHPMax();
-		local SelfHPPercent = party:GetMemberHPPercent(0) / 100;
-		local interpHP = interpolatedHP / SelfHPMax;
+		local SelfHPPercent = math.clamp(SelfHP / SelfHPMax, 0, 1);
+		local interpHP = math.clamp(interpolatedHP / SelfHPMax, 0, 1);
 		local SelfMP = party:GetMemberMP(0);
 		local SelfMPMax = player:GetMPMax();
-		local SelfMPPercent = party:GetMemberMPPercent(0);
+		local SelfMPPercent = math.clamp(SelfMP / SelfMPMax, 0, 1);
 		local SelfTP = party:GetMemberTP(0);
 
 		-- Draw HP Bar (two bars to fake animation
@@ -146,7 +145,7 @@ playerbar.DrawWindow = function(settings)
 		mpText:SetPositionX(mpLocX - settings.barSpacing);
 		mpText:SetPositionY(mpLocY + settings.barHeight + settings.textYOffset);
 		mpText:SetText(tostring(SelfMP));
-		if (SelfMP == SelfMPMax) then 
+		if (SelfMPPercent >= 1) then 
 			mpText:SetColor(0xFFCFFBCF);
 		else
 			mpText:SetColor(0xFFFFFFFF);

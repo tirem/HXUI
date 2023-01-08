@@ -37,6 +37,7 @@ local enemyList = require('enemylist');
 local expBar = require('expbar');
 local gilTracker = require('giltracker');
 local inventoryTracker = require('inventorytracker');
+local partyList = require('partylist');
 
 local default_settings =
 T{
@@ -46,6 +47,7 @@ T{
 	showExpBar = true;
 	showGilTracker = true;
 	showInventoryTracker = true;
+	showPartyList = true;
 
 	-- settings for the targetbar
 	targetBarSettings =
@@ -208,9 +210,121 @@ T{
 			right_justified = true;
 		};
 	};
+
+	partyListSettings = 
+	T{
+		hpBarWidth = 250,
+		hpBarHeight = 25,
+		mpBarWidth = 175,
+		mpBarHeight = 15,
+		tpBarWidth = 75,
+		tpBarHeight = 10,
+		entrySpacing = 15,
+		hpTextOffsetX = -10,
+		hpTextOffsetY = -3,
+		mpTextOffsetY = -3,
+		nameSpacing = 100;
+		tpBarOffsetY = 8;
+		hpBarOffsetY = 1;
+		showWhenSolo = false,
+		backgroundPaddingX1 = 30,
+		backgroundPaddingX2 = 200,
+		backgroundPaddingY1 = 20,
+		backgroundPaddingY2 = 10,
+		cursorPaddingX1 = 15,
+		cursorPaddingX2 = 10,
+		cursorPaddingY1 = 30,
+		cursorPaddingY2 = -25,
+		leaderDotRadius = 4,
+		hp_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 14,
+			color = 0xFFFFFFFF,
+			bold = true,
+			italic = false;
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = true;
+		};
+		mp_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 13,
+			color = 0xFFFFFFFF,
+			bold = true,
+			italic = false;
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = true;
+		};
+		zone_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 16,
+			color = 0xFFFFFFFF,
+			bold = true,
+			italic = false;
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = true;
+		};
+		name_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 16,
+			color = 0xFFFFFFFF,
+			bold = true,
+			italic = false;
+			color_outline = 0xFF000000,
+			draw_flags = bit.bor(0x10, 0x2),
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = false;
+		};
+		primData = {
+			texture_offset_x= 0.0,
+			texture_offset_y= 0.0,
+			border_visible  = false,
+			border_flags    = FontBorderFlags.None,
+			border_sizes    = '0,0,0,0',
+			visible         = true,
+			position_x      = 0,
+			position_y      = 0,
+			can_focus       = true,
+			locked          = false,
+			lockedz         = true,
+			scale_x         = 1.0,
+			scale_y         = 1.0,
+			width           = 0.0,
+			height          = 0.0,
+		};
+	};
 };
 
-local config = settings.load(default_settings);
+local config = default_settings;
 
 function UpdateSettings(s)
     -- Update the settings table..
@@ -248,6 +362,9 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 	if (config.showInventoryTracker) then
 		inventoryTracker.DrawWindow(config.inventoryTrackerSettings);
 	end
+	if (config.showPartyList) then
+		partyList.DrawWindow(config.partyListSettings);
+	end
 end);
 
 ashita.events.register('load', 'load_cb', function ()
@@ -255,6 +372,7 @@ ashita.events.register('load', 'load_cb', function ()
 	expBar.Initialize(config.expBarSettings);
 	gilTracker.Initialize(config.gilTrackerSettings);
 	inventoryTracker.Initialize(config.inventoryTrackerSettings);
+	partyList.Initialize(config.partyListSettings);
 end);
 
 ashita.events.register('command', 'command_cb', function (e)
@@ -328,6 +446,18 @@ ashita.events.register('command', 'command_cb', function (e)
 			else
 				print('CONSOLIDATED UI: Disabled InventoryTracker');
 			end
+		elseif table.contains({'partylist'}, command_args[2]) then
+			config.showPartyList = not config.showPartyList;
+			if (config.showPartyList == false) then
+				partyList.SetHidden(true);
+			end
+			UpdateSettings();
+
+			if (config.showPartyList) then
+				print('CONSOLIDATED UI: Enabled PartyList');
+			else
+				print('CONSOLIDATED UI: Disabled PartyList');
+			end
 		else
 			print('CONSOLIDATED UI: HELP /consolidatedui /cui');
 			print('CONSOLIDATED UI: Toggle elements with the following commands');
@@ -337,6 +467,7 @@ ashita.events.register('command', 'command_cb', function (e)
 			print('CONSOLIDATED UI: /cui expbar');
 			print('CONSOLIDATED UI: /cui giltracker');
 			print('CONSOLIDATED UI: /cui inventorytracker');
+			print('CONSOLIDATED UI: /cui partylist');
 		end
 		
 	e.blocked = true;
