@@ -43,8 +43,7 @@ local function UpdatedClaimedTargets()
 	-- get entites with a claimid from our party
 	local newClaimedTargets = {};
 	for x = 0, 2303 do
-        --if (GetIsClaimed(x, partyMemberIds)) then
-		if (true) then
+        if (GetIsClaimed(x, partyMemberIds)) then
             allClaimedTargets[x] = 1;
 		end
     end
