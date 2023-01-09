@@ -174,6 +174,12 @@ playerbar.Initialize = function(settings)
 	tpText = fonts.new(settings.font_settings);
 end
 
+playerbar.UpdateFonts = function(settings)
+    hpText:SetFontHeight(settings.font_settings.font_height);
+	mpText:SetFontHeight(settings.font_settings.font_height);
+	tpText:SetFontHeight(settings.font_settings.font_height);
+end
+
 playerbar.SetHidden = function(hidden)
 	if (hidden == true) then
 		UpdateTextVisibility(false);

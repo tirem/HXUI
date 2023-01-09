@@ -14,7 +14,7 @@ function draw_rect(top_left, bot_right, color, radius, fill)
 	if (fill == true) then
    		imgui.GetWindowDrawList():AddRectFilled(dimensions[1], dimensions[2], color, radius, ImDrawCornerFlags_All);
 	else
-		imgui.GetWindowDrawList():AddRect(dimensions[1], dimensions[2], color, radius, ImDrawCornerFlags_All, 3);
+		imgui.GetWindowDrawList():AddRect(dimensions[1], dimensions[2], color, radius, ImDrawCornerFlags_All, 1);
 	end
 end
 
@@ -75,6 +75,9 @@ function GetColorOfTarget(targetEntity, targetIndex)
 end
 
 function GetIsMob(targetEntity)
+	if (targetEntity == nil) then
+		return false;
+	end
     -- Obtain the entity spawn flags..
     local flag = targetEntity.SpawnFlags;
     -- Determine the entity type

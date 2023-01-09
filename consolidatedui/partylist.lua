@@ -81,7 +81,7 @@ local function GetMemberInformation(memIdx)
     return memberInfo;
 end
 
-local function DrawMember(memIdx, settings)
+local function DrawMember(memIdx, settings, userSettings)
 
     local memInfo = GetMemberInformation(memIdx);
     if (memInfo == nil) then
@@ -203,7 +203,7 @@ partyList.DrawWindow = function(settings, userSettings)
         end
         partyTargeted = false;
         for i = 0, 5 do
-            DrawMember(i, settings);
+            DrawMember(i, settings, userSettings);
         end
         if (partyTargeted == false) then
             selectionPrim.visible = false;
@@ -232,6 +232,15 @@ partyList.Initialize = function(settings)
     selectionPrim.color = 0xFFFFFFFF;
     selectionPrim.texture = string.format('%s/assets/cursor.png', addon.path);
     selectionPrim.visible = false;
+end
+
+partyList.UpdateFonts = function(settings)
+    -- Initialize all our font objects we need
+    for i = 0, 5 do
+        memberText[i].name:SetFontHeight(settings.name_font_settings.font_height);
+        memberText[i].hp:SetFontHeight(settings.hp_font_settings.font_height);
+        memberText[i].mp:SetFontHeight(settings.mp_font_settings.font_height);
+    end
 end
 
 partyList.SetHidden = function(hidden)

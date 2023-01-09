@@ -50,10 +50,12 @@ T{
 	showPartyList = true,
 
 	showPartyListWhenSolo = false;
+	maxEnemyListEntries = 8;
+	showTargetBarPercent = true;
 
 	playerBarScaleX = 1,
 	playerBarScaleY = 1,
-	playerBarFontScale = 1,
+	playerBarFontOffset = 0,
 
 	targetBarScaleX = 1,
 	targetBarScaleY = 1,
@@ -65,17 +67,17 @@ T{
 
 	expBarScaleX = 1,
 	expBarScaleY = 1,
-	expBarFontScale = 1,
+	expBarFontOffset = 0,
 
 	gilTrackerScale = 1,
-	gilTrackerFontScale = 1,
+	gilTrackerFontOffset = 0,
 
-	inventoryTrackerScaleX= 1,
-	inventoryTrackerFontScale = 1,
+	inventoryTrackerScale= 1,
+	inventoryTrackerFontOffset = 0,
 
 	partyListScaleX = 1,
 	partyListScaleY = 1,
-	partyListFontScale = 1,
+	partyListFontOffset = 0,
 };
 
 local user_settings_container = 
@@ -93,18 +95,20 @@ T{
 		totBarHeight = 14,
 		totBarOffset = 1,
 		textScale = 1.2,
-		showBarPercent = true;
+		cornerOffset = 5,
+		nameXOffset = 12,
+		nameYOffset = 9,
 	};
 
 	-- settings for the playerbar
 	playerBarSettings =
 	T{
-		hitAnimSpeed = 2;
-		hitDelayLength = .5;
-		barWidth = 500;
-		barSpacing = 10;
-		barHeight = 20;
-		textYOffset = -4;
+		hitAnimSpeed = 2,
+		hitDelayLength = .5,
+		barWidth = 500,
+		barSpacing = 10,
+		barHeight = 20,
+		textYOffset = -4,
 		font_settings = 
 		T{
 			visible = true,
@@ -129,8 +133,9 @@ T{
 		barWidth = 125;
 		barHeight = 10;
 		textScale = 1;
-		maxEntries = 8;
 		entrySpacing = 1;
+		bgPadding = 7;
+		bgTopPadding = -3;
 	};
 
 	-- settings for the exp bar
@@ -140,7 +145,7 @@ T{
 		barHeight = 10;
 		jobOffsetY = 0;
 		expOffsetY = 0;
-		percentOffsetY = -2;
+		percentOffsetY = 2;
 		percentOffsetX = -10;
 		job_font_settings = 
 		T{
@@ -198,9 +203,9 @@ T{
 	-- settings for gil tracker
 	gilTrackerSettings = 
 	T{
-		iconScale = 1;
+		iconScale = 30;
 		offsetX = -5;
-		offsetY = 5;
+		offsetY = -7;
 		font_settings = 
 		T{
 			visible = true,
@@ -227,7 +232,7 @@ T{
 		dotRadius = 5;
 		dotSpacing = 2;
 		groupSpacing = 10;
-		textOffsetY = -7;
+		textOffsetY = -10;
 		font_settings = 
 		T{
 			visible = true,
@@ -261,7 +266,6 @@ T{
 		nameSpacing = 75;
 		tpBarOffsetY = 8;
 		hpBarOffsetY = 1;
-		showWhenSolo = false,
 		backgroundPaddingX1 = 20,
 		backgroundPaddingX2 = 150,
 		backgroundPaddingY1 = 15,
@@ -342,6 +346,8 @@ T{
 	};
 };
 
+local adjustedSettings = default_settings;
+
 local config = settings.load(user_settings_container);
 
 local function CheckVisibility()
@@ -362,11 +368,82 @@ local function CheckVisibility()
 	end
 end
 
+local function UpdateFonts()
+	playerBar.UpdateFonts(adjustedSettings.playerBarSettings);
+	expBar.UpdateFonts(adjustedSettings.expBarSettings);
+	gilTracker.UpdateFonts(adjustedSettings.gilTrackerSettings);
+	inventoryTracker.UpdateFonts(adjustedSettings.inventoryTrackerSettings);
+	partyList.UpdateFonts(adjustedSettings.partyListSettings);
+end
+
+local function UpdateUserSettings()
+    local ns = default_settings;
+	local us = config.userSettings;
+
+	-- Target Bar
+	ns.targetBarSettings.barWidth = ns.targetBarSettings.barWidth * us.targetBarScaleX;
+	ns.targetBarSettings.barHeight = ns.targetBarSettings.barHeight * us.targetBarScaleY;
+	ns.targetBarSettings.totBarHeight = ns.targetBarSettings.totBarHeight * us.targetBarScaleY;
+	ns.targetBarSettings.textScale = ns.targetBarSettings.textScale * us.targetBarFontScale;
+
+	-- Party List
+    ns.partyListSettings.hpBarWidth = ns.partyListSettings.hpBarWidth * us.partyListScaleX;
+    ns.partyListSettings.hpBarHeight = ns.partyListSettings.hpBarHeight * us.partyListScaleY;
+    ns.partyListSettings.mpBarHeight = ns.partyListSettings.mpBarHeight * us.partyListScaleY;
+    ns.partyListSettings.tpBarWidth = ns.partyListSettings.tpBarWidth * us.partyListScaleX;
+    ns.partyListSettings.tpBarHeight = ns.partyListSettings.tpBarHeight * us.partyListScaleY;
+    ns.partyListSettings.entrySpacing = ns.partyListSettings.entrySpacing * us.partyListScaleY;
+	ns.partyListSettings.nameSpacing = ns.partyListSettings.nameSpacing * us.partyListScaleY;
+    ns.partyListSettings.hp_font_settings.font_height = ns.partyListSettings.hp_font_settings.font_height + us.partyListFontOffset;
+    ns.partyListSettings.mp_font_settings.font_height = ns.partyListSettings.mp_font_settings.font_height + us.partyListFontOffset;
+    ns.partyListSettings.mp_font_settings.font_height = ns.partyListSettings.mp_font_settings.font_height + us.partyListFontOffset;
+	ns.partyListSettingsbackgroundPaddingX1 = ns.partyListSettings.backgroundPaddingX1 * us.partyListScaleX;
+	ns.partyListSettingsbackgroundPaddingX2 = ns.partyListSettings.backgroundPaddingX2 * us.partyListScaleX;
+	ns.partyListSettingsbackgroundPaddingY1 = ns.partyListSettings.backgroundPaddingY1 * us.partyListScaleY;
+	ns.partyListSettingsbackgroundPaddingY2 = ns.partyListSettings.backgroundPaddingY2 * us.partyListScaleY;
+	ns.partyListSettingscursorPaddingX1 = ns.partyListSettings.cursorPaddingX1 * us.partyListScaleX;
+	ns.partyListSettingscursorPaddingX2 = ns.partyListSettings.cursorPaddingX2 * us.partyListScaleX;
+	ns.partyListSettingscursorPaddingY1 = ns.partyListSettings.cursorPaddingY1 * us.partyListScaleY;
+	ns.partyListSettingscursorPaddingY2 = ns.partyListSettings.cursorPaddingY2 * us.partyListScaleY;
+
+	-- Player Bar
+	ns.playerBarSettings.barWidth = ns.playerBarSettings.barWidth * us.playerBarScaleX;
+	ns.playerBarSettings.barSpacing = ns.playerBarSettings.barSpacing * us.playerBarScaleX;
+	ns.playerBarSettings.barHeight = ns.playerBarSettings.barHeight * us.playerBarScaleY;
+	ns.playerBarSettings.font_settings.font_height = ns.playerBarSettings.font_settings.font_height + us.playerBarFontOffset;
+
+	-- Exp Bar
+	ns.expBarSettings.barWidth = ns.expBarSettings.barWidth * us.expBarScaleX;
+	ns.expBarSettings.barHeight = ns.expBarSettings.barHeight * us.expBarScaleY;
+	ns.expBarSettings.job_font_settings.font_height = ns.expBarSettings.job_font_settings.font_height + us.expBarFontOffset;
+	ns.expBarSettings.exp_font_settings.font_height = ns.expBarSettings.exp_font_settings.font_height + us.expBarFontOffset;
+	ns.expBarSettings.percent_font_settings.font_height = ns.expBarSettings.percent_font_settings.font_height + us.expBarFontOffset;
+
+	-- Gil Tracker
+	ns.gilTrackerSettings.iconScale = ns.gilTrackerSettings.iconScale * us.gilTrackerScale;
+	ns.gilTrackerSettings.font_settings.font_height = ns.gilTrackerSettings.font_settings.font_height + us.gilTrackerFontOffset;
+	
+	-- Inventory Tracker
+	ns.inventoryTrackerSettings.dotRadius = ns.inventoryTrackerSettings.dotRadius * us.inventoryTrackerScale;
+	ns.inventoryTrackerSettings.dotSpacing = ns.inventoryTrackerSettings.dotSpacing * us.inventoryTrackerScale;
+	ns.inventoryTrackerSettings.groupSpacing = ns.inventoryTrackerSettings.groupSpacing * us.inventoryTrackerScale;
+	ns.inventoryTrackerSettings.font_settings.font_height = ns.inventoryTrackerSettings.font_settings.font_height + us.inventoryTrackerFontOffset;
+
+	-- Enemy List
+	ns.enemyListSettings.barWidth = ns.enemyListSettings.barWidth * us.enemyListScaleX;
+	ns.enemyListSettings.barHeight = ns.enemyListSettings.barHeight * us.enemyListScaleY;
+	ns.enemyListSettings.textScale = ns.enemyListSettings.textScale * us.enemyListFontScale;
+
+    adjustedSettings = ns;
+end
+
 function UpdateSettings()
     -- Save the current settings..
     settings.save();
 
+	UpdateUserSettings();
 	CheckVisibility();
+	UpdateFonts();
 end;
 
 settings.register('settings', 'settings_update', UpdateSettings);
@@ -378,35 +455,36 @@ settings.register('settings', 'settings_update', UpdateSettings);
 ashita.events.register('d3d_present', 'present_cb', function ()
 
 	if (config.userSettings.showPlayerBar) then
-		playerBar.DrawWindow(default_settings.playerBarSettings, config.userSettings);
+		playerBar.DrawWindow(adjustedSettings.playerBarSettings, config.userSettings);
 	end
 	if (config.userSettings.showTargetBar) then
-		targetBar.DrawWindow(default_settings.targetBarSettings, config.userSettings);
+		targetBar.DrawWindow(adjustedSettings.targetBarSettings, config.userSettings);
 	end
 	if (config.userSettings.showEnemyList) then
-		enemyList.DrawWindow(default_settings.enemyListSettings, config.userSettings);
+		enemyList.DrawWindow(adjustedSettings.enemyListSettings, config.userSettings);
 	end
 	if (config.userSettings.showExpBar) then
-		expBar.DrawWindow(default_settings.expBarSettings, config.userSettings);
+		expBar.DrawWindow(adjustedSettings.expBarSettings, config.userSettings);
 	end
 	if (config.userSettings.showGilTracker) then
-		gilTracker.DrawWindow(default_settings.gilTrackerSettings, config.userSettings);
+		gilTracker.DrawWindow(adjustedSettings.gilTrackerSettings, config.userSettings);
 	end
 	if (config.userSettings.showInventoryTracker) then
-		inventoryTracker.DrawWindow(default_settings.inventoryTrackerSettings, config.userSettings);
+		inventoryTracker.DrawWindow(adjustedSettings.inventoryTrackerSettings, config.userSettings);
 	end
 	if (config.userSettings.showPartyList) then
-		partyList.DrawWindow(default_settings.partyListSettings, config.userSettings);
+		partyList.DrawWindow(adjustedSettings.partyListSettings, config.userSettings);
 	end
 end);
 
 ashita.events.register('load', 'load_cb', function ()
 
-    playerBar.Initialize(default_settings.playerBarSettings);
-	expBar.Initialize(default_settings.expBarSettings);
-	gilTracker.Initialize(default_settings.gilTrackerSettings);
-	inventoryTracker.Initialize(default_settings.inventoryTrackerSettings);
-	partyList.Initialize(default_settings.partyListSettings);
+	UpdateUserSettings();
+    playerBar.Initialize(adjustedSettings.playerBarSettings);
+	expBar.Initialize(adjustedSettings.expBarSettings);
+	gilTracker.Initialize(adjustedSettings.gilTrackerSettings);
+	inventoryTracker.Initialize(adjustedSettings.inventoryTrackerSettings);
+	partyList.Initialize(adjustedSettings.partyListSettings);
 end);
 
 ashita.events.register('command', 'command_cb', function (e)

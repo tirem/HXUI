@@ -47,11 +47,11 @@ giltracker.DrawWindow = function(settings, userSettings)
 		
     if (imgui.Begin('GilTracker', true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
 		local cursorX, cursorY  = imgui.GetCursorScreenPos();
-		imgui.Image(tonumber(ffi.cast("uint32_t", gilTexture.image)), { 30, 30 });
+		imgui.Image(tonumber(ffi.cast("uint32_t", gilTexture.image)), { settings.iconScale, settings.iconScale });
 
 		gilText:SetText(FormatInt(gilAmount.Count));
 		gilText:SetPositionX(cursorX + settings.offsetX);
-		gilText:SetPositionY(cursorY + settings.offsetY);
+		gilText:SetPositionY(cursorY + (settings.iconScale/2) + settings.offsetY);
 
 		UpdateTextVisibility(true);	
     end
@@ -62,6 +62,10 @@ end
 giltracker.Initialize = function(settings)
     gilText = fonts.new(settings.font_settings);
 	gilTexture = LoadTexture("gil");
+end
+
+giltracker.UpdateFonts = function(settings)
+    gilText:SetFontHeight(settings.font_settings.font_height);
 end
 
 giltracker.SetHidden = function(hidden)

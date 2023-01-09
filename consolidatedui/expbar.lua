@@ -50,7 +50,6 @@ expbar.DrawWindow = function(settings, userSettings)
 		imgui.ProgressBar(expPercent, { -1, settings.barHeight }, '');
 		imgui.PopStyleColor(1);
 		imgui.SameLine();
-		local hpLocX, hpLocY = imgui.GetCursorScreenPos();
 		
 		-- Update our text objects
 		local mainJobString = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", mainJob);
@@ -62,13 +61,13 @@ expbar.DrawWindow = function(settings, userSettings)
 
 		local expString = 'EXP ('..currentExp..' / '..totalExp..')';
 		expText:SetPositionX(startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 4);
-		expText:SetPositionY(hpLocY + settings.barHeight + settings.expOffsetY);
+		expText:SetPositionY(startY + settings.barHeight + settings.expOffsetY);
 		expText:SetText(expString);	
 
 		local expPercentString = ('%.f'):fmt(expPercent * 100);
 		local percentString = 'EXP - '..expPercentString..'%';
 		percentText:SetPositionX(startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 4 + settings.percentOffsetX);
-		percentText:SetPositionY(hpLocY - settings.barHeight + settings.percentOffsetY);
+		percentText:SetPositionY(startY - (percentText:GetFontHeight()*2) + settings.percentOffsetY);
 		percentText:SetText(percentString);	
 
 		UpdateTextVisibility(true);	
@@ -82,6 +81,12 @@ expbar.Initialize = function(settings)
     jobText = fonts.new(settings.job_font_settings);
 	expText = fonts.new(settings.exp_font_settings);
 	percentText = fonts.new(settings.percent_font_settings);
+end
+
+expbar.UpdateFonts = function(settings)
+    jobText:SetFontHeight(settings.job_font_settings.font_height);
+	expText:SetFontHeight(settings.exp_font_settings.font_height);
+	percentText:SetFontHeight(settings.percent_font_settings.font_height);
 end
 
 expbar.SetHidden = function(hidden)

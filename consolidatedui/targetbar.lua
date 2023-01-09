@@ -3,12 +3,9 @@ require('helpers');
 local imgui = require('imgui');
 
 -- TODO: Calculate these instead of manually setting them
-local cornerOffset = 5;
-local nameXOffset = 12;
-local nameYOffset = 26;
 
 local bgAlpha = 0.4;
-local bgRadius = 6;
+local bgRadius = 3;
 
 local targetbar = {};
 
@@ -47,10 +44,10 @@ targetbar.DrawWindow = function(settings, userSettings)
 		if (showTargetId) then
 			targetNameText = targetNameText.." ["..targetIndex.."]";
 		end
-		local y, _  = imgui.CalcTextSize(targetNameText);
+		local nameX, nameY = imgui.CalcTextSize(targetNameText);
 
 		local winX, winY = imgui.GetWindowPos();
-		draw_rect({winX + cornerOffset , winY + cornerOffset}, {winX + y + nameXOffset, winY + nameYOffset}, {0,0,0,bgAlpha}, bgRadius, true);
+		draw_rect({winX + settings.cornerOffset , winY + settings.cornerOffset}, {winX + nameX + settings.nameXOffset, winY + nameY + settings.nameYOffset}, {0,0,0,bgAlpha}, bgRadius, true);
 
         -- Display the targets information..
         imgui.TextColored(color, targetNameText);
@@ -98,10 +95,10 @@ targetbar.DrawWindow = function(settings, userSettings)
         -- Obtain and prepare target information.
 		imgui.SetWindowFontScale(settings.textScale);
 		
-		local w, _  = imgui.CalcTextSize(targetNameText);
+		local totNameX, totNameY = imgui.CalcTextSize(targetNameText);
 
 		local totwinX, totwinY = imgui.GetWindowPos();
-		draw_rect({totwinX + cornerOffset, totwinY + cornerOffset}, {totwinX + w + nameXOffset, totwinY + nameYOffset}, {0,0,0,bgAlpha}, bgRadius, true);
+		draw_rect({totwinX + settings.cornerOffset, totwinY + settings.cornerOffset}, {totwinX + totNameX + settings.nameXOffset, totwinY + totNameY + settings.nameYOffset}, {0,0,0,bgAlpha}, bgRadius, true);
 
 		-- Display the targets information..
 		imgui.TextColored(totColor, targetNameText);
