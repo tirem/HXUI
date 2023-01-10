@@ -130,16 +130,23 @@ playerbar.DrawWindow = function(settings, userSettings)
 		-- Update our HP Text
 		hpText:SetPositionX(hpLocX - settings.barSpacing);
 		hpText:SetPositionY(hpLocY + settings.barHeight + settings.textYOffset);
-		hpText:SetText(tostring(SelfHP));	
+		hpText:SetText(tostring(SelfHP));
+		local hpNameColor;
+		local hpColorRGB;
 		if (SelfHPPercent < .25) then 
-			hpText:SetColor(0xFFFF0000);
+			hpNameColor = 0xFFFF0000;
+			hpColorRGB = { 1, 0, 0, 1};
 	    elseif (SelfHPPercent < .50) then;
-			hpText:SetColor(0xFFFFA500);
+			hpNameColor = 0xFFFFA500;
+			hpColorRGB = { 1, 0.65, 0, 1};
 	    elseif (SelfHPPercent < .75) then
-			hpText:SetColor(0xFFFFFF00);
+			hpNameColor = 0xFFFFFF00;
+			hpColorRGB = { 1, 1, 0, 1};
 		else
-			hpText:SetColor(0xFFFFFFFF);
+			hpNameColor = 0xFFFFFFFF;
+			hpColorRGB = { 1, 1, 1, 1};
 	    end
+		hpText:SetColor(hpNameColor);
 		
 		-- Update our MP Text
 		mpText:SetPositionX(mpLocX - settings.barSpacing);

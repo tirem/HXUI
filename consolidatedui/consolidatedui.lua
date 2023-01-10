@@ -255,25 +255,27 @@ T{
 
 	partyListSettings = 
 	T{
-		hpBarWidth = 225,
-		hpBarHeight = 20,
-		mpBarHeight = 15,
-		tpBarWidth = 50,
-		tpBarHeight = 5,
-		entrySpacing = 3,
-		hpTextOffsetX = -10,
+		hpBarWidth = 150,
+		tpBarWidth = 100,
+		mpBarWidth = 100,
+		barHeight = 20,
+		barSpacing = 1,
+		entrySpacing = 10,
+		nameTextOffsetX = 0,
+		nameTextOffsetY = 0,
+		hpTextOffsetX = -2,
 		hpTextOffsetY = -3,
+		mpTextOffsetX = -2,
 		mpTextOffsetY = -3,
-		nameSpacing = 75;
-		tpBarOffsetY = 8;
-		hpBarOffsetY = 1;
-		backgroundPaddingX1 = 20,
-		backgroundPaddingX2 = 150,
-		backgroundPaddingY1 = 15,
-		backgroundPaddingY2 = 10,
-		cursorPaddingX1 = 5,
-		cursorPaddingX2 = 5,
-		cursorPaddingY1 = 2,
+		tpTextOffsetX = -2,
+		tpTextOffsetY = -3,
+		backgroundPaddingX1 = 5,
+		backgroundPaddingX2 = 5,
+		backgroundPaddingY1 = 20,
+		backgroundPaddingY2 = -10,
+		cursorPaddingX1 = 10,
+		cursorPaddingX2 = 25,
+		cursorPaddingY1 = 10,
 		cursorPaddingY2 = 10,
 		leaderDotRadius = 3,
 		hp_font_settings = 
@@ -298,7 +300,24 @@ T{
 			visible = true,
 			locked = true,
 			font_family = 'Consolas',
-			font_height = 12,
+			font_height = 13,
+			color = 0xFFFFFFFF,
+			bold = true,
+			italic = false;
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = true;
+		};
+		tp_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 13,
 			color = 0xFFFFFFFF,
 			bold = true,
 			italic = false;
@@ -320,7 +339,7 @@ T{
 			bold = true,
 			italic = false;
 			color_outline = 0xFF000000,
-			draw_flags = bit.bor(0x10, 0x2),
+			draw_flags = 0x10,
 			background = 
 			T{
 				visible = false,
@@ -396,12 +415,10 @@ local function UpdateUserSettings()
 
 	-- Party List
     adjustedSettings.partyListSettings.hpBarWidth = ns.partyListSettings.hpBarWidth * us.partyListScaleX;
-    adjustedSettings.partyListSettings.hpBarHeight = ns.partyListSettings.hpBarHeight * us.partyListScaleY;
-    adjustedSettings.partyListSettings.mpBarHeight = ns.partyListSettings.mpBarHeight * us.partyListScaleY;
+    adjustedSettings.partyListSettings.barHeight = ns.partyListSettings.barHeight * us.partyListScaleY;
     adjustedSettings.partyListSettings.tpBarWidth = ns.partyListSettings.tpBarWidth * us.partyListScaleX;
-    adjustedSettings.partyListSettings.tpBarHeight = ns.partyListSettings.tpBarHeight * us.partyListScaleY;
+	adjustedSettings.partyListSettings.mpBarWidth = ns.partyListSettings.mpBarWidth * us.partyListScaleX;
     adjustedSettings.partyListSettings.entrySpacing = ns.partyListSettings.entrySpacing * us.partyListScaleY;
-	adjustedSettings.partyListSettings.nameSpacing = ns.partyListSettings.nameSpacing * us.partyListScaleX;
     adjustedSettings.partyListSettings.hp_font_settings.font_height = math.max(ns.partyListSettings.hp_font_settings.font_height + us.partyListFontOffset, 1);
     adjustedSettings.partyListSettings.mp_font_settings.font_height = math.max(ns.partyListSettings.mp_font_settings.font_height + us.partyListFontOffset, 1);
     adjustedSettings.partyListSettings.name_font_settings.font_height = math.max(ns.partyListSettings.name_font_settings.font_height + us.partyListFontOffset, 1);
