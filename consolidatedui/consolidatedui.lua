@@ -562,5 +562,7 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
 		if (config.userSettings.showEnemyList) then
 			enemyList.HandleMobUpdatePacket(mobUpdatePacket);
 		end
+	elseif (e.id == 0x00A) then
+		enemyList.HandleZonePacket(e);
 	end
 end);

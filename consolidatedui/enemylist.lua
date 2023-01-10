@@ -134,4 +134,9 @@ enemylist.HandleMobUpdatePacket = function(e)
 	end
 end
 
+enemylist.HandleZonePacket = function(e)
+	-- Empty all our claimed targets on zone
+	allClaimedTargets = T{};
+end
+
 return enemylist;
