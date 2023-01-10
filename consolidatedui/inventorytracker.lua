@@ -87,7 +87,7 @@ inventoryTracker.DrawWindow = function(settings, userSettings)
 
 		inventoryText:SetText(usedBagSlots.. '/'..maxBagSlots);
 		inventoryText:SetPositionX(locX + winSizeX);
-		inventoryText:SetPositionY(locY - (settings.dotRadius) + settings.textOffsetY);
+		inventoryText:SetPositionY(locY + settings.textOffsetY - inventoryText:GetFontHeight());
 
 		UpdateTextVisibility(true);	
     end

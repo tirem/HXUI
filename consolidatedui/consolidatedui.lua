@@ -38,6 +38,7 @@ local expBar = require('expbar');
 local gilTracker = require('giltracker');
 local inventoryTracker = require('inventorytracker');
 local partyList = require('partylist');
+local configMenu = require('configmenu');
 
 local user_settings = 
 T{
@@ -232,7 +233,7 @@ T{
 		dotRadius = 5;
 		dotSpacing = 2;
 		groupSpacing = 10;
-		textOffsetY = -10;
+		textOffsetY = -3;
 		font_settings = 
 		T{
 			visible = true,
@@ -346,9 +347,16 @@ T{
 	};
 };
 
-local adjustedSettings = default_settings;
+local adjustedSettings = deep_copy_table(default_settings);
+local defaultUserSettings = deep_copy_table(user_settings);
 
 local config = settings.load(user_settings_container);
+
+showConfig = { false };
+
+function ResetSettings()
+	config.userSettings = deep_copy_table(defaultUserSettings);
+end
 
 local function CheckVisibility()
 	if (config.userSettings.showPlayerBar == false) then
@@ -381,60 +389,58 @@ local function UpdateUserSettings()
 	local us = config.userSettings;
 
 	-- Target Bar
-	ns.targetBarSettings.barWidth = ns.targetBarSettings.barWidth * us.targetBarScaleX;
-	ns.targetBarSettings.barHeight = ns.targetBarSettings.barHeight * us.targetBarScaleY;
-	ns.targetBarSettings.totBarHeight = ns.targetBarSettings.totBarHeight * us.targetBarScaleY;
-	ns.targetBarSettings.textScale = ns.targetBarSettings.textScale * us.targetBarFontScale;
+	adjustedSettings.targetBarSettings.barWidth = ns.targetBarSettings.barWidth * us.targetBarScaleX;
+	adjustedSettings.targetBarSettings.barHeight = ns.targetBarSettings.barHeight * us.targetBarScaleY;
+	adjustedSettings.targetBarSettings.totBarHeight = ns.targetBarSettings.totBarHeight * us.targetBarScaleY;
+	adjustedSettings.targetBarSettings.textScale = ns.targetBarSettings.textScale * us.targetBarFontScale;
 
 	-- Party List
-    ns.partyListSettings.hpBarWidth = ns.partyListSettings.hpBarWidth * us.partyListScaleX;
-    ns.partyListSettings.hpBarHeight = ns.partyListSettings.hpBarHeight * us.partyListScaleY;
-    ns.partyListSettings.mpBarHeight = ns.partyListSettings.mpBarHeight * us.partyListScaleY;
-    ns.partyListSettings.tpBarWidth = ns.partyListSettings.tpBarWidth * us.partyListScaleX;
-    ns.partyListSettings.tpBarHeight = ns.partyListSettings.tpBarHeight * us.partyListScaleY;
-    ns.partyListSettings.entrySpacing = ns.partyListSettings.entrySpacing * us.partyListScaleY;
-	ns.partyListSettings.nameSpacing = ns.partyListSettings.nameSpacing * us.partyListScaleY;
-    ns.partyListSettings.hp_font_settings.font_height = ns.partyListSettings.hp_font_settings.font_height + us.partyListFontOffset;
-    ns.partyListSettings.mp_font_settings.font_height = ns.partyListSettings.mp_font_settings.font_height + us.partyListFontOffset;
-    ns.partyListSettings.name_font_settings.font_height = ns.partyListSettings.name_font_settings.font_height + us.partyListFontOffset;
-	ns.partyListSettings.backgroundPaddingX1 = ns.partyListSettings.backgroundPaddingX1 * us.partyListScaleX;
-	ns.partyListSettings.backgroundPaddingX2 = ns.partyListSettings.backgroundPaddingX2 * us.partyListScaleX;
-	ns.partyListSettings.backgroundPaddingY1 = ns.partyListSettings.backgroundPaddingY1 * us.partyListScaleY;
-	ns.partyListSettings.backgroundPaddingY2 = ns.partyListSettings.backgroundPaddingY2 * us.partyListScaleY;
-	ns.partyListSettings.cursorPaddingX1 = ns.partyListSettings.cursorPaddingX1 * us.partyListScaleX;
-	ns.partyListSettings.cursorPaddingX2 = ns.partyListSettings.cursorPaddingX2 * us.partyListScaleX;
-	ns.partyListSettings.cursorPaddingY1 = ns.partyListSettings.cursorPaddingY1 * us.partyListScaleY;
-	ns.partyListSettings.cursorPaddingY2 = ns.partyListSettings.cursorPaddingY2 * us.partyListScaleY;
+    adjustedSettings.partyListSettings.hpBarWidth = ns.partyListSettings.hpBarWidth * us.partyListScaleX;
+    adjustedSettings.partyListSettings.hpBarHeight = ns.partyListSettings.hpBarHeight * us.partyListScaleY;
+    adjustedSettings.partyListSettings.mpBarHeight = ns.partyListSettings.mpBarHeight * us.partyListScaleY;
+    adjustedSettings.partyListSettings.tpBarWidth = ns.partyListSettings.tpBarWidth * us.partyListScaleX;
+    adjustedSettings.partyListSettings.tpBarHeight = ns.partyListSettings.tpBarHeight * us.partyListScaleY;
+    adjustedSettings.partyListSettings.entrySpacing = ns.partyListSettings.entrySpacing * us.partyListScaleY;
+	adjustedSettings.partyListSettings.nameSpacing = ns.partyListSettings.nameSpacing * us.partyListScaleX;
+    adjustedSettings.partyListSettings.hp_font_settings.font_height = ns.partyListSettings.hp_font_settings.font_height + us.partyListFontOffset;
+    adjustedSettings.partyListSettings.mp_font_settings.font_height = ns.partyListSettings.mp_font_settings.font_height + us.partyListFontOffset;
+    adjustedSettings.partyListSettings.name_font_settings.font_height = ns.partyListSettings.name_font_settings.font_height + us.partyListFontOffset;
+	adjustedSettings.partyListSettings.backgroundPaddingX1 = ns.partyListSettings.backgroundPaddingX1 * us.partyListScaleX;
+	adjustedSettings.partyListSettings.backgroundPaddingX2 = ns.partyListSettings.backgroundPaddingX2 * us.partyListScaleX;
+	adjustedSettings.partyListSettings.backgroundPaddingY1 = ns.partyListSettings.backgroundPaddingY1 * us.partyListScaleY;
+	adjustedSettings.partyListSettings.backgroundPaddingY2 = ns.partyListSettings.backgroundPaddingY2 * us.partyListScaleY;
+	adjustedSettings.partyListSettings.cursorPaddingX1 = ns.partyListSettings.cursorPaddingX1 * us.partyListScaleX;
+	adjustedSettings.partyListSettings.cursorPaddingX2 = ns.partyListSettings.cursorPaddingX2 * us.partyListScaleX;
+	adjustedSettings.partyListSettings.cursorPaddingY1 = ns.partyListSettings.cursorPaddingY1 * us.partyListScaleY;
+	adjustedSettings.partyListSettings.cursorPaddingY2 = ns.partyListSettings.cursorPaddingY2 * us.partyListScaleY;
 
 	-- Player Bar
-	ns.playerBarSettings.barWidth = ns.playerBarSettings.barWidth * us.playerBarScaleX;
-	ns.playerBarSettings.barSpacing = ns.playerBarSettings.barSpacing * us.playerBarScaleX;
-	ns.playerBarSettings.barHeight = ns.playerBarSettings.barHeight * us.playerBarScaleY;
-	ns.playerBarSettings.font_settings.font_height = ns.playerBarSettings.font_settings.font_height + us.playerBarFontOffset;
+	adjustedSettings.playerBarSettings.barWidth = ns.playerBarSettings.barWidth * us.playerBarScaleX;
+	adjustedSettings.playerBarSettings.barSpacing = ns.playerBarSettings.barSpacing * us.playerBarScaleX;
+	adjustedSettings.playerBarSettings.barHeight = ns.playerBarSettings.barHeight * us.playerBarScaleY;
+	adjustedSettings.playerBarSettings.font_settings.font_height = ns.playerBarSettings.font_settings.font_height + us.playerBarFontOffset;
 
 	-- Exp Bar
-	ns.expBarSettings.barWidth = ns.expBarSettings.barWidth * us.expBarScaleX;
-	ns.expBarSettings.barHeight = ns.expBarSettings.barHeight * us.expBarScaleY;
-	ns.expBarSettings.job_font_settings.font_height = ns.expBarSettings.job_font_settings.font_height + us.expBarFontOffset;
-	ns.expBarSettings.exp_font_settings.font_height = ns.expBarSettings.exp_font_settings.font_height + us.expBarFontOffset;
-	ns.expBarSettings.percent_font_settings.font_height = ns.expBarSettings.percent_font_settings.font_height + us.expBarFontOffset;
+	adjustedSettings.expBarSettings.barWidth = ns.expBarSettings.barWidth * us.expBarScaleX;
+	adjustedSettings.expBarSettings.barHeight = ns.expBarSettings.barHeight * us.expBarScaleY;
+	adjustedSettings.expBarSettings.job_font_settings.font_height = ns.expBarSettings.job_font_settings.font_height + us.expBarFontOffset;
+	adjustedSettings.expBarSettings.exp_font_settings.font_height = ns.expBarSettings.exp_font_settings.font_height + us.expBarFontOffset;
+	adjustedSettings.expBarSettings.percent_font_settings.font_height = ns.expBarSettings.percent_font_settings.font_height + us.expBarFontOffset;
 
 	-- Gil Tracker
-	ns.gilTrackerSettings.iconScale = ns.gilTrackerSettings.iconScale * us.gilTrackerScale;
-	ns.gilTrackerSettings.font_settings.font_height = ns.gilTrackerSettings.font_settings.font_height + us.gilTrackerFontOffset;
+	adjustedSettings.gilTrackerSettings.iconScale = ns.gilTrackerSettings.iconScale * us.gilTrackerScale;
+	adjustedSettings.gilTrackerSettings.font_settings.font_height = ns.gilTrackerSettings.font_settings.font_height + us.gilTrackerFontOffset;
 	
 	-- Inventory Tracker
-	ns.inventoryTrackerSettings.dotRadius = ns.inventoryTrackerSettings.dotRadius * us.inventoryTrackerScale;
-	ns.inventoryTrackerSettings.dotSpacing = ns.inventoryTrackerSettings.dotSpacing * us.inventoryTrackerScale;
-	ns.inventoryTrackerSettings.groupSpacing = ns.inventoryTrackerSettings.groupSpacing * us.inventoryTrackerScale;
-	ns.inventoryTrackerSettings.font_settings.font_height = ns.inventoryTrackerSettings.font_settings.font_height + us.inventoryTrackerFontOffset;
+	adjustedSettings.inventoryTrackerSettings.dotRadius = ns.inventoryTrackerSettings.dotRadius * us.inventoryTrackerScale;
+	adjustedSettings.inventoryTrackerSettings.dotSpacing = ns.inventoryTrackerSettings.dotSpacing * us.inventoryTrackerScale;
+	adjustedSettings.inventoryTrackerSettings.groupSpacing = ns.inventoryTrackerSettings.groupSpacing * us.inventoryTrackerScale;
+	adjustedSettings.inventoryTrackerSettings.font_settings.font_height = ns.inventoryTrackerSettings.font_settings.font_height + us.inventoryTrackerFontOffset;
 
 	-- Enemy List
-	ns.enemyListSettings.barWidth = ns.enemyListSettings.barWidth * us.enemyListScaleX;
-	ns.enemyListSettings.barHeight = ns.enemyListSettings.barHeight * us.enemyListScaleY;
-	ns.enemyListSettings.textScale = ns.enemyListSettings.textScale * us.enemyListFontScale;
-
-    adjustedSettings = ns;
+	adjustedSettings.enemyListSettings.barWidth = ns.enemyListSettings.barWidth * us.enemyListScaleX;
+	adjustedSettings.enemyListSettings.barHeight = ns.enemyListSettings.barHeight * us.enemyListScaleY;
+	adjustedSettings.enemyListSettings.textScale = ns.enemyListSettings.textScale * us.enemyListFontScale;
 end
 
 function UpdateSettings()
@@ -475,6 +481,8 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 	if (config.userSettings.showPartyList) then
 		partyList.DrawWindow(adjustedSettings.partyListSettings, config.userSettings);
 	end
+
+	configMenu.DrawWindow(config.userSettings);
 end);
 
 ashita.events.register('load', 'load_cb', function ()
@@ -491,59 +499,11 @@ ashita.events.register('command', 'command_cb', function (e)
    
 	-- Parse the command arguments
 	local command_args = e.command:lower():args()
-    if table.contains({'/consolidatedui', '/cui', '/horizonui', '/hui'}, command_args[1]) then
-        if table.contains({'playerbar'}, command_args[2]) then
-			config.userSettings.showPlayerBar = not config.userSettings.showPlayerBar;
-			UpdateSettings();
-			print('CONSOLIDATED UI: Toggled PlayerBar');
-		elseif table.contains({'targetbar'}, command_args[2]) then
-			config.userSettings.showTargetBar = not config.userSettings.showTargetBar;
-			UpdateSettings();
-			print('CONSOLIDATED UI: Toggled TargetBar');
-        elseif table.contains({'enemylist'}, command_args[2]) then
-			config.userSettings.showEnemyList = not config.userSettings.showEnemyList;
-			UpdateSettings();
-			print('CONSOLIDATED UI: Toggled EnemyList');
-		elseif table.contains({'expbar'}, command_args[2]) then
-			config.userSettings.showExpBar = not config.userSettings.showExpBar;
-			UpdateSettings();
-			print('CONSOLIDATED UI: Toggled ExpBar');
-		elseif table.contains({'giltracker'}, command_args[2]) then
-			config.userSettings.showGilTracker = not config.userSettings.showGilTracker;
-			UpdateSettings();
-			print('CONSOLIDATED UI: Toggled GilTracker');
-		elseif table.contains({'inventorytracker'}, command_args[2]) then
-			config.userSettings.showInventoryTracker = not config.userSettings.showInventoryTracker;
-			UpdateSettings();
-			print('CONSOLIDATED UI: Toggled InventoryTracker');
-		elseif table.contains({'partylist'}, command_args[2]) then
-			config.userSettings.showPartyList = not config.userSettings.showPartyList;
-			UpdateSettings();
-			print('CONSOLIDATED UI: Toggled PartyList');
-		elseif table.contains({'reset'}, command_args[2]) then
-			config.userSettings = user_settings;
-			UpdateSettings();
-			print('CONSOLIDATED UI: Configuration Reset');
-		elseif table.contains({'solopartylist'}, command_args[2]) then
-			config.userSettings.showPartyListWhenSolo = not config.userSettings.showPartyListWhenSolo;
-			UpdateSettings();
-			print('CONSOLIDATED UI: PartyList when solo toggled');
-		else
-			print('CONSOLIDATED UI: HELP /consolidatedui /cui');
-			print('CONSOLIDATED UI: /cui reset - Reset all configs');
-			print('CONSOLIDATED UI: /cui solopartylist - Show/Hide party list when solo');
-			print('CONSOLIDATED UI: Toggle elements with the following commands');
-			print('CONSOLIDATED UI: /cui playerbar');
-			print('CONSOLIDATED UI: /cui targetbar');
-			print('CONSOLIDATED UI: /cui enemylist');
-			print('CONSOLIDATED UI: /cui expbar');
-			print('CONSOLIDATED UI: /cui giltracker');
-			print('CONSOLIDATED UI: /cui inventorytracker');
-			print('CONSOLIDATED UI: /cui partylist');
-		end
-		
-	e.blocked = true;
-    end
+    if table.contains({'/consolidatedui', '/cui', '/horizonui', '/hui', '/hxui', '/horizonxiui'}, command_args[1]) then
+		-- Toggle the config menu
+		showConfig[1] = not showConfig[1];
+		e.blocked = true;
+	end
 
 end);
 
