@@ -78,6 +78,7 @@ T{
 
 	partyListScaleX = 1,
 	partyListScaleY = 1,
+	partyListBuffScale = 1,
 	partyListFontOffset = 0,
 };
 
@@ -261,6 +262,7 @@ T{
 		barHeight = 20,
 		barSpacing = 0,
 		entrySpacing = 0,
+
 		nameTextOffsetX = 0,
 		nameTextOffsetY = 5,
 		hpTextOffsetX = -2,
@@ -269,15 +271,22 @@ T{
 		mpTextOffsetY = -3,
 		tpTextOffsetX = -2,
 		tpTextOffsetY = -3,
+
 		backgroundPaddingX1 = 0,
 		backgroundPaddingX2 = 0,
 		backgroundPaddingY1 = 0,
 		backgroundPaddingY2 = 0,
+
 		cursorPaddingX1 = 3,
 		cursorPaddingX2 = 3,
 		cursorPaddingY1 = 3,
 		cursorPaddingY2 = 3,
 		leaderDotRadius = 3,
+
+		iconSize = 20,
+		maxIconColumns = 6,
+		buffSpacing = 5,
+
 		hp_font_settings = 
 		T{
 			visible = true,
@@ -431,6 +440,8 @@ local function UpdateUserSettings()
 	adjustedSettings.partyListSettings.cursorPaddingX2 = ns.partyListSettings.cursorPaddingX2 * us.partyListScaleX;
 	adjustedSettings.partyListSettings.cursorPaddingY1 = ns.partyListSettings.cursorPaddingY1 * us.partyListScaleY;
 	adjustedSettings.partyListSettings.cursorPaddingY2 = ns.partyListSettings.cursorPaddingY2 * us.partyListScaleY;
+	adjustedSettings.partyListSettings.iconSize = ns.partyListSettings.iconSize * us.partyListBuffScale;
+	adjustedSettings.partyListSettings.buffSpacing = ns.partyListSettings.buffSpacing * us.partyListBuffScale;
 
 	-- Player Bar
 	adjustedSettings.playerBarSettings.barWidth = ns.playerBarSettings.barWidth * us.playerBarScaleX;
@@ -459,6 +470,11 @@ local function UpdateUserSettings()
 	adjustedSettings.enemyListSettings.barWidth = ns.enemyListSettings.barWidth * us.enemyListScaleX;
 	adjustedSettings.enemyListSettings.barHeight = ns.enemyListSettings.barHeight * us.enemyListScaleY;
 	adjustedSettings.enemyListSettings.textScale = ns.enemyListSettings.textScale * us.enemyListFontScale;
+
+	adjustedSettings.hpBarColor = { 1.0, 0.6, 0.6, 1.0};
+	adjustedSettings.mpBarColor = { 0.9, 1.0, 0.5, 1.0};
+	adjustedSettings.tpBarColor = { 0.3, 0.7, 1.0, 1.0};
+	adjustedSettings.tpFullBarColor = { 0.2, 0.4, 1.0, 1.0};
 end
 
 function UpdateSettings()
@@ -542,5 +558,6 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
 		end
 	elseif (e.id == 0x00A) then
 		enemyList.HandleZonePacket(e);
+		partyList.HandleZonePacket(e);
 	end
 end);

@@ -2,9 +2,12 @@ require('common');
 local imgui = require('imgui');
 local fonts = require('fonts');
 local primitives = require('primitives');
+local statusHandler = require('statushandler');
 
 local fullMenuSizeX;
 local fullMenuSizeY;
+local buffWindowX = {};
+local buffWindowY = {};
 local backgroundPrim;
 local selectionPrim;
 local partyTargeted;
@@ -57,10 +60,16 @@ local function GetMemberInformation(memIdx)
         memberInfo.tp = party:GetMemberTP(memIdx);
         memberInfo.job = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", party:GetMemberMainJob(memIdx));
         memberInfo.level = party:GetMemberMainJobLevel(memIdx);
+        memberInfo.serverid = party:GetMemberServerId(memIdx);
         if (playerTarget ~= nil) then
             memberInfo.targeted = playerTarget:GetTargetIndex(0) == party:GetMemberTargetIndex(memIdx);
         else
             memberInfo.targeted = false;
+        end
+        if (memIdx == 0) then
+            memberInfo.buffs = player:GetBuffs();
+        else
+            memberInfo.buffs = statusHandler.get_member_status(memberInfo.serverid);
         end
     else
         memberInfo.hp = 0;
@@ -73,6 +82,8 @@ local function GetMemberInformation(memIdx)
         memberInfo.job = '';
         memberInfo.level = '';
         memberInfo.targeted = false;
+        memberInfo.serverid = 0;
+        memberInfo.buffs = nil;
     end
 
     return memberInfo;
@@ -105,7 +116,7 @@ local function DrawMember(memIdx, settings, userSettings)
         hpBarColor = { 1, 1, 0, 1};
     else
         hpNameColor = 0xFFFFFFFF;
-        hpBarColor = {1, .4, .4, 1};
+        hpBarColor = { 1, 0.5, 0.5, 1};
     end
 
     local allBarsLengths = settings.hpBarWidth + settings.mpBarWidth + settings.tpBarWidth + (settings.barSpacing * 2) + (imgui.GetStyle().FramePadding.x * 4);
@@ -146,7 +157,7 @@ local function DrawMember(memIdx, settings, userSettings)
         local mpStartX, mpStartY; 
         imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
         mpStartX, mpStartY = imgui.GetCursorScreenPos();
-        imgui.PushStyleColor(ImGuiCol_PlotHistogram, {.9, 1, .5, 1});
+        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.9, 1.0, 0.5, 1.0});
         imgui.ProgressBar(memInfo.mpp, {  settings.mpBarWidth, settings.barHeight }, '');
         imgui.PopStyleColor(1);
         imgui.SameLine();
@@ -156,16 +167,16 @@ local function DrawMember(memIdx, settings, userSettings)
         imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
         tpStartX, tpStartY = imgui.GetCursorScreenPos();
         if (memInfo.tp > 1000) then
-            imgui.PushStyleColor(ImGuiCol_PlotHistogram, {.2, .4, 1, 1});
+            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.2, 0.4, 1.0, 1.0});
         else
-            imgui.PushStyleColor(ImGuiCol_PlotHistogram, {.3, .7, 1, 1});
+            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.3, 0.7, 1.0, 1.0});
         end
         imgui.ProgressBar(memInfo.tp / 1000, { settings.tpBarWidth, settings.barHeight }, '');
         imgui.PopStyleColor(1);
         if (memInfo.tp > 1000) then
             imgui.SameLine();
             imgui.SetCursorPosX(tpStartX);
-            imgui.PushStyleColor(ImGuiCol_PlotHistogram, {.3, .7, 1, 1});
+            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.3, 0.7, 1.0, 1.0});
             imgui.ProgressBar((memInfo.tp - 1000) / 2000, { settings.tpBarWidth, settings.barHeight * 3/5 }, '');
             imgui.PopStyleColor(1);
         end
@@ -197,6 +208,33 @@ local function DrawMember(memIdx, settings, userSettings)
             selectionPrim.scale_x = (allBarsLengths + settings.cursorPaddingX1 + settings.cursorPaddingX2) / 276;
             selectionPrim.scale_y = (hpSize.cy + nameSize.cy + settings.hpTextOffsetY + settings.nameTextOffsetY + settings.barHeight + settings.cursorPaddingY1 + settings.cursorPaddingY2) / 58;
             partyTargeted = true;
+        end
+
+        -- Draw the status icons
+        if (memInfo.buffs ~= nil) then
+            if (buffWindowX[memIdx] ~= nil and buffWindowY[memIdx] ~= nil) then
+                imgui.SetNextWindowPos({hpStartX - buffWindowX[memIdx] - settings.buffSpacing , hpStartY - settings.iconSize});
+            end
+            if (imgui.Begin('PlayerBuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
+                local currentRow = 0;
+                for i = 0,#memInfo.buffs do
+                    local icon = statusHandler.get_icon_image(memInfo.buffs[i]);
+                    if (icon ~= nil) then
+                        imgui.Image(icon, { settings.iconSize, settings.iconSize }, { 0, 0 }, { 1, 1 });
+                        currentRow = currentRow + 1;
+                        -- Handle multiple rows
+                        if (currentRow < settings.maxIconColumns) then
+                            imgui.SameLine();
+                        else
+                            currentRow = 0;
+                        end
+                    end
+                end
+            end
+            local buffWindowSizeX, buffWindowSizeY = imgui.GetWindowSize();
+            buffWindowX[memIdx] = buffWindowSizeX;
+            buffWindowY[memIdx] = buffWindowSizeY;
+            imgui.End();
         end
     end
 
@@ -290,6 +328,10 @@ partyList.SetHidden = function(hidden)
         UpdateTextVisibility(false);
         backgroundPrim.visible = false;
 	end
+end
+
+partyList.HandleZonePacket = function(e)
+    statusHandler.clear_cache();
 end
 
 return partyList;

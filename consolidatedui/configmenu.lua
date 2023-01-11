@@ -13,7 +13,7 @@ config.DrawWindow = function(us)
         end
         imgui.BeginChild("Config Options", { 0, 0 }, true);
         if (imgui.CollapsingHeader("Player Bar")) then
-            imgui.BeginChild("PlayerBarSettings", { 0, 150 }, true);
+            imgui.BeginChild("PlayerBarSettings", { 0, 160 }, true);
                 if (imgui.Checkbox(' Enabled', { us.showPlayerBar })) then
                     us.showPlayerBar = not us.showPlayerBar;
                     UpdateSettings();
@@ -36,7 +36,7 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Target Bar")) then
-            imgui.BeginChild("TargetBarSettings", { 0, 150 }, true);
+            imgui.BeginChild("TargetBarSettings", { 0, 160 }, true);
             if (imgui.Checkbox(' Enabled', { us.showTargetBar })) then
                 us.showTargetBar = not us.showTargetBar;
                 UpdateSettings();
@@ -63,7 +63,7 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Enemy List")) then
-            imgui.BeginChild("EnemyListSettings", { 0, 150 }, true);
+            imgui.BeginChild("EnemyListSettings", { 0, 160 }, true);
             if (imgui.Checkbox(' Enabled', { us.showEnemyList })) then
                 us.showEnemyList = not us.showEnemyList;
                 UpdateSettings();
@@ -86,7 +86,7 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Party List")) then
-            imgui.BeginChild("PartyListSettings", { 0, 150 }, true);
+            imgui.BeginChild("PartyListSettings", { 0, 160 }, true);
             if (imgui.Checkbox(' Enabled', { us.showPartyList })) then
                 us.showPartyList = not us.showPartyList;
                 UpdateSettings();
@@ -105,6 +105,11 @@ config.DrawWindow = function(us)
                 us.partyListScaleY = scaleY[1];
                 UpdateSettings();
             end
+            local buffScale = { us.partyListBuffScale };
+            if (imgui.SliderFloat('Buff Scale', buffScale, 0.1, 3.0, '%.1f')) then
+                us.partyListBuffScale = buffScale[1];
+                UpdateSettings();
+            end
             local fontOffset = { us.partyListFontOffset };
             if (imgui.SliderInt('Font Offset', fontOffset, -5, 10)) then
                 us.partyListFontOffset = fontOffset[1];
@@ -113,7 +118,7 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Exp Bar")) then
-            imgui.BeginChild("ExpBarSettings", { 0, 150 }, true);
+            imgui.BeginChild("ExpBarSettings", { 0, 160 }, true);
             if (imgui.Checkbox(' Enabled', { us.showExpBar })) then
                 us.showExpBar = not us.showExpBar;
                 UpdateSettings();
@@ -136,7 +141,7 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Gil Tracker")) then
-            imgui.BeginChild("GilTrackerSettings", { 0, 150 }, true);
+            imgui.BeginChild("GilTrackerSettings", { 0, 160 }, true);
             if (imgui.Checkbox(' Enabled', { us.showGilTracker })) then
                 us.showGilTracker = not us.showGilTracker;
                 UpdateSettings();
@@ -154,7 +159,7 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Inventory Tracker")) then
-            imgui.BeginChild("InventoryTrackerSettings", { 0, 150 }, true);
+            imgui.BeginChild("InventoryTrackerSettings", { 0, 160 }, true);
             if (imgui.Checkbox('Enabled', { us.showInventoryTracker })) then
                 us.showInventoryTracker = not us.showInventoryTracker;
                 UpdateSettings();

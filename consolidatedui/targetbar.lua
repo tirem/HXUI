@@ -91,7 +91,7 @@ targetbar.DrawWindow = function(settings, userSettings)
 	imgui.SetNextWindowPos({winPosX + settings.barWidth, winPosY + settings.totBarOffset});
     imgui.SetNextWindowSize({ settings.barWidth / 3, -1, }, ImGuiCond_Always);
 	
-	if (imgui.Begin('TargetOfTargetBar', true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
+	if (imgui.Begin('TargetOfTargetBar', true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
         -- Obtain and prepare target information.
 		imgui.SetWindowFontScale(settings.textScale);
 		

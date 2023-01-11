@@ -82,10 +82,26 @@ playerbar.DrawWindow = function(settings, userSettings)
 		local SelfMPPercent = math.clamp(SelfMP / SelfMPMax, 0, 1);
 		local SelfTP = party:GetMemberTP(0);
 
+		local hpNameColor;
+		local hpBarColor;
+		if (SelfHPPercent < .25) then 
+			hpNameColor = 0xFFFF0000;
+			hpBarColor = { 1, 0, 0, 1};
+		elseif (SelfHPPercent < .50) then;
+			hpNameColor = 0xFFFFA500;
+			hpBarColor = { 1, 0.65, 0, 1};
+		elseif (SelfHPPercent < .75) then
+			hpNameColor = 0xFFFFFF00;
+			hpBarColor = { 1, 1, 0, 1};
+		else
+			hpNameColor = 0xFFFFFFFF;
+			hpBarColor = { 1, 0.5, 0.5, 1};
+		end
+
 		-- Draw HP Bar (two bars to fake animation
 		local hpX = imgui.GetCursorPosX();
 		local barSize = (settings.barWidth / 3) - settings.barSpacing;
-		imgui.PushStyleColor(ImGuiCol_PlotHistogram, {1, .1, .1, 1});
+		imgui.PushStyleColor(ImGuiCol_PlotHistogram, hpBarColor);
 		imgui.ProgressBar(interpHP, { barSize, settings.barHeight }, '');
 		imgui.PopStyleColor(1);
 		imgui.SameLine();
@@ -93,7 +109,7 @@ playerbar.DrawWindow = function(settings, userSettings)
 		local hpLocX, hpLocY = imgui.GetCursorScreenPos();	
 		if (SelfHPPercent > 0) then
 			imgui.SetCursorPosX(hpX);
-			imgui.PushStyleColor(ImGuiCol_PlotHistogram, {1, .4, .4, 1});
+			imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.5, 0.5, 1.0});
 			imgui.ProgressBar(1, { barSize * SelfHPPercent, settings.barHeight }, '');
 			imgui.PopStyleColor(1);
 			imgui.SameLine();
@@ -101,7 +117,7 @@ playerbar.DrawWindow = function(settings, userSettings)
 		
 		-- Draw MP Bar
 		imgui.SetCursorPosX(hpEndX + settings.barSpacing);
-		imgui.PushStyleColor(ImGuiCol_PlotHistogram, {.9, 1, .5, 1});
+		imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.9, 1.0, 0.5, 1.0});
 		imgui.ProgressBar(SelfMPPercent, { barSize, settings.barHeight }, '');
 		imgui.PopStyleColor(1);
 		imgui.SameLine();
@@ -111,16 +127,16 @@ playerbar.DrawWindow = function(settings, userSettings)
 		local tpX = imgui.GetCursorPosX();
 		imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
 		if (SelfTP > 1000) then
-			imgui.PushStyleColor(ImGuiCol_PlotHistogram, {.2, .4, 1, 1});
+			imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.2, 0.4, 1.0, 1.0});
 		else
-			imgui.PushStyleColor(ImGuiCol_PlotHistogram, {.3, .7, 1, 1});
+			imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.3, 0.7, 1.0, 1.0});
 		end
 		imgui.ProgressBar(SelfTP / 1000, { barSize, settings.barHeight }, '');
 		imgui.PopStyleColor(1);
 		if (SelfTP > 1000) then
 			imgui.SameLine();
 			imgui.SetCursorPosX(tpX + settings.barSpacing);
-			imgui.PushStyleColor(ImGuiCol_PlotHistogram, {.3, .7, 1, 1});
+			imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.2, 0.4, 1.0, 1.0});
 			imgui.ProgressBar((SelfTP - 1000) / 2000, { barSize, settings.barHeight * 3/5 }, '');
 			imgui.PopStyleColor(1);
 		end
@@ -131,21 +147,6 @@ playerbar.DrawWindow = function(settings, userSettings)
 		hpText:SetPositionX(hpLocX - settings.barSpacing);
 		hpText:SetPositionY(hpLocY + settings.barHeight + settings.textYOffset);
 		hpText:SetText(tostring(SelfHP));
-		local hpNameColor;
-		local hpColorRGB;
-		if (SelfHPPercent < .25) then 
-			hpNameColor = 0xFFFF0000;
-			hpColorRGB = { 1, 0, 0, 1};
-	    elseif (SelfHPPercent < .50) then;
-			hpNameColor = 0xFFFFA500;
-			hpColorRGB = { 1, 0.65, 0, 1};
-	    elseif (SelfHPPercent < .75) then
-			hpNameColor = 0xFFFFFF00;
-			hpColorRGB = { 1, 1, 0, 1};
-		else
-			hpNameColor = 0xFFFFFFFF;
-			hpColorRGB = { 1, 1, 1, 1};
-	    end
 		hpText:SetColor(hpNameColor);
 		
 		-- Update our MP Text

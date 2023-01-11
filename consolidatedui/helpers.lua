@@ -262,3 +262,7 @@ function deep_copy_table(orig)
     end
     return copy
 end
+
+function valid_server_id(server_id)
+    return server_id > 0 and server_id < 0x4000000;
+end
