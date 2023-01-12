@@ -10,7 +10,9 @@ local buffWindowX = {};
 local buffWindowY = {};
 local backgroundPrim;
 local selectionPrim;
+local arrowPrim;
 local partyTargeted;
+local partySubTargeted;
 local memberText = {};
 
 local partyList = {};
@@ -28,10 +30,9 @@ local function UpdateTextVisibility(visible)
     for i = 0, 5 do
         UpdateTextVisibilityByMember(i, visible);
     end
-    if (not visible) then
-        backgroundPrim.visible = visible;
-        selectionPrim.visible = visible;
-    end
+    backgroundPrim.visible = visible;
+    selectionPrim.visible = visible;
+    arrowPrim.visible = visible;
 end
 
 local function GetMemberInformation(memIdx)
@@ -62,15 +63,23 @@ local function GetMemberInformation(memIdx)
         memberInfo.level = party:GetMemberMainJobLevel(memIdx);
         memberInfo.serverid = party:GetMemberServerId(memIdx);
         if (playerTarget ~= nil) then
-            memberInfo.targeted = playerTarget:GetTargetIndex(0) == party:GetMemberTargetIndex(memIdx);
+            local t1 = playerTarget:GetTargetIndex(0);
+            local t2 = playerTarget:GetTargetIndex(1);
+            local sActive = playerTarget:GetIsSubTargetActive() == 1;
+            local thisIdx = party:GetMemberTargetIndex(memIdx);
+            memberInfo.targeted = (t1 == thisIdx and not sActive) or (t2 == thisIdx and sActive);
+            memberInfo.subTargeted = (t1 == thisIdx and sActive);
         else
             memberInfo.targeted = false;
+            memberInfo.subTargeted = false;
         end
         if (memIdx == 0) then
             memberInfo.buffs = player:GetBuffs();
         else
             memberInfo.buffs = statusHandler.get_member_status(memberInfo.serverid);
         end
+        memberInfo.sync = bit.band(party:GetMemberFlagMask(memIdx), 0x100) == 0x100;
+
     else
         memberInfo.hp = 0;
         memberInfo.hpp = 0;
@@ -84,6 +93,8 @@ local function GetMemberInformation(memIdx)
         memberInfo.targeted = false;
         memberInfo.serverid = 0;
         memberInfo.buffs = nil;
+        memberInfo.sync = false;
+        memberInfo.subTargeted = false;
     end
 
     return memberInfo;
@@ -92,11 +103,13 @@ end
 local function DrawMember(memIdx, settings, userSettings)
 
     local memInfo = GetMemberInformation(memIdx);
-    if (memInfo == nil) then
+    local playerTarget = AshitaCore:GetMemoryManager():GetTarget();
+    if (memInfo == nil or playerTarget == nil) then
         UpdateTextVisibilityByMember(memIdx, false);
         return;
     end
 
+    local subTargetActive = playerTarget:GetIsSubTargetActive();
     local nameSize = SIZE.new();
     local hpSize = SIZE.new();
     memberText[memIdx].name:GetTextSize(nameSize);
@@ -141,8 +154,8 @@ local function DrawMember(memIdx, settings, userSettings)
     imgui.PopStyleColor(1);
 
     -- Draw the leader icon
-    if (memInfo.leader == true) then
-        draw_circle({hpStartX + settings.leaderDotRadius/2, hpStartY + settings.leaderDotRadius/2}, settings.leaderDotRadius, {1, 1, 0, 1}, settings.leaderDotRadius * 3, true);
+    if (memInfo.leader) then
+        draw_circle({hpStartX + settings.dotRadius/2, hpStartY + settings.dotRadius/2}, settings.dotRadius, {1, 1, .5, 1}, settings.dotRadius * 3, true);
     end
 
     -- Update the name text
@@ -202,6 +215,7 @@ local function DrawMember(memIdx, settings, userSettings)
         memberText[memIdx].tp:SetPositionY(tpStartY + settings.barHeight + settings.tpTextOffsetY);
         memberText[memIdx].tp:SetText(tostring(memInfo.tp));
 
+        -- Draw targeted
         if (memInfo.targeted == true) then
             selectionPrim.visible = true;
             selectionPrim.position_x = hpStartX - settings.cursorPaddingX1;
@@ -209,6 +223,16 @@ local function DrawMember(memIdx, settings, userSettings)
             selectionPrim.scale_x = (allBarsLengths + settings.cursorPaddingX1 + settings.cursorPaddingX2) / 276;
             selectionPrim.scale_y = (hpSize.cy + nameSize.cy + settings.hpTextOffsetY + settings.nameTextOffsetY + settings.barHeight + settings.cursorPaddingY1 + settings.cursorPaddingY2) / 58;
             partyTargeted = true;
+        end
+
+        -- Draw subtargeted
+        if ((memInfo.targeted == true and subTargetActive == 0) or memInfo.subTargeted) then
+            arrowPrim.visible = true;
+            arrowPrim.position_x = memberText[memIdx].name:GetPositionX() - arrowPrim:GetWidth();
+            arrowPrim.position_y = memberText[memIdx].name:GetPositionY();
+            arrowPrim.scale_x = settings.arrowSize;
+            arrowPrim.scale_y = settings.arrowSize;
+            partySubTargeted = true;
         end
 
         -- Draw the status icons
@@ -237,6 +261,10 @@ local function DrawMember(memIdx, settings, userSettings)
             buffWindowY[memIdx] = buffWindowSizeY;
             imgui.End();
         end
+    end
+
+    if (memInfo.sync) then
+        draw_circle({hpStartX + settings.dotRadius/2, hpStartY + settings.barHeight}, settings.dotRadius, {.5, .5, 1, 1}, settings.dotRadius * 3, true);
     end
 
     memberText[memIdx].hp:SetVisible(memInfo.inzone);
@@ -280,12 +308,16 @@ partyList.DrawWindow = function(settings, userSettings)
             backgroundPrim.scale_y = (fullMenuSizeY - settings.entrySpacing + settings.backgroundPaddingY1 + settings.backgroundPaddingY2) / 368;
         end
         partyTargeted = false;
+        partySubTargeted = false;
         UpdateTextVisibility(true);
         for i = 0, 5 do
             DrawMember(i, settings, userSettings);
         end
         if (partyTargeted == false) then
             selectionPrim.visible = false;
+        end
+        if (partySubTargeted == false) then
+            arrowPrim.visible = false;
         end
     end
 
@@ -310,8 +342,13 @@ partyList.Initialize = function(settings)
 
     selectionPrim = primitives.new(settings.primData);
     selectionPrim.color = 0xFFFFFFFF;
-    selectionPrim.texture = string.format('%s/assets/cursor.png', addon.path);
+    selectionPrim.texture = string.format('%s/assets/Cursor.png', addon.path);
     selectionPrim.visible = false;
+
+    arrowPrim = primitives.new(settings.primData);
+    arrowPrim.color = 0xFFFFFFFF;
+    arrowPrim.texture = string.format('%s/assets/CursorArrow.png', addon.path);
+    arrowPrim.visible = false;
 end
 
 partyList.UpdateFonts = function(settings)

@@ -281,7 +281,9 @@ T{
 		cursorPaddingX2 = 3,
 		cursorPaddingY1 = 3,
 		cursorPaddingY2 = 3,
-		leaderDotRadius = 3,
+		dotRadius = 3,
+
+		arrowSize = 1;
 
 		iconSize = 20,
 		maxIconColumns = 6,
@@ -470,11 +472,6 @@ local function UpdateUserSettings()
 	adjustedSettings.enemyListSettings.barWidth = ns.enemyListSettings.barWidth * us.enemyListScaleX;
 	adjustedSettings.enemyListSettings.barHeight = ns.enemyListSettings.barHeight * us.enemyListScaleY;
 	adjustedSettings.enemyListSettings.textScale = ns.enemyListSettings.textScale * us.enemyListFontScale;
-
-	adjustedSettings.hpBarColor = { 1.0, 0.6, 0.6, 1.0};
-	adjustedSettings.mpBarColor = { 0.9, 1.0, 0.5, 1.0};
-	adjustedSettings.tpBarColor = { 0.3, 0.7, 1.0, 1.0};
-	adjustedSettings.tpFullBarColor = { 0.2, 0.4, 1.0, 1.0};
 end
 
 function UpdateSettings()
