@@ -156,7 +156,7 @@ debuffHandler.HandlePacket = function(e)
     if e.id == 0x0A then
         debuffHandler.enemies = {};
     elseif e.id == 0x0028 then
-        ApplyMessage(debuffHandler.enemies, ParseActionPacketAlt(e.data))
+        ApplyMessage(debuffHandler.enemies, ParseActionPacketAlt(e.data_raw));
     elseif e.id == 0x0029 then
         ClearMessage(debuffHandler.enemies, ParseMessagePacket(e.data))
     end

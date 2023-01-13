@@ -75,6 +75,8 @@ targetbar.DrawWindow = function(settings, userSettings)
 		buffIds = debuffHandler.GetActiveDebuffs(playerTarget:GetServerId(0));
 	end
 	
+	DrawStatusIcons(buffIds, settings.iconSize, false, settings.maxIconColumns, 3);
+	--[[
 	if (buffIds ~= nil and #buffIds > 0) then
 		local currentRow = 0;
 		for i = 0,#buffIds do
@@ -91,6 +93,7 @@ targetbar.DrawWindow = function(settings, userSettings)
 			end
 		end
 	end
+	--]]
 
 	local winPosX, winPosY = imgui.GetWindowPos();
     imgui.End();

@@ -4,6 +4,8 @@ local ffi       = require('ffi');
 local d3d       = require('d3d8');
 local C         = ffi.C;
 local d3d8dev   = d3d.get_device();
+local statusHandler = require('statushandler');
+local buffTable = require('bufftable');
 
 function draw_rect(top_left, bot_right, color, radius, fill)
     local color = imgui.GetColorU32(color);
@@ -378,4 +380,39 @@ function IsMemberOfParty(targetIndex)
 		end
 	end
 	return false;
+end
+
+function DrawStatusIcons(statusIds, iconSize, drawBg, maxColumns, maxRows)
+	if (statusIds ~= nil and #statusIds > 0) then
+		local currentRow = 1;
+        local currentColumn = 0;
+
+		for i = 0,#statusIds do
+            if (drawBg) then
+                local resetX = imgui.GetCursorPosX();
+                local bgIcon;
+                local isBuff = buffTable.IsBuff(statusIds[i]);
+                bgIcon = statusHandler.GetBackground(isBuff);
+                imgui.Image(bgIcon, { iconSize, iconSize / .75});
+                imgui.SameLine();
+                imgui.SetCursorPosX(resetX);
+            end
+			local icon = statusHandler.get_icon_image(statusIds[i]);
+			if (icon ~= nil) then
+				imgui.Image(icon, { iconSize, iconSize }, { 0, 0 }, { 1, 1 });
+
+				currentColumn = currentColumn + 1;
+				-- Handle multiple rows
+				if (currentColumn < maxColumns) then
+					imgui.SameLine();
+				else
+					currentRow = currentRow + 1;
+                    if (currentRow >= maxRows) then
+                        return;
+                    end
+                    currentColumn = 0;
+				end
+			end
+		end
+	end
 end

@@ -718,4 +718,15 @@ buffTable.GetBuffIdBySpellId = function(spellId)
     return buffTable.spellToDebuff[spellId];
 end
 
+buffTable.IsBuff = function(buffId)
+    -- If we are in the debuff table we are not a buff, otherwise we are
+    for k,v in pairs(buffTable.debuffs) do
+        if (v == buffId) then
+            return false;
+        end
+    end
+
+    return true;
+end
+
 return buffTable;
