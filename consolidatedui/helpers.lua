@@ -387,7 +387,7 @@ function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows)
         local currentColumn = 0;
 
 		for i = 0,#statusIds do
-			local icon = statusHandler.get_icon_image(statusIds[i]);
+			local icon = statusHandler.get_icon_from_theme("icons",statusIds[i]);
 			if (icon ~= nil) then
 				imgui.Image(icon, { iconSize, iconSize }, { 0, 0 }, { 1, 1 });
 

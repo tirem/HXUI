@@ -5,7 +5,6 @@
 -------------------------------------------------------------------------------
 local d3d8 = require('d3d8');
 local ffi = require('ffi');
-local Bit = require('bit')
 -------------------------------------------------------------------------------
 -- local state
 -------------------------------------------------------------------------------
@@ -60,6 +59,53 @@ local function load_status_icon_from_resource(status_id)
     return load_dummy_icon();
 end
 
+-- load a status icon from a theme pack and return a texture pointer
+---@param theme string path to the theme's root directory
+---@param status_id number the status id to load the icon for
+---@return ffi.cdata* texture_ptr the loaded texture object or nil on error
+local function load_status_icon_from_theme(theme, status_id)
+    if (status_id == nil or status_id < 0 or status_id > 0x3FF) then
+        return nil;
+    end
+
+    local icon_path = nil;
+    local supports_alpha = false;
+    T{'.png', '.jpg', '.jpeg', '.bmp'}:forieach(function(ext, _)
+        if (icon_path ~= nil) then
+            return;
+        end
+
+        supports_alpha = ext == '.png';
+        icon_path = ('%s\\assets\\%s\\%d'):append(ext):fmt(addon.path, theme, status_id);
+        local handle = io.open(icon_path, 'r');
+        if (handle ~= nil) then
+            handle.close();
+        else
+            icon_path = nil;
+        end
+    end);
+
+    if (icon_path == nil) then
+        -- fallback to internal icon resources
+        return load_status_icon_from_resource(status_id);
+    end
+
+    local dx_texture_ptr = ffi.new('IDirect3DTexture8*[1]');
+    if (supports_alpha) then
+        -- use the native transaparency
+        if (ffi.C.D3DXCreateTextureFromFileA(d3d8_device, icon_path, dx_texture_ptr) == ffi.C.S_OK) then
+            return d3d8.gc_safe_release(ffi.cast('IDirect3DTexture8*', dx_texture_ptr[0]));
+        end
+    else
+        -- use black as colour-key for transparency
+        if (ffi.C.D3DXCreateTextureFromFileExA(d3d8_device, icon_path, 0xFFFFFFFF, 0xFFFFFFFF, 1, 0, ffi.C.D3DFMT_A8R8G8B8, ffi.C.D3DPOOL_MANAGED, ffi.C.D3DX_DEFAULT, ffi.C.D3DX_DEFAULT, 0xFF000000, nil, nil, dx_texture_ptr) == ffi.C.S_OK) then
+            return d3d8.gc_safe_release(ffi.cast('IDirect3DTexture8*', dx_texture_ptr[0]));
+        end
+    end
+
+    return load_dummy_icon();
+end
+
 -------------------------------------------------------------------------------
 -- exported functions
 -------------------------------------------------------------------------------
@@ -71,6 +117,21 @@ local statusHandler = {};
 statusHandler.get_icon_image = function(status_id)
     if (not icon_cache:haskey(status_id)) then
         local tex_ptr = load_status_icon_from_resource(status_id);
+        if (tex_ptr == nil) then
+            return nil;
+        end
+        icon_cache[status_id] = tex_ptr;
+    end
+    return tonumber(ffi.cast("uint32_t", icon_cache[status_id]));
+end
+
+-- return an image pointer for a status_id for use with imgui.Image
+---@param theme string the name of the theme directory
+---@param status_id number the status id number of the requested icon
+---@return number texture_ptr_id a number representing the texture_ptr or nil
+statusHandler.get_icon_from_theme = function(theme, status_id)
+    if (not icon_cache:haskey(status_id)) then
+        local tex_ptr = load_status_icon_from_theme(theme, status_id);
         if (tex_ptr == nil) then
             return nil;
         end
