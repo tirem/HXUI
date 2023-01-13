@@ -2,9 +2,9 @@
 (BETA) Ashita v4 addon containing multiple ui elements:
 
 1) Player Bar
-2) Target Bar (w/ Target of Target)
+2) Target Bar (w/ Target of Target and Buffs & Debuffs)
 3) Party List (w/ Buffs & Debuffs)
-4) Enemy List
+4) Enemy List (w/ Buffs & Debuffs)
 5) Exp Bar
 6) Inventory Tracker
 7) Gil Tracker
