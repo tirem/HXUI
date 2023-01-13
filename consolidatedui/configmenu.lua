@@ -60,6 +60,11 @@ config.DrawWindow = function(us)
                 us.targetBarFontScale = fontScale[1];
                 UpdateSettings();
             end
+            local iconScale = { us.targetBarIconScale };
+            if (imgui.SliderFloat('Icon Scale', iconScale, 0.1, 3.0, '%.1f')) then
+                us.targetBarIconScale = iconScale[1];
+                UpdateSettings();
+            end
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Enemy List")) then
@@ -81,6 +86,11 @@ config.DrawWindow = function(us)
             local fontScale = { us.enemyListFontScale };
             if (imgui.SliderFloat('Font Scale', fontScale, 0.1, 3.0, '%.1f')) then
                 us.enemyListFontScale = fontScale[1];
+                UpdateSettings();
+            end
+            local iconScale = { us.enemyListIconScale };
+            if (imgui.SliderFloat('Icon Scale', iconScale, 0.1, 3.0, '%.1f')) then
+                us.enemyListIconScale = iconScale[1];
                 UpdateSettings();
             end
             imgui.EndChild();

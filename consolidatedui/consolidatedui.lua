@@ -39,6 +39,7 @@ local gilTracker = require('giltracker');
 local inventoryTracker = require('inventorytracker');
 local partyList = require('partylist');
 local configMenu = require('configmenu');
+local debuffHandler = require('debuffhandler');
 
 local user_settings = 
 T{
@@ -61,10 +62,12 @@ T{
 	targetBarScaleX = 1,
 	targetBarScaleY = 1,
 	targetBarFontScale = 1,
+	targetBarIconScale = 1,
 
 	enemyListScaleX = 1,
 	enemyListScaleY = 1,
 	enemyListFontScale = 1,
+	enemyListIconScale = 1,
 
 	expBarScaleX = 1,
 	expBarScaleY = 1,
@@ -100,6 +103,8 @@ T{
 		cornerOffset = 5,
 		nameXOffset = 12,
 		nameYOffset = 9,
+		iconSize = 22,
+		maxIconColumns = 9,
 	};
 
 	-- settings for the playerbar
@@ -138,6 +143,10 @@ T{
 		entrySpacing = 1;
 		bgPadding = 7;
 		bgTopPadding = -3;
+		maxIcons = 5;
+		iconSize = 18;
+		debuffOffsetX = -15;
+		debuffOffsetY = 0;
 	};
 
 	-- settings for the exp bar
@@ -423,6 +432,7 @@ local function UpdateUserSettings()
 	adjustedSettings.targetBarSettings.barHeight = ns.targetBarSettings.barHeight * us.targetBarScaleY;
 	adjustedSettings.targetBarSettings.totBarHeight = ns.targetBarSettings.totBarHeight * us.targetBarScaleY;
 	adjustedSettings.targetBarSettings.textScale = ns.targetBarSettings.textScale * us.targetBarFontScale;
+	adjustedSettings.targetBarSettings.iconSize = ns.targetBarSettings.iconSize * us.targetBarIconScale;
 
 	-- Party List
     adjustedSettings.partyListSettings.hpBarWidth = ns.partyListSettings.hpBarWidth * us.partyListScaleX;
@@ -472,6 +482,7 @@ local function UpdateUserSettings()
 	adjustedSettings.enemyListSettings.barWidth = ns.enemyListSettings.barWidth * us.enemyListScaleX;
 	adjustedSettings.enemyListSettings.barHeight = ns.enemyListSettings.barHeight * us.enemyListScaleY;
 	adjustedSettings.enemyListSettings.textScale = ns.enemyListSettings.textScale * us.enemyListFontScale;
+	adjustedSettings.enemyListSettings.iconSize = ns.enemyListSettings.iconSize * us.enemyListIconScale;
 end
 
 function UpdateSettings()
@@ -547,9 +558,6 @@ end);
 ashita.events.register('packet_in', 'packet_in_cb', function (e)
 	if (e.id == 0x0028) then
 		local actionPacket = ParseActionPacket(e);
-		if (config.userSettings.showTargetBar) then
-			targetBar.HandleActionPacket(actionPacket);
-		end
 		if (config.userSettings.showEnemyList) then
 			enemyList.HandleActionPacket(actionPacket);
 		end
@@ -562,4 +570,5 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
 		enemyList.HandleZonePacket(e);
 		partyList.HandleZonePacket(e);
 	end
+	debuffHandler.HandlePacket(e);
 end);

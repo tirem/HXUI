@@ -1,6 +1,8 @@
 require('common');
 require('helpers');
 local imgui = require('imgui');
+local statusHandler = require('statushandler');
+local debuffHandler = require('debuffhandler');
 
 -- TODO: Calculate these instead of manually setting them
 
@@ -62,6 +64,34 @@ targetbar.DrawWindow = function(settings, userSettings)
 		end
 		
     end
+
+	-- Draw buffs and debuffs
+	local buffIds;
+	if (targetEntity == playerEnt) then
+		buffIds = player:GetBuffs();
+	elseif (IsMemberOfParty(targetIndex)) then
+		buffIds = statusHandler.get_member_status(playerTarget:GetServerId(0));
+	else
+		buffIds = debuffHandler.GetActiveDebuffs(playerTarget:GetServerId(0));
+	end
+	
+	if (buffIds ~= nil and #buffIds > 0) then
+		local currentRow = 0;
+		for i = 0,#buffIds do
+			local icon = statusHandler.get_icon_image(buffIds[i]);
+			if (icon ~= nil) then
+				imgui.Image(icon, { settings.iconSize, settings.iconSize }, { 0, 0 }, { 1, 1 });
+				currentRow = currentRow + 1;
+				-- Handle multiple rows
+				if (currentRow < settings.maxIconColumns) then
+					imgui.SameLine();
+				else
+					currentRow = 0;
+				end
+			end
+		end
+	end
+
 	local winPosX, winPosY = imgui.GetWindowPos();
     imgui.End();
 	
@@ -107,8 +137,5 @@ targetbar.DrawWindow = function(settings, userSettings)
     imgui.End();
 end
 
-targetbar.HandleActionPacket = function(e)
-
-end
 
 return targetbar;

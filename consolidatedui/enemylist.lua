@@ -1,6 +1,8 @@
 require('common');
 require('helpers');
 local imgui = require('imgui');
+local debuffHandler = require('debuffhandler');
+local statusHandler = require('statushandler');
 
 -- TODO: Calculate these instead of manually setting them
 local bgAlpha = 0.4;
@@ -35,7 +37,7 @@ enemylist.DrawWindow = function(settings, userSettings)
 	-- Draw the main target window
 	if (imgui.Begin('EnemyList', true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
 		imgui.SetWindowFontScale(settings.textScale);
-
+		local winStartX, winStartY = imgui.GetWindowPos();
 		local playerTarget = AshitaCore:GetMemoryManager():GetTarget();
 		local targetIndex;
 		local subTargetIndex;
@@ -90,6 +92,29 @@ enemylist.DrawWindow = function(settings, userSettings)
 					local percentText  = ('%.f'):fmt(ent.HPPercent);
 					local x, _  = imgui.CalcTextSize(percentText);
 					local fauxX, _  = imgui.CalcTextSize('100');
+
+					-- Draw buffs and debuffs
+					local buffIds = debuffHandler.GetActiveDebuffs(AshitaCore:GetMemoryManager():GetEntity():GetServerId(k));
+					if (buffIds ~= nil and #buffIds > 0) then
+						imgui.SetNextWindowPos({winStartX + settings.barWidth + settings.debuffOffsetX, winY + settings.debuffOffsetY});
+						if (imgui.Begin('EnemyDebuffs'..k, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
+							local currentRow = 0;
+							for i = 0,#buffIds do
+								local icon = statusHandler.get_icon_image(buffIds[i]);
+								if (icon ~= nil) then
+									imgui.SameLine();
+									imgui.Image(icon, { settings.iconSize, settings.iconSize }, { 0, 0 }, { 1, 1 });
+									currentRow = currentRow + 1;
+									-- Handle multiple rows
+									if (i + 1 >= settings.maxIcons) then
+										break;
+									end
+								end
+							end
+						end 
+						imgui.End();
+					end
+
 					imgui.SetCursorPosX(imgui.GetCursorPosX() + fauxX - x);
 					imgui.Text(percentText);
 					imgui.SameLine();
