@@ -375,7 +375,7 @@ T{
 			visible         = true,
 			position_x      = 0,
 			position_y      = 0,
-			can_focus       = true,
+			can_focus       = false,
 			locked          = true,
 			lockedz         = true,
 			scale_x         = 1.0,

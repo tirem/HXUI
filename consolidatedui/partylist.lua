@@ -335,6 +335,7 @@ partyList.Initialize = function(settings)
         memberText[i].mp = fonts.new(settings.mp_font_settings);
         memberText[i].tp = fonts.new(settings.tp_font_settings);
     end
+    
     backgroundPrim = primitives:new(settings.primData);
     backgroundPrim.color = 0xFFFFFFFF;
     backgroundPrim.texture = string.format('%s/assets/plist_bg.png', addon.path);

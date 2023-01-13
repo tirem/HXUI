@@ -21,7 +21,12 @@ local function ApplyMessage(debuffs, action)
                 if (debuffs[target.id] == nil) then
                     debuffs[target.id] = {};
                 end
+
+                -- Find our buff Id
                 local buffId = buffTable.GetBuffIdBySpellId(spell);
+                if (buffId == nil) then
+                    return
+                end
 
                 -- Bio and Dia
                 if message == 2 or message == 264 then
