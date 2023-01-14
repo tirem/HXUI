@@ -51,9 +51,11 @@ T{
 	showInventoryTracker = true,
 	showPartyList = true,
 
-	showPartyListWhenSolo = false;
-	maxEnemyListEntries = 8;
-	showTargetBarPercent = true;
+	barRoundness = 6.0,
+
+	showPartyListWhenSolo = false,
+	maxEnemyListEntries = 8,
+	showTargetBarPercent = true,
 
 	playerBarScaleX = 1,
 	playerBarScaleY = 1,
@@ -508,6 +510,7 @@ end);
 --]]
 ashita.events.register('d3d_present', 'present_cb', function ()
 
+	imgui.PushStyleVar(ImGuiStyleVar_FrameRounding, config.userSettings.barRoundness);
 	if (config.userSettings.showPlayerBar) then
 		playerBar.DrawWindow(adjustedSettings.playerBarSettings, config.userSettings);
 	end
@@ -531,6 +534,8 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 	end
 
 	configMenu.DrawWindow(config.userSettings);
+
+	imgui.PopStyleVar(1);
 end);
 
 ashita.events.register('load', 'load_cb', function ()

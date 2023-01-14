@@ -12,27 +12,36 @@ config.DrawWindow = function(us)
             UpdateSettings();
         end
         imgui.BeginChild("Config Options", { 0, 0 }, true);
+        if (imgui.CollapsingHeader("General")) then
+            imgui.BeginChild("GeneralSettings", { 0, 100 }, true);
+            local rounding = { us.barRoundness };
+            if (imgui.SliderFloat('Bar Roundness', rounding, 0.0, 20.0, '%.1f')) then
+                us.barRoundness = rounding[1];
+                UpdateSettings();
+            end
+            imgui.EndChild();
+        end
         if (imgui.CollapsingHeader("Player Bar")) then
             imgui.BeginChild("PlayerBarSettings", { 0, 160 }, true);
-                if (imgui.Checkbox(' Enabled', { us.showPlayerBar })) then
-                    us.showPlayerBar = not us.showPlayerBar;
-                    UpdateSettings();
-                end
-                local scaleX = { us.playerBarScaleX };
-                if (imgui.SliderFloat('Scale X', scaleX, 0.1, 3.0, '%.1f')) then
-                    us.playerBarScaleX = scaleX[1];
-                    UpdateSettings();
-                end
-                local scaleY = { us.playerBarScaleY };
-                if (imgui.SliderFloat('Scale Y', scaleY, 0.1, 3.0, '%.1f')) then
-                    us.playerBarScaleY = scaleY[1];
-                    UpdateSettings();
-                end
-                local fontOffset = { us.playerBarFontOffset };
-                if (imgui.SliderInt('Font Offset', fontOffset, -5, 10)) then
-                    us.playerBarFontOffset = fontOffset[1];
-                    UpdateSettings();
-                end
+            if (imgui.Checkbox(' Enabled', { us.showPlayerBar })) then
+                us.showPlayerBar = not us.showPlayerBar;
+                UpdateSettings();
+            end
+            local scaleX = { us.playerBarScaleX };
+            if (imgui.SliderFloat('Scale X', scaleX, 0.1, 3.0, '%.1f')) then
+                us.playerBarScaleX = scaleX[1];
+                UpdateSettings();
+            end
+            local scaleY = { us.playerBarScaleY };
+            if (imgui.SliderFloat('Scale Y', scaleY, 0.1, 3.0, '%.1f')) then
+                us.playerBarScaleY = scaleY[1];
+                UpdateSettings();
+            end
+            local fontOffset = { us.playerBarFontOffset };
+            if (imgui.SliderInt('Font Offset', fontOffset, -5, 10)) then
+                us.playerBarFontOffset = fontOffset[1];
+                UpdateSettings();
+            end
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Target Bar")) then
