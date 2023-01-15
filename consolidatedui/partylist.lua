@@ -64,9 +64,8 @@ local function GetMemberInformation(memIdx)
         memberInfo.level = party:GetMemberMainJobLevel(memIdx);
         memberInfo.serverid = party:GetMemberServerId(memIdx);
         if (playerTarget ~= nil) then
-            local t1 = playerTarget:GetTargetIndex(0);
-            local t2 = playerTarget:GetTargetIndex(1);
-            local sActive = playerTarget:GetIsSubTargetActive() == 1;
+            local t1, t2 = GetTargets();
+            local sActive = GetSubTargetActive();
             local thisIdx = party:GetMemberTargetIndex(memIdx);
             memberInfo.targeted = (t1 == thisIdx and not sActive) or (t2 == thisIdx and sActive);
             memberInfo.subTargeted = (t1 == thisIdx and sActive);
@@ -110,7 +109,7 @@ local function DrawMember(memIdx, settings, userSettings)
         return;
     end
 
-    local subTargetActive = playerTarget:GetIsSubTargetActive();
+    local subTargetActive = GetSubTargetActive();
     local nameSize = SIZE.new();
     local hpSize = SIZE.new();
     memberText[memIdx].name:GetTextSize(nameSize);
@@ -227,7 +226,7 @@ local function DrawMember(memIdx, settings, userSettings)
         end
 
         -- Draw subtargeted
-        if ((memInfo.targeted == true and subTargetActive == 0) or memInfo.subTargeted) then
+        if ((memInfo.targeted == true and not subTargetActive) or memInfo.subTargeted) then
             arrowPrim.visible = true;
             arrowPrim.position_x = memberText[memIdx].name:GetPositionX() - arrowPrim:GetWidth();
             arrowPrim.position_y = memberText[memIdx].name:GetPositionY();

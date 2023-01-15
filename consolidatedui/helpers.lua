@@ -422,3 +422,44 @@ function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg)
 		end
 	end
 end
+
+function GetStPartyIndex()
+    local ptr = AshitaCore:GetPointerManager():Get('party');
+    ptr = ashita.memory.read_uint32(ptr);
+    ptr = ashita.memory.read_uint32(ptr);
+    local isActive = (ashita.memory.read_uint32(ptr + 0x54) ~= 0);
+    if isActive then
+        return ashita.memory.read_uint8(ptr + 0x50);
+    else
+        return nil;
+    end
+end
+
+function GetSubTargetActive()
+    local playerTarget = AshitaCore:GetMemoryManager():GetTarget();
+    if (playerTarget == nil) then
+        return false;
+    end
+    return playerTarget:GetIsSubTargetActive() == 1 or (GetStPartyIndex() ~= nil and playerTarget:GetTargetIndex(0) ~= 0);
+end
+
+function GetTargets()
+    local playerTarget = AshitaCore:GetMemoryManager():GetTarget();
+    local party = AshitaCore:GetMemoryManager():GetParty();
+
+    if (playerTarget == nil or party == nil) then
+        return nil, nil;
+    end
+
+    local mainTarget = playerTarget:GetTargetIndex(0);
+    local secondaryTarget = playerTarget:GetTargetIndex(1);
+    local partyTarget = GetStPartyIndex();
+
+    if (partyTarget ~= nil) then
+        secondaryTarget = mainTarget;
+        mainTarget = party:GetMemberTargetIndex(partyTarget);
+    end
+
+    return mainTarget, secondaryTarget;
+end
+

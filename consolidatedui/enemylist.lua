@@ -43,12 +43,12 @@ enemylist.DrawWindow = function(settings, userSettings)
 		local subTargetIndex;
 		local subTargetActive = false;
 		if (playerTarget ~= nil) then
-			subTargetActive = playerTarget:GetIsSubTargetActive() > 0;
+			subTargetActive = GetSubTargetActive();
+			targetIndex, subTargetIndex = GetTargets();
 			if (subTargetActive) then
-				targetIndex = playerTarget:GetTargetIndex(1);
-				subTargetIndex = playerTarget:GetTargetIndex(0);
-			else
-				targetIndex = playerTarget:GetTargetIndex(0);
+				local tempTarget = targetIndex;
+				targetIndex = subTargetIndex;
+				subTargetIndex = tempTarget;
 			end
 		end
 		

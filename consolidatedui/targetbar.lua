@@ -24,7 +24,7 @@ targetbar.DrawWindow = function(settings, userSettings)
 	local targetIndex;
 	local targetEntity;
 	if (playerTarget ~= nil) then
-		targetIndex = playerTarget:GetTargetIndex(0);
+		targetIndex, _ = GetTargets();
 		targetEntity = GetEntity(targetIndex);
 	end
     if (targetEntity == nil or targetEntity.Name == nil) then
