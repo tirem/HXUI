@@ -1,5 +1,5 @@
 # ConsolidatedUI aka HXUI (BETA)
-![alt text](https://user-images.githubusercontent.com/7691562/212447541-a5d00d47-4113-4850-978c-7f1db3bef868.png)
+![HXUI Banner](https://user-images.githubusercontent.com/7691562/212527265-4263d29d-e6d0-415b-b209-2f28f8188e33.png)
 
 Contains the following elements:
 1) Player Bar
@@ -12,4 +12,4 @@ Contains the following elements:
 8) Configuration UI for all elements
 
 Configuration UI Command: /cui, /consolidatedui, /hxui, /hui, /horixonui, /horizonxiui
-![alt text](https://user-images.githubusercontent.com/7691562/211737344-f5faa93e-7876-48d0-abfb-8f37902268f6.png)
+![HXUI Screenshot](https://user-images.githubusercontent.com/7691562/212527266-cc67e8b4-0f03-4d4b-9903-226922fb0ca2.png)
