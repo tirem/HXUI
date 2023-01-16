@@ -1,4 +1,4 @@
-# ConsolidatedUI aka HXUI (BETA)
+HXUI (BETA)
 ![HXUI Banner](https://user-images.githubusercontent.com/7691562/212527265-4263d29d-e6d0-415b-b209-2f28f8188e33.png)
 
 Contains the following elements:
