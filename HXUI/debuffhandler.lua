@@ -72,6 +72,8 @@ local function ApplyMessage(debuffs, action)
                         debuffs[target.id][buffId] = now + 5
                     elseif spell <= 229 and spell >= 220 then -- poison/2
                         debuffs[target.id][buffId] = now + 120
+                    else                                          -- Handle unknown debuff
+                        debuffs[target.id][buffId] = now + 300;
                     end
                 -- Elemental debuffs
                 elseif message == 237 or message == 278 then
@@ -87,7 +89,11 @@ local function ApplyMessage(debuffs, action)
                         debuffs[target.id][buffId] = now + 120
                     elseif spell == 240 then -- drown
                         debuffs[target.id][buffId] = now + 120
+                    else                                        -- Handle unknown debuff
+                        debuffs[target.id][buffId] = now + 300;
                     end
+                else                                            -- Handle unknown debuff
+                    debuffs[target.id][buffId] = now + 300;
                 end
             end
         end
