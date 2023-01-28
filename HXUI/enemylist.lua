@@ -129,6 +129,9 @@ end
 
 -- If a mob performns an action on us or a party member add it to the list
 enemylist.HandleActionPacket = function(e)
+	if (e == nil) then 
+		return; 
+	end
 	if (GetIsMobByIndex(e.UserIndex) and GetIsValidMob(e.UserIndex)) then
 		local partyMemberIds = GetPartyMemberIds();
 		for i = 0, #e.Targets do
@@ -141,6 +144,9 @@ end
 
 -- if a mob updates its claimid to be us or a party member add it to the list
 enemylist.HandleMobUpdatePacket = function(e)
+	if (e == nil) then 
+		return; 
+	end
 	if (e.newClaimId ~= nil and GetIsValidMob(e.monsterIndex)) then	
 		local partyMemberIds = GetPartyMemberIds();
 		if (has_value(partyMemberIds, e.newClaimId)) then

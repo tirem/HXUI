@@ -166,7 +166,7 @@ function ParseActionPacket(e)
     local bitOffset;
     local maxLength = e.size * 8;
     local function UnpackBits(length)
-        if ((bitOffset + length) > maxLength) then
+        if ((bitOffset + length) >= maxLength) then
             maxLength = 0; --Using this as a flag since any malformed fields mean the data is trash anyway.
             return 0;
         end
@@ -194,7 +194,9 @@ function ParseActionPacket(e)
             target.Id = UnpackBits(32);
             local actionCount = UnpackBits(4);
             target.Actions = T{};
-            if (actionCount > 0) then
+            if (actionCount == 0) then
+                break;
+            else
                 for j = 1,actionCount do
                     local action = {};
                     action.Reaction = UnpackBits(5);
@@ -229,18 +231,20 @@ function ParseActionPacket(e)
             actionPacket.Targets:append(target);
         end
     end
-    
-    return actionPacket;
+
+    if  (maxLength ~= 0) and (#actionPacket.Targets > 0) then
+        return actionPacket;
+    end
 end
 
-function ParseActionPacketAlt(e)
+function ParseActionPacket_Windower(e)
     -- Collect top-level metadata. The category field will provide the context
     -- for the rest of the packet - that should be enough information to figure
     -- out what each target and action field are used for.
     local maxLength = e.size * 8;
     local packet = e.data_raw;
     local function UnpackBits_Safe(bitData, bitOffset, length)
-        if ((bitOffset + length) > maxLength) then
+        if ((bitOffset + length) >= maxLength) then
             maxLength = 0; --Using this as a flag since any malformed fields mean the data is trash anyway.
             return 0;
         end
@@ -326,7 +330,9 @@ function ParseActionPacketAlt(e)
         bit_offset = bit_offset + 36
     end
 
-    return action
+    if (maxLength ~= 0 and action.target_count > 0) then
+        return action
+    end
 end
 
 
