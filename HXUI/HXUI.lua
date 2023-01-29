@@ -86,6 +86,7 @@ T{
 	partyListBuffScale = 1,
 	partyListFontOffset = 0,
 	partyListStatusTheme = 0;
+	partyListTheme = 0; -- 0: HorizonXI, 1: XIV1.0, 2: XIV
 };
 
 local user_settings_container = 

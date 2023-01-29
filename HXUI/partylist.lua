@@ -266,7 +266,7 @@ local function DrawMember(memIdx, settings, userSettings)
                     if (buffWindowX[memIdx] ~= nil) then
                         imgui.SetNextWindowPos({hpStartX - buffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name:GetPositionY() - settings.iconSize/2});
                     end
-                    if (imgui.Begin('PlayerBuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
+                    if (imgui.Begin('PlayerBuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
                         imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {5, 1});
                         DrawStatusIcons(buffs, settings.iconSize, 32, 1, true);
                         imgui.PopStyleVar(1);
@@ -281,7 +281,7 @@ local function DrawMember(memIdx, settings, userSettings)
                     if (debuffWindowX[memIdx] ~= nil) then
                         imgui.SetNextWindowPos({hpStartX - debuffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name:GetPositionY() + settings.iconSize});
                     end
-                    if (imgui.Begin('PlayerDebuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
+                    if (imgui.Begin('PlayerDebuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
                         imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {5, 1});
                         DrawStatusIcons(debuffs, settings.iconSize, 32, 1, true);
                         imgui.PopStyleVar(1);
@@ -295,7 +295,7 @@ local function DrawMember(memIdx, settings, userSettings)
                 local resetX, resetY = imgui.GetCursorScreenPos();
                 imgui.PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0} );
                 imgui.SetNextWindowPos({mpStartX, mpStartY - settings.iconSize - settings.xivBuffOffsetY})
-                if (imgui.Begin('XIVStatus'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
+                if (imgui.Begin('XIVStatus'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
                     imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 1});
                     DrawStatusIcons(memInfo.buffs, settings.iconSize, 32, 1);
                     imgui.PopStyleVar(1);
@@ -307,7 +307,7 @@ local function DrawMember(memIdx, settings, userSettings)
                 if (buffWindowX[memIdx] ~= nil) then
                     imgui.SetNextWindowPos({hpStartX - buffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name:GetPositionY() - settings.iconSize/2});
                 end
-                if (imgui.Begin('PlayerBuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
+                if (imgui.Begin('PlayerBuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
                     imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 3});
                     DrawStatusIcons(memInfo.buffs, settings.iconSize, 7, 3);
                     imgui.PopStyleVar(1);

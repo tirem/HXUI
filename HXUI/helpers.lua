@@ -237,6 +237,7 @@ function ParseActionPacket(e)
     end
 end
 
+--[[
 function ParseActionPacket_Windower(e)
     -- Collect top-level metadata. The category field will provide the context
     -- for the rest of the packet - that should be enough information to figure
@@ -334,7 +335,7 @@ function ParseActionPacket_Windower(e)
         return action
     end
 end
-
+]]--
 
 function ParseMobUpdatePacket(e)
 	if (e.id == 0x00E) then
