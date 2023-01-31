@@ -194,7 +194,16 @@ function ParseActionPacket(e)
     --Unknown 4 bits
     bitOffset = bitOffset + 4;
     actionPacket.Type = UnpackBits(4);
-    actionPacket.Id = UnpackBits(32);
+
+    -- Bandaid fix until we have more flexible packet parsing
+    if actionPacket.Type == 8 or actionPacket.Type == 9 then
+        actionPacket.Param = UnpackBits(16);
+        actionPacket.SpellGroup = UnpackBits(16);
+    else
+        -- Not every action packet has the same data at the same offsets so we just skip this for now
+        bitOffset = bitOffset + 32;
+    end
+
     actionPacket.Recast = UnpackBits(32);
 
     actionPacket.Targets = T{};

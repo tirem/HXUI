@@ -701,11 +701,13 @@ end);
 ashita.events.register('packet_in', 'packet_in_cb', function (e)
 	if (e.id == 0x0028) then
 		local actionPacket = ParseActionPacket(e);
+
 		if (config.userSettings.showEnemyList) then
 			enemyList.HandleActionPacket(actionPacket);
 		end
+
 		if (config.userSettings.showCastBar) then
-			castBar.HandleActionPacket(e);
+			castBar.HandleActionPacket(actionPacket);
 		end
 	elseif (e.id == 0x00E) then
 		local mobUpdatePacket = ParseMobUpdatePacket(e);

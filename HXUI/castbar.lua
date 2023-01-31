@@ -93,27 +93,22 @@ castbar.Initialize = function(settings)
 	percentText = fonts.new(settings.percent_font_settings);
 end
 
--- TODO: Expand ParseActionPacket to support the param field which, for casts, determines
--- whether or not the cast is starting or was interrupted.
-castbar.HandleActionPacket = function(e)
-	if (e.id == 0x28) then
-		local localPlayerId = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(0);
+castbar.HandleActionPacket = function(actionPacket)
+	local localPlayerId = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(0);
 
-		local actorId = struct.unpack('L', e.data, 0x05 + 1);
-    	local actionType = ashita.bits.unpack_be(e.data_raw, 10, 2, 4);
-    	local isStarting = ashita.bits.unpack_be(e.data_raw, 10, 6, 16) == 24931;
-    	local spellOrItemId = ashita.bits.unpack_be(e.data_raw, 0, 213, 17);
+	-- We only care about:
+	-- - Actions originating from the player
+	-- - Actions that are spell or item casts
+	-- - The aforementioned action is starting
+	if (actionPacket.UserId == localPlayerId and (actionPacket.Type == 8 or actionPacket.Type == 9) and actionPacket.Param == 0x6163) then
+		castbar.currentSpellId = nil;
+		castbar.currentItemId = nil;
 
-    	if (actorId == localPlayerId and isStarting) then
-    		castbar.currentSpellId = nil;
-    		castbar.currentItemId = nil;
-
-    		if (actionType == 8) then
-    			castbar.currentSpellId = spellOrItemId;
-    		else
-    			castbar.currentItemId = spellOrItemId;
-    		end
-    	end
+		if (actionPacket.Type == 8) then
+			castbar.currentSpellId = actionPacket.Targets[1].Actions[1].Param;
+		else
+			castbar.currentItemId = actionPacket.Targets[1].Actions[1].Param;
+		end
 	end
 end
 
