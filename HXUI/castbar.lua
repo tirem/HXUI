@@ -73,9 +73,14 @@ castbar.DrawWindow = function(settings, userSettings)
 end
 
 castbar.UpdateFonts = function(settings)
+	spellText:SetFontHeight(settings.spell_font_settings.font_height);
+	percentText:SetFontHeight(settings.percent_font_settings.font_height);
 end
 
 castbar.SetHidden = function(hidden)
+	if (hidden == true) then
+		UpdateTextVisibility(false);
+	end
 end
 
 castbar.Initialize = function(settings)

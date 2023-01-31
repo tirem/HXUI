@@ -92,6 +92,7 @@ T{
 
 	castBarScaleX = 1,
 	castBarScaleY = 1,
+	castBarFontOffset = 0,
 };
 
 local user_settings_container = 
@@ -554,6 +555,8 @@ local function UpdateUserSettings()
 	-- Cast Bar
 	adjustedSettings.castBarSettings.barWidth = ns.castBarSettings.barWidth * us.castBarScaleX;
 	adjustedSettings.castBarSettings.barHeight = ns.castBarSettings.barHeight * us.castBarScaleY;
+	adjustedSettings.castBarSettings.spell_font_settings.font_height = math.max(ns.castBarSettings.spell_font_settings.font_height + us.castBarFontOffset, 1);
+	adjustedSettings.castBarSettings.percent_font_settings.font_height = math.max(ns.castBarSettings.percent_font_settings.font_height + us.castBarFontOffset, 1);
 end
 
 function UpdateSettings()
