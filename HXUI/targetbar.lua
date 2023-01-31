@@ -3,6 +3,7 @@ require('helpers');
 local imgui = require('imgui');
 local statusHandler = require('statushandler');
 local debuffHandler = require('debuffhandler');
+local progressbar = require('progressbar');
 
 -- TODO: Calculate these instead of manually setting them
 
@@ -57,12 +58,15 @@ targetbar.DrawWindow = function(settings, userSettings)
         imgui.SetCursorPosX(imgui.GetCursorPosX() + imgui.GetColumnWidth() - x - imgui.GetStyle().FramePadding.x);
         imgui.Text(dist);
 
+        --[[
 		if (userSettings.showTargetBarPercent == true) then
 			imgui.ProgressBar(targetEntity.HPPercent / 100, { -1, settings.barHeight});
 		else
 			imgui.ProgressBar(targetEntity.HPPercent / 100, { -1, settings.barHeight}, '');
 		end
-		
+		]]--
+
+		progressbar.ProgressBar(targetEntity.HPPercent / 100, {-1, settings.barHeight}, '#e16c6c', '#fb9494');
     end
 
 	-- Draw buffs and debuffs
@@ -119,7 +123,8 @@ targetbar.DrawWindow = function(settings, userSettings)
 
 		-- Display the targets information..
 		imgui.TextColored(totColor, targetNameText);
-		imgui.ProgressBar(totEntity.HPPercent / 100, { -1, settings.totBarHeight }, '');
+		--imgui.ProgressBar(totEntity.HPPercent / 100, { -1, settings.totBarHeight }, '');
+		progressbar.ProgressBar(totEntity.HPPercent / 100, {-1, settings.totBarHeight}, '#e16c6c', '#fb9494');
     end
     imgui.End();
 end
