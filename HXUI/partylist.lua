@@ -218,7 +218,7 @@ local function DrawMember(memIdx, settings, userSettings)
         memberText[memIdx].mp:SetText(tostring(memInfo.mp));
 
         -- Update the tp text
-        if (memInfo.tp > 1000) then 
+        if (memInfo.tp >= 1000) then 
             memberText[memIdx].tp:SetColor(0xFF5b97cf);
         else
             memberText[memIdx].tp:SetColor(0xFFD1EDF2);

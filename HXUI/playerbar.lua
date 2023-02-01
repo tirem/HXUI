@@ -164,7 +164,7 @@ playerbar.DrawWindow = function(settings, userSettings)
 		tpText:SetPositionX(tpLocX - settings.barSpacing);
 		tpText:SetPositionY(tpLocY + settings.barHeight + settings.textYOffset);
 		tpText:SetText(tostring(SelfTP));
-		if (SelfTP > 1000) then 
+		if (SelfTP >= 1000) then 
 			tpText:SetColor(0xFF5b97cf);
 		else
 			tpText:SetColor(0xFFD1EDF2);
