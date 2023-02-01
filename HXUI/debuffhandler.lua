@@ -21,7 +21,7 @@ local function ApplyMessage(debuffs, action)
         for _, ability in pairs(target.Actions) do
             if action.Type == 4 then
                 -- Set up our state
-                local spell = action.Id
+                local spell = action.Param
                 local message = ability.Message
                 if (debuffs[target.Id] == nil) then
                     debuffs[target.Id] = {};
