@@ -127,14 +127,14 @@ playerbar.DrawWindow = function(settings, userSettings)
 		-- Draw TP Bars
 		local tpX = imgui.GetCursorPosX();
 		imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
-		if (SelfTP > 1000) then
+		if (SelfTP >= 1000) then
 			imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.2, 0.4, 1.0, 1.0});
 		else
 			imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.3, 0.7, 1.0, 1.0});
 		end
 		imgui.ProgressBar(SelfTP / 1000, { barSize, settings.barHeight }, '');
 		imgui.PopStyleColor(1);
-		if (SelfTP > 1000) then
+		if (SelfTP >= 1000) then
 			imgui.SameLine();
 			imgui.SetCursorPosX(tpX + settings.barSpacing);
 			imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.3, 0.7, 1.0, 1.0});
