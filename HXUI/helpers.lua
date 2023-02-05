@@ -430,7 +430,7 @@ function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg)
         local currentColumn = 0;
 
 		for i = 0,#statusIds do
-            local icon = statusHandler.get_icon_from_theme("icons",statusIds[i]);
+            local icon = statusHandler.get_icon_from_theme("hd",statusIds[i]);
             if (icon ~= nil) then
                 if (drawBg == true) then
                     local resetX, resetY = imgui.GetCursorScreenPos();
