@@ -108,8 +108,14 @@ playerbar.DrawWindow = function(settings, userSettings)
 		-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, {1,0,0,1});
 		-- imgui.ProgressBar(interpHP, { barSize, settings.barHeight }, '');
 		-- imgui.PopStyleColor(1);
+
+		local hpPercentData = {{SelfHPPercent, {'#e26c6c', '#fe9898'}}};
+
+		if interpHP > 0 then
+			table.insert(hpPercentData, {interpHP - SelfHPPercent, {'#FF0000', '#FF0000'}});
+		end
 		
-		progressbar.ProgressBar({{SelfHPPercent, {'#e26c6c', '#fe9898'}}}, {barSize, settings.barHeight});
+		progressbar.ProgressBar(hpPercentData, {barSize, settings.barHeight});
 		
 		imgui.SameLine();
 		local hpEndX = imgui.GetCursorPosX();
