@@ -86,7 +86,7 @@ playerbar.DrawWindow = function(settings)
 
 		local hpNameColor;
 		if (SelfHPPercent == 1) then
-			hpNameColor = 0xFFFEACAC;
+			hpNameColor = 0xFFFEBCBC;
 		elseif (SelfHPPercent < .25) then 
 			hpNameColor = 0xFFFF0000;
 		elseif (SelfHPPercent < .50) then;
@@ -94,7 +94,7 @@ playerbar.DrawWindow = function(settings)
 		elseif (SelfHPPercent < .75) then
 			hpNameColor = 0xFFFFFF00;
 		else
-			hpNameColor = 0xFFFDF4F4;
+			hpNameColor = 0xFFfdf4f4;
 		end
 
 		-- Draw HP Bar (two bars to fake animation
@@ -137,7 +137,7 @@ playerbar.DrawWindow = function(settings)
 		imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
 		
 		local tpGradient = {'#3898ce', '#78c4ee'};
-		local tpOverlayGradient = {'#005b96', '#005b96'};
+		local tpOverlayGradient = {'#0078CC', '#0078CC'};
 		local mainPercent;
 		local tpOverlay;
 		
@@ -145,7 +145,7 @@ playerbar.DrawWindow = function(settings)
 			-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.2, 0.4, 1.0, 1.0});
 			-- tpGradient = {'#3898ce', '#78c4ee'};
 			mainPercent = (SelfTP - 1000) / 2000;
-			tpOverlay = {{1, tpOverlayGradient}, math.ceil(settings.barHeight * 1/5), 1};
+			tpOverlay = {{1, tpOverlayGradient}, math.ceil(settings.barHeight * 2/7), 1};
 		else
 			mainPercent = SelfTP / 1000;
 			-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.3, 0.7, 1.0, 1.0});
@@ -180,9 +180,9 @@ playerbar.DrawWindow = function(settings)
 		mpText:SetText(tostring(SelfMP));
 
 		if (SelfMPPercent >= 1 or SelfMPMax == 0) then 
-			mpText:SetColor(0xFFBED78A);
+			mpText:SetColor(0xFFCBDFA1);
 		else
-			mpText:SetColor(0xFFE6F0D3);
+			mpText:SetColor(0xFFE8F1D7);
 	    end
 		
 		-- Update our TP Text
@@ -193,9 +193,9 @@ playerbar.DrawWindow = function(settings)
 --		tpText:SetColor(0xFF54abdb);
 
 		if (SelfTP >= 1000) then 
-			tpText:SetColor(0xFF337BAB);
+			tpText:SetColor(0xFF0096ff);
 		else
-			tpText:SetColor(0xFF76BBE2);
+			tpText:SetColor(0xFF8FC7E6);
 	    end
 
 		UpdateTextVisibility(true);	

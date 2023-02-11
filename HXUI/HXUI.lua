@@ -126,7 +126,7 @@ T{
 		barWidth = 500,
 		barSpacing = 10,
 		barHeight = 20,
-		textYOffset = -1,
+		textYOffset = -3,
 		font_settings = 
 		T{
 			visible = true,

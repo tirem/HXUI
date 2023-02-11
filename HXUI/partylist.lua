@@ -118,21 +118,16 @@ local function DrawMember(memIdx, settings)
 
     -- Get the hp color for bars and text
     local hpNameColor;
-    local hpBarColor;
     if (memInfo.hpp == 1) then
-        hpNameColor = 0xFFFEACAC;
+        hpNameColor = 0xFFFEBCBC;
     elseif (memInfo.hpp < .25) then 
         hpNameColor = 0xFFFF0000;
-        hpBarColor = { 1, 0, 0, 1};
     elseif (memInfo.hpp < .50) then;
         hpNameColor = 0xFFFFA500;
-        hpBarColor = { 1, 0.65, 0, 1};
     elseif (memInfo.hpp < .75) then
         hpNameColor = 0xFFFFFF00;
-        hpBarColor = { 1, 1, 0, 1};
     else
-        hpNameColor = 0xFFFDF4F4;
-        hpBarColor = { 1, 0.5, 0.5, 1};
+        hpNameColor = 0xFFfdf4f4;
     end
 
     local allBarsLengths = settings.hpBarWidth + settings.mpBarWidth + settings.tpBarWidth + (settings.barSpacing * 2) + (imgui.GetStyle().FramePadding.x * 4);
@@ -214,7 +209,7 @@ local function DrawMember(memIdx, settings)
         ]]--
 
 		local tpGradient = {'#3898ce', '#78c4ee'};
-		local tpOverlayGradient = {'#005b96', '#005b96'};
+		local tpOverlayGradient = {'#0078CC', '#0078CC'};
 		local mainPercent;
 		local tpOverlay;
 		
@@ -222,7 +217,7 @@ local function DrawMember(memIdx, settings)
 			-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.2, 0.4, 1.0, 1.0});
 			-- tpGradient = {'#3898ce', '#78c4ee'};
 			mainPercent = (memInfo.tp - 1000) / 2000;
-			tpOverlay = {{1, tpOverlayGradient}, math.ceil(settings.barHeight * 1/5), 1};
+			tpOverlay = {{1, tpOverlayGradient}, math.ceil(settings.barHeight * 2/7), 1};
 		else
 			mainPercent = memInfo.tp / 1000;
 			-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.3, 0.7, 1.0, 1.0});
@@ -235,9 +230,9 @@ local function DrawMember(memIdx, settings)
 
         -- Update the mp text
         if (memInfo.mpp >= 1) then 
-            memberText[memIdx].mp:SetColor(0xFFBED78A);
+            memberText[memIdx].mp:SetColor(0xFFCBDFA1);
         else
-            memberText[memIdx].mp:SetColor(0xFFE6F0D3);
+            memberText[memIdx].mp:SetColor(0xFFE8F1D7);
         end
         memberText[memIdx].mp:SetPositionX(mpStartX + settings.mpBarWidth + settings.mpTextOffsetX);
         memberText[memIdx].mp:SetPositionY(mpStartY + settings.barHeight + settings.mpTextOffsetY);
@@ -245,9 +240,9 @@ local function DrawMember(memIdx, settings)
 
         -- Update the tp text
         if (memInfo.tp >= 1000) then 
-            memberText[memIdx].tp:SetColor(0xFF337BAB);
+            memberText[memIdx].tp:SetColor(0xFF0096ff);
         else
-            memberText[memIdx].tp:SetColor(0xFF76BBE2);
+            memberText[memIdx].tp:SetColor(0xFF8FC7E6);
         end	
         memberText[memIdx].tp:SetPositionX(tpStartX + settings.tpBarWidth + settings.tpTextOffsetX);
         memberText[memIdx].tp:SetPositionY(tpStartY + settings.barHeight + settings.tpTextOffsetY);
