@@ -3,6 +3,7 @@ require('helpers');
 local imgui = require('imgui');
 local debuffHandler = require('debuffhandler');
 local statusHandler = require('statushandler');
+local progressbar = require('progressbar');
 
 -- TODO: Calculate these instead of manually setting them
 local bgAlpha = 0.4;
@@ -109,7 +110,8 @@ enemylist.DrawWindow = function(settings, userSettings)
 					imgui.Text(percentText);
 					imgui.SameLine();
 					imgui.SetCursorPosX(imgui.GetCursorPosX() - 3);
-					imgui.ProgressBar(ent.HPPercent / 100, { -1, settings.barHeight}, '');
+					-- imgui.ProgressBar(ent.HPPercent / 100, { -1, settings.barHeight}, '');
+					progressbar.ProgressBar({{ent.HPPercent / 100, {'#e16c6c', '#fb9494'}}}, {-1, settings.barHeight});
 					imgui.SameLine();
 
 					imgui.Separator();

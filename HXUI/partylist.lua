@@ -4,6 +4,7 @@ local fonts = require('fonts');
 local primitives = require('primitives');
 local statusHandler = require('statushandler');
 local buffTable = require('bufftable');
+local progressbar = require('progressbar');
 
 local fullMenuSizeX;
 local fullMenuSizeY;
@@ -157,13 +158,14 @@ local function DrawMember(memIdx, settings, userSettings)
 
     -- Draw the HP bar
     memberText[memIdx].hp:SetColor(hpNameColor);
-    imgui.PushStyleColor(ImGuiCol_PlotHistogram, hpBarColor);
     if (memInfo.inzone) then
-        imgui.ProgressBar(memInfo.hpp, { settings.hpBarWidth, settings.barHeight }, '');
+        -- imgui.ProgressBar(memInfo.hpp, { settings.hpBarWidth, settings.barHeight }, '');
+        progressbar.ProgressBar({{memInfo.hpp, {'#e16c6c', '#fb9494'}}}, {settings.hpBarWidth, settings.barHeight});
     else
+        imgui.PushStyleColor(ImGuiCol_PlotHistogram, hpBarColor);
         imgui.ProgressBar(0, { allBarsLengths, settings.barHeight + hpSize.cy + settings.hpTextOffsetY}, AshitaCore:GetResourceManager():GetString("zones.names", memInfo.zone));
+        imgui.PopStyleColor(1);
     end
-    imgui.PopStyleColor(1);
 
     -- Draw the leader icon
     if (memInfo.leader) then
@@ -182,9 +184,10 @@ local function DrawMember(memIdx, settings, userSettings)
         local mpStartX, mpStartY; 
         imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
         mpStartX, mpStartY = imgui.GetCursorScreenPos();
-        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.9, 1.0, 0.5, 1.0});
-        imgui.ProgressBar(memInfo.mpp, {  settings.mpBarWidth, settings.barHeight }, '');
-        imgui.PopStyleColor(1);
+        -- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.9, 1.0, 0.5, 1.0});
+        -- imgui.ProgressBar(memInfo.mpp, {  settings.mpBarWidth, settings.barHeight }, '');
+        -- imgui.PopStyleColor(1);
+        progressbar.ProgressBar({{memInfo.mpp, {'#9abb5a', '#bfe07d'}}}, {settings.mpBarWidth, settings.barHeight});
         imgui.SameLine();
 
         -- Draw the TP bar
@@ -192,6 +195,7 @@ local function DrawMember(memIdx, settings, userSettings)
         imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
         tpStartX, tpStartY = imgui.GetCursorScreenPos();
         local tpX = imgui.GetCursorPosX();
+        --[[
         if (memInfo.tp >= 1000) then
             imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.2, 0.4, 1.0, 1.0});
         else
@@ -206,6 +210,16 @@ local function DrawMember(memIdx, settings, userSettings)
             imgui.ProgressBar((memInfo.tp - 1000) / 2000, { settings.tpBarWidth, settings.barHeight * 3/5 }, '');
             imgui.PopStyleColor(1);
         end
+        ]]--
+
+        local tpGradient = {'#3898ce', '#78c4ee'};
+        local tpOverlay;
+
+        if (memInfo.tp >= 1000) then
+            tpOverlay = {{1, tpGradient}, math.ceil(settings.barHeight * 1/5), 1};
+        end
+
+        progressbar.ProgressBar({{memInfo.tp / 3000, tpGradient}}, {settings.tpBarWidth, settings.barHeight}, true, tpOverlay);
 
         -- Update the mp text
         if (memInfo.mpp >= 1) then 

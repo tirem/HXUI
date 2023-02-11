@@ -66,23 +66,23 @@ function GetGradient(startColor, endColor)
 	if not texture then
 		local image = MakeGradientBitmap(startColor, endColor);
 
-	    local texture_ptr = ffi.new('IDirect3DTexture8*[1]');
+    local texture_ptr = ffi.new('IDirect3DTexture8*[1]');
 
-	    local res = ffi.C.D3DXCreateTextureFromFileInMemory(d3d8dev, image:binary(), #image:binary(), texture_ptr);
+    local res = ffi.C.D3DXCreateTextureFromFileInMemory(d3d8dev, image:binary(), #image:binary(), texture_ptr);
 
-	    if (res ~= ffi.C.S_OK) then
-	        error(('%08X (%s)'):fmt(res, d3d.get_error(res)));
-	    end
+    if (res ~= ffi.C.S_OK) then
+        error(('%08X (%s)'):fmt(res, d3d.get_error(res)));
+    end
 
-	    texture = {
-	    	startColor = startColor,
-	    	endColor = endColor,
-	    	texture = ffi.new('IDirect3DTexture8*', texture_ptr[0])
-	    }
+    texture = {
+    	startColor = startColor,
+    	endColor = endColor,
+    	texture = ffi.new('IDirect3DTexture8*', texture_ptr[0])
+    }
 
-	    d3d.gc_safe_release(texture.texture);
+    d3d.gc_safe_release(texture.texture);
 
-	    table.insert(progressbar.gradientTextures, texture);
+    table.insert(progressbar.gradientTextures, texture);
 	end
 
 	return tonumber(ffi.cast("uint32_t", texture.texture));
