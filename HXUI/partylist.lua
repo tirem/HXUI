@@ -119,7 +119,9 @@ local function DrawMember(memIdx, settings)
     -- Get the hp color for bars and text
     local hpNameColor;
     local hpBarColor;
-    if (memInfo.hpp < .25) then 
+    if (memInfo.hpp == 1) then
+        hpNameColor = 0xFFFEACAC;
+    elseif (memInfo.hpp < .25) then 
         hpNameColor = 0xFFFF0000;
         hpBarColor = { 1, 0, 0, 1};
     elseif (memInfo.hpp < .50) then;
@@ -129,7 +131,7 @@ local function DrawMember(memIdx, settings)
         hpNameColor = 0xFFFFFF00;
         hpBarColor = { 1, 1, 0, 1};
     else
-        hpNameColor = 0xFFFFFFFF;
+        hpNameColor = 0xFFFDF4F4;
         hpBarColor = { 1, 0.5, 0.5, 1};
     end
 
@@ -157,7 +159,6 @@ local function DrawMember(memIdx, settings)
     memberText[memIdx].hp:SetText(tostring(memInfo.hp));
 
     -- Draw the HP bar
-    memberText[memIdx].hp:SetColor(hpNameColor);
     if (memInfo.inzone) then
         -- imgui.ProgressBar(memInfo.hpp, { settings.hpBarWidth, settings.barHeight }, '');
         progressbar.ProgressBar({{memInfo.hpp, {'#e16c6c', '#fb9494'}}}, {settings.hpBarWidth, settings.barHeight});
@@ -212,20 +213,31 @@ local function DrawMember(memIdx, settings)
         end
         ]]--
 
-        local tpGradient = {'#3898ce', '#78c4ee'};
-        local tpOverlay;
-
-        if (memInfo.tp >= 1000) then
-            tpOverlay = {{1, tpGradient}, math.ceil(settings.barHeight * 1/5), 1};
-        end
-
-        progressbar.ProgressBar({{memInfo.tp / 3000, tpGradient}}, {settings.tpBarWidth, settings.barHeight}, true, tpOverlay);
+		local tpGradient = {'#3898ce', '#78c4ee'};
+		local tpOverlayGradient = {'#005b96', '#005b96'};
+		local mainPercent;
+		local tpOverlay;
+		
+		if (memInfo.tp >= 1000) then
+			-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.2, 0.4, 1.0, 1.0});
+			-- tpGradient = {'#3898ce', '#78c4ee'};
+			mainPercent = (memInfo.tp - 1000) / 2000;
+			tpOverlay = {{1, tpOverlayGradient}, math.ceil(settings.barHeight * 1/5), 1};
+		else
+			mainPercent = memInfo.tp / 1000;
+			-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.3, 0.7, 1.0, 1.0});
+			-- tpGradient = {'#4db2ff', '#4db2ff'};
+		end
+		
+		-- imgui.ProgressBar(SelfTP / 1000, { barSize, settings.barHeight }, '');
+		-- imgui.PopStyleColor(1);
+		progressbar.ProgressBar({{mainPercent, tpGradient}}, {settings.tpBarWidth, settings.barHeight}, true, tpOverlay);
 
         -- Update the mp text
         if (memInfo.mpp >= 1) then 
-            memberText[memIdx].mp:SetColor(0xFFCFFBCF);
+            memberText[memIdx].mp:SetColor(0xFFBED78A);
         else
-            memberText[memIdx].mp:SetColor(0xFFFFFFFF);
+            memberText[memIdx].mp:SetColor(0xFFE6F0D3);
         end
         memberText[memIdx].mp:SetPositionX(mpStartX + settings.mpBarWidth + settings.mpTextOffsetX);
         memberText[memIdx].mp:SetPositionY(mpStartY + settings.barHeight + settings.mpTextOffsetY);
@@ -233,9 +245,9 @@ local function DrawMember(memIdx, settings)
 
         -- Update the tp text
         if (memInfo.tp >= 1000) then 
-            memberText[memIdx].tp:SetColor(0xFF5b97cf);
+            memberText[memIdx].tp:SetColor(0xFF337BAB);
         else
-            memberText[memIdx].tp:SetColor(0xFFD1EDF2);
+            memberText[memIdx].tp:SetColor(0xFF76BBE2);
         end	
         memberText[memIdx].tp:SetPositionX(tpStartX + settings.tpBarWidth + settings.tpTextOffsetX);
         memberText[memIdx].tp:SetPositionY(tpStartY + settings.barHeight + settings.tpTextOffsetY);

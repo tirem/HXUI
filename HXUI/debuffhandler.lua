@@ -119,14 +119,16 @@ local function ClearMessage(debuffs, basic)
     end
 end
 
-debuffHandler.HandlePacket = function(e)
-    if e.id == 0x0A then
-        debuffHandler.enemies = {};
-    elseif e.id == 0x0028 then
-        ApplyMessage(debuffHandler.enemies, ParseActionPacket(e));
-    elseif e.id == 0x0029 then
-        ClearMessage(debuffHandler.enemies, ParseMessagePacket(e.data))
-    end
+debuffHandler.HandleActionPacket = function(e)
+    ApplyMessage(debuffHandler.enemies, e);
+end
+
+debuffHandler.HandleZonePacket = function(e)
+    debuffHandler.enemies = {};
+end
+
+debuffHandler.HandleMessagePacket = function(e)
+    ClearMessage(debuffHandler.enemies, e)
 end
 
 debuffHandler.GetActiveDebuffs = function(serverId)

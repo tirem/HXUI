@@ -709,6 +709,8 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
 			if (gConfig.showCastBar) then
 				castBar.HandleActionPacket(actionPacket);
 			end
+
+			debuffHandler.HandleActionPacket(actionPacket);
 		end
 	elseif (e.id == 0x00E) then
 		local mobUpdatePacket = ParseMobUpdatePacket(e);
@@ -718,6 +720,11 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
 	elseif (e.id == 0x00A) then
 		enemyList.HandleZonePacket(e);
 		partyList.HandleZonePacket(e);
+		debuffHandler.HandleZonePacket(e);
+	elseif (e.id == 0x0029) then
+		local messagePacket = ParseMessagePacket(e.data);
+		if (messagePacket) then
+			debuffHandler.HandleMessagePacket(messagePacket);
+		end
 	end
-	debuffHandler.HandlePacket(e);
 end);
