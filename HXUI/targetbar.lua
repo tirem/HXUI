@@ -52,7 +52,8 @@ targetbar.DrawWindow = function(settings)
     	local hppDelta = targetbar.previousHPP - targetbar.currentHPP;
 
     	if currentTime > targetbar.lastHitTime + settings.hitDelayLength then
-    		local interpolationTimeTotal = settings.hitInterpolationMaxTime * (hppDelta / 100);
+    		-- local interpolationTimeTotal = settings.hitInterpolationMaxTime * (hppDelta / 100);
+    		local interpolationTimeTotal = settings.hitInterpolationMaxTime;
     		local interpolationTimeElapsed = currentTime - targetbar.lastHitTime - settings.hitDelayLength;
 
     		if interpolationTimeElapsed <= interpolationTimeTotal then
