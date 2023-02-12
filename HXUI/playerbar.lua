@@ -85,16 +85,23 @@ playerbar.DrawWindow = function(settings)
 		local SelfTP = party:GetMemberTP(0);
 
 		local hpNameColor;
+		local hpGradient;
+
 		if (SelfHPPercent == 1) then
 			hpNameColor = 0xFFFEBCBC;
+			hpGradient = {"#eb7373", "#fa9c9c"};
 		elseif (SelfHPPercent < .25) then 
 			hpNameColor = 0xFFFF0000;
+			hpGradient = {"#ec3232", "#f16161"};
 		elseif (SelfHPPercent < .50) then;
 			hpNameColor = 0xFFFFA500;
+			hpGradient = {"#ee9c06", "#ecb44e"};
 		elseif (SelfHPPercent < .75) then
 			hpNameColor = 0xFFFFFF00;
+			hpGradient = {"#ffff0c", "#ffff97"};
 		else
 			hpNameColor = 0xFFfdf4f4;
+			hpGradient = {"#fdf4f4", "#fdf4f4"};
 		end
 
 		local barCount = 3;
@@ -110,7 +117,7 @@ playerbar.DrawWindow = function(settings)
 		-- imgui.ProgressBar(interpHP, { barSize, settings.barHeight }, '');
 		-- imgui.PopStyleColor(1);
 
-		local hpPercentData = {{SelfHPPercent, {'#e26c6c', '#fe9898'}}};
+		local hpPercentData = {{SelfHPPercent, hpGradient}};
 
 		if interpHP > 0 then
 			table.insert(hpPercentData, {interpHP - SelfHPPercent, {'#FF0000', '#FF0000'}});

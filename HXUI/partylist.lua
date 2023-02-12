@@ -118,16 +118,23 @@ local function DrawMember(memIdx, settings)
 
     -- Get the hp color for bars and text
     local hpNameColor;
+    local hpGradient;
+
     if (memInfo.hpp == 1) then
         hpNameColor = 0xFFFEBCBC;
+        hpGradient = {"#eb7373", "#fa9c9c"};
     elseif (memInfo.hpp < .25) then 
         hpNameColor = 0xFFFF0000;
+        hpGradient = {"#ec3232", "#f16161"};
     elseif (memInfo.hpp < .50) then;
         hpNameColor = 0xFFFFA500;
+        hpGradient = {"#ee9c06", "#ecb44e"};
     elseif (memInfo.hpp < .75) then
         hpNameColor = 0xFFFFFF00;
+        hpGradient = {"#ffff0c", "#ffff97"};
     else
         hpNameColor = 0xFFfdf4f4;
+        hpGradient = {"#fdf4f4", "#fdf4f4"};
     end
 
     local allBarsLengths = settings.hpBarWidth + settings.mpBarWidth + settings.tpBarWidth + (settings.barSpacing * 2) + (imgui.GetStyle().FramePadding.x * 4);
@@ -156,7 +163,7 @@ local function DrawMember(memIdx, settings)
     -- Draw the HP bar
     if (memInfo.inzone) then
         -- imgui.ProgressBar(memInfo.hpp, { settings.hpBarWidth, settings.barHeight }, '');
-        progressbar.ProgressBar({{memInfo.hpp, {'#e16c6c', '#fb9494'}}}, {settings.hpBarWidth, settings.barHeight});
+        progressbar.ProgressBar({{memInfo.hpp, hpGradient}}, {settings.hpBarWidth, settings.barHeight});
     else
 --        imgui.PushStyleColor(ImGuiCol_PlotHistogram, hpBarColor);
         imgui.ProgressBar(0, { allBarsLengths, settings.barHeight + hpSize.cy + settings.hpTextOffsetY}, AshitaCore:GetResourceManager():GetString("zones.names", memInfo.zone));
