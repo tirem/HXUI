@@ -120,9 +120,9 @@ local function DrawMember(memIdx, settings)
     local hpNameColor;
     local hpGradient;
 
-    if (memInfo.hpp == 1) then
-        hpNameColor = 0xFFFEBCBC;
-        hpGradient = {"#eb7373", "#fa9c9c"};
+    if (memInfo.hpp == 0) then
+        hpNameColor = 0xFFfdf4f4;
+        hpGradient = {"#fdf4f4", "#fdf4f4"};
     elseif (memInfo.hpp < .25) then 
         hpNameColor = 0xFFFF0000;
         hpGradient = {"#ec3232", "#f16161"};
@@ -133,8 +133,8 @@ local function DrawMember(memIdx, settings)
         hpNameColor = 0xFFFFFF00;
         hpGradient = {"#ffff0c", "#ffff97"};
     else
-        hpNameColor = 0xFFfdf4f4;
-        hpGradient = {"#fdf4f4", "#fdf4f4"};
+        hpNameColor = 0xFFFEBCBC;
+        hpGradient = {"#eb7373", "#fa9c9c"};
     end
 
     local allBarsLengths = settings.hpBarWidth + settings.mpBarWidth + settings.tpBarWidth + (settings.barSpacing * 2) + (imgui.GetStyle().FramePadding.x * 4);
