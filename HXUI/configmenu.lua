@@ -59,14 +59,15 @@ config.DrawWindow = function(us)
         end
         if (imgui.CollapsingHeader("Player Bar")) then
             imgui.BeginChild("PlayerBarSettings", { 0, 160 }, true);
-            if (imgui.Checkbox(' Enabled', { gConfig.showPlayerBar })) then
+            if (imgui.Checkbox('Enabled', { gConfig.showPlayerBar })) then
                 gConfig.showPlayerBar = not gConfig.showPlayerBar;
                 UpdateSettings();
             end
-            if (imgui.Checkbox(' Show MP Bar', { gConfig.showPlayerMpBar })) then
-                gConfig.showPlayerMpBar = not gConfig.showPlayerMpBar;
+            if (imgui.Checkbox('Always Show MP Bar', { gConfig.alwaysShowMpBar })) then
+                gConfig.alwaysShowMpBar = not gConfig.alwaysShowMpBar;
                 UpdateSettings();
             end
+            imgui.ShowHelp('Always display the MP Bar even if your current jobs cannot cast spells.'); 
             local scaleX = { gConfig.playerBarScaleX };
             if (imgui.SliderFloat('Scale X', scaleX, 0.1, 3.0, '%.1f')) then
                 gConfig.playerBarScaleX = scaleX[1];
@@ -86,11 +87,11 @@ config.DrawWindow = function(us)
         end
         if (imgui.CollapsingHeader("Target Bar")) then
             imgui.BeginChild("TargetBarSettings", { 0, 160 }, true);
-            if (imgui.Checkbox(' Enabled', { gConfig.showTargetBar })) then
+            if (imgui.Checkbox('Enabled', { gConfig.showTargetBar })) then
                 gConfig.showTargetBar = not gConfig.showTargetBar;
                 UpdateSettings();
             end
-            if (imgui.Checkbox(' Show Percent', { gConfig.showTargetBarPercent })) then
+            if (imgui.Checkbox('Show Percent', { gConfig.showTargetBarPercent })) then
                 gConfig.showTargetBarPercent = not gConfig.showTargetBarPercent;
                 UpdateSettings();
             end
@@ -146,11 +147,11 @@ config.DrawWindow = function(us)
         end
         if (imgui.CollapsingHeader("Party List")) then
             imgui.BeginChild("PartyListSettings", { 0, 160 }, true);
-            if (imgui.Checkbox(' Enabled', { gConfig.showPartyList })) then
+            if (imgui.Checkbox('Enabled', { gConfig.showPartyList })) then
                 gConfig.showPartyList = not gConfig.showPartyList;
                 UpdateSettings();
             end
-            if (imgui.Checkbox(' Show When Solo', { gConfig.showPartyListWhenSolo })) then
+            if (imgui.Checkbox('Show When Solo', { gConfig.showPartyListWhenSolo })) then
                 gConfig.showPartyListWhenSolo = not gConfig.showPartyListWhenSolo;
                 UpdateSettings();
             end

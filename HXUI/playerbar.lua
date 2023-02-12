@@ -2,6 +2,7 @@ require('common');
 local imgui = require('imgui');
 local fonts = require('fonts');
 local progressbar = require('progressbar');
+local buffTable = require('bufftable');
 
 local interpolatedHP = 0;
 local lastHP = 0;
@@ -87,6 +88,10 @@ playerbar.DrawWindow = function(settings)
 		local hpNameColor;
 		local hpGradient;
 
+		local SelfJob = GetJobStr(party:GetMemberMainJob(0));
+		local SelfSubJob = GetJobStr(party:GetMemberSubJob(0));
+		local bShowMp = buffTable.IsSpellcaster(SelfJob) or buffTable.IsSpellcaster(SelfSubJob) or gConfig.alwaysShowMpBar;
+
 		if (SelfHPPercent == 1) then
 			hpNameColor = 0xFFFEBCBC;
 			hpGradient = {"#eb7373", "#fa9c9c"};
@@ -104,15 +109,9 @@ playerbar.DrawWindow = function(settings)
 			hpGradient = {"#fdf4f4", "#fdf4f4"};
 		end
 
-		local barCount = 3;
-
-		if not settings.showMpBar then
-			barCount = 2;
-		end
-
 		-- Draw HP Bar (two bars to fake animation
 		local hpX = imgui.GetCursorPosX();
-		local barSize = (settings.barWidth / barCount) - settings.barSpacing;
+		local barSize = (settings.barWidth / 3) - settings.barSpacing;
 		-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, {1,0,0,1});
 		-- imgui.ProgressBar(interpHP, { barSize, settings.barHeight }, '');
 		-- imgui.PopStyleColor(1);
@@ -121,6 +120,11 @@ playerbar.DrawWindow = function(settings)
 
 		if interpHP > 0 then
 			table.insert(hpPercentData, {interpHP - SelfHPPercent, {'#FF0000', '#FF0000'}});
+		end
+
+		if (bShowMp == false) then
+			imgui.Dummy({(barSize + settings.barSpacing) / 2, 0});
+			imgui.SameLine();
 		end
 		
 		progressbar.ProgressBar(hpPercentData, {barSize, settings.barHeight});
@@ -139,7 +143,7 @@ playerbar.DrawWindow = function(settings)
 		local mpLocX
 		local mpLocY;
 		
-		if settings.showMpBar then
+		if (bShowMp) then
 			-- Draw MP Bar
 			imgui.SetCursorPosX(hpEndX + settings.barSpacing);
 			-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.9, 1.0, 0.5, 1.0});
@@ -192,7 +196,9 @@ playerbar.DrawWindow = function(settings)
 		hpText:SetText(tostring(SelfHP));
 		hpText:SetColor(hpNameColor);
 		
-		if settings.showMpBar then
+		hpText:SetVisible(true);
+
+		if (bShowMp) then
 			-- Update our MP Text
 			mpText:SetPositionX(mpLocX - settings.barSpacing - settings.barHeight / 2);
 			mpText:SetPositionY(mpLocY + settings.barHeight + settings.textYOffset);
@@ -204,6 +210,7 @@ playerbar.DrawWindow = function(settings)
 				mpText:SetColor(0xFFE8F1D7);
 		    end
 		end
+		mpText:SetVisible(bShowMp);
 			
 		-- Update our TP Text
 		tpText:SetPositionX(tpLocX - settings.barSpacing - settings.barHeight / 2);
@@ -211,18 +218,14 @@ playerbar.DrawWindow = function(settings)
 		tpText:SetText(tostring(SelfTP));
 
 --		tpText:SetColor(0xFF54abdb);
-
 		if (SelfTP >= 1000) then 
 			tpText:SetColor(0xFF0096ff);
 		else
 			tpText:SetColor(0xFF8FC7E6);
 	    end
+		tpText:SetVisible(true);
 
-		UpdateTextVisibility(true);
 
-		if not settings.showMpBar then
-			mpText:SetVisible(false);
-		end
 	
     end
 	imgui.End();

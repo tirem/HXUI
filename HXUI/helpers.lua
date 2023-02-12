@@ -506,3 +506,10 @@ function GetTargets()
     return mainTarget, secondaryTarget;
 end
 
+function GetJobStr(jobIdx)
+    if (jobIdx == nil or jobIdx == 0 or jobIdx == -1) then
+        return '';
+    end
+
+    return AshitaCore:GetResourceManager():GetString("jobs.names_abbr", jobIdx);
+end

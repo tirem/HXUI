@@ -1,72 +1,187 @@
 require('common');
 
-local buffTable = 
-{
-    spellToDebuff = T{};
+local buffTable = {};
+    
+buffTable.spellToDebuff = T{
+    [230] = 135, --bio
+    [23] = 134, --dia
+    [24] = 134, --dia_II
+    [25] = 134, --dia_III
+    [58] = 4, --paralyze
+    [80] = 4, --paralyze_II
+    [56] = 13, --slow
+    [79] = 13, --slow_II
+    [357] = 13, -- slowga
+    [216] = 12, --gravity
+    [217] = 12, --gravity_II
+    [254] = 5, --blind
+    [276] = 5, --blind_II
+    [361] = 5, --blindga
+    [59] = 6, --silence
+    [359] = 6, --silencega
+    [253] = 2, --sleep
+    [259] = 2, --sleep_II
+    [273] = 2, --sleepga
+    [274] = 2, --sleepga_II
+    [258] = 11, --bind
+    [362] = 11, --bindga
+    [252] = 10, --stun
+    [220] = 3, --poison
+    [221] = 3, --poison_II
+    [222] = 3, --poison_III
+    [223] = 3, --poison_IV
+    [224] = 3, --poison_V
+    [225] = 3, --poisonga
+    [226] = 3, --poisonga_II
+    [227] = 3, --poisonga_III
+    [228] = 3, --poisonga_IV
+    [229] = 3, --poisonga_V
+    [536] = 3, --poison_breath ? is this correct?
+    [239] = 132, --shock
+    [238] = 131, --rasp
+    [237] = 130, --choke
+    [236] = 129, --frost
+    [608] = 129, --frost_breath ? is this correct?
+    [235] = 128, --burn
+    [240] = 133, --drown
+    [421] = 194, --battlefield_elegy
+    [422] = 194, --carnage_elegy
+    [423] = 194, --massacre_elegy
+    [368] = 192, --requiem_1
+    [369] = 192, --requiem_2
+    [370] = 192, --requiem_3
+    [371] = 192, --requiem_4
+    [372] = 192, --requiem_5
+    [373] = 192, --requiem_6
+    [463] = 193, --foe_lullaby
+    [376] = 193, --horde_lullaby
+    [454] = 217, --fire_threnody
+    [455] = 217, --ice_threnody
+    [456] = 217, --wind_threnody
+    [457] = 217, --earth_threnody
+    [458] = 217, --lightning_threnody
+    [459] = 217, --water_threnody
+    [460] = 217, --light_threnody
+    [461] = 217, --dark_threnody
 };
 
--- initialize our spell to debuff table for lookups later
---spellID = debuffID
-buffTable.spellToDebuff[230] = 135 --bio
-buffTable.spellToDebuff[23] = 134 --dia
-buffTable.spellToDebuff[24] = 134 --dia_II
-buffTable.spellToDebuff[25] = 134 --dia_III
-buffTable.spellToDebuff[58] = 4 --paralyze
-buffTable.spellToDebuff[80] = 4 --paralyze_II
-buffTable.spellToDebuff[56] = 13 --slow
-buffTable.spellToDebuff[79] = 13 --slow_II
-buffTable.spellToDebuff[357] = 13 -- slowga
-buffTable.spellToDebuff[216] = 12 --gravity
-buffTable.spellToDebuff[217] = 12 --gravity_II
-buffTable.spellToDebuff[254] = 5 --blind
-buffTable.spellToDebuff[276] = 5 --blind_II
-buffTable.spellToDebuff[361] = 5 --blindga
-buffTable.spellToDebuff[59] = 6 --silence
-buffTable.spellToDebuff[359] = 6 --silencega
-buffTable.spellToDebuff[253] = 2 --sleep
-buffTable.spellToDebuff[259] = 2 --sleep_II
-buffTable.spellToDebuff[273] = 2 --sleepga
-buffTable.spellToDebuff[274] = 2 --sleepga_II
-buffTable.spellToDebuff[258] = 11 --bind
-buffTable.spellToDebuff[362] = 11 --bindga
-buffTable.spellToDebuff[252] = 10 --stun
-buffTable.spellToDebuff[220] = 3 --poison
-buffTable.spellToDebuff[221] = 3 --poison_II
-buffTable.spellToDebuff[222] = 3 --poison_III
-buffTable.spellToDebuff[223] = 3 --poison_IV
-buffTable.spellToDebuff[224] = 3 --poison_V
-buffTable.spellToDebuff[225] = 3 --poisonga
-buffTable.spellToDebuff[226] = 3 --poisonga_II
-buffTable.spellToDebuff[227] = 3 --poisonga_III
-buffTable.spellToDebuff[228] = 3 --poisonga_IV
-buffTable.spellToDebuff[229] = 3 --poisonga_V
-buffTable.spellToDebuff[536] = 3 --poison_breath ? is this correct?
-buffTable.spellToDebuff[239] = 132 --shock
-buffTable.spellToDebuff[238] = 131 --rasp
-buffTable.spellToDebuff[237] = 130 --choke
-buffTable.spellToDebuff[236] = 129 --frost
-buffTable.spellToDebuff[608] = 129 --frost_breath ? is this correct?
-buffTable.spellToDebuff[235] = 128 --burn
-buffTable.spellToDebuff[240] = 133 --drown
-buffTable.spellToDebuff[421] = 194 --battlefield_elegy
-buffTable.spellToDebuff[422] = 194 --carnage_elegy
-buffTable.spellToDebuff[423] = 194 --massacre_elegy
-buffTable.spellToDebuff[368] = 192 --requiem_1
-buffTable.spellToDebuff[369] = 192 --requiem_2
-buffTable.spellToDebuff[370] = 192 --requiem_3
-buffTable.spellToDebuff[371] = 192 --requiem_4
-buffTable.spellToDebuff[372] = 192 --requiem_5
-buffTable.spellToDebuff[373] = 192 --requiem_6
-buffTable.spellToDebuff[463] = 193 --foe_lullaby
-buffTable.spellToDebuff[376] = 193 --horde_lullaby
-buffTable.spellToDebuff[454] = 217 --fire_threnody
-buffTable.spellToDebuff[455] = 217 --ice_threnody
-buffTable.spellToDebuff[456] = 217 --wind_threnody
-buffTable.spellToDebuff[457] = 217 --earth_threnody
-buffTable.spellToDebuff[458] = 217 --lightning_threnody
-buffTable.spellToDebuff[459] = 217 --water_threnody
-buffTable.spellToDebuff[460] = 217 --light_threnody
-buffTable.spellToDebuff[461] = 217 --dark_threnody
+
+buffTable.spAbilitys = T{
+    ['WAR'] = 'Mighty Strikes',
+    ['MNK'] = 'Hundred Fists',
+    ['WHM'] = 'Benediction',
+    ['BLM'] = 'Manafont',
+    ['RDM'] = 'Chainspell',
+    ['THF'] = 'Perfect Dodge',
+    ['PLD'] = 'Invincible',
+    ['DRK'] = 'Blood Weapon',
+    ['BST'] = 'Familiar',
+    ['BRD'] = 'Soul Voice',
+    ['RNG'] = 'Eagle Eye Shot',
+    ['SAM'] = 'Meikyo Shisui',
+    ['NIN'] = 'Mijin Gakure',
+    ['DRG'] = 'Spirit Surge',
+    ['SMN'] = 'Astral Flow',
+    ['BLU'] = 'Azure Lore',
+    ['COR'] = 'Wild Card',
+    ['PUP'] = 'Overdrive',
+    ['DNC'] = 'Trance',
+    ['SCH'] = 'Tabula Rasa',
+    ['GEO'] = 'Bolster',
+    ['RUN'] = 'Elemental Sforzo'
+}
+
+buffTable.spellcasters = T{
+    ['WHM'] = 1,
+    ['BLM'] = 1,
+    ['RDM'] = 1,
+    ['PLD'] = 1,
+    ['DRK'] = 1,
+    ['BRD'] = 1,
+    ['NIN'] = 1,
+    ['SMN'] = 1,
+    ['BLU'] = 1,
+    ['COR'] = 1,
+    ['DNC'] = 1,
+    ['SCH'] = 1,
+    ['GEO'] = 1,
+    ['RUN'] = 1,
+}
+
+buffTable.jugPets = T{
+    ['HareFamiliar'] = 1,
+    ['SheepFamiliar'] = 1,
+    ['FlowerpotBill'] = 1,
+    ['TigerFamiliar'] = 1,
+    ['FlytrapFamiliar'] = 1,
+    ['LizardFamiliar'] = 1,
+    ['MayflyFamiliar'] = 1,
+    ['EftFamiliar'] = 1,
+    ['BeetleFamiliar'] = 1,
+    ['AntlionFamiliar'] = 1,
+    ['CrabFamiliar'] = 1,
+    ['MiteFamiliar'] = 1,
+    ['KeenearedSteffi'] = 1,
+    ['LullabyMelodia'] = 1,
+    ['FlowerpotBen'] = 1,
+    ['SaberSiravarde'] = 1,
+    ['FunguarFamiliar'] = 1,
+    ['ShellbusterOrob'] = 1,
+    ['ColdbloodComo'] = 1,
+    ['CourierCarrie'] = 1,
+    ['Homunculus'] = 1,
+    ['VoraciousAudrey'] = 1,
+    ['AmbusherAllie'] = 1,
+    ['PanzerGalahad'] = 1,
+    ['LifedrinkerLars'] = 1,
+    ['ChopsueyChuky'] = 1,
+    ['AmigoSabotender'] = 1,
+    ['NurseryNazuna'] = 1,
+    ['CraftyClyvonne'] = 1,
+    ['PrestoJulio'] = 1,
+    ['SwiftSieghard'] = 1,
+    ['MailbusterCetas'] = 1,
+    ['AudaciousAnna'] = 1,
+    ['SlipperySilas'] = 1,
+    ['TurbidToloi'] = 1,
+    ['LuckyLulush'] = 1,
+    ['DipperYuly'] = 1,
+    ['FlowerpotMerle'] = 1,
+    ['DapperMac'] = 1,
+    ['DiscreetLouise'] = 1,
+    ['FatsoFargann'] = 1,
+    ['FaithfulFalcorr'] = 1,
+    ['BugeyedBroncha'] = 1,
+    ['BloodclawShasra'] = 1,
+    ['GorefangHobs'] = 1,
+    ['GooeyGerard'] = 1,
+    ['CrudeRaphie'] = 1,
+    ['DroppyDortwin'] = 1,
+    ['SunburstMalfik'] = 1,
+    ['WarlikePatrick'] = 1,
+    ['ScissorlegXerin'] = 1,
+    ['RhymingShizuna'] = 1,
+    ['AttentiveIbuki'] = 1,
+    ['AmiableRoche'] = 1,
+    ['BrainyWaluis'] = 1,
+    ['HeraldHenry'] = 1,
+    ['SuspiciousAlice'] = 1,
+    ['HeadbreakerKen'] = 1,
+    ['RedolentCandi'] = 1,
+    ['AnklebiterJedd'] = 1,
+    ['CaringKiyomaro'] = 1,
+    ['HurlerPercival'] = 1,
+    ['BlackbeardRandy'] = 1,
+    ['FleetReinhard'] = 1,
+    ['AlluringHoney'] = 1,
+    ['BouncingBertha'] = 1,
+    ['BraveHeroGlenn'] = 1,
+    ['CursedAnnabelle'] = 1,
+    ['GenerousArthur'] = 1,
+    ['SharpwitHermes'] = 1,
+    ['SwoopingZhivago'] = 1,
+    ['ThreestarLynn'] = 1
+}
 
 buffTable.buffs =
 T{
@@ -728,5 +843,18 @@ buffTable.IsBuff = function(buffId)
 
     return true;
 end
+
+buffTable.IsJugPet = function(petName)
+    return buffTable.jugPets[petName] ~= nil;
+end
+
+buffTable.IsSpellcaster = function(jobAbv)
+    return buffTable.spellcasters[jobAbv] ~= nil;
+end
+
+buffTable.GetSpAbilityName = function(jobAbv)
+    return buffTable.spAbilitys[jobAbv];
+end
+
 
 return buffTable;
