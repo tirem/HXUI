@@ -42,6 +42,61 @@ local castBar = require('castbar');
 local configMenu = require('configmenu');
 local debuffHandler = require('debuffhandler');
 
+-- =================
+-- = HXUI DEV ONLY =
+-- =================
+-- Hot reloading of development files functionality
+local _HXUI_DEV_HOT_RELOADING_ENABLED = false;
+local _HXUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS = 1;
+local _HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME;
+local _HXUI_DEV_HOT_RELOAD_FILES = {};
+
+function string:split(sep)
+   local sep, fields = sep or ":", {}
+   local pattern = string.format("([^%s]+)", sep)
+   self:gsub(pattern, function(c) fields[#fields+1] = c end)
+   return fields
+end
+
+function _check_hot_reload()
+	local path = string.gsub(addon.path, '\\\\', '\\');
+
+	local result = io.popen("forfiles /P " .. path .. ' /M *.lua /C "cmd /c echo @file @fdate @ftime"');
+
+	local needsReload = false;
+
+	for line in result:lines() do
+		if #line > 0 then
+			local splitLine = line:split(" ");
+			local filename = splitLine[1];
+			local dateModified = splitLine[2];
+			local timeModified = splitLine[3];
+
+			filename = string.gsub(filename, '"', '');
+
+			local fileTable = {dateModified, timeModified};
+
+			if _HXUI_DEV_HOT_RELOAD_FILES[filename] ~= nil then
+				if table.concat(_HXUI_DEV_HOT_RELOAD_FILES[filename]) ~= table.concat(fileTable) then
+					needsReload = true;
+					print("[HXUI] Development file " .. filename .. " changed, reloading HXUI.")
+				end
+			end
+
+			_HXUI_DEV_HOT_RELOAD_FILES[filename] = fileTable;
+		end
+	end
+
+	result:close();
+
+	if needsReload then
+		AshitaCore:GetChatManager():QueueCommand(-1, '/addon reload hxui', channelCommand);
+	end
+end
+-- ==================
+-- = /HXUI DEV ONLY =
+-- ==================
+
 local user_settings = 
 T{
 	showPlayerBar = true,
@@ -687,6 +742,21 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 		configMenu.DrawWindow();
 	else
 		ForceHide();
+	end
+
+	-- HXUI DEV ONLY
+	if _HXUI_DEV_HOT_RELOADING_ENABLED then
+		local currentTime = os.time();
+
+		if not _HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME then
+			_HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME = currentTime;
+		end
+
+		if _HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME and currentTime - _HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME > _HXUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS then
+			_check_hot_reload();
+
+			_HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME = currentTime;
+		end
 	end
 end);
 
