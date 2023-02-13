@@ -159,15 +159,30 @@ playerbar.DrawWindow = function(settings)
 		imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
 		
 		local tpGradient = {'#3898ce', '#78c4ee'};
-		local tpOverlayGradient = {'#0078CC', '#0078CC'};
 		local mainPercent;
 		local tpOverlay;
+
+		SelfTP = 2000;
 		
 		if (SelfTP >= 1000) then
 			-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.2, 0.4, 1.0, 1.0});
 			-- tpGradient = {'#3898ce', '#78c4ee'};
 			mainPercent = (SelfTP - 1000) / 2000;
-			tpOverlay = {{1, tpOverlayGradient}, math.ceil(settings.barHeight * 2/7), 1};
+
+			local tpOverlayGradient = {'#0078CC', '#0078CC'};
+
+			tpOverlay = {
+				{
+					1, -- overlay percent
+					tpOverlayGradient -- overlay gradient
+				},
+				math.ceil(settings.barHeight * 2/7), -- overlay height
+				1, -- overlay vertical padding
+				{
+					'#0096ff', -- overlay pulse color
+					1 -- overlay pulse seconds
+				}
+			};
 		else
 			mainPercent = SelfTP / 1000;
 			-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.3, 0.7, 1.0, 1.0});

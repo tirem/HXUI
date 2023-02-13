@@ -116,6 +116,14 @@ progressbar.DrawBar = function(startPosition, endPosition, gradientStart, gradie
 	imgui.GetWindowDrawList():AddImageRounded(gradient, startPosition, endPosition, {0, 0}, {1, 1}, IMGUI_COL_WHITE, rounding);
 end
 
+progressbar.DrawColoredBar = function(startPosition, endPosition, color, rounding)
+	if not rounding then
+		rounding = 0;
+	end
+
+	imgui.GetWindowDrawList():AddRectFilled(startPosition, endPosition, color, rounding);
+end
+
 progressbar.DrawBookends = function(positionStartX, positionStartY, width, height)
 	local bookendTexture = GetBookendTexture();
 	
@@ -206,6 +214,27 @@ progressbar.ProgressBar  = function(percentList, dimensions, decorate, overlayBa
 		local overlayProgressWidth = overlayWidth * overlayPercent;
 
 		progressbar.DrawBar({progressPositionStartX, progressPositionStartY + progressHeight - overlayHeight + overlayTopPadding}, {progressPositionStartX + overlayProgressWidth, progressPositionStartY + progressHeight}, overlayGradientStart, overlayGradientEnd, progressbar.foregroundRounding);
+
+		-- Allow optional pulsing of overlay bars
+		local pulseConfiguration = overlayBar[4];
+
+		if pulseConfiguration then
+			local currentTime = os.clock();
+			local timePerPulse = pulseConfiguration[2];
+			local phase = currentTime % timePerPulse;
+			local pulseAlpha = (2 / timePerPulse) * phase;
+
+			if pulseAlpha > 1 then
+				pulseAlpha = 2 - pulseAlpha;
+			end
+
+			local pulseColor = pulseConfiguration[1];
+			pulseColor = hex2rgb(pulseColor);
+
+			local flashColor = imgui.GetColorU32({pulseColor[1] / 255, pulseColor[2] / 255, pulseColor[3] / 255, pulseAlpha});
+
+			progressbar.DrawColoredBar({progressPositionStartX, progressPositionStartY + progressHeight - overlayHeight + overlayTopPadding}, {progressPositionStartX + overlayProgressWidth, progressPositionStartY + progressHeight}, flashColor, progressbar.foregroundRounding);
+		end
 	end
 	
 	imgui.Dummy({width, height});

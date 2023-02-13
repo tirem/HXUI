@@ -12,6 +12,13 @@ local bgRadius = 3;
 
 local targetbar = {};
 
+-- Easing function for HP bar interpolation
+-- Reference: https://easings.net/
+function easeInterpolationPercent(percent)
+	-- Cubic easing out
+	return 1 - math.pow(1 - percent, 3);
+end
+
 targetbar.DrawWindow = function(settings)
     -- Obtain the player entity..
     local playerEnt = GetPlayerEntity();
@@ -57,7 +64,7 @@ targetbar.DrawWindow = function(settings)
     		local interpolationTimeElapsed = currentTime - targetbar.lastHitTime - settings.hitDelayLength;
 
     		if interpolationTimeElapsed <= interpolationTimeTotal then
-    			local interpolationTimeElapsedPercent = interpolationTimeElapsed / interpolationTimeTotal;
+    			local interpolationTimeElapsedPercent = easeInterpolationPercent(interpolationTimeElapsed / interpolationTimeTotal);
 
     			interpolationPercent = hppDelta * (1 - interpolationTimeElapsedPercent);
     		end
