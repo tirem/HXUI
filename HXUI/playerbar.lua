@@ -161,8 +161,6 @@ playerbar.DrawWindow = function(settings)
 		local tpGradient = {'#3898ce', '#78c4ee'};
 		local mainPercent;
 		local tpOverlay;
-
-		SelfTP = 2000;
 		
 		if (SelfTP >= 1000) then
 			-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.2, 0.4, 1.0, 1.0});
