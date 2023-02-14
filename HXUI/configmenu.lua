@@ -209,7 +209,7 @@ config.DrawWindow = function(us)
                 end
                 imgui.EndCombo();
             end
-            imgui.ShowHelp('The image to use for the party list background. [Resolution: 408x408]'); 
+            imgui.ShowHelp('The image to use for the party list background. [Resolution: 408x408 @ HXUI\\assets\\backgrounds]'); 
             
             -- Arrow
             local cursor_paths = statusHandler.get_cursor_paths();
@@ -229,6 +229,8 @@ config.DrawWindow = function(us)
                 end
                 imgui.EndCombo();
             end
+            imgui.ShowHelp('The image to use for the party list cursor. [@ HXUI\\assets\\cursors]'); 
+            
 
             local comboBoxItems = {};
             comboBoxItems[0] = 'HorizonXI';
