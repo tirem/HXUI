@@ -391,7 +391,7 @@ T{
 		columnCount = 5;
 		rowCount = 6;
 		dotRadius = 5;
-		dotSpacing = 2;
+		dotSpacing = 1;
 		groupSpacing = 10;
 		textOffsetY = -3;
 		font_settings = 

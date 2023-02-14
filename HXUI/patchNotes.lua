@@ -67,9 +67,10 @@ patchNotes.DrawWindow = function()
 		imgui.NewLine();
 		imgui.BulletText('Damage taken visuals for hp bars');
 		imgui.NewLine();
-		imgui.BulletText('Show % on Target Bar');
+		imgui.BulletText('Show %% on Target Bar');
 		imgui.NewLine();
 		imgui.BulletText('Better tracking for buffs/debuffs (includes more bard songs!)');
+		imgui.NewLine();
     end
 	imgui.PopStyleColor(4);
 	imgui.End();
