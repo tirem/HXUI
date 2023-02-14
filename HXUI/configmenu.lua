@@ -6,6 +6,14 @@ local imgui = require("imgui");
 local config = {};
 
 config.DrawWindow = function(us)
+    imgui.PushStyleColor(ImGuiCol_WindowBg, {0,0.06,.16,.9});
+	imgui.PushStyleColor(ImGuiCol_TitleBg, {0,0.06,.16, .7});
+	imgui.PushStyleColor(ImGuiCol_TitleBgActive, {0,0.06,.16, .9});
+	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0,0.06,.16, .5});
+    imgui.PushStyleColor(ImGuiCol_Header, {0,0.06,.16,.7});
+    imgui.PushStyleColor(ImGuiCol_HeaderHovered, {0,0.06,.16, .9});
+    imgui.PushStyleColor(ImGuiCol_HeaderActive, {0,0.06,.16, 1});
+    imgui.PushStyleColor(ImGuiCol_FrameBg, {0,0.06,.16, 1});
     imgui.SetNextWindowSize({ 500, 500 }, ImGuiCond_FirstUseEver);
     if(showConfig[1] and imgui.Begin(("HXUI Config"):fmt(addon.version), showConfig, bit.bor(ImGuiWindowFlags_NoSavedSettings))) then
         if(imgui.Button("Restore Defaults", { 130, 20 })) then
@@ -291,6 +299,7 @@ config.DrawWindow = function(us)
         end
         imgui.EndChild();
     end
+    imgui.PopStyleColor(8);
 	imgui.End();
 end
 
