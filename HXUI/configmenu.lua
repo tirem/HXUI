@@ -184,11 +184,52 @@ config.DrawWindow = function(us)
                 gConfig.partyListScaleY = scaleY[1];
                 UpdateSettings();
             end
+
             local bgOpacity = { gConfig.partyListBgOpacity };
             if (imgui.SliderFloat('Background Opacity', bgOpacity, 0, 255, '%.f')) then
                 gConfig.partyListBgOpacity = bgOpacity[1];
                 UpdateSettings();
             end
+
+            -- Background
+            local bg_theme_paths = statusHandler.get_background_paths();
+            if (imgui.BeginCombo('Background', gConfig.partyListBackground)) then
+                for i = 1,#bg_theme_paths,1 do
+                    local is_selected = i == gConfig.partyListBackground;
+
+                    if (imgui.Selectable(bg_theme_paths[i], is_selected) and bg_theme_paths[i] ~= gConfig.partyListBackground) then
+                        gConfig.partyListBackground = bg_theme_paths[i];
+                        statusHandler.clear_cache();
+                        UpdateSettings();
+                    end
+
+                    if (is_selected) then
+                        imgui.SetItemDefaultFocus();
+                    end
+                end
+                imgui.EndCombo();
+            end
+            imgui.ShowHelp('The image to use for the party list background. [Resolution: 408x408]'); 
+            
+            -- Arrow
+            local cursor_paths = statusHandler.get_cursor_paths();
+            if (imgui.BeginCombo('Cursor', gConfig.partyListCursor)) then
+                for i = 1,#cursor_paths,1 do
+                    local is_selected = i == gConfig.partyListCursor;
+
+                    if (imgui.Selectable(cursor_paths[i], is_selected) and cursor_paths[i] ~= gConfig.partyListCursor) then
+                        gConfig.partyListCursor = cursor_paths[i];
+                        statusHandler.clear_cache();
+                        UpdateSettings();
+                    end
+
+                    if (is_selected) then
+                        imgui.SetItemDefaultFocus();
+                    end
+                end
+                imgui.EndCombo();
+            end
+
             local comboBoxItems = {};
             comboBoxItems[0] = 'HorizonXI';
             comboBoxItems[1] = 'FFXIV';
@@ -208,6 +249,7 @@ config.DrawWindow = function(us)
                 end
                 imgui.EndCombo();
             end
+
             local buffScale = { gConfig.partyListBuffScale };
             if (imgui.SliderFloat('Buff Scale', buffScale, 0.1, 3.0, '%.1f')) then
                 gConfig.partyListBuffScale = buffScale[1];

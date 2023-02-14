@@ -140,6 +140,28 @@ statusHandler.get_status_theme_paths = function()
     return T{'-Default-'};
 end 
 
+-- return a list of all sub directories
+---@return table theme_paths
+statusHandler.get_background_paths = function()
+    local path = ('%s\\addons\\%s\\assets\\backgrounds\\'):fmt(AshitaCore:GetInstallPath(), 'HXUI');
+    local directories = ashita.fs.get_dir(path, '.*.png', true);
+    if (directories ~= nil) then
+        return directories;
+    end
+    return T{};
+end 
+
+-- return a list of all sub directories
+---@return table theme_paths
+statusHandler.get_cursor_paths = function()
+    local path = ('%s\\addons\\%s\\assets\\cursors\\'):fmt(AshitaCore:GetInstallPath(), 'HXUI');
+    local directories = ashita.fs.get_dir(path, '.*.png', true);
+    if (directories ~= nil) then
+        return directories;
+    end
+    return T{};
+end 
+
 -- return an image pointer for a status_id for use with imgui.Image
 ---@param status_id number the status id number of the requested icon
 ---@return number texture_ptr_id a number representing the texture_ptr or nil

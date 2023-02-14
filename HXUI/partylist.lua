@@ -402,17 +402,18 @@ partyList.Initialize = function(settings)
     
     backgroundPrim = primitives:new(settings.primData);
     backgroundPrim.color = tonumber(string.format('%02x%02x%02x%02x', gConfig.partyListBgOpacity, 255, 255, 255), 16);
-    backgroundPrim.texture = string.format('%s/assets/plist_bg.png', addon.path);
+
+    backgroundPrim.texture = string.format('%s/assets/backgrounds/'..gConfig.partyListBackground, addon.path);
     backgroundPrim.visible = false;
 
     selectionPrim = primitives.new(settings.primData);
     selectionPrim.color = 0xFFFFFFFF;
-    selectionPrim.texture = string.format('%s/assets/Cursor.png', addon.path);
+    selectionPrim.texture = string.format('%s/assets/Selector.png', addon.path);
     selectionPrim.visible = false;
 
     arrowPrim = primitives.new(settings.primData);
     arrowPrim.color = 0xFFFFFFFF;
-    arrowPrim.texture = string.format('%s/assets/CursorArrow.png', addon.path);
+    arrowPrim.texture = string.format('%s/assets/cursors/'..gConfig.partyListCursor, addon.path);
     arrowPrim.visible = false;
 end
 
@@ -425,6 +426,8 @@ partyList.UpdateFonts = function(settings)
         memberText[i].tp:SetFontHeight(settings.tp_font_settings.font_height);
     end
     backgroundPrim.color = tonumber(string.format('%02x%02x%02x%02x', gConfig.partyListBgOpacity, 255, 255, 255), 16);
+    backgroundPrim.texture = string.format('%s/assets/backgrounds/'..gConfig.partyListBackground, addon.path);
+    arrowPrim.texture = string.format('%s/assets/cursors/'..gConfig.partyListCursor, addon.path);
 end
 
 partyList.SetHidden = function(hidden)

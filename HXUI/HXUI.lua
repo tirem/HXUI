@@ -151,6 +151,8 @@ T{
 	partyListStatusTheme = 0,
 	partyListTheme = 0, -- 0: HorizonXI, 1: XIV1.0, 2: XIV
 	partyListBgOpacity = 255;
+	partyListCursor = 'BlueArrow.png',
+	partyListBackground = 'BlueGradient.png',
 
 	castBarScaleX = 1,
 	castBarScaleY = 1,
@@ -438,7 +440,7 @@ T{
 
 		cursorPaddingX1 = 3,
 		cursorPaddingX2 = 3,
-		cursorPaddingY1 = 3,
+		cursorPaddingY1 = 6,
 		cursorPaddingY2 = 3,
 		dotRadius = 3,
 
