@@ -41,6 +41,7 @@ local partyList = require('partylist');
 local castBar = require('castbar');
 local configMenu = require('configmenu');
 local debuffHandler = require('debuffhandler');
+local patchNotes = require('patchNotes');
 
 -- =================
 -- = HXUI DEV ONLY =
@@ -99,6 +100,8 @@ end
 
 local user_settings = 
 T{
+	patchNotesVer = -1,
+
 	showPlayerBar = true,
 	showTargetBar = true,
 	showEnemyList = true,
@@ -148,6 +151,8 @@ T{
 	partyListStatusTheme = 0,
 	partyListTheme = 0, -- 0: HorizonXI, 1: XIV1.0, 2: XIV
 	partyListBgOpacity = 255;
+	partyListCursor = 'BlueArrow.png',
+	partyListBackground = 'BlueGradient.png',
 
 	castBarScaleX = 1,
 	castBarScaleY = 1,
@@ -162,6 +167,7 @@ T{
 local default_settings =
 T{
 	-- global settings
+	currentPatchVer = 1,
 	tpEmptyColor = 0xFF9acce8,
 	tpFullColor = 0xFF2fa9ff,
 	mpColor = 0xFFdef2db,
@@ -387,8 +393,8 @@ T{
 		columnCount = 5;
 		rowCount = 6;
 		dotRadius = 5;
-		dotSpacing = 2;
-		groupSpacing = 10;
+		dotSpacing = 1;
+		groupSpacing = 8;
 		textOffsetY = -3;
 		font_settings = 
 		T{
@@ -432,10 +438,10 @@ T{
 		backgroundPaddingY1 = 0,
 		backgroundPaddingY2 = 0,
 
-		cursorPaddingX1 = 3,
-		cursorPaddingX2 = -3,
-		cursorPaddingY1 = 3,
-		cursorPaddingY2 = 0,
+		cursorPaddingX1 = 4,
+		cursorPaddingX2 = 4,
+		cursorPaddingY1 = 6,
+		cursorPaddingY2 = 6,
 		dotRadius = 3,
 
 		arrowSize = 1;
@@ -585,7 +591,10 @@ gConfig = config.userSettings;
 showConfig = { false };
 
 function ResetSettings()
+	local patchNotesVer = gConfig.patchNotesVer;
 	gConfig = deep_copy_table(defaultUserSettings);
+	gConfig.patchNotesVer = patchNotesVer;
+	UpdateSettings();
 end
 
 local function CheckVisibility()
@@ -641,7 +650,6 @@ local function UpdateUserSettings()
 	gAdjustedSettings.targetBarSettings.barWidth = ns.targetBarSettings.barWidth * us.targetBarScaleX;
 	gAdjustedSettings.targetBarSettings.barHeight = ns.targetBarSettings.barHeight * us.targetBarScaleY;
 	gAdjustedSettings.targetBarSettings.totBarHeight = ns.targetBarSettings.totBarHeight * us.targetBarScaleY;
-	gAdjustedSettings.targetBarSettings.textScale = ns.targetBarSettings.textScale * us.targetBarFontScale;
 	gAdjustedSettings.targetBarSettings.name_font_settings.font_height = math.max(ns.targetBarSettings.name_font_settings.font_height + us.targetBarFontOffset, 1);
     gAdjustedSettings.targetBarSettings.totName_font_settings.font_height = math.max(ns.targetBarSettings.totName_font_settings.font_height + us.targetBarFontOffset, 1);
 	gAdjustedSettings.targetBarSettings.distance_font_settings.font_height = math.max(ns.targetBarSettings.distance_font_settings.font_height + us.targetBarFontOffset, 1);
@@ -659,14 +667,6 @@ local function UpdateUserSettings()
     gAdjustedSettings.partyListSettings.mp_font_settings.font_height = math.max(ns.partyListSettings.mp_font_settings.font_height + us.partyListFontOffset, 1);
 	gAdjustedSettings.partyListSettings.tp_font_settings.font_height = math.max(ns.partyListSettings.tp_font_settings.font_height + us.partyListFontOffset, 1);
     gAdjustedSettings.partyListSettings.name_font_settings.font_height = math.max(ns.partyListSettings.name_font_settings.font_height + us.partyListFontOffset, 1);
-	gAdjustedSettings.partyListSettings.backgroundPaddingX1 = ns.partyListSettings.backgroundPaddingX1 * us.partyListScaleX;
-	gAdjustedSettings.partyListSettings.backgroundPaddingX2 = ns.partyListSettings.backgroundPaddingX2 * us.partyListScaleX;
-	gAdjustedSettings.partyListSettings.backgroundPaddingY1 = ns.partyListSettings.backgroundPaddingY1 * us.partyListScaleY;
-	gAdjustedSettings.partyListSettings.backgroundPaddingY2 = ns.partyListSettings.backgroundPaddingY2 * us.partyListScaleY;
-	gAdjustedSettings.partyListSettings.cursorPaddingX1 = ns.partyListSettings.cursorPaddingX1 * us.partyListScaleX;
-	gAdjustedSettings.partyListSettings.cursorPaddingX2 = ns.partyListSettings.cursorPaddingX2 * us.partyListScaleX;
-	gAdjustedSettings.partyListSettings.cursorPaddingY1 = ns.partyListSettings.cursorPaddingY1 * us.partyListScaleY;
-	gAdjustedSettings.partyListSettings.cursorPaddingY2 = ns.partyListSettings.cursorPaddingY2 * us.partyListScaleY;
 	gAdjustedSettings.partyListSettings.iconSize = ns.partyListSettings.iconSize * us.partyListBuffScale;
 
 	-- Player Bar
@@ -828,6 +828,10 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 		end
 
 		configMenu.DrawWindow();
+
+		if (gConfig.patchNotesVer < gAdjustedSettings.currentPatchVer) then
+			patchNotes.DrawWindow();
+		end
 	else
 		ForceHide();
 	end
