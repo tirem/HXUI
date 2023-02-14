@@ -114,10 +114,14 @@ progressbar.DrawBookends = function(positionStartX, positionStartY, width, heigh
 	imgui.GetWindowDrawList():AddImage(bookendTexture, {positionStartX + width - bookendWidth, positionStartY}, {positionStartX + width, positionStartY + height}, {1, 1}, {0, 0}, IM_COL32_WHITE);
 end
 
-progressbar.ProgressBar  = function(percentList, dimensions, decorate, overlayBar)
+progressbar.ProgressBar  = function(percentList, dimensions, options)
+	if options == nil then
+		options = {};
+	end
+
 	-- Decorate by default
-	if decorate == nil then
-		decorate = true;
+	if options.decorate == nil then
+		options.decorate = true;
 	end
 	
 	local positionStartX, positionStartY = imgui.GetCursorScreenPos();
@@ -136,7 +140,7 @@ progressbar.ProgressBar  = function(percentList, dimensions, decorate, overlayBa
 	local contentPositionStartY = positionStartY;
 	
 	-- Draw the bookends!
-	if decorate then
+	if options.decorate then
 		local bookendWidth = height / 2;
 		
 		contentWidth = width - (bookendWidth * 2);
@@ -199,12 +203,12 @@ progressbar.ProgressBar  = function(percentList, dimensions, decorate, overlayBa
 	end
 
 	-- Draw the optional overlay bar (used for TP)
-	if overlayBar then
-		local overlayPercent = overlayBar[1][1];
-		local overlayGradientStart = overlayBar[1][2][1];
-		local overlayGradientEnd = overlayBar[1][2][2];
-		local overlayHeight = overlayBar[2];
-		local overlayTopPadding = overlayBar[3];
+	if options.overlayBar then
+		local overlayPercent = options.overlayBar[1][1];
+		local overlayGradientStart = options.overlayBar[1][2][1];
+		local overlayGradientEnd = options.overlayBar[1][2][2];
+		local overlayHeight = options.overlayBar[2];
+		local overlayTopPadding = options.overlayBar[3];
 
 		local overlayWidth = progressTotalWidth;
 
@@ -217,7 +221,7 @@ progressbar.ProgressBar  = function(percentList, dimensions, decorate, overlayBa
 		progressbar.DrawBar({progressPositionStartX, progressPositionStartY + progressHeight - overlayHeight + overlayTopPadding}, {progressPositionStartX + overlayProgressWidth, progressPositionStartY + progressHeight}, overlayGradientStart, overlayGradientEnd, progressbar.foregroundRounding);
 
 		-- Allow optional pulsing of overlay bars
-		local pulseConfiguration = overlayBar[4];
+		local pulseConfiguration = options.overlayBar[4];
 
 		if pulseConfiguration then
 			local currentTime = os.clock();
@@ -236,6 +240,13 @@ progressbar.ProgressBar  = function(percentList, dimensions, decorate, overlayBa
 
 			progressbar.DrawColoredBar({progressPositionStartX, progressPositionStartY + progressHeight - overlayHeight + overlayTopPadding}, {progressPositionStartX + overlayProgressWidth, progressPositionStartY + progressHeight}, pulseBarColor, progressbar.foregroundRounding);
 		end
+	end
+
+	if options.borderConfig then
+		local borderWidth = options.borderConfig[1];
+		local borderColorRed, borderColorGreen, borderColorBlue = hex2rgb(options.borderConfig[2]);
+
+		imgui.GetWindowDrawList():AddRect({positionStartX - (borderWidth / 2), positionStartY - (borderWidth / 2)}, {positionStartX + width + (borderWidth / 2), positionStartY + height + (borderWidth / 2)}, imgui.GetColorU32({borderColorRed / 255, borderColorGreen / 255, borderColorBlue / 255, 1}), height / 2, ImDrawCornerFlags_All, borderWidth);
 	end
 	
 	imgui.Dummy({width, height});

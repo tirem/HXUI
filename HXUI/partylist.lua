@@ -17,6 +17,8 @@ local partyTargeted;
 local partySubTargeted;
 local memberText = {};
 
+local borderConfig = {1, '#243e58'};
+
 local partyList = {};
 
 local function UpdateTextVisibilityByMember(memIdx, visible)
@@ -145,7 +147,7 @@ local function DrawMember(memIdx, settings)
     -- Draw the HP bar
     if (memInfo.inzone) then
         -- imgui.ProgressBar(memInfo.hpp, { settings.hpBarWidth, settings.barHeight }, '');
-        progressbar.ProgressBar({{memInfo.hpp, hpGradient}}, {settings.hpBarWidth, settings.barHeight});
+        progressbar.ProgressBar({{memInfo.hpp, hpGradient}}, {settings.hpBarWidth, settings.barHeight}, {borderConfig=borderConfig});
     else
 --        imgui.PushStyleColor(ImGuiCol_PlotHistogram, hpBarColor);
         imgui.ProgressBar(0, { allBarsLengths, settings.barHeight + hpSize.cy + settings.hpTextOffsetY}, AshitaCore:GetResourceManager():GetString("zones.names", memInfo.zone));
@@ -172,7 +174,7 @@ local function DrawMember(memIdx, settings)
         -- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.9, 1.0, 0.5, 1.0});
         -- imgui.ProgressBar(memInfo.mpp, {  settings.mpBarWidth, settings.barHeight }, '');
         -- imgui.PopStyleColor(1);
-        progressbar.ProgressBar({{memInfo.mpp, {'#9abb5a', '#bfe07d'}}}, {settings.mpBarWidth, settings.barHeight});
+        progressbar.ProgressBar({{memInfo.mpp, {'#9abb5a', '#bfe07d'}}}, {settings.mpBarWidth, settings.barHeight}, {borderConfig=borderConfig});
         imgui.SameLine();
 
         -- Draw the TP bar
@@ -215,7 +217,7 @@ local function DrawMember(memIdx, settings)
 		
 		-- imgui.ProgressBar(SelfTP / 1000, { barSize, settings.barHeight }, '');
 		-- imgui.PopStyleColor(1);
-		progressbar.ProgressBar({{mainPercent, tpGradient}}, {settings.tpBarWidth, settings.barHeight}, true, tpOverlay);
+		progressbar.ProgressBar({{mainPercent, tpGradient}}, {settings.tpBarWidth, settings.barHeight}, {overlayBar=tpOverlay, borderConfig=borderConfig});
 
         -- Update the mp text
         memberText[memIdx].mp:SetColor(gAdjustedSettings.mpColor);
