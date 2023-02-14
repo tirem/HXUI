@@ -224,7 +224,7 @@ targetbar.DrawWindow = function(settings)
 			imgui.SetCursorScreenPos({totX, totY - (settings.totBarHeight / 2) + (settings.barHeight/2) + settings.totBarOffset});
 
 			local totStartX, totStartY = imgui.GetCursorScreenPos();
-			progressbar.ProgressBar({{totEntity.HPPercent / 100, {'#e16c6c', '#fb9494'}}}, {overlayBar = {settings.barWidth / 3, settings.totBarHeight}});
+			progressbar.ProgressBar({{totEntity.HPPercent / 100, {'#e16c6c', '#fb9494'}}}, {settings.barWidth / 3, settings.totBarHeight});
 
 			local totNameSize = SIZE.new();
 			totNameText:GetTextSize(totNameSize);
