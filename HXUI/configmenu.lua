@@ -12,6 +12,12 @@ config.DrawWindow = function(us)
             ResetSettings();
             UpdateSettings();
         end
+        imgui.SameLine();
+        if(imgui.Button("Patch Notes", { 130, 20 })) then
+            gConfig.patchNotesVer = -1;
+            gShowPatchNotes = { true; }
+            UpdateSettings();
+        end
         imgui.BeginChild("Config Options", { 0, 0 }, true);
         if (imgui.CollapsingHeader("General")) then
             imgui.BeginChild("GeneralSettings", { 0, 100 }, true);

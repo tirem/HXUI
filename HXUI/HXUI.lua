@@ -41,6 +41,7 @@ local partyList = require('partylist');
 local castBar = require('castbar');
 local configMenu = require('configmenu');
 local debuffHandler = require('debuffhandler');
+local patchNotes = require('patchNotes');
 
 -- =================
 -- = HXUI DEV ONLY =
@@ -99,6 +100,8 @@ end
 
 local user_settings = 
 T{
+	patchNotesVer = -1,
+
 	showPlayerBar = true,
 	showTargetBar = true,
 	showEnemyList = true,
@@ -162,6 +165,7 @@ T{
 local default_settings =
 T{
 	-- global settings
+	currentPatchVer = 1,
 	tpEmptyColor = 0xFF9acce8,
 	tpFullColor = 0xFF2fa9ff,
 	mpColor = 0xFFdef2db,
@@ -585,7 +589,10 @@ gConfig = config.userSettings;
 showConfig = { false };
 
 function ResetSettings()
+	local patchNotesVer = gConfig.patchNotesVer;
 	gConfig = deep_copy_table(defaultUserSettings);
+	gConfig.patchNotesVer = patchNotesVer;
+	UpdateSettings();
 end
 
 local function CheckVisibility()
@@ -641,7 +648,6 @@ local function UpdateUserSettings()
 	gAdjustedSettings.targetBarSettings.barWidth = ns.targetBarSettings.barWidth * us.targetBarScaleX;
 	gAdjustedSettings.targetBarSettings.barHeight = ns.targetBarSettings.barHeight * us.targetBarScaleY;
 	gAdjustedSettings.targetBarSettings.totBarHeight = ns.targetBarSettings.totBarHeight * us.targetBarScaleY;
-	gAdjustedSettings.targetBarSettings.textScale = ns.targetBarSettings.textScale * us.targetBarFontScale;
 	gAdjustedSettings.targetBarSettings.name_font_settings.font_height = math.max(ns.targetBarSettings.name_font_settings.font_height + us.targetBarFontOffset, 1);
     gAdjustedSettings.targetBarSettings.totName_font_settings.font_height = math.max(ns.targetBarSettings.totName_font_settings.font_height + us.targetBarFontOffset, 1);
 	gAdjustedSettings.targetBarSettings.distance_font_settings.font_height = math.max(ns.targetBarSettings.distance_font_settings.font_height + us.targetBarFontOffset, 1);
@@ -828,6 +834,10 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 		end
 
 		configMenu.DrawWindow();
+
+		if (gConfig.patchNotesVer < gAdjustedSettings.currentPatchVer) then
+			patchNotes.DrawWindow();
+		end
 	else
 		ForceHide();
 	end
