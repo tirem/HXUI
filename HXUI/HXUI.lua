@@ -392,7 +392,7 @@ T{
 		rowCount = 6;
 		dotRadius = 5;
 		dotSpacing = 1;
-		groupSpacing = 10;
+		groupSpacing = 8;
 		textOffsetY = -3;
 		font_settings = 
 		T{
