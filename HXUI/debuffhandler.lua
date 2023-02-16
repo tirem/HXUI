@@ -23,7 +23,7 @@ local function ApplyMessage(debuffs, action)
     local now = os.time()
 
     for _, target in pairs(action.Targets) do
-        if (bit.band(target.Id, 0x1000000) ~= 0) then -- ensure this is an NPC
+        if (target.Id ~= nil and bit.band(target.Id, 0x1000000) ~= 0) then -- ensure this is an NPC
             for _, ability in pairs(target.Actions) do
                 -- Set up our state
                 local spell = action.Param
