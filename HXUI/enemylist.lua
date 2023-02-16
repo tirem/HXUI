@@ -22,7 +22,7 @@ local function GetIsValidMob(mobIdx)
 end
 
 local function GetPartyMemberIds()
-	local partyMemberIds = {};
+	local partyMemberIds = T{};
 	local party = AshitaCore:GetMemoryManager():GetParty();
 	for i = 0, 17 do
 		if (party:GetMemberIsActive(i) == 1) then
@@ -137,7 +137,7 @@ enemylist.HandleActionPacket = function(e)
 	if (GetIsMobByIndex(e.UserIndex) and GetIsValidMob(e.UserIndex)) then
 		local partyMemberIds = GetPartyMemberIds();
 		for i = 0, #e.Targets do
-			if (e.Targets[i] ~= nil and has_value(partyMemberIds, e.Targets[i].Id)) then
+			if (e.Targets[i] ~= nil and (partyMemberIds:contains(e.Targets[i].Id))) then
 				allClaimedTargets[e.UserIndex] = 1;
 			end
 		end
@@ -151,7 +151,7 @@ enemylist.HandleMobUpdatePacket = function(e)
 	end
 	if (e.newClaimId ~= nil and GetIsValidMob(e.monsterIndex)) then	
 		local partyMemberIds = GetPartyMemberIds();
-		if (has_value(partyMemberIds, e.newClaimId)) then
+		if ((partyMemberIds:contains(e.newClaimId))) then
 			allClaimedTargets[e.monsterIndex] = 1;
 		end
 	end

@@ -183,17 +183,6 @@ function FormatInt(number)
 	return minus .. int:reverse():gsub("^,", "") .. fraction
 end
 
-function LimitStringLength(string, length)
-	local output = '';
-	for i = 1, #string do
-		output = output..string[i];
-		if (#output >= length) then
-			break;
-		end
-	end
-	return output;
-end
-
 local function GetIndexFromId(id)
     local entMgr = AshitaCore:GetMemoryManager():GetEntity();
     
@@ -241,7 +230,6 @@ function ParseActionPacket(e)
     --Unknown 4 bits
     bitOffset = bitOffset + 4;
     actionPacket.Type = UnpackBits(4);
-
     -- Bandaid fix until we have more flexible packet parsing
     if actionPacket.Type == 8 or actionPacket.Type == 9 then
         actionPacket.Param = UnpackBits(16);
@@ -414,16 +402,6 @@ function ParseMobUpdatePacket(e)
 		end
 		return mobPacket;
 	end
-end
-
-function has_value (tab, val)
-    for index, value in ipairs(tab) do
-        if value == val then
-            return true
-        end
-    end
-
-    return false
 end
 
 function deep_copy_table(orig)
