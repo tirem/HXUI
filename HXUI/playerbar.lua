@@ -119,7 +119,7 @@ playerbar.DrawWindow = function(settings)
 		
     if (imgui.Begin('PlayerBar', true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
 
-		local hpNameColor, hpGradient = GetHpColors(SelfHPPercent);
+		local hpNameColor, hpGradient = GetHpColors(SelfHPPercent/100);
 
 		local SelfJob = GetJobStr(party:GetMemberMainJob(0));
 		local SelfSubJob = GetJobStr(party:GetMemberSubJob(0));
