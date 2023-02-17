@@ -457,6 +457,10 @@ function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg, xOffs
             imgui.SetCursorPosX(imgui.GetCursorPosX() + xOffset);
         end
 		for i = 0,#statusIds do
+            -- Don't check anymore after -1, as it will be all -1's
+            if (statusIds == -1) then
+                break;
+            end
             local icon = statusHandler.get_icon_from_theme(gConfig.statusIconTheme, statusIds[i]);
             if (icon ~= nil) then
                 if (drawBg == true) then

@@ -42,6 +42,7 @@ local castBar = require('castbar');
 local configMenu = require('configmenu');
 local debuffHandler = require('debuffhandler');
 local patchNotes = require('patchNotes');
+local statusHandler = require('statushandler');
 
 -- =================
 -- = HXUI DEV ONLY =
@@ -909,5 +910,7 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
 		end
 	elseif (e.id == 0x00B) then
 		bLoggedIn = false;
+	elseif (e.id == 0x076) then
+		statusHandler.ReadPartyBuffsFromPacket(e);
 	end
 end);

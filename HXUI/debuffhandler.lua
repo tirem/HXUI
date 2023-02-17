@@ -24,76 +24,74 @@ local function ApplyMessage(debuffs, action)
     local now = os.time()
 
     for _, target in pairs(action.Targets) do
-        if (target.Id ~= nil and bit.band(target.Id, 0x1000000) ~= 0) then -- ensure this is an NPC
-            for _, ability in pairs(target.Actions) do
-                -- Set up our state
-                local spell = action.Param
-                local message = ability.Message
-                if (debuffs[target.Id] == nil) then
-                    debuffs[target.Id] = T{};
+        for _, ability in pairs(target.Actions) do
+            -- Set up our state
+            local spell = action.Param
+            local message = ability.Message
+            if (debuffs[target.Id] == nil) then
+                debuffs[target.Id] = T{};
+            end
+            
+            -- Bio and Dia
+            if action.Type == 4 and spellDamageMes:contains(message) then
+                local expiry = nil
+
+                if spell == 23 or spell == 33 or spell == 230 then
+                    expiry = now + 60
+                elseif spell == 24 or spell == 231 then
+                    expiry = now + 120
+                elseif spell == 25 or spell == 232 then
+                    expiry = now + 150
                 end
-                
-                -- Bio and Dia
-                if action.Type == 4 and spellDamageMes:contains(message) then
-                    local expiry = nil
 
-                    if spell == 23 or spell == 33 or spell == 230 then
-                        expiry = now + 60
-                    elseif spell == 24 or spell == 231 then
-                        expiry = now + 120
-                    elseif spell == 25 or spell == 232 then
-                        expiry = now + 150
-                    end
+                if spell == 23 or spell == 24 or spell == 25 or spell == 33 then
+                    debuffs[target.Id][134] = expiry
+                    debuffs[target.Id][135] = nil
+                elseif spell == 230 or spell == 231 or spell == 232 then
+                    debuffs[target.Id][134] = nil
+                    debuffs[target.Id][135] = expiry
+                end
 
-                    if spell == 23 or spell == 24 or spell == 25 or spell == 33 then
-                        debuffs[target.Id][134] = expiry
-                        debuffs[target.Id][135] = nil
-                    elseif spell == 230 or spell == 231 or spell == 232 then
-                        debuffs[target.Id][134] = nil
-                        debuffs[target.Id][135] = expiry
-                    end
+            elseif statusOnMes:contains(message) then
+                -- Regular debuffs
+                local buffId = ability.Param or (action.Type == 4 and buffTable.GetBuffIdBySpellId(spell) or nil);
+                if (buffId == nil) then
+                    return
+                end
 
-                elseif statusOnMes:contains(message) then
-                    -- Regular debuffs
-                    local buffId = ability.Param or (action.Type == 4 and buffTable.GetBuffIdBySpellId(spell) or nil);
-                    if (buffId == nil) then
-                        return
-                    end
-
-                    if spell == 58 or spell == 80 then -- para/para2
-                        debuffs[target.Id][buffId] = now + 120
-                    elseif spell == 56 or spell == 79 then -- slow/slow2
-                        debuffs[target.Id][buffId] = now + 180
-                    elseif spell == 216 then -- gravity
-                        debuffs[target.Id][buffId] = now + 120
-                    elseif spell == 254 or spell == 276 then -- blind/blind2
-                        debuffs[target.Id][buffId] = now + 180
-                    elseif spell == 59 or spell == 359 then -- silence/ga
-                        debuffs[target.Id][buffId] = now + 120
-                    elseif spell == 253 or spell == 259 or spell == 273 or spell == 274 then -- sleep/2/ga/2
-                        debuffs[target.Id][buffId] = now + 90
-                    elseif spell == 258 or spell == 362 then -- bind
-                        debuffs[target.Id][buffId] = now + 60
-                    elseif spell == 252 then -- stun
-                        debuffs[target.Id][buffId] = now + 5
-                    elseif spell <= 229 and spell >= 220 then -- poison/2
-                        debuffs[target.Id][buffId] = now + 120
-                    -- Elemental debuffs
-                    elseif spell == 239 then -- shock
-                        debuffs[target.Id][buffId] = now + 120
-                    elseif spell == 238 then -- rasp
-                        debuffs[target.Id][buffId] = now + 120
-                    elseif spell == 237 then -- choke
-                        debuffs[target.Id][buffId] = now + 120
-                    elseif spell == 236 then -- frost
-                        debuffs[target.Id][buffId] = now + 120
-                    elseif spell == 235 then -- burn
-                        debuffs[target.Id][buffId] = now + 120
-                    elseif spell == 240 then -- drown
-                        debuffs[target.Id][buffId] = now + 120
-                    else                                        -- Handle unknown debuff
-                        debuffs[target.Id][buffId] = now + 300;
-                    end
+                if spell == 58 or spell == 80 then -- para/para2
+                    debuffs[target.Id][buffId] = now + 120
+                elseif spell == 56 or spell == 79 then -- slow/slow2
+                    debuffs[target.Id][buffId] = now + 180
+                elseif spell == 216 then -- gravity
+                    debuffs[target.Id][buffId] = now + 120
+                elseif spell == 254 or spell == 276 then -- blind/blind2
+                    debuffs[target.Id][buffId] = now + 180
+                elseif spell == 59 or spell == 359 then -- silence/ga
+                    debuffs[target.Id][buffId] = now + 120
+                elseif spell == 253 or spell == 259 or spell == 273 or spell == 274 then -- sleep/2/ga/2
+                    debuffs[target.Id][buffId] = now + 90
+                elseif spell == 258 or spell == 362 then -- bind
+                    debuffs[target.Id][buffId] = now + 60
+                elseif spell == 252 then -- stun
+                    debuffs[target.Id][buffId] = now + 5
+                elseif spell <= 229 and spell >= 220 then -- poison/2
+                    debuffs[target.Id][buffId] = now + 120
+                -- Elemental debuffs
+                elseif spell == 239 then -- shock
+                    debuffs[target.Id][buffId] = now + 120
+                elseif spell == 238 then -- rasp
+                    debuffs[target.Id][buffId] = now + 120
+                elseif spell == 237 then -- choke
+                    debuffs[target.Id][buffId] = now + 120
+                elseif spell == 236 then -- frost
+                    debuffs[target.Id][buffId] = now + 120
+                elseif spell == 235 then -- burn
+                    debuffs[target.Id][buffId] = now + 120
+                elseif spell == 240 then -- drown
+                    debuffs[target.Id][buffId] = now + 120
+                else                                        -- Handle unknown debuff
+                    debuffs[target.Id][buffId] = now + 999;
                 end
             end
         end
