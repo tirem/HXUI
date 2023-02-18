@@ -479,7 +479,9 @@ function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg, xOffs
                     imgui.SetCursorScreenPos({resetX, resetY});
                 end
                 imgui.Image(icon, { iconSize, iconSize }, { 0, 0 }, { 1, 1 });
-
+                if (imgui.IsItemHovered()) then
+                    statusHandler.render_tooltip(statusIds[i]);
+                end
                 currentColumn = currentColumn + 1;
                 -- Handle multiple rows
                 if (currentColumn < maxColumns) then

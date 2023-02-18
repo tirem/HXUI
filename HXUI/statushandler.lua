@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 local d3d8 = require('d3d8');
 local ffi = require('ffi');
+local imgui = require('imgui');
 -------------------------------------------------------------------------------
 -- local state
 -------------------------------------------------------------------------------
@@ -162,6 +163,25 @@ statusHandler.get_job_theme_paths = function()
     return T{'-None-'};
 end
 
+-- render the tooltip for a specific status id
+---@param status number the status id
+---@param is_target boolean if true, don't show '(right click to cancel)' hint
+statusHandler.render_tooltip = function(status)
+    if (status == nil or status < 1 or status > 0x3FF or status == 255) then
+        return;
+    end
+
+    local resMan = AshitaCore:GetResourceManager();
+    local info = resMan:GetStatusIconByIndex(status);
+    local name = resMan:GetString('buffs.names', status);
+    if (name ~= nil and info ~= nil) then
+        imgui.BeginTooltip();
+            imgui.Text(('%s (#%d)'):fmt(name, status));
+            imgui.Text(info.Description[1]);
+        imgui.EndTooltip();
+    end
+end
+
 -- return a list of all sub directories
 ---@return table theme_paths
 statusHandler.get_status_theme_paths = function()
@@ -244,11 +264,6 @@ statusHandler.clear_cache = function()
     debuffIcon = nil;
     jobIcons = T{};
 end;
-
-
-statusHandler.get_status_name = function(status_id)
-    return AshitaCore:GetResourceManager():GetString(compat.buffs_table(), status_id);
-end
 
 -- return a table of status ids for a party member based on server id.
 ---@param server_id number the party memer or target server id to check
