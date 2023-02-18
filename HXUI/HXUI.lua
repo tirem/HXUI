@@ -440,7 +440,7 @@ T{
 		backgroundPaddingY2 = 0,
 
 		cursorPaddingX1 = 4,
-		cursorPaddingX2 = 0,
+		cursorPaddingX2 = 4,
 		cursorPaddingY1 = 6,
 		cursorPaddingY2 = 6,
 		dotRadius = 3,
