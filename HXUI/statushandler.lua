@@ -269,7 +269,44 @@ end;
 ---@param server_id number the party memer or target server id to check
 ---@return table status_ids a list of the targets status ids or nil
 statusHandler.get_member_status = function(server_id)
-    return partyBuffs[server_id];
+    local party = AshitaCore:GetMemoryManager():GetParty();
+    if (party == nil or not valid_server_id(server_id)) then
+        return nil;
+    end
+
+    -- try and find a party member with a matching server id
+    for i = 0,4,1 do
+        if (party:GetStatusIconsServerId(i) == server_id) then
+            local icons_lo = party:GetStatusIcons(i);
+            local icons_hi = party:GetStatusIconsBitMask(i);
+            local status_ids = T{};
+
+            for j = 0,31,1 do
+                --[[ FIXME: lua doesn't handle 64bit return values properly..
+                --   FIXME: the next lines are a workaround by Thorny that cover most but not all cases..
+                --   FIXME: .. to try and retrieve the high bits of the buff id.
+                --   TODO:  revesit this once atom0s adjusted the API.
+                --]]
+                local high_bits;
+                if j < 16 then
+                    high_bits = bit.lshift(bit.band(bit.rshift(icons_hi, 2* j), 3), 8);
+                else
+                    local buffer = math.floor(icons_hi / 0xffffffff);
+                    high_bits = bit.lshift(bit.band(bit.rshift(buffer, 2 * (j - 16)), 3), 8);
+                end
+                local buff_id = icons_lo[j+1] + high_bits;
+                if (buff_id ~= 255) then
+                    status_ids[#status_ids + 1] = buff_id;
+                end
+            end
+
+            if (next(status_ids)) then
+                return status_ids;
+            end
+            break;
+        end
+    end
+    return nil;
 end
 
 statusHandler.GetBackground = function(isBuff)
