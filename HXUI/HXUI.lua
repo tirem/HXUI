@@ -522,7 +522,7 @@ T{
 			},
 			right_justified = false;
 		};
-		primData = {
+		prim_data = {
 			texture_offset_x= 0.0,
 			texture_offset_y= 0.0,
 			border_visible  = false,

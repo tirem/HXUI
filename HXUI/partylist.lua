@@ -257,7 +257,7 @@ local function DrawMember(memIdx, settings)
             arrowPrim.position_y = (hpStartY - nameSize.cy - settings.nameTextOffsetY - settings.cursorPaddingY1) + (entrySize/2) - arrowPrim:GetHeight()/2;
             arrowPrim.scale_x = settings.arrowSize;
             arrowPrim.scale_y = settings.arrowSize;
-            if (memInfo.targeted == false) then
+            if (subTargetActive) then
                 arrowPrim.color = settings.subtargetArrowTint;
             else
                 arrowPrim.color = 0xFFFFFFFF;
@@ -367,7 +367,7 @@ partyList.DrawWindow = function(settings)
         return;
 	end
 
-    if (imgui.Begin('PartyList', true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
+    if (imgui.Begin('PartyList', true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus))) then
         local nameSize = SIZE.new();
         local hpSize = SIZE.new();
         memberText[0].name:GetTextSize(nameSize);
@@ -410,21 +410,24 @@ partyList.Initialize = function(settings)
         memberText[i].tp = fonts.new(settings.tp_font_settings);
     end
     
-    backgroundPrim = primitives:new(settings.primData);
+    backgroundPrim = primitives:new(settings.prim_data);
     backgroundPrim.color = tonumber(string.format('%02x%02x%02x%02x', gConfig.partyListBgOpacity, 255, 255, 255), 16);
 
     backgroundPrim.texture = string.format('%s/assets/backgrounds/'..gConfig.partyListBackground, addon.path);
     backgroundPrim.visible = false;
+    backgroundPrim.can_focus = false;
 
-    selectionPrim = primitives.new(settings.primData);
+    selectionPrim = primitives.new(settings.prim_data);
     selectionPrim.color = 0xFFFFFFFF;
     selectionPrim.texture = string.format('%s/assets/Selector.png', addon.path);
     selectionPrim.visible = false;
+    selectionPrim.can_focus = false;
 
-    arrowPrim = primitives.new(settings.primData);
+    arrowPrim = primitives.new(settings.prim_data);
     arrowPrim.color = 0xFFFFFFFF;
     arrowPrim.texture = string.format('%s/assets/cursors/'..gConfig.partyListCursor, addon.path);
     arrowPrim.visible = false;
+    arrowPrim.can_focus = false;
 end
 
 partyList.UpdateFonts = function(settings)

@@ -90,8 +90,8 @@ local function ApplyMessage(debuffs, action)
                     debuffs[target.Id][buffId] = now + 120
                 elseif spell == 240 then -- drown
                     debuffs[target.Id][buffId] = now + 120
-                else                                        -- Handle unknown debuff
-                    debuffs[target.Id][buffId] = now + 999;
+                else                                        -- Handle unknown status effect @ 5 minutes
+                    debuffs[target.Id][buffId] = now + 300;
                 end
             end
         end
