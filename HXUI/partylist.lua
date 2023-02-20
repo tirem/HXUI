@@ -121,6 +121,8 @@ local function DrawMember(memIdx, settings)
     -- Get the hp color for bars and text
     local hpNameColor, hpGradient = GetHpColors(memInfo.hpp);
 
+    local bgGradientOverride = {'#000813', '#000813'};
+
     local allBarsLengths = settings.hpBarWidth + settings.mpBarWidth + settings.tpBarWidth + (settings.barSpacing * 2) + (imgui.GetStyle().FramePadding.x * 4);
 
 
@@ -147,7 +149,7 @@ local function DrawMember(memIdx, settings)
     -- Draw the HP bar
     if (memInfo.inzone) then
         -- imgui.ProgressBar(memInfo.hpp, { settings.hpBarWidth, settings.barHeight }, '');
-        progressbar.ProgressBar({{memInfo.hpp, hpGradient}}, {settings.hpBarWidth, settings.barHeight}, {borderConfig=borderConfig});
+        progressbar.ProgressBar({{memInfo.hpp, hpGradient}}, {settings.hpBarWidth, settings.barHeight}, {borderConfig=borderConfig, backgroundGradientOverride=bgGradientOverride});
     else
 --        imgui.PushStyleColor(ImGuiCol_PlotHistogram, hpBarColor);
         imgui.ProgressBar(0, { allBarsLengths, settings.barHeight + hpSize.cy + settings.hpTextOffsetY}, AshitaCore:GetResourceManager():GetString("zones.names", memInfo.zone));
@@ -174,7 +176,7 @@ local function DrawMember(memIdx, settings)
         -- imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.9, 1.0, 0.5, 1.0});
         -- imgui.ProgressBar(memInfo.mpp, {  settings.mpBarWidth, settings.barHeight }, '');
         -- imgui.PopStyleColor(1);
-        progressbar.ProgressBar({{memInfo.mpp, {'#9abb5a', '#bfe07d'}}}, {settings.mpBarWidth, settings.barHeight}, {borderConfig=borderConfig});
+        progressbar.ProgressBar({{memInfo.mpp, {'#9abb5a', '#bfe07d'}}}, {settings.mpBarWidth, settings.barHeight}, {borderConfig=borderConfig, backgroundGradientOverride=bgGradientOverride});
         imgui.SameLine();
 
         -- Draw the TP bar
@@ -217,7 +219,7 @@ local function DrawMember(memIdx, settings)
 		
 		-- imgui.ProgressBar(SelfTP / 1000, { barSize, settings.barHeight }, '');
 		-- imgui.PopStyleColor(1);
-		progressbar.ProgressBar({{mainPercent, tpGradient}}, {settings.tpBarWidth, settings.barHeight}, {overlayBar=tpOverlay, borderConfig=borderConfig});
+		progressbar.ProgressBar({{mainPercent, tpGradient}}, {settings.tpBarWidth, settings.barHeight}, {overlayBar=tpOverlay, borderConfig=borderConfig, backgroundGradientOverride=bgGradientOverride});
 
         -- Update the mp text
         memberText[memIdx].mp:SetColor(gAdjustedSettings.mpColor);

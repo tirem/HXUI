@@ -150,7 +150,15 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 	end
 	
 	-- Draw the background
-	progressbar.DrawBar({contentPositionStartX, contentPositionStartY}, {contentPositionStartX + contentWidth, contentPositionStartY + height}, progressbar.backgroundGradientStartColor, progressbar.backgroundGradientEndColor, progressbar.backgroundRounding);
+	local bgGradientStart = progressbar.backgroundGradientStartColor;
+	local bgGradientEnd = progressbar.backgroundGradientEndColor;
+
+	if options.backgroundGradientOverride then
+		bgGradientStart = options.backgroundGradientOverride[1];
+		bgGradientEnd = options.backgroundGradientOverride[2];
+	end
+
+	progressbar.DrawBar({contentPositionStartX, contentPositionStartY}, {contentPositionStartX + contentWidth, contentPositionStartY + height}, bgGradientStart, bgGradientEnd, progressbar.backgroundRounding);
 	
 	-- Compute the actual progress bar's width and height
 	local paddingHalf = progressbar.foregroundPadding / 2;
