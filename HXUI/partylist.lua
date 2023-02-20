@@ -267,7 +267,7 @@ local function DrawMember(memIdx, settings)
 
         -- Draw the different party list buff / debuff themes
         if (memInfo.buffs ~= nil and #memInfo.buffs > 0) then
-            if (gConfig.partyListStatusTheme == 0) then
+            if (gConfig.partyListStatusTheme == 0 or gConfig.partyListStatusTheme == 1) then
                 local buffs = {};
                 local debuffs = {};
                 for i = 0, #memInfo.buffs do
@@ -279,8 +279,11 @@ local function DrawMember(memIdx, settings)
                 end
 
                 if (buffs ~= nil and #buffs > 0) then
-                    if (buffWindowX[memIdx] ~= nil) then
+                    if (gConfig.partyListStatusTheme == 0 and buffWindowX[memIdx] ~= nil) then
                         imgui.SetNextWindowPos({hpStartX - buffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name:GetPositionY() - settings.iconSize/2});
+                    elseif (gConfig.partyListStatusTheme == 1 and fullMenuSizeX ~= nil) then
+                        local thisPosX, _ = imgui.GetWindowPos();
+                        imgui.SetNextWindowPos({thisPosX + fullMenuSizeX, memberText[memIdx].name:GetPositionY() - settings.iconSize/2});
                     end
                     if (imgui.Begin('PlayerBuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
                         imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {5, 1});
@@ -294,8 +297,11 @@ local function DrawMember(memIdx, settings)
                 end
 
                 if (debuffs ~= nil and #debuffs > 0) then
-                    if (debuffWindowX[memIdx] ~= nil) then
+                    if (gConfig.partyListStatusTheme == 0 and buffWindowX[memIdx] ~= nil) then
                         imgui.SetNextWindowPos({hpStartX - debuffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name:GetPositionY() + settings.iconSize});
+                    elseif (gConfig.partyListStatusTheme == 1 and fullMenuSizeX ~= nil) then
+                        local thisPosX, _ = imgui.GetWindowPos();
+                        imgui.SetNextWindowPos({thisPosX + fullMenuSizeX , memberText[memIdx].name:GetPositionY() - settings.iconSize/2});
                     end
                     if (imgui.Begin('PlayerDebuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
                         imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {5, 1});
@@ -306,7 +312,7 @@ local function DrawMember(memIdx, settings)
                     debuffWindowX[memIdx] = buffWindowSizeX;
                     imgui.End();
                 end
-            elseif (gConfig.partyListStatusTheme == 1) then
+            elseif (gConfig.partyListStatusTheme == 2) then
                 -- Draw FFXIV theme
                 local resetX, resetY = imgui.GetCursorScreenPos();
                 imgui.PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0} );
@@ -319,7 +325,7 @@ local function DrawMember(memIdx, settings)
                 imgui.PopStyleVar(1);
                 imgui.End();
                 imgui.SetCursorScreenPos({resetX, resetY});
-            else
+            elseif (gConfig.partyListStatusTheme == 3) then
                 if (buffWindowX[memIdx] ~= nil) then
                     imgui.SetNextWindowPos({hpStartX - buffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name:GetPositionY() - settings.iconSize/2});
                 end

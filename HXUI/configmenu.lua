@@ -234,9 +234,11 @@ config.DrawWindow = function(us)
 
             local comboBoxItems = {};
             comboBoxItems[0] = 'HorizonXI';
-            comboBoxItems[1] = 'FFXIV';
-            comboBoxItems[2] = 'FFXI';
-            gConfig.partyListStatusTheme = math.clamp(gConfig.partyListStatusTheme, 0, 2);
+            comboBoxItems[1] = 'HorizonXI-R';
+            comboBoxItems[2] = 'FFXIV';
+            comboBoxItems[3] = 'FFXI';
+            comboBoxItems[4] = 'Disabled';
+            gConfig.partyListStatusTheme = math.clamp(gConfig.partyListStatusTheme, 0, 4);
             if(imgui.BeginCombo('Status Theme', comboBoxItems[gConfig.partyListStatusTheme])) then
                 for i = 0,#comboBoxItems do
                     local is_selected = i == gConfig.partyListStatusTheme;
