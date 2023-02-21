@@ -199,11 +199,23 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 			if overlayConfiguration then
 				local overlayColor = overlayConfiguration[1];
 				local overlayAlpha = overlayConfiguration[2];
+				-- local overlayPercent = overlayConfiguration[3];
+
+				local overlayWidth = progressWidth;
+				local overlayCornerFlags = cornerFlags;
+
+				--[[
+				if overlayPercent then
+					overlayWidth = progressTotalWidth * overlayPercent;
+					overlayCornerFlags = ImDrawCornerFlags_None;
+				end
+				]]--
+
 				local red, green, blue = hex2rgb(overlayColor);
 
 				local overlayBarColor = imgui.GetColorU32({red / 255, green / 255, blue / 255, overlayAlpha});
 
-				progressbar.DrawColoredBar({progressPositionStartX + progressOffset, progressPositionStartY}, {progressPositionStartX + progressOffset + progressWidth, progressPositionStartY + progressHeight}, overlayBarColor, progressbar.foregroundRounding, cornerFlags);
+				progressbar.DrawColoredBar({progressPositionStartX + progressOffset, progressPositionStartY}, {progressPositionStartX + progressOffset + overlayWidth, progressPositionStartY + progressHeight}, overlayBarColor, progressbar.foregroundRounding, cornerFlags);
 			end
 			
 			progressOffset = progressOffset + progressWidth;

@@ -17,7 +17,9 @@ local percentText;
 local nameText;
 local totNameText;
 local distText;
-local targetbar = {};
+local targetbar = {
+	interpolation = {}
+};
 
 local function UpdateTextVisibility(visible)
 	percentText:SetVisible(visible);
@@ -27,12 +29,9 @@ local function UpdateTextVisibility(visible)
 end
 
 local _HXUI_DEV_DEBUG_INTERPOLATION = false;
-local _HXUI_DEV_DEBUG_INTERPOLATION_DELAY, _HXUI_DEV_DEBUG_INTERPOLATION_NEXT_TIME;
-
-if _HXUI_DEV_DEBUG_INTERPOLATION then
-	_HXUI_DEV_DEBUG_INTERPOLATION_DELAY = 2;
-	_HXUI_DEV_DEBUG_INTERPOLATION_NEXT_TIME = os.time() + _HXUI_DEV_DEBUG_INTERPOLATION_DELAY;
-end
+local _HXUI_DEV_DEBUG_INTERPOLATION_DELAY = 1;
+local _HXUI_DEV_DEBUG_HP_PERCENT_PERSISTENT = 100;
+local _HXUI_DEV_DAMAGE_SET_TIMES = {};
 
 targetbar.DrawWindow = function(settings)
     -- Obtain the player entity..
@@ -53,62 +52,120 @@ targetbar.DrawWindow = function(settings)
 	end
     if (targetEntity == nil or targetEntity.Name == nil) then
 		UpdateTextVisibility(false);
+
+		targetbar.interpolation.interpolationDamagePercent = 0;
+
         return;
     end
 
-    local currentTime = os.clock();
+	local currentTime = os.clock();
 
-    if targetbar.currentTargetId == targetIndex then
-    	if targetEntity.HPPercent < targetbar.currentHPP then
-    		targetbar.previousHPP = targetbar.currentHPP;
-    		targetbar.currentHPP = targetEntity.HPPercent;
-    		targetbar.lastHitTime = currentTime;
-    	end
-    else
-    	targetbar.currentTargetId = targetIndex;
-    	targetbar.currentHPP = targetEntity.HPPercent;
-    	targetbar.previousHPP = targetEntity.HPPercent;
-    end
+	local hppPercent = targetEntity.HPPercent;
 
-    if _HXUI_DEV_DEBUG_INTERPOLATION then
-	    if os.time() > _HXUI_DEV_DEBUG_INTERPOLATION_NEXT_TIME then
-	    	targetbar.previousHPP = 75;
-	    	targetbar.currentHPP = 50;
-			targetbar.lastHitTime = currentTime;
+	-- Mimic damage taken
+	if _HXUI_DEV_DEBUG_INTERPOLATION then
+		if _HXUI_DEV_DAMAGE_SET_TIMES[1] and currentTime > _HXUI_DEV_DAMAGE_SET_TIMES[1][1] then
+			_HXUI_DEV_DEBUG_HP_PERCENT_PERSISTENT = _HXUI_DEV_DAMAGE_SET_TIMES[1][2];
 
-			_HXUI_DEV_DEBUG_INTERPOLATION_NEXT_TIME = os.time() + 2;
-	    end
+			table.remove(_HXUI_DEV_DAMAGE_SET_TIMES, 1);
+		end
+
+		if #_HXUI_DEV_DAMAGE_SET_TIMES == 0 then
+			local previousHitTime = currentTime + 1;
+			local previousHp = 100;
+
+			local totalDamageInstances = 10;
+
+			for i = 1, totalDamageInstances do
+				local hitDelay = math.random(0.25 * 100, 1.25 * 100) / 100;
+				local damageAmount = math.random(1, 20);
+
+				if i > 1 and i < totalDamageInstances then
+					previousHp = math.max(previousHp - damageAmount, 0);
+				end
+
+				if i < totalDamageInstances then
+					previousHitTime = previousHitTime + hitDelay;
+				else
+					previousHitTime = previousHitTime + _HXUI_DEV_DEBUG_INTERPOLATION_DELAY;
+				end
+
+				_HXUI_DEV_DAMAGE_SET_TIMES[i] = {previousHitTime, previousHp};
+			end
+		end
+
+		hppPercent = _HXUI_DEV_DEBUG_HP_PERCENT_PERSISTENT;
 	end
 
-    local interpolationPercent;
-    local interpolationOverlayAlpha = 0;
+	-- If we change targets, reset the interpolation
+	if targetbar.interpolation.currentTargetId ~= targetIndex then
+		targetbar.interpolation.currentTargetId = targetIndex;
+		targetbar.interpolation.currentHpp = hppPercent;
+		targetbar.interpolation.interpolationDamagePercent = 0;
+	end
 
-    if targetbar.currentHPP < targetbar.previousHPP then
-    	local hppDelta = targetbar.previousHPP - targetbar.currentHPP;
+	-- If the target takes damage
+	if hppPercent < targetbar.interpolation.currentHpp then
+		local previousInterpolationDamagePercent = targetbar.interpolation.interpolationDamagePercent;
 
-    	if currentTime > targetbar.lastHitTime + settings.hitDelayLength then
-    		-- local interpolationTimeTotal = settings.hitInterpolationMaxTime * (hppDelta / 100);
-    		local interpolationTimeTotal = settings.hitInterpolationMaxTime;
-    		local interpolationTimeElapsed = currentTime - targetbar.lastHitTime - settings.hitDelayLength;
+		local damageAmount = targetbar.interpolation.currentHpp - hppPercent;
 
-    		if interpolationTimeElapsed <= interpolationTimeTotal then
-    			local interpolationTimeElapsedPercent = easeOutPercent(interpolationTimeElapsed / interpolationTimeTotal);
+		targetbar.interpolation.interpolationDamagePercent = targetbar.interpolation.interpolationDamagePercent + damageAmount;
 
-    			interpolationPercent = hppDelta * (1 - interpolationTimeElapsedPercent);
-    		end
-    	elseif currentTime - targetbar.lastHitTime <= settings.hitDelayLength then
-    		interpolationPercent = hppDelta;
+		if previousInterpolationDamagePercent > 0 and targetbar.interpolation.lastHitAmount and damageAmount > targetbar.interpolation.lastHitAmount then
+			targetbar.interpolation.lastHitTime = currentTime;
+			targetbar.interpolation.lastHitAmount = damageAmount;
+		elseif previousInterpolationDamagePercent == 0 then
+			targetbar.interpolation.lastHitTime = currentTime;
+			targetbar.interpolation.lastHitAmount = damageAmount;
+		end
 
-    		local hitDelayTime = currentTime - targetbar.lastHitTime;
-    		local hitDelayHalfDuration = settings.hitDelayLength / 2;
+		if not targetbar.interpolation.lastHitTime or currentTime > targetbar.interpolation.lastHitTime + (settings.hitFlashDuration * 0.25) then
+			targetbar.interpolation.lastHitTime = currentTime;
+			targetbar.interpolation.lastHitAmount = damageAmount;
+		end
 
-    		if hitDelayTime > hitDelayHalfDuration then
-    			interpolationOverlayAlpha = 1 - ((hitDelayTime - hitDelayHalfDuration) / hitDelayHalfDuration);
-    		else
-    			interpolationOverlayAlpha = hitDelayTime / hitDelayHalfDuration;
-    		end
-    	end
-    end
+		-- If we previously were interpolating with an empty bar, reset the hit delay effect
+		if previousInterpolationDamagePercent == 0 then
+			targetbar.interpolation.hitDelayStartTime = currentTime;
+		end
+	elseif hppPercent > targetbar.interpolation.currentHpp then
+		-- If the target heals
+		targetbar.interpolation.interpolationDamagePercent = 0;
+		targetbar.interpolation.hitDelayStartTime = nil;
+	end
+
+	targetbar.interpolation.currentHpp = hppPercent;
+
+	-- Reduce the HP amount to display based on the time passed since last frame
+	if targetbar.interpolation.interpolationDamagePercent > 0 and targetbar.interpolation.hitDelayStartTime and currentTime > targetbar.interpolation.hitDelayStartTime + settings.hitDelayDuration then
+		if targetbar.interpolation.lastFrameTime then
+			local deltaTime = currentTime - targetbar.interpolation.lastFrameTime;
+
+			local animSpeed = 0.1 + (0.9 * (targetbar.interpolation.interpolationDamagePercent / 100));
+
+			-- animSpeed = math.max(settings.hitDelayMinAnimSpeed, animSpeed);
+
+			targetbar.interpolation.interpolationDamagePercent = targetbar.interpolation.interpolationDamagePercent - (settings.hitInterpolationDecayPercentPerSecond * deltaTime * animSpeed);
+
+			-- Clamp our percent to 0
+			targetbar.interpolation.interpolationDamagePercent = math.max(0, targetbar.interpolation.interpolationDamagePercent);
+		end
+	end
+
+	if targetbar.interpolation.lastHitTime and currentTime < targetbar.interpolation.lastHitTime + settings.hitFlashDuration then
+		local hitFlashTime = currentTime - targetbar.interpolation.lastHitTime;
+		local hitFlashTimePercent = hitFlashTime / settings.hitFlashDuration;
+
+		local maxAlphaHitPercent = 20;
+		local maxAlpha = math.min(targetbar.interpolation.lastHitAmount, maxAlphaHitPercent) / maxAlphaHitPercent;
+
+		maxAlpha = math.max(maxAlpha * 0.75, 0.4);
+
+		targetbar.interpolation.overlayAlpha = math.pow(1 - hitFlashTimePercent, 2) * maxAlpha;
+	end
+
+	targetbar.interpolation.lastFrameTime = currentTime;
 
 	local color = GetColorOfTarget(targetEntity, targetIndex);
 	local isMonster = GetIsMob(targetEntity);
@@ -128,24 +185,24 @@ targetbar.DrawWindow = function(settings)
 			targetNameText = targetNameText .. " [".. string.sub(targetServerIdHex, -3) .."]";
 		end
 
-		local hpGradientStart = '#e16c6c';
+		local hpGradientStart = '#e26c6c';
 		local hpGradientEnd = '#fb9494';
 
 		local hpPercentData = {{targetEntity.HPPercent / 100, {hpGradientStart, hpGradientEnd}}};
 
 		if _HXUI_DEV_DEBUG_INTERPOLATION then
-			hpPercentData[1][1] = 0.5;
+			hpPercentData[1][1] = targetbar.interpolation.currentHpp / 100;
 		end
 
-		if interpolationPercent then
+		if targetbar.interpolation.interpolationDamagePercent > 0 then
 			table.insert(
 				hpPercentData,
 				{
-					interpolationPercent / 100, -- interpolation percent
+					targetbar.interpolation.interpolationDamagePercent / 100, -- interpolation percent
 					{'#cf3437', '#c54d4d'}, -- interpolation gradient
 					{
-						'#ffacae', -- overlay color,
-						interpolationOverlayAlpha -- overlay alpha
+						'#FFFFFF', -- overlay color,
+						targetbar.interpolation.overlayAlpha -- overlay alpha,
 					}
 				}
 			);

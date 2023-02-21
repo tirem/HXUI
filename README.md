@@ -1,17 +1,19 @@
-![HXUI Banner](https://user-images.githubusercontent.com/7691562/212527265-4263d29d-e6d0-415b-b209-2f28f8188e33.png)
+![HXUI Banner](https://user-images.githubusercontent.com/124013059/220467961-2bcd7ec4-02bc-4ef1-92c5-1ddd98cfc0ac.png)
+[![HXUI Discord](https://user-images.githubusercontent.com/124013059/220468014-bb680d46-3083-452e-803f-20f1385c7e72.png)](https://discord.gg/qepeymYw9y)
 
 Contains the following elements:
-1) Player Bar
-2) Target Bar (w/ Target of Target and Buffs & Debuffs)
-3) Party List (w/ Buffs & Debuffs)
-4) Enemy List (w/ Buffs & Debuffs)
-5) Exp Bar
-6) Inventory Tracker
-7) Gil Tracker
-8) Configuration UI for all elements
+* Player Bar
+* Target Bar (w/ Target of Target and Buffs & Debuffs)
+* Party List (w/ Buffs & Debuffs)
+* Enemy List (w/ Buffs & Debuffs)
+* Cast Bar
+* Exp Bar
+* Inventory Tracker
+* Gil Tracker
+* Configuration UI for all elements
 
-Configuration UI Command: /hxui, /hui, /horixonui, /horizonxiui
-![HXUI Screenshot](https://user-images.githubusercontent.com/7691562/212527266-cc67e8b4-0f03-4d4b-9903-226922fb0ca2.png)
+Configuration UI Command: /hxui
+![HXUI Screenshot](https://user-images.githubusercontent.com/124013059/220468124-38323cf6-f6a8-40f8-860c-4420f9632130.png)
 
 ***UPDATING NOTES***
 1) This addon has been recently renamed from ConsolidatedUI to HXUI. If you are upgrading from ConsolidatedUI and would like to keep your old config from before please rename the folder "consolidatedui" in game/config/addons/ to "hxui"

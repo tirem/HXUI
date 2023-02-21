@@ -23,7 +23,7 @@
 ]]--
 
 addon.name      = 'HXUI';
-addon.author    = 'Tirem (Programmer) & Shuu (Designer) & Extrasupervery (Programmer)';
+addon.author    = 'Team HXUI';
 addon.version   = '0.1.1';
 addon.desc      = 'Multiple UI elements with manager';
 addon.link      = 'https://github.com/tirem/HXUI'
@@ -176,8 +176,12 @@ T{
 	-- settings for the targetbar
 	targetBarSettings =
 	T{
-		hitInterpolationMaxTime = 0.5,
-		hitDelayLength = 0.5,
+		-- Damage interpolation
+		hitInterpolationDecayPercentPerSecond = 150,
+		hitDelayDuration = 0.5,
+		hitFlashDuration = 0.4,
+
+		-- Everything else
 		barWidth = 500,
 		barHeight = 18,
 		totBarHeight = 14,

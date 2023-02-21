@@ -580,7 +580,7 @@ function GetHpColors(hpPercent)
         hpGradient = {"#ffff0c", "#ffff97"};
     else
         hpNameColor = 0xFFFFFFFF;
-        hpGradient = {"#eb7373", "#fa9c9c"};
+        hpGradient = {"#e26c6c", "#fa9c9c"};
     end
 
     return hpNameColor, hpGradient;
