@@ -55,6 +55,8 @@ patchNotes.DrawWindow = function()
 		imgui.NewLine();
 		imgui.Image(tonumber(ffi.cast("uint32_t", NewTexture.image)), { 30, 13});
 		imgui.NewLine();
+		imgui.BulletText('Themed bars across all widgets');
+		imgui.NewLine();
 		imgui.BulletText('Cast Bar Support: Cast spells and move the bar around!');
 		imgui.NewLine();
 		imgui.BulletText('Added additional customization options. (/hxui)');
@@ -64,8 +66,6 @@ patchNotes.DrawWindow = function()
 		imgui.BulletText('Additional icon themes for job icons');
 		imgui.NewLine();
 		imgui.BulletText('Additional icon themes for buffs & debuffs');
-		imgui.NewLine();
-		imgui.BulletText('Themed bars across all widgets');
 		imgui.NewLine();
 		imgui.BulletText('Updated damage taken visuals for HP bars');
 		imgui.NewLine();
