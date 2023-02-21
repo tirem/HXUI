@@ -158,6 +158,8 @@ T{
 	castBarScaleX = 1,
 	castBarScaleY = 1,
 	castBarFontOffset = 0,
+
+	healthBarFlashEnabled = true,
 };
 
 local user_settings_container = 

@@ -153,16 +153,18 @@ targetbar.DrawWindow = function(settings)
 		end
 	end
 
-	if targetbar.interpolation.lastHitTime and currentTime < targetbar.interpolation.lastHitTime + settings.hitFlashDuration then
-		local hitFlashTime = currentTime - targetbar.interpolation.lastHitTime;
-		local hitFlashTimePercent = hitFlashTime / settings.hitFlashDuration;
+	if gConfig.healthBarFlashEnabled then
+		if targetbar.interpolation.lastHitTime and currentTime < targetbar.interpolation.lastHitTime + settings.hitFlashDuration then
+			local hitFlashTime = currentTime - targetbar.interpolation.lastHitTime;
+			local hitFlashTimePercent = hitFlashTime / settings.hitFlashDuration;
 
-		local maxAlphaHitPercent = 20;
-		local maxAlpha = math.min(targetbar.interpolation.lastHitAmount, maxAlphaHitPercent) / maxAlphaHitPercent;
+			local maxAlphaHitPercent = 20;
+			local maxAlpha = math.min(targetbar.interpolation.lastHitAmount, maxAlphaHitPercent) / maxAlphaHitPercent;
 
-		maxAlpha = math.max(maxAlpha * 0.75, 0.4);
+			maxAlpha = math.max(maxAlpha * 0.6, 0.4);
 
-		targetbar.interpolation.overlayAlpha = math.pow(1 - hitFlashTimePercent, 2) * maxAlpha;
+			targetbar.interpolation.overlayAlpha = math.pow(1 - hitFlashTimePercent, 2) * maxAlpha;
+		end
 	end
 
 	targetbar.interpolation.lastFrameTime = currentTime;
@@ -195,15 +197,21 @@ targetbar.DrawWindow = function(settings)
 		end
 
 		if targetbar.interpolation.interpolationDamagePercent > 0 then
+			local interpolationOverlay;
+
+			if gConfig.healthBarFlashEnabled then
+				interpolationOverlay = {
+					'#FFFFFF', -- overlay color,
+					targetbar.interpolation.overlayAlpha -- overlay alpha,
+				};
+			end
+
 			table.insert(
 				hpPercentData,
 				{
 					targetbar.interpolation.interpolationDamagePercent / 100, -- interpolation percent
-					{'#cf3437', '#c54d4d'}, -- interpolation gradient
-					{
-						'#FFFFFF', -- overlay color,
-						targetbar.interpolation.overlayAlpha -- overlay alpha,
-					}
+					{'#cf3437', '#c54d4d'},
+					interpolationOverlay
 				}
 			);
 		end

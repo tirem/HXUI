@@ -98,14 +98,16 @@ playerbar.DrawWindow = function(settings)
     	elseif currentTime - playerbar.lastHitTime <= settings.hitDelayLength then
     		interpolationPercent = hppDelta;
 
-    		local hitDelayTime = currentTime - playerbar.lastHitTime;
-    		local hitDelayHalfDuration = settings.hitDelayLength / 2;
+			if gConfig.healthBarFlashEnabled then
+				local hitDelayTime = currentTime - playerbar.lastHitTime;
+				local hitDelayHalfDuration = settings.hitDelayLength / 2;
 
-    		if hitDelayTime > hitDelayHalfDuration then
-    			interpolationOverlayAlpha = 1 - ((hitDelayTime - hitDelayHalfDuration) / hitDelayHalfDuration);
-    		else
-    			interpolationOverlayAlpha = hitDelayTime / hitDelayHalfDuration;
-    		end
+				if hitDelayTime > hitDelayHalfDuration then
+					interpolationOverlayAlpha = 1 - ((hitDelayTime - hitDelayHalfDuration) / hitDelayHalfDuration);
+				else
+					interpolationOverlayAlpha = hitDelayTime / hitDelayHalfDuration;
+				end
+			end
     	end
     end
 
@@ -136,15 +138,21 @@ playerbar.DrawWindow = function(settings)
 		end
 
 		if interpolationPercent then
+			local interpolationOverlay;
+
+			if gConfig.healthBarFlashEnabled then
+				interpolationOverlay = {
+					'#ffacae', -- overlay color,
+					interpolationOverlayAlpha -- overlay alpha
+				};
+			end
+
 			table.insert(
 				hpPercentData,
 				{
 					interpolationPercent / 100, -- interpolation percent
 					{'#cf3437', '#c54d4d'}, -- interpolation gradient
-					{
-						'#ffacae', -- overlay color,
-						interpolationOverlayAlpha -- overlay alpha
-					}
+					interpolationOverlay
 				}
 			);
 		end

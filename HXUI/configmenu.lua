@@ -68,6 +68,11 @@ config.DrawWindow = function(us)
                 imgui.EndCombo();
             end
 
+            if (imgui.Checkbox('Show Health Bar Flash Effects', { gConfig.healthBarFlashEnabled })) then
+                gConfig.healthBarFlashEnabled = not gConfig.healthBarFlashEnabled;
+                UpdateSettings();
+            end
+
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Player Bar")) then
