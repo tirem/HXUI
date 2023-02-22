@@ -348,6 +348,11 @@ config.DrawWindow = function(us)
                 gConfig.castBarScaleY = scaleY[1];
                 UpdateSettings();
             end
+            local fontOffset = { gConfig.castBarFontOffset };
+            if (imgui.SliderInt('Font Offset', fontOffset, -5, 10)) then
+                gConfig.castBarFontOffset = fontOffset[1];
+                UpdateSettings();
+            end
             imgui.EndChild();
         end
         imgui.EndChild();
