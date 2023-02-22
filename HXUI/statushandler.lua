@@ -177,10 +177,12 @@ statusHandler.render_tooltip = function(status)
     local resMan = AshitaCore:GetResourceManager();
     local info = resMan:GetStatusIconByIndex(status);
     local name = resMan:GetString('buffs.names', status);
-    if (name ~= nil and info ~= nil and info.Description[1] ~= nil) then
+    if (name ~= nil and info ~= nil) then
         imgui.BeginTooltip();
             imgui.Text(('%s (#%d)'):fmt(name, status));
-            imgui.Text(info.Description[1]);
+            if (info.Description[1] ~= nil) then
+                imgui.Text(info.Description[1]);
+            end
         imgui.EndTooltip();
     end
 end
