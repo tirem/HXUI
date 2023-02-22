@@ -301,7 +301,7 @@ local function DrawMember(memIdx, settings)
                         imgui.SetNextWindowPos({hpStartX - debuffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name:GetPositionY() + settings.iconSize});
                     elseif (gConfig.partyListStatusTheme == 1 and fullMenuSizeX ~= nil) then
                         local thisPosX, _ = imgui.GetWindowPos();
-                        imgui.SetNextWindowPos({thisPosX + fullMenuSizeX , memberText[memIdx].name:GetPositionY() - settings.iconSize/2});
+                        imgui.SetNextWindowPos({thisPosX + fullMenuSizeX , memberText[memIdx].name:GetPositionY() + settings.iconSize});
                     end
                     if (imgui.Begin('PlayerDebuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
                         imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {5, 1});
