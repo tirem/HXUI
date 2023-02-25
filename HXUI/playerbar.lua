@@ -117,7 +117,6 @@ playerbar.DrawWindow = function(settings)
 		resetPosNextFrame = false;
 	end
 	
-    imgui.SetNextWindowSize({ settings.barWidth + settings.barSpacing * 2, -1, }, ImGuiCond_Always);
 		
 	local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus);
 	if (gConfig.lockPositions) then
@@ -190,7 +189,6 @@ playerbar.DrawWindow = function(settings)
 		end
 		
 		-- Draw TP Bars
-		local tpX = imgui.GetCursorPosX();
 		imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
 		
 		local tpGradient = {'#3898ce', '#78c4ee'};
