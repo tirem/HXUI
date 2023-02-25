@@ -257,10 +257,10 @@ local function DrawMember(memIdx, settings)
 
                 if (buffs ~= nil and #buffs > 0) then
                     if (gConfig.partyListStatusTheme == 0 and buffWindowX[memIdx] ~= nil) then
-                        imgui.SetNextWindowPos({hpStartX - buffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name:GetPositionY() - settings.iconSize/3});
+                        imgui.SetNextWindowPos({hpStartX - buffWindowX[memIdx] - settings.buffOffset , hpStartY - settings.iconSize*1.2});
                     elseif (gConfig.partyListStatusTheme == 1 and fullMenuSizeX ~= nil) then
                         local thisPosX, _ = imgui.GetWindowPos();
-                        imgui.SetNextWindowPos({thisPosX + fullMenuSizeX, memberText[memIdx].name:GetPositionY() - settings.iconSize/3});
+                        imgui.SetNextWindowPos({thisPosX + fullMenuSizeX, hpStartY - settings.iconSize*1.2});
                     end
                     if (imgui.Begin('PlayerBuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
                         imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {3, 1});
@@ -275,10 +275,10 @@ local function DrawMember(memIdx, settings)
 
                 if (debuffs ~= nil and #debuffs > 0) then
                     if (gConfig.partyListStatusTheme == 0 and debuffWindowX[memIdx] ~= nil) then
-                        imgui.SetNextWindowPos({hpStartX - debuffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name:GetPositionY() + settings.iconSize/1.1});
+                        imgui.SetNextWindowPos({hpStartX - debuffWindowX[memIdx] - settings.buffOffset , hpStartY});
                     elseif (gConfig.partyListStatusTheme == 1 and fullMenuSizeX ~= nil) then
                         local thisPosX, _ = imgui.GetWindowPos();
-                        imgui.SetNextWindowPos({thisPosX + fullMenuSizeX , memberText[memIdx].name:GetPositionY() + settings.iconSize/1.1});
+                        imgui.SetNextWindowPos({thisPosX + fullMenuSizeX , hpStartY});
                     end
                     if (imgui.Begin('PlayerDebuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
                         imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {3, 1});
