@@ -123,7 +123,7 @@ local function DrawMember(memIdx, settings)
 
     local bgGradientOverride = {'#000813', '#000813'};
 
-    local allBarsLengths = settings.hpBarWidth + settings.mpBarWidth + settings.tpBarWidth + (settings.barSpacing * 2) + (imgui.GetStyle().FramePadding.x * 2) + (imgui.GetStyle().ItemSpacing.x * 2);
+    local allBarsLengths = settings.hpBarWidth + settings.mpBarWidth + settings.tpBarWidth + (imgui.GetStyle().FramePadding.x * 2) + (imgui.GetStyle().ItemSpacing.x * 2);
 
 
     local hpStartX, hpStartY = imgui.GetCursorScreenPos();
@@ -133,9 +133,9 @@ local function DrawMember(memIdx, settings)
     local jobIconSize = settings.iconSize * 1.1;
     local offsetStartY = hpStartY - jobIconSize - settings.nameTextOffsetY;
     imgui.SetCursorScreenPos({namePosX, offsetStartY});
-    namePosX = namePosX + jobIconSize + settings.nameTextOffsetX;
     local jobIcon = statusHandler.GetJobIcon(memInfo.job);
     if (jobIcon ~= nil) then
+        namePosX = namePosX + jobIconSize + settings.nameTextOffsetX;
         imgui.Image(jobIcon, {jobIconSize, jobIconSize});
     end
     imgui.SetCursorScreenPos({hpStartX, hpStartY});
@@ -148,12 +148,9 @@ local function DrawMember(memIdx, settings)
 
     -- Draw the HP bar
     if (memInfo.inzone) then
-        -- imgui.ProgressBar(memInfo.hpp, { settings.hpBarWidth, settings.barHeight }, '');
         progressbar.ProgressBar({{memInfo.hpp, hpGradient}}, {settings.hpBarWidth, settings.barHeight}, {borderConfig=borderConfig, backgroundGradientOverride=bgGradientOverride, decorate = gConfig.showPartyListBookends});
     else
---        imgui.PushStyleColor(ImGuiCol_PlotHistogram, hpBarColor);
         imgui.ProgressBar(0, { allBarsLengths, settings.barHeight + hpSize.cy + settings.hpTextOffsetY}, AshitaCore:GetResourceManager():GetString("zones.names", memInfo.zone));
---        imgui.PopStyleColor(1);
     end
 
     -- Draw the leader icon
@@ -175,14 +172,14 @@ local function DrawMember(memIdx, settings)
     if (memInfo.inzone) then
         imgui.SameLine();
         local mpStartX, mpStartY; 
-        imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
+        imgui.SetCursorPosX(imgui.GetCursorPosX());
         mpStartX, mpStartY = imgui.GetCursorScreenPos();
         progressbar.ProgressBar({{memInfo.mpp, {'#9abb5a', '#bfe07d'}}}, {settings.mpBarWidth, settings.barHeight}, {borderConfig=borderConfig, backgroundGradientOverride=bgGradientOverride, decorate = gConfig.showPartyListBookends});
         imgui.SameLine();
 
         -- Draw the TP bar
         local tpStartX, tpStartY;
-        imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
+        imgui.SetCursorPosX(imgui.GetCursorPosX());
         tpStartX, tpStartY = imgui.GetCursorScreenPos();
 
 		local tpGradient = {'#3898ce', '#78c4ee'};
@@ -229,7 +226,10 @@ local function DrawMember(memIdx, settings)
         -- Draw subtargeted
         if ((memInfo.targeted == true and not subTargetActive) or memInfo.subTargeted) then
             arrowPrim.visible = true;
-            local newArrowX =  memberText[memIdx].name:GetPositionX() - arrowPrim:GetWidth() - jobIconSize;
+            local newArrowX =  memberText[memIdx].name:GetPositionX() - arrowPrim:GetWidth();
+            if (jobIcon ~= nil) then
+                newArrowX = newArrowX - jobIconSize;
+            end
             arrowPrim.position_x = newArrowX;
             arrowPrim.position_y = (hpStartY - offsetSize - settings.cursorPaddingY1) + (entrySize/2) - arrowPrim:GetHeight()/2;
             arrowPrim.scale_x = settings.arrowSize;
@@ -356,7 +356,7 @@ partyList.DrawWindow = function(settings)
     end
     -- Remove all padding and start our window
     imgui.PushStyleVar(ImGuiStyleVar_FramePadding, {0,0});
-    imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {0,0});
+    imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {settings.barSpacing,0});
     if (imgui.Begin('PartyList', true, windowFlags)) then
         local nameSize = SIZE.new();
         memberText[0].name:GetTextSize(nameSize);
