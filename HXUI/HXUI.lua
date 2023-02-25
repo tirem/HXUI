@@ -468,7 +468,7 @@ T{
 		maxIconColumns = 6,
 		buffOffset = 10,
 		xivBuffOffsetY = 1,
-		entrySpacing = 6,
+		entrySpacing = 8,
 
 		hp_font_settings = 
 		T{
