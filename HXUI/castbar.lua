@@ -3,14 +3,6 @@ local imgui = require('imgui');
 local fonts = require('fonts');
 local progressbar = require('progressbar');
 
-local spellText;
-local percentText;
-
-local function UpdateTextVisibility(visible)
-	spellText:SetVisible(visible);
-	percentText:SetVisible(visible);
-end
-
 local castbar = {
 	previousPercent = 0,
 	currentSpellId = nil,
@@ -42,59 +34,40 @@ castbar.DrawWindow = function(settings)
 		imgui.SetNextWindowSize({settings.barWidth, -1});
 
 		local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus);
+
 		if (gConfig.lockPositions) then
 			windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
 		end
+
 		if (imgui.Begin('CastBar', true, windowFlags)) then
-			local startX, startY = imgui.GetCursorScreenPos();
-
-			-- Create progress bar
-			--[[
-			imgui.PushStyleColor(ImGuiCol_PlotHistogram, {0.2, 0.75, 1, 1});
-
-			imgui.ProgressBar(showConfig[1] and 0.5 or percent, {-1, settings.barHeight}, '');
-
-			imgui.PopStyleColor(1);
-			]]--
-			
 			progressbar.ProgressBar({{showConfig[1] and 0.5 or percent, {'#3798ce', '#78c5ee'}}}, {-1, settings.barHeight}, {decorate = gConfig.showCastBarBookends});
 
-			-- Draw Spell/Item name
+			imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
+
+			local labelString = showConfig[1] and 'Configuration Mode' or castbar.GetLabelText();
+
+			textrenderer.text('castbar_label', labelString, 14, '#FFF', {marginX=7});
+
 			imgui.SameLine();
 
-			spellText:SetPositionX(startX);
-			spellText:SetPositionY(startY + settings.barHeight + settings.spellOffsetY);
-			spellText:SetText(showConfig[1] and 'Configuration Mode' or castbar.GetLabelText());
+			local percentString = showConfig[1] and '50%' or math.floor(percent * 100) .. '%';
 
-			percentText:SetPositionX(startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 4);
-			percentText:SetPositionY(startY + settings.barHeight + settings.percentOffsetY);
-			percentText:SetText(showConfig[1] and '50%' or math.floor(percent * 100) .. '%');
-
-			UpdateTextVisibility(true);
+			textrenderer.text('castbar_percent', percentString, 14, '#FFF', {justify='right', marginX=7});
 		end
 
 		imgui.End();
-	else
-		UpdateTextVisibility(false);
 	end
 
 	castbar.previousPercent = percent;
 end
 
 castbar.UpdateFonts = function(settings)
-	spellText:SetFontHeight(settings.spell_font_settings.font_height);
-	percentText:SetFontHeight(settings.percent_font_settings.font_height);
 end
 
 castbar.SetHidden = function(hidden)
-	if (hidden == true) then
-		UpdateTextVisibility(false);
-	end
 end
 
 castbar.Initialize = function(settings)
-	spellText = fonts.new(settings.spell_font_settings);
-	percentText = fonts.new(settings.percent_font_settings);
 end
 
 castbar.HandleActionPacket = function(actionPacket)

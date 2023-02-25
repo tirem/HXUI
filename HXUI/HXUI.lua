@@ -42,6 +42,7 @@ local configMenu = require('configmenu');
 local debuffHandler = require('debuffhandler');
 local patchNotes = require('patchNotes');
 local statusHandler = require('statushandler');
+textrenderer = require('textrenderer/textrenderer');
 
 -- =================
 -- = HXUI DEV ONLY =

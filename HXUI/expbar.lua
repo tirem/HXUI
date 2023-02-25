@@ -10,9 +10,20 @@ local percentText;
 local expbar = {};
 
 local function UpdateTextVisibility(visible)
-	jobText:SetVisible(visible);
-	expText:SetVisible(visible);
-	percentText:SetVisible(visible);
+end
+
+function addCommas(amount)
+	local formatted = amount;
+
+	while true do  
+		formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2');
+
+		if (k==0) then
+			break;
+		end
+	end
+
+	return formatted;
 end
 
 --[[
@@ -41,65 +52,53 @@ expbar.DrawWindow = function(settings)
 	end
 	
     imgui.SetNextWindowSize({ settings.barWidth, -1, }, ImGuiCond_Always);
+
 	local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus);
+
 	if (gConfig.lockPositions) then
 		windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
 	end
-    if (imgui.Begin('ExpBar', true, windowFlags)) then
 
-		-- Draw HP Bar (two bars to fake animation
+    if (imgui.Begin('ExpBar', true, windowFlags)) then
 		local expPercent = currentExp / totalExp;
-		local startX, startY = imgui.GetCursorScreenPos();
-		-- imgui.PushStyleColor(ImGuiCol_PlotHistogram, {1, 1, .5, 1});
-		-- imgui.ProgressBar(expPercent, { -1, settings.barHeight }, '');
-		-- imgui.PopStyleColor(1);
+		-- local startX, startY = imgui.GetCursorScreenPos();
+
+		textrenderer.text('expbar_label', 'EXP', 12, '#FFF', {marginX=10, delayDrawing=true});
+
+		imgui.SetCursorPosY(imgui.GetCursorPosY() - 13);
 
 		progressbar.ProgressBar({{expPercent, {'#c39040', '#e9c466'}}}, {-1, settings.barHeight}, {decorate = gConfig.showExpBarBookends});
 
+		textrenderer.popDelayedDraws(1);
+
+		local jobString = string.format('%s %d', AshitaCore:GetResourceManager():GetString("jobs.names_abbr", mainJob), jobLevel);
+
+		imgui.SetCursorPosY(imgui.GetCursorPosY() - 3);
+
+		if subJobLevel > 0 then
+			jobString = string.format('%s / %s %d', jobString, AshitaCore:GetResourceManager():GetString("jobs.names_abbr", subJob), subJobLevel);
+		end
+
+		textrenderer.text('expbar_job', jobString, 14, '#FFF', {marginX=2});
+
 		imgui.SameLine();
-		
-		-- Update our text objects
-		local mainJobString = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", mainJob);
-		local SubJobString = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", subJob);
-		local jobString = mainJobString..' '..jobLevel..' / '..SubJobString..' '..subJobLevel;
-		jobText:SetPositionX(startX);
-		jobText:SetPositionY(startY + settings.barHeight + settings.jobOffsetY);
-		jobText:SetText(jobString);	
 
-		local expString = 'EXP ('..currentExp..' / '..totalExp..')';
-		expText:SetPositionX(startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 4);
-		expText:SetPositionY(startY + settings.barHeight + settings.expOffsetY);
-		expText:SetText(expString);	
+		local xpString = string.format('%s / %s', addCommas(currentExp), addCommas(totalExp));
 
-		local expPercentString = ('%.f'):fmt(expPercent * 100);
-		local percentString = 'EXP - '..expPercentString..'%';
-		percentText:SetPositionX(startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 4 + settings.percentOffsetX);
-		percentText:SetPositionY(startY - (percentText:GetFontHeight()*2) + settings.percentOffsetY);
-		percentText:SetText(percentString);	
-
-		UpdateTextVisibility(true);	
-	
+		textrenderer.text('expbar_xp', xpString, 14, '#FFF', {justify='right', marginX=2});
     end
+
 	imgui.End();
 end
 
 
 expbar.Initialize = function(settings)
-    jobText = fonts.new(settings.job_font_settings);
-	expText = fonts.new(settings.exp_font_settings);
-	percentText = fonts.new(settings.percent_font_settings);
 end
 
 expbar.UpdateFonts = function(settings)
-    jobText:SetFontHeight(settings.job_font_settings.font_height);
-	expText:SetFontHeight(settings.exp_font_settings.font_height);
-	percentText:SetFontHeight(settings.percent_font_settings.font_height);
 end
 
 expbar.SetHidden = function(hidden)
-	if (hidden == true) then
-		UpdateTextVisibility(false);
-	end
 end
 
 return expbar;
