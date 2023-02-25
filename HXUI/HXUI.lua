@@ -24,7 +24,7 @@
 
 addon.name      = 'HXUI';
 addon.author    = 'Team HXUI (Tirem, Shuu, colorglut, RheaCloud)';
-addon.version   = '0.1.1';
+addon.version   = '1.1.1';
 addon.desc      = 'Multiple UI elements with manager';
 addon.link      = 'https://github.com/tirem/HXUI'
 
@@ -159,10 +159,11 @@ T{
 	partyListFontOffset = 0,
 	partyListStatusTheme = 0, -- 0: HorizonXI-L, 1: HorizonXI-R 2: XIV1.0, 3: XIV, 4: Disabled
 	partyListTheme = 0, 
-	partyListBgOpacity = 255;
+	partyListBgOpacity = 200;
 	showPartyListBookends = true,
-	partyListCursor = 'BlueArrow.png',
-	partyListBackground = 'GreyGradient.png',
+	partyListCursor = 'GreyArrow.png',
+	partyListBackground = 'BlueGradient.png',
+	partyListEntrySpacing = 0,
 
 	castBarScaleX = 1,
 	castBarScaleY = 1,
@@ -180,7 +181,7 @@ T{
 local default_settings =
 T{
 	-- global settings
-	currentPatchVer = 1,
+	currentPatchVer = 2,
 	tpEmptyColor = 0xFF9acce8,
 	tpFullColor = 0xFF2fa9ff,
 	mpColor = 0xFFdef2db,
@@ -438,8 +439,7 @@ T{
 		tpBarWidth = 100,
 		mpBarWidth = 100,
 		barHeight = 20,
-		barSpacing = 0,
-		entrySpacing = 0,
+		barSpacing = 8,
 
 		nameTextOffsetX = 1,
 		nameTextOffsetY = 0,
@@ -455,20 +455,21 @@ T{
 		backgroundPaddingY1 = 0,
 		backgroundPaddingY2 = 0,
 
-		cursorPaddingX1 = 4,
-		cursorPaddingX2 = 4,
-		cursorPaddingY1 = 7,
-		cursorPaddingY2 = 7,
+		cursorPaddingX1 = 5,
+		cursorPaddingX2 = 5,
+		cursorPaddingY1 = 4,
+		cursorPaddingY2 = 4,
 		dotRadius = 3,
 
 		arrowSize = 1;
 
 		subtargetArrowTint = 0xFFfdd017,
 
-		iconSize = 20,
+		iconSize = 22,
 		maxIconColumns = 6,
 		buffOffset = 10,
-		xivBuffOffsetY = 1;
+		xivBuffOffsetY = 1,
+		entrySpacing = 8,
 
 		hp_font_settings = 
 		T{
@@ -681,12 +682,13 @@ local function UpdateUserSettings()
     gAdjustedSettings.partyListSettings.barHeight = ns.partyListSettings.barHeight * us.partyListScaleY;
     gAdjustedSettings.partyListSettings.tpBarWidth = ns.partyListSettings.tpBarWidth * us.partyListScaleX;
 	gAdjustedSettings.partyListSettings.mpBarWidth = ns.partyListSettings.mpBarWidth * us.partyListScaleX;
-    gAdjustedSettings.partyListSettings.entrySpacing = ns.partyListSettings.entrySpacing * us.partyListScaleY;
+	gAdjustedSettings.partyListSettings.barSpacing = ns.partyListSettings.barSpacing * us.partyListScaleX;
     gAdjustedSettings.partyListSettings.hp_font_settings.font_height = math.max(ns.partyListSettings.hp_font_settings.font_height + us.partyListFontOffset, 1);
     gAdjustedSettings.partyListSettings.mp_font_settings.font_height = math.max(ns.partyListSettings.mp_font_settings.font_height + us.partyListFontOffset, 1);
 	gAdjustedSettings.partyListSettings.tp_font_settings.font_height = math.max(ns.partyListSettings.tp_font_settings.font_height + us.partyListFontOffset, 1);
     gAdjustedSettings.partyListSettings.name_font_settings.font_height = math.max(ns.partyListSettings.name_font_settings.font_height + us.partyListFontOffset, 1);
 	gAdjustedSettings.partyListSettings.iconSize = ns.partyListSettings.iconSize * us.partyListBuffScale;
+	gAdjustedSettings.partyListSettings.entrySpacing = ns.partyListSettings.entrySpacing + us.partyListEntrySpacing;
 
 	-- Player Bar
 	gAdjustedSettings.playerBarSettings.barWidth = ns.playerBarSettings.barWidth * us.playerBarScaleX;
