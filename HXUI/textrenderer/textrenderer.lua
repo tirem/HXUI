@@ -46,14 +46,14 @@ textrenderer.renderTexture = function(text, size, color, options)
 
     -- Tweak this to modify the default text style
     local svgString = [[
-        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg">
         <defs>
             <linearGradient id="gradientFill" gradientTransform="rotate(90)">
-                <stop offset="30%" stop-color="#FFFFFF" />
-                <stop offset="100%" stop-color="#a2a2a2" />
+                <stop offset="0%" stop-color="#E7EBEF" />
+                <stop offset="100%" stop-color="#C5CDE0" />
             </linearGradient>
         </defs>
-        <text id="text1" x="3" y="3" dominant-baseline="hanging" font-family="'Roboto', sans-serif" font-size="]] .. size .. [[" fill="url(#gradientFill)" filter="drop-shadow(black 0 1 1)" stroke="black" stroke-width="3px" paint-order="stroke">
+        <text id="text1" x="3" y="3" dominant-baseline="hanging" font-family="'Roboto', sans-serif" font-size="]] .. size .. [[" fill="url(#gradientFill)" filter="drop-shadow(0 1 2 rgba(0, 0, 0, 0.4))" stroke="black" stroke-width="3px" paint-order="stroke">
             ]] .. text .. [[
         </text>
     </svg>
