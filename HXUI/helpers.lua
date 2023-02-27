@@ -413,7 +413,6 @@ function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg, xOffs
                 break;
             end
             local icon = statusHandler.get_icon_from_theme(gConfig.statusIconTheme, statusIds[i]);
-            local testIcon = statusHandler.get_icon_from_theme(gConfig.statusIconTheme, 542);
 
             if (icon ~= nil) then
                 if (drawBg == true) then
@@ -432,7 +431,7 @@ function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg, xOffs
                     imgui.SameLine();
                     imgui.SetCursorScreenPos({resetX, resetY});
                 end
-                imgui.Image(testIcon, { iconSize, iconSize }, { 0, 0 }, { 1, 1 });
+                imgui.Image(icon, { iconSize, iconSize }, { 0, 0 }, { 1, 1 });
                 if (imgui.IsItemHovered()) then
                     statusHandler.render_tooltip(statusIds[i]);
                 end
