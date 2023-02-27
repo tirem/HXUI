@@ -121,6 +121,7 @@ svgrenderer.getDropShadowPadding = function(blurRadius)
     return blurRadius * 2;
 end
 
+-- TODO: We need to clear this cache at some point, maybe just force it when resize our bars?
 svgrenderer.getDropShadowTexture = function(width, height, rounding, offsetX, offsetY, blurRadius, alpha)
     local args = T{width, height, rounding, offsetX, offsetY, blurRadius, alpha};
 
@@ -139,11 +140,14 @@ svgrenderer.getDropShadowTexture = function(width, height, rounding, offsetX, of
     if not dropShadowData then
         local padding = svgrenderer.getDropShadowPadding(blurRadius);
 
+        local startX = 0 - padding + math.min(offsetX, 0);
+        local startY = 0 - padding + math.min(offsetY, 0);
+
         local viewBox = {
-            0 - padding + math.min(offsetX, 0),
-            0 - padding + math.min(offsetY, 0),
-            width + (padding * 2) + math.max(offsetX, 0),
-            height + (padding * 2) + math.max(offsetY, 0)
+            startX,
+            startY,
+            math.abs(startX) + width + padding + math.max(offsetX, 0),
+            math.abs(startY) + height + padding + math.max(offsetY, 0)
         }
 
         local svgString = [[
@@ -176,12 +180,12 @@ svgrenderer.dropShadow = function(startPos, endPos, rounding, offsetX, offsetY, 
     imgui.GetBackgroundDrawList():AddImage(
         texture,
         {
-            startPos[1] - padding + offsetX,
-            startPos[2] - padding + offsetX,
+            startPos[1] - padding + math.min(offsetX, 0),
+            startPos[2] - padding + math.min(offsetY, 0),
         },
         {
-            endPos[1] + padding + offsetX,
-            endPos[2] + padding + offsetY
+            endPos[1] + padding + math.max(offsetX, 0),
+            endPos[2] + padding + math.max(offsetY, 0)
         },
         {0, 0},
         {1, 1},
