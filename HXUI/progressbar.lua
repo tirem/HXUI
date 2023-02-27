@@ -132,7 +132,7 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 	-- If our width is 0 or less, we instead get the content region's available space
 	-- which allows us to stretch the progress bar to fit the content region.
 	if width <= 0 then
-		width = imgui.GetContentRegionAvail();
+		width = math.floor(imgui.GetContentRegionAvail() + 0.5);
 	end
 	
 	local contentWidth = width;
@@ -275,6 +275,16 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 		rounding = options.decorate and height/2 or gConfig.noBookendRounding;
 		imgui.GetWindowDrawList():AddRect({positionStartX - (borderWidth / 2), positionStartY - (borderWidth / 2)}, {positionStartX + width + (borderWidth / 2), positionStartY + height + (borderWidth / 2)}, imgui.GetColorU32({borderColorRed / 255, borderColorGreen / 255, borderColorBlue / 255, 1}), rounding, ImDrawCornerFlags_All, borderWidth);
 	end
+	
+	svgrenderer.dropShadow(
+		{positionStartX, positionStartY},
+		{positionStartX + width, positionStartY + height},
+		rounding,
+		0, -- offset X
+		0, -- offset Y
+		3, -- blur radius
+		0.6 -- alpha
+	);
 	
 	imgui.Dummy({width, height});
 end

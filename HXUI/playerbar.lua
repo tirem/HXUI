@@ -5,9 +5,6 @@ local fonts = require('fonts');
 local progressbar = require('progressbar');
 local buffTable = require('bufftable');
 
-local hpText;
-local mpText;
-local tpText;
 local resetPosNextFrame = false;
 
 local playerbar = {};
@@ -21,10 +18,9 @@ if _HXUI_DEV_DEBUG_INTERPOLATION then
 end
 
 local function UpdateTextVisibility(visible)
-	hpText:SetVisible(visible);
-	mpText:SetVisible(visible);
-	tpText:SetVisible(visible);
 end
+
+local nextCursorPos = nil;
 
 playerbar.DrawWindow = function(settings)
     -- Obtain the player entity..
@@ -116,23 +112,45 @@ playerbar.DrawWindow = function(settings)
 		imgui.SetNextWindowPos({0,0});
 		resetPosNextFrame = false;
 	end
-	
 		
 	local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus);
+
 	if (gConfig.lockPositions) then
 		windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
 	end
+
+	local bShowMp = buffTable.IsSpellcaster(SelfJob) or buffTable.IsSpellcaster(SelfSubJob) or gConfig.alwaysShowMpBar;
+
+	local SelfJob = GetJobStr(party:GetMemberMainJob(0));
+	local SelfSubJob = GetJobStr(party:GetMemberSubJob(0));
+	local bShowMp = buffTable.IsSpellcaster(SelfJob) or buffTable.IsSpellcaster(SelfSubJob) or gConfig.alwaysShowMpBar;
+
+	local barCount = 2;
+
+	if bShowMp then
+		barCount = 3;
+	end
+
+	imgui.SetNextWindowSize({settings.barWidth, -1});
+
     if (imgui.Begin('PlayerBar', true, windowFlags)) then
+		-- Horizontal center snapping
+		--[[
+		if imgui.IsMouseDragging(0) and imgui.IsWindowHovered() then
+			local mousePosX, mousePosY = imgui.GetMousePos();
+			local cursorPosX, cursorPosY = imgui.GetCursorScreenPos();
+		
+			local displayCenterX = imgui.GetIO().DisplaySize.x / 2;
+
+			if math.abs((cursorPosX + (settings.barWidth / 2)) - displayCenterX) < 20 then
+				imgui.SetWindowPos({displayCenterX - (settings.barWidth / 2), cursorPosY});
+			end
+		end
+		]]--
 
 		local hpNameColor, hpGradient = GetHpColors(SelfHPPercent/100);
 
-		local SelfJob = GetJobStr(party:GetMemberMainJob(0));
-		local SelfSubJob = GetJobStr(party:GetMemberSubJob(0));
-		local bShowMp = buffTable.IsSpellcaster(SelfJob) or buffTable.IsSpellcaster(SelfSubJob) or gConfig.alwaysShowMpBar;
-
-		-- Draw HP Bar (two bars to fake animation
 		local hpX = imgui.GetCursorPosX();
-		local barSize = (settings.barWidth / 3) - settings.barSpacing;
 
 		local hpPercentData = {{SelfHPPercent / 100, hpGradient}};
 
@@ -160,37 +178,45 @@ playerbar.DrawWindow = function(settings)
 			);
 		end
 
-		if (bShowMp == false) then
-			imgui.Dummy({(barSize + settings.barSpacing) / 2, 0});
+		imgui.Columns(barCount, 'playerbar_columns', false);
 
-			imgui.SameLine();
-		end
-		
-		progressbar.ProgressBar(hpPercentData, {barSize, settings.barHeight}, {decorate = gConfig.showPlayerBarBookends});
-		
-		imgui.SameLine();
-		local hpEndX = imgui.GetCursorPosX();
-		local hpLocX, hpLocY = imgui.GetCursorScreenPos();	
-		if (SelfHPPercent > 0) then
-			imgui.SetCursorPosX(hpX);
+		-- HP bar
+		svgrenderer.text('playerbar_hp_label', 'HP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true});
 
-			imgui.SameLine();
+		imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
+		
+		progressbar.ProgressBar(hpPercentData, {-1, settings.barHeight}, {decorate = gConfig.showPlayerBarBookends});
+
+		svgrenderer.popDelayedDraws(1);
+
+		imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
+
+		svgrenderer.text('playerbar_hp_hpp', SelfHP, 16, HXUI_COL_WHITE, {justify='right', marginX=16});
+
+		imgui.NextColumn();
+
+		if bShowMp then
+			-- MP bar
+			svgrenderer.text('playerbar_mp_label', 'MP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true});
+
+			imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
+			
+			progressbar.ProgressBar({{SelfMPPercent / 100, {'#9abb5a', '#bfe07d'}}}, {-1, settings.barHeight}, {decorate = gConfig.showPlayerBarBookends});
+
+			svgrenderer.popDelayedDraws(1);
+
+			imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
+
+			svgrenderer.text('targetbar_mp_mpp', SelfMP, 16, HXUI_COL_WHITE, {justify='right', marginX=16});
+
+			imgui.NextColumn();
 		end
 
-		local mpLocX
-		local mpLocY;
-		
-		if (bShowMp) then
-			-- Draw MP Bar
-			imgui.SetCursorPosX(hpEndX + settings.barSpacing);
-			progressbar.ProgressBar({{SelfMPPercent / 100, {'#9abb5a', '#bfe07d'}}}, {barSize, settings.barHeight}, {decorate = gConfig.showPlayerBarBookends});
-			imgui.SameLine();
-			mpLocX, mpLocY  = imgui.GetCursorScreenPos()
-		end
-		
-		-- Draw TP Bars
-		imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
-		
+		-- TP bar
+		svgrenderer.text('playerbar_tp_label', 'TP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true});
+
+		imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
+
 		local tpGradient = {'#3898ce', '#78c4ee'};
 		local mainPercent;
 		local tpOverlay;
@@ -216,63 +242,30 @@ playerbar.DrawWindow = function(settings)
 			mainPercent = SelfTP / 1000;
 		end
 		
-		progressbar.ProgressBar({{mainPercent, tpGradient}}, {barSize, settings.barHeight}, {overlayBar=tpOverlay, decorate = gConfig.showPlayerBarBookends});
-		
-		imgui.SameLine();
+		progressbar.ProgressBar({{mainPercent, tpGradient}}, {-1, settings.barHeight}, {overlayBar=tpOverlay, decorate = gConfig.showPlayerBarBookends});
 
-		local tpLocX, tpLocY  = imgui.GetCursorScreenPos();
-		
-		-- Update our HP Text
-		hpText:SetPositionX(hpLocX - settings.barSpacing - settings.barHeight / 2);
-		hpText:SetPositionY(hpLocY + settings.barHeight + settings.textYOffset);
-		hpText:SetText(tostring(SelfHP));
-		hpText:SetColor(hpNameColor);
-		
-		hpText:SetVisible(true);
+		svgrenderer.popDelayedDraws(1);
 
-		if (bShowMp) then
-			-- Update our MP Text
-			mpText:SetPositionX(mpLocX - settings.barSpacing - settings.barHeight / 2);
-			mpText:SetPositionY(mpLocY + settings.barHeight + settings.textYOffset);
-			mpText:SetText(tostring(SelfMP));
-			mpText:SetColor(gAdjustedSettings.mpColor);
-		end
+		imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 
-		mpText:SetVisible(bShowMp);
-			
-		-- Update our TP Text
-		tpText:SetPositionX(tpLocX - settings.barSpacing - settings.barHeight / 2);
-		tpText:SetPositionY(tpLocY + settings.barHeight + settings.textYOffset);
-		tpText:SetText(tostring(SelfTP));
+		svgrenderer.text('targetbar_tp_tpp', SelfTP, 16, HXUI_COL_WHITE, {justify='right', marginX=16});
 
-		if (SelfTP >= 1000) then 
-			tpText:SetColor(gAdjustedSettings.tpFullColor);
-		else
-			tpText:SetColor(gAdjustedSettings.tpEmptyColor);
-	    end
+		imgui.NextColumn();
 
-		tpText:SetVisible(true);
+		imgui.Columns(1);
     end
+
 	imgui.End();
 end
 
 
 playerbar.Initialize = function(settings)
-    hpText = fonts.new(settings.font_settings);
-	mpText = fonts.new(settings.font_settings);
-	tpText = fonts.new(settings.font_settings);
 end
 
 playerbar.UpdateFonts = function(settings)
-    hpText:SetFontHeight(settings.font_settings.font_height);
-	mpText:SetFontHeight(settings.font_settings.font_height);
-	tpText:SetFontHeight(settings.font_settings.font_height);
 end
 
 playerbar.SetHidden = function(hidden)
-	if (hidden == true) then
-		UpdateTextVisibility(false);
-	end
 end
 
 return playerbar;

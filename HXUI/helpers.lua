@@ -30,6 +30,56 @@ function draw_circle(center, radius, color, segments, fill)
 	end
 end
 
+function getTargetGradient(targetEntity, targetIndex)
+    local color = HXUI_COL_WHITE;
+
+    if targetIndex == nil then
+        return color;
+    end
+
+    -- Players
+    if (bit.band(targetEntity.SpawnFlags, 0x0001) == 0x0001) then
+        local party = AshitaCore:GetMemoryManager():GetParty();
+
+		for i = 0, 17 do
+			if party:GetMemberIsActive(i) == 1 then
+				if party:GetMemberTargetIndex(i) == targetIndex then
+					color = HXUI_COL_BLUE;
+
+					break;
+				end
+			end
+		end
+    elseif bit.band(targetEntity.SpawnFlags, 0x0002) == 0x0002 then -- NPCs
+        color = HXUI_COL_GREEN;
+    else -- Mobs
+        local entMgr = AshitaCore:GetMemoryManager():GetEntity();
+		local claimStatus = entMgr:GetClaimStatus(targetIndex);
+		local claimId = bit.band(claimStatus, 0xFFFF);
+
+		if (claimId == 0) then
+			color = HXUI_COL_YELLOW;
+		else
+            -- Claimed by anotehr pt
+			color = HXUI_COL_PURPLE;
+
+			local party = AshitaCore:GetMemoryManager():GetParty();
+
+			for i = 0, 17 do
+				if party:GetMemberIsActive(i) == 1 then
+					if party:GetMemberServerId(i) == claimId then
+						color = HXUI_COL_RED;
+
+						break;
+					end;
+				end
+			end
+		end
+    end
+
+    return color;
+end
+
 function GetColorOfTarget(targetEntity, targetIndex)
     -- Obtain the entity spawn flags..
 
@@ -356,12 +406,15 @@ function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg, xOffs
         if (xOffset ~= nil) then
             imgui.SetCursorPosX(imgui.GetCursorPosX() + xOffset);
         end
+
 		for i = 0,#statusIds do
             -- Don't check anymore after -1, as it will be all -1's
             if (statusIds == -1) then
                 break;
             end
             local icon = statusHandler.get_icon_from_theme(gConfig.statusIconTheme, statusIds[i]);
+            local testIcon = statusHandler.get_icon_from_theme(gConfig.statusIconTheme, 542);
+
             if (icon ~= nil) then
                 if (drawBg == true) then
                     local resetX, resetY = imgui.GetCursorScreenPos();
@@ -375,10 +428,11 @@ function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg, xOffs
                     imgui.SetCursorScreenPos({resetX - ((bgSize - iconSize) / 1.5), resetY + yOffset});
                     bgIcon = statusHandler.GetBackground(isBuff);
                     imgui.Image(bgIcon, { bgSize + 1, bgSize  / .75});
+                    
                     imgui.SameLine();
                     imgui.SetCursorScreenPos({resetX, resetY});
                 end
-                imgui.Image(icon, { iconSize, iconSize }, { 0, 0 }, { 1, 1 });
+                imgui.Image(testIcon, { iconSize, iconSize }, { 0, 0 }, { 1, 1 });
                 if (imgui.IsItemHovered()) then
                     statusHandler.render_tooltip(statusIds[i]);
                 end
@@ -484,4 +538,8 @@ function GetHpColors(hpPercent)
     end
 
     return hpNameColor, hpGradient;
+end
+
+function round(num)
+    return math.floor(num + 0.5);
 end
