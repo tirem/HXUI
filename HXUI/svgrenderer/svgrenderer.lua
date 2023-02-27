@@ -140,10 +140,10 @@ svgrenderer.getDropShadowTexture = function(width, height, rounding, offsetX, of
         local padding = svgrenderer.getDropShadowPadding(blurRadius);
 
         local viewBox = {
-            0 - padding,
-            0 - padding,
-            width + (padding * 2),
-            height + (padding * 2)
+            0 - padding + math.min(offsetX, 0),
+            0 - padding + math.min(offsetY, 0),
+            width + (padding * 2) + math.max(offsetX, 0),
+            height + (padding * 2) + math.max(offsetY, 0)
         }
 
         local svgString = [[
@@ -171,15 +171,17 @@ svgrenderer.dropShadow = function(startPos, endPos, rounding, offsetX, offsetY, 
 
     local texture = tonumber(ffi.cast("uint32_t", textureData.texture));
 
+    local padding = svgrenderer.getDropShadowPadding(blurRadius);
+
     imgui.GetBackgroundDrawList():AddImage(
         texture,
         {
-            startPos[1] - svgrenderer.getDropShadowPadding(blurRadius),
-            startPos[2] - svgrenderer.getDropShadowPadding(blurRadius)
+            startPos[1] - padding + offsetX,
+            startPos[2] - padding + offsetX,
         },
         {
-            endPos[1] + svgrenderer.getDropShadowPadding(blurRadius),
-            endPos[2] + svgrenderer.getDropShadowPadding(blurRadius)
+            endPos[1] + padding + offsetX,
+            endPos[2] + padding + offsetY
         },
         {0, 0},
         {1, 1},

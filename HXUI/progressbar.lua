@@ -281,7 +281,7 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 		{positionStartX + width, positionStartY + height},
 		rounding,
 		0, -- offset X
-		0, -- offset Y
+		2, -- offset Y
 		3, -- blur radius
 		0.6 -- alpha
 	);
