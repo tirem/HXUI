@@ -283,7 +283,7 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 		0, -- offset X
 		2, -- offset Y
 		3, -- blur radius
-		0.6 -- alpha
+		0.4 -- alpha
 	);
 	
 	imgui.Dummy({width, height});

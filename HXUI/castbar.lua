@@ -61,12 +61,6 @@ castbar.DrawWindow = function(settings)
 	castbar.previousPercent = percent;
 end
 
-castbar.UpdateFonts = function(settings)
-end
-
-castbar.SetHidden = function(hidden)
-end
-
 castbar.Initialize = function(settings)
 end
 

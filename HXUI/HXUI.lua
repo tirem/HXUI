@@ -619,12 +619,6 @@ function ResetSettings()
 end
 
 local function CheckVisibility()
-	if (gConfig.showPlayerBar == false) then
-		playerBar.SetHidden(true);
-	end
-	if (gConfig.showExpBar == false) then
-		expBar.SetHidden(true);
-	end
 	if (gConfig.showGilTracker == false) then
 		gilTracker.SetHidden(true);
 	end
@@ -634,33 +628,18 @@ local function CheckVisibility()
 	if (gConfig.showPartyList == false) then
 		partyList.SetHidden(true);
 	end
-	if (gConfig.showCastBar == false) then
-		castBar.SetHidden(true);
-	end
-	if (gConfig.showTargetBar == false) then
-		targetBar.SetHidden(true);
-	end
 end
 
 local function ForceHide()
-
-	playerBar.SetHidden(true);
-	targetBar.SetHidden(true);
-	expBar.SetHidden(true);
 	gilTracker.SetHidden(true);
 	inventoryTracker.SetHidden(true);
 	partyList.SetHidden(true);
-	castBar.SetHidden(true);
 end
 
 local function UpdateFonts()
-	playerBar.UpdateFonts(gAdjustedSettings.playerBarSettings);
-	targetBar.UpdateFonts(gAdjustedSettings.targetBarSettings);
-	expBar.UpdateFonts(gAdjustedSettings.expBarSettings);
 	gilTracker.UpdateFonts(gAdjustedSettings.gilTrackerSettings);
 	inventoryTracker.UpdateFonts(gAdjustedSettings.inventoryTrackerSettings);
 	partyList.UpdateFonts(gAdjustedSettings.partyListSettings);
-	castBar.UpdateFonts(gAdjustedSettings.castBarSettings);
 end
 
 local function UpdateUserSettings()
@@ -875,8 +854,8 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 end);
 
 ashita.events.register('load', 'load_cb', function ()
-
 	UpdateUserSettings();
+
     playerBar.Initialize(gAdjustedSettings.playerBarSettings);
 	targetBar.Initialize(gAdjustedSettings.targetBarSettings);
 	expBar.Initialize(gAdjustedSettings.expBarSettings);
@@ -887,7 +866,6 @@ ashita.events.register('load', 'load_cb', function ()
 end);
 
 ashita.events.register('command', 'command_cb', function (e)
-   
 	-- Parse the command arguments
 	local command_args = e.command:lower():args()
     if table.contains({'/horizonui', '/hui', '/hxui', '/horizonxiui'}, command_args[1]) then

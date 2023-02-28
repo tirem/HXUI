@@ -17,9 +17,6 @@ if _HXUI_DEV_DEBUG_INTERPOLATION then
 	_HXUI_DEV_DEBUG_INTERPOLATION_NEXT_TIME = os.time() + _HXUI_DEV_DEBUG_INTERPOLATION_DELAY;
 end
 
-local function UpdateTextVisibility(visible)
-end
-
 local nextCursorPos = nil;
 
 playerbar.DrawWindow = function(settings)
@@ -29,14 +26,12 @@ playerbar.DrawWindow = function(settings)
 	local playerEnt = GetPlayerEntity();
 	
 	if (party == nil or player == nil or playerEnt == nil) then
-		UpdateTextVisibility(false);
 		return;
 	end
 
 	local currJob = player:GetMainJob();
 
     if (player.isZoning or currJob == 0) then
-		UpdateTextVisibility(false);	
         return;
 	end
 	
@@ -260,12 +255,6 @@ end
 
 
 playerbar.Initialize = function(settings)
-end
-
-playerbar.UpdateFonts = function(settings)
-end
-
-playerbar.SetHidden = function(hidden)
 end
 
 return playerbar;

@@ -1,16 +1,8 @@
 require('common');
 local imgui = require('imgui');
-local fonts = require('fonts');
 local progressbar = require('progressbar');
 
-local jobText;
-local expText;
-local percentText;
-
 local expbar = {};
-
-local function UpdateTextVisibility(visible)
-end
 
 function addCommas(amount)
 	local formatted = amount;
@@ -26,16 +18,11 @@ function addCommas(amount)
 	return formatted;
 end
 
---[[
-* event: d3d_present
-* desc : Event called when the Direct3D device is presenting a scene.
---]]
 expbar.DrawWindow = function(settings)
     -- Obtain the player entity..
-    local player    = AshitaCore:GetMemoryManager():GetPlayer();
+    local player = AshitaCore:GetMemoryManager():GetPlayer();
 
 	if (player == nil) then
-		UpdateTextVisibility(false);
 		return;
 	end
 
@@ -46,11 +33,6 @@ expbar.DrawWindow = function(settings)
 	local currentExp = player:GetExpCurrent();
 	local totalExp = player:GetExpNeeded();
 
-    if (player.isZoning or mainJob == 0) then
-		UpdateTextVisibility(false);	
-        return;
-	end
-	
     imgui.SetNextWindowSize({ settings.barWidth, -1, }, ImGuiCond_Always);
 
 	local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus);
@@ -90,14 +72,7 @@ expbar.DrawWindow = function(settings)
 	imgui.End();
 end
 
-
 expbar.Initialize = function(settings)
-end
-
-expbar.UpdateFonts = function(settings)
-end
-
-expbar.SetHidden = function(hidden)
 end
 
 return expbar;
