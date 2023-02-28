@@ -44,7 +44,7 @@ targetbar.drawStatusIcons = function(player, playerEnt, playerTarget, targetEnti
 		if statusIds[i] ~= -1 then
 			if buffTable.IsBuff(statusIds[i]) then
 				table.insert(buffIds, statusIds[i]);
-			elseif buffTable.IsDebuff(statusIds[i]) then
+			elseif not buffTable.IsBuff(statusIds[i]) then
 				table.insert(debuffIds, statusIds[i]);
 			end
 		end
