@@ -38,6 +38,7 @@ local gilTracker = require('giltracker');
 local inventoryTracker = require('inventorytracker');
 local partyList = require('partylist');
 local castBar = require('castbar');
+local recastBar = require('recastbar');
 local configMenu = require('configmenu');
 local debuffHandler = require('debuffhandler');
 local patchNotes = require('patchNotes');
@@ -827,6 +828,8 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 		if (gConfig.showCastBar) then
 			castBar.DrawWindow(gAdjustedSettings.castBarSettings);
 		end
+
+		recastBar.DrawWindow();
 
 		configMenu.DrawWindow();
 
