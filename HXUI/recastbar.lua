@@ -9,8 +9,7 @@ local mmRecast = AshitaCore:GetMemoryManager():GetRecast();
 local player = AshitaCore:GetMemoryManager():GetPlayer();
 
 local recastbar = T{
-    abilityRecasts = T{},
-    spellRecasts = T{},
+    recasts = T{},
     twoHours = T{
         [1] = 'Mighty Strikes', -- WAR
         [2] = 'Hundred Fists', -- MNK
@@ -74,12 +73,8 @@ end
 recastbar.updateRecasts = function()
     local currentTime = os.clock();
 
-    recastbar.abilityRecasts = recastbar.abilityRecasts:filter(function(timer)
-        return currentTime < timer.timer;
-    end);
-
-    recastbar.spellRecasts = recastbar.spellRecasts:filter(function(timer)
-        return currentTime < timer.timer;
+    recastbar.recasts = recastbar.recasts:filteri(function(recast)
+        return currentTime < recast.timer;
     end);
 
     -- Ability recasts
@@ -102,12 +97,22 @@ recastbar.updateRecasts = function()
                 end
             end
 
-            if not recastbar.abilityRecasts[id] then
-                recastbar.abilityRecasts[id] = T{
+            local alreadyTracked = false;
+
+            recastbar.recasts:ieach(function(recast)
+                if recast.type == 'ability' and recast.id == id then
+                    alreadyTracked = true;
+                end
+            end);
+
+            if not alreadyTracked then
+                recastbar.recasts:append(T{
+                    type='ability',
+                    id=id,
                     name=name,
                     timer=currentTime + timer,
                     totalTime=timer
-                };
+                });
             end
         end
     end
@@ -130,12 +135,22 @@ recastbar.updateRecasts = function()
                 name = ('Unknown Spell: %d'):fmt(id);
             end
 
-            if not recastbar.spellRecasts[id] then
-                recastbar.spellRecasts[id] = T{
+            local alreadyTracked = false;
+
+            recastbar.recasts:ieach(function(recast)
+                if recast.type == 'spell' and recast.id == id then
+                    alreadyTracked = true;
+                end
+            end);
+
+            if not alreadyTracked then
+                recastbar.recasts:append(T{
+                    type='spell',
+                    id=id,
                     name=name,
                     timer=currentTime + timer,
                     totalTime=timer
-                };
+                });
             end
         end
     end
@@ -144,7 +159,7 @@ end
 recastbar.DrawWindow = function()
     recastbar.updateRecasts();
 
-    if recastbar.abilityRecasts:length() == 0 and recastbar.spellRecasts:length() == 0 then
+    if recastbar.recasts:length() == 0 then
         return;
     end
 
@@ -159,37 +174,19 @@ recastbar.DrawWindow = function()
     local currentTime = os.clock();
 
     if (imgui.Begin('Recast_Bar', true, windowFlags)) then
-        -- Ability recasts
-        recastbar.abilityRecasts:each(function(timer, id)
-            local timeRemaining = timer.timer - os.clock();
-            local percent = timeRemaining / timer.totalTime;
+        recastbar.recasts:ieach(function(recast)
+            local timeRemaining = recast.timer - os.clock();
+            local percent = timeRemaining / recast.totalTime;
 
             progressbar.ProgressBar({{percent, recastbar.getGradientColor(percent)}}, {-1, 20}, {decorate = gConfig.showExpBarBookends});
 
             imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 
-            svgrenderer.text('recast_abil_name_' .. id, timer.name, 14, HXUI_COL_WHITE, {marginX=7});
+            svgrenderer.text(string.format('recast_%s_name_%d', recast.type, recast.id), recast.name, 14, HXUI_COL_WHITE, {marginX=7});
 
             imgui.SameLine();
 
-            svgrenderer.text('recast_abil_timer_' .. id, format_timestamp(timeRemaining), 14, HXUI_COL_WHITE, {marginX=7, justify='right'});
-        end);
-
-
-        -- Spell recasts
-        recastbar.spellRecasts:each(function(timer, id)
-            local timeRemaining = timer.timer - os.clock();
-            local percent = timeRemaining / timer.totalTime;
-
-            progressbar.ProgressBar({{percent, recastbar.getGradientColor(percent)}}, {-1, 20}, {decorate = gConfig.showExpBarBookends});
-
-            imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
-
-            svgrenderer.text('recast_spell_name_' .. id, timer.name, 14, HXUI_COL_WHITE, {marginX=7});
-
-            imgui.SameLine();
-
-            svgrenderer.text('recast_spell_timer_' .. id, format_timestamp(timeRemaining), 14, HXUI_COL_WHITE, {marginX=7, justify='right'});
+            svgrenderer.text(string.format('recast_%s_timer_%d', recast.type, recast.id), format_timestamp(timeRemaining), 14, HXUI_COL_WHITE, {marginX=7, justify='right'});
         end);
     end
 
