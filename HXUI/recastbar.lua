@@ -80,7 +80,7 @@ recastbar.updateRecasts = function()
     -- Ability recasts
     for x = 0, 31 do
         local id = mmRecast:GetAbilityTimerId(x);
-        local timer = mmRecast:GetAbilityTimer(x) / 60;
+        local timer = math.floor((mmRecast:GetAbilityTimer(x) / 60) + 0.5);
 
         if (id ~= 0 or x == 0) and timer > 0 then
             local ability = resMgr:GetAbilityByTimerId(id);
@@ -120,7 +120,7 @@ recastbar.updateRecasts = function()
     -- Spell recasts
     for x = 0, 1024 do
         local id = x;
-        local timer = mmRecast:GetSpellTimer(x) / 60;
+        local timer = math.floor((mmRecast:GetSpellTimer(x) / 60) + 0.5);
 
         if timer > 0 then
             local spell = resMgr:GetSpellById(id);
