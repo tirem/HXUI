@@ -17,10 +17,10 @@ Contains the following elements:
 ***INSTALLATION***
 * Download the latest release of HXUI by [clicking on this link](https://github.com/tirem/HXUI/archive/refs/heads/main.zip).
 * Extract the download .zip file.
-* Once extracted, you will have a directory called HXUI-main.  Open up this directory, and inside of it will be a directory called HXUI.
-* Copy the HXUI directory to your Ashita addons folder, located at `HorizonXI\Game\addons`.
+* Once extracted, you will have a directory called HXUI-main.  Open up this directory, and inside of it will be a directory called addons.
+* Copy the addons directory to your Ashita install folder, located at `[FFXI_Install_Location]\Game`.
 * It is recommended that you follow these steps to load HXUI by default:
-    * Open up the file `default.txt` in the `HorizonXI\Game\scripts` folder.
+    * Open up the file `default.txt` in the `[FFXI_Install_Location]\Game\scripts` folder.
     * Navigate to the section titled "Plugin and Addon Configurations"
     * After the `/wait 3` line, and below the block of `=======`, add the following line:
         * `/addon load hxui`
