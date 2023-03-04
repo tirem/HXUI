@@ -417,7 +417,7 @@ function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg, xOffs
                 if (drawBg == true) then
                     local resetX, resetY = imgui.GetCursorScreenPos();
                     local bgIcon;
-                    local isBuff = gStatusLib.GetIsBuff(statusIds[i]);
+                    local isBuff = gStatusLib.helpers.GetIsBuff(statusIds[i]);
                     local bgSize = iconSize * 1.1;
                     local yOffset = bgSize * -0.1;
                     if (isBuff) then

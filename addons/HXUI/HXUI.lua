@@ -42,8 +42,10 @@ local recastBar = require('recastbar');
 local configMenu = require('configmenu');
 local patchNotes = require('patchNotes');
 svgrenderer = require('svgrenderer/svgrenderer');
-gStatusLib = require('status.status');
 require('colors');
+
+-- Initialize our status lib and begin tracking by packet
+gStatusLib = require('status.status');
 
 -- =================
 -- = HXUI DEV ONLY =
@@ -729,7 +731,7 @@ end);
 --]]
 ashita.events.register('d3d_present', 'present_cb', function ()
 
-	if (gStatusLib.GetGameInterfaceHidden() == false) then
+	if (gStatusLib.helpers.GetGameInterfaceHidden() == false) then
 		if (gConfig.showPlayerBar) then
 			playerBar.DrawWindow(gAdjustedSettings.playerBarSettings);
 		end

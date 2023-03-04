@@ -35,7 +35,7 @@ enemylist.DrawWindow = function(settings)
 		local subTargetActive = false;
 		if (playerTarget ~= nil) then
 			subTargetActive = GetSubTargetActive();
-			targetIndex, subTargetIndex = gStatusLib.GetTargets();
+			targetIndex, subTargetIndex = gStatusLib.helpers.GetTargets();
 			if (subTargetActive) then
 				local tempTarget = targetIndex;
 				targetIndex = subTargetIndex;

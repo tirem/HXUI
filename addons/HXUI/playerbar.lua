@@ -115,7 +115,7 @@ playerbar.DrawWindow = function(settings)
 	
 	local SelfJob = GetJobStr(party:GetMemberMainJob(0));
 	local SelfSubJob = GetJobStr(party:GetMemberSubJob(0));
-	local bShowMp = gStatusLib.GetIsSpellcaster(SelfJob) or gStatusLib.GetIsSpellcaster(SelfSubJob) or gConfig.alwaysShowMpBar;
+	local bShowMp = gStatusLib.helpers.GetIsSpellcaster(SelfJob) or gStatusLib.helpers.GetIsSpellcaster(SelfSubJob) or gConfig.alwaysShowMpBar;
 
 	local barCount = 2;
 

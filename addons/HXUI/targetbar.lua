@@ -32,7 +32,7 @@ targetbar.drawStatusIcons = function(player, playerEnt, playerTarget, targetEnti
 
 	for i = 1, #statusIds do
 		if statusIds[i] ~= -1 then
-			if gStatusLib.GetIsBuff(statusIds[i]) then
+			if gStatusLib.helpers.GetIsBuff(statusIds[i]) then
 				table.insert(buffIds, statusIds[i]);
 			else
 				gStatusLib.insert(debuffIds, statusIds[i]);
@@ -146,7 +146,7 @@ targetbar.DrawWindow = function(settings)
 	local targetEntity;
 	
 	if (playerTarget ~= nil) then
-		targetIndex, _ = gStatusLib.GetTargets();
+		targetIndex, _ = gStatusLib.helpers.GetTargets();
 		targetEntity = GetEntity(targetIndex);
 	end
 

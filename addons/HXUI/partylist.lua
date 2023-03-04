@@ -66,7 +66,7 @@ local function GetMemberInformation(memIdx)
         memberInfo.level = party:GetMemberMainJobLevel(memIdx);
         memberInfo.serverid = party:GetMemberServerId(memIdx);
         if (playerTarget ~= nil) then
-            local t1, t2 = gStatusLib.GetTargets();
+            local t1, t2 = gStatusLib.helpers.GetTargets();
             local sActive = GetSubTargetActive();
             local thisIdx = party:GetMemberTargetIndex(memIdx);
             memberInfo.targeted = (t1 == thisIdx and not sActive) or (t2 == thisIdx and sActive);
@@ -247,7 +247,7 @@ local function DrawMember(memIdx, settings)
                 local buffs = {};
                 local debuffs = {};
                 for i = 0, #memInfo.buffs do
-                    if (gStatusLib.GetIsBuff(memInfo.buffs[i])) then
+                    if (gStatusLib.helpers.GetIsBuff(memInfo.buffs[i])) then
                         table.insert(buffs, memInfo.buffs[i]);
                     else
                         table.insert(debuffs, memInfo.buffs[i]);
