@@ -15,18 +15,21 @@ Contains the following elements:
 ![HXUI Screenshot](https://user-images.githubusercontent.com/124013059/220468124-38323cf6-f6a8-40f8-860c-4420f9632130.png)
 
 ***INSTALLATION***
-* Download the latest release of HXUI by [clicking on this link](https://github.com/tirem/HXUI/archive/refs/heads/main.zip).
-* Extract the download .zip file.
-* Once extracted, you will have a directory called HXUI-main.  Open up this directory, and inside of it will be a directory called HXUI.
-* Copy the HXUI directory to your Ashita addons folder, located at `HorizonXI\Game\addons`.
+* Download the latest release of HXUI by clicking on the release panel on the right hand side.
+* Extract the downloaded .zip file.
+* Once extracted, you will have a directory called HXUI-[VersionNumber].  Open up this directory, and inside of it will be a directory called addons.
+* Copy the addons directory to your Ashita install folder, located at `[FFXI_Install_Location]\Game`.
 * It is recommended that you follow these steps to load HXUI by default:
-    * Open up the file `default.txt` in the `HorizonXI\Game\scripts` folder.
+    * Open up the file `default.txt` in the `[FFXI_Install_Location]\Game\scripts` folder.
     * Navigate to the section titled "Plugin and Addon Configurations"
     * After the `/wait 3` line, and below the block of `=======`, add the following line:
         * `/addon load hxui`
     * Save this file.  HXUI should automatically load when you start Final Fantasy XI.
 * To manually load HXUI, type `/addon load HXUI` in the Final Fantasy XI client.
 * To configure HXUI, type `/hxui`.
+
+**Installation Notes**
+* This addon relies upon the statuslib library [https://github.com/tirem/statuslib] by Tirem. If you download the code directly without a git client you will need to also download the statuslib library. This library expecets to be located at `[FFXI_Install_Location]\Game\addons\libs\status`. Installing this addon from the release panel on the right hand side comes with this library pre-included.
 
 ***UPDATING NOTES***
 1) This addon has been recently renamed from ConsolidatedUI to HXUI. If you are upgrading from ConsolidatedUI and would like to keep your old config from before please rename the folder "consolidatedui" in game/config/addons/ to "hxui"
