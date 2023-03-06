@@ -38,7 +38,7 @@ local gilTracker = require('giltracker');
 local inventoryTracker = require('inventorytracker');
 local partyList = require('partylist');
 local castBar = require('castbar');
-local recastBar = require('recastbar');
+-- local recastBar = require('recastbar');
 local configMenu = require('configmenu');
 local patchNotes = require('patchNotes');
 svgrenderer = require('svgrenderer/svgrenderer');
@@ -757,7 +757,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 			castBar.DrawWindow(gAdjustedSettings.castBarSettings);
 		end
 
-		recastBar.DrawWindow();
+		-- recastBar.DrawWindow();
 
 		configMenu.DrawWindow();
 
