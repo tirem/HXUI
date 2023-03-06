@@ -392,7 +392,7 @@ targetbar.DrawWindow = function(settings)
 
 			imgui.BeginGroup();
 
-			svgrenderer.text('targetbar_name', totEntity.Name, 18, getTargetGradient(targetEntity, targetIndex), {marginX=10});
+			svgrenderer.text('targetbar_tot_name', totEntity.Name, 18, getTargetGradient(targetEntity, targetIndex), {marginX=10});
 
 			local hpGradientStart = '#e26c6c';
 			local hpGradientEnd = '#fb9494';
