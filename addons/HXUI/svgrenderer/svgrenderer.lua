@@ -24,9 +24,10 @@ local svgrenderer = {
     -- Font file's path relative to our addon directory
     fontPath = 'assets/fonts/roboto.ttf',
     resvgOptions = nil,
-    renderedStrings = T{},
-    renderedDropShadows = T{},
-    delayedDrawingStack = T{}
+    renderedStrings = {},
+    renderedDropShadows = {},
+    renderedWindowBackgrounds = {},
+    delayedDrawingStack = {}
 };
 
 -- Initialize our resvg options and load our font(s)
@@ -113,7 +114,23 @@ svgrenderer.renderToTexture = function(svgString, crop, heightOverride)
 
     resvg.resvg_tree_destroy(treeBuff[0]);
     
-    return T{texture=texture, width=width, height=height};
+    return {texture=texture, width=width, height=height};
+end
+
+svgrenderer.encodeArgs = function(args)
+    local result = {};
+
+    for key, val in pairs(args) do
+        if type(val) == 'table' then
+            table.insert(result, svgrenderer.encodeArgs(val));
+        elseif type(val) == 'string' then
+            table.insert(result, val);
+        else
+            table.insert(result, tostring(val));
+        end
+    end
+
+    return table.concat(result);
 end
 
 -- TODO: Make this work properly
@@ -123,13 +140,13 @@ end
 
 -- TODO: We need to clear this cache at some point, maybe just force it when resize our bars?
 svgrenderer.getDropShadowTexture = function(width, height, rounding, offsetX, offsetY, blurRadius, alpha)
-    local args = T{width, height, rounding, offsetX, offsetY, blurRadius, alpha};
+    local args = svgrenderer.encodeArgs({width, height, rounding, offsetX, offsetY, blurRadius, alpha});
 
     local dropShadowIndex;
     local dropShadowData;
 
     for index, data in ipairs(svgrenderer.renderedDropShadows) do
-        if data.args:equals(args) then
+        if data.args == args then
             dropShadowIndex = index;
             dropShadowData = data;
 
@@ -156,12 +173,12 @@ svgrenderer.getDropShadowTexture = function(width, height, rounding, offsetX, of
             </svg>
         ]]
 
-        svgrenderer.renderedDropShadows:append(T{
+        table.insert(svgrenderer.renderedDropShadows, {
             textureData=svgrenderer.renderToTexture(svgString),
             args=args
         });
 
-        dropShadowIndex = svgrenderer.renderedDropShadows:length();
+        dropShadowIndex = #svgrenderer.renderedDropShadows;
     end
 
     return svgrenderer.renderedDropShadows[dropShadowIndex].textureData;
@@ -217,6 +234,46 @@ svgrenderer.dropShadowCurrentWindow = function(offsetX, offsetY, blurRadius, alp
     )
 end
 
+local windowBackground;
+
+svgrenderer.windowBackground = function()
+    local windowPosX, windowPosY = imgui.GetWindowPos();
+    local windowWidth, windowHeight = imgui.GetWindowSize();
+
+    if not windowBackground then
+        local svgString = [[
+            <svg width="]] .. windowWidth .. [[" height="]] .. windowHeight .. [[" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <radialGradient id="bgGradient">
+                        <stop offset="25%" stop-color="#061d3a" />
+                        <stop offset="75%" stop-color="#01112a" />
+                    </radialGradient>
+                </defs>
+                <rect fill="url(#bgGradient)" width="]] .. windowWidth .. [[" height="]] .. windowHeight .. [[" rx="15"/>
+            </svg>
+        ]]
+
+        windowBackground = svgrenderer.renderToTexture(svgString);
+    end
+
+    local windowTexture = tonumber(ffi.cast("uint32_t", windowBackground.texture));
+
+    imgui.GetBackgroundDrawList():AddImage(
+        windowTexture,
+        {
+            windowPosX,
+            windowPosY
+        },
+        {
+            windowPosX + windowWidth,
+            windowPosY + windowHeight
+        },
+        {0, 0},
+        {1, 1},
+        IM_COL32_WHITE
+    );
+end
+
 svgrenderer.htmlEscape = function(text)
     return string.gsub(text, '%g', {
         ['<'] = '&lt;',
@@ -226,9 +283,9 @@ svgrenderer.htmlEscape = function(text)
 end
 
 svgrenderer.getTextTexture = function(cacheKey, text, size, color, options)
-    local args = T{text, size, color, options};
+    local args = svgrenderer.encodeArgs({text, size, color, options});
 
-    if not svgrenderer.renderedStrings[cacheKey] or not svgrenderer.renderedStrings[cacheKey].args:equals(args) then
+    if svgrenderer.renderedStrings[cacheKey] == nil or svgrenderer.renderedStrings[cacheKey].args ~= args then
         local gradientString = '';
         local fillString;
 
@@ -261,10 +318,10 @@ svgrenderer.getTextTexture = function(cacheKey, text, size, color, options)
         </svg>
         ]]
 
-        svgrenderer.renderedStrings[cacheKey] = T{
+        svgrenderer.renderedStrings[cacheKey] = {
             textureData=svgrenderer.renderToTexture(svgString, true, size),
             args=args
-        }
+        };
     end
 
     return svgrenderer.renderedStrings[cacheKey].textureData;
@@ -298,9 +355,9 @@ svgrenderer.text = function(cacheKey, text, size, color, options)
         -- when we call popDelayedDraws()
         local cursorX, cursorY = imgui.GetCursorScreenPos();
 
-        svgrenderer.delayedDrawingStack:append(T{
+        table.insert(svgrenderer.delayedDrawingStack, {
             cacheKey = cacheKey,
-            cursor = T{
+            cursor = {
                 x = cursorX,
                 y = cursorY
             }
@@ -313,7 +370,7 @@ svgrenderer.text = function(cacheKey, text, size, color, options)
 end
 
 svgrenderer.popDelayedDraws = function(count)
-    if count > svgrenderer.delayedDrawingStack:length() then
+    if count > #svgrenderer.delayedDrawingStack then
         error("Number of popped delayed draws exceeded stack size.");
     end
 
