@@ -296,11 +296,11 @@ targetbar.DrawWindow = function(settings)
 			targetNameText = targetNameText .. " [".. string.sub(targetServerIdHex, -3) .."]";
 		end
 
-		svgrenderer.text('targetbar_name', targetNameText, 18, getTargetGradient(targetEntity, targetIndex), {marginX=10});
+		svgrenderer.text('targetbar_name', {text=targetNameText, size=18, color=getTargetGradient(targetEntity, targetIndex), marginX=10});
 
 		imgui.SameLine();
 
-		svgrenderer.text('targetbar_dist', dist .. 'Y', 18, HXUI_COL_WHITE, {justify='right', marginX=10});
+		svgrenderer.text('targetbar_dist', {text=dist .. 'Y', size=18, color=HXUI_COL_WHITE, justify='right', marginX=10});
 
 		local hpGradientStart = '#e26c6c';
 		local hpGradientEnd = '#fb9494';
@@ -338,7 +338,7 @@ targetbar.DrawWindow = function(settings)
 
 			imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 
-			svgrenderer.text('targetbar_hpp', string.format('%d%%', targetEntity.HPPercent), 16, HXUI_COL_WHITE, {justify='right', marginX=16});
+			svgrenderer.text('targetbar_hpp', {text=string.format('%d%%', targetEntity.HPPercent), size=16, color=HXUI_COL_WHITE, justify='right', marginX=16});
 			
 			imgui.SameLine();
 
@@ -392,7 +392,7 @@ targetbar.DrawWindow = function(settings)
 
 			imgui.BeginGroup();
 
-			svgrenderer.text('targetbar_tot_name', totEntity.Name, 18, getTargetGradient(targetEntity, targetIndex), {marginX=10});
+			svgrenderer.text('targetbar_tot_name', {text=totEntity.Name, size=18, color=getTargetGradient(targetEntity, targetIndex), marginX=10});
 
 			local hpGradientStart = '#e26c6c';
 			local hpGradientEnd = '#fb9494';

@@ -44,13 +44,11 @@ expbar.DrawWindow = function(settings)
     if (imgui.Begin('ExpBar', true, windowFlags)) then
 		local expPercent = currentExp / totalExp;
 
-		svgrenderer.text('expbar_label', 'EXP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true, static=true});
+		svgrenderer.text('expbar_label', {text='EXP', size=12, color=HXUI_COL_WHITE, marginX=10, layer='foreground', static=true});
 
 		imgui.SetCursorPosY(imgui.GetCursorPosY() - 13);
 
 		progressbar.ProgressBar({{expPercent, {'#c39040', '#e9c466'}}}, {-1, settings.barHeight}, {decorate = gConfig.showExpBarBookends});
-
-		svgrenderer.popDelayedDraws(1);
 
 		local jobString = string.format('%s %d', AshitaCore:GetResourceManager():GetString("jobs.names_abbr", mainJob), jobLevel);
 
@@ -60,13 +58,13 @@ expbar.DrawWindow = function(settings)
 			jobString = string.format('%s / %s %d', jobString, AshitaCore:GetResourceManager():GetString("jobs.names_abbr", subJob), subJobLevel);
 		end
 
-		svgrenderer.text('expbar_job', jobString, 14, HXUI_COL_WHITE, {marginX=2});
+		svgrenderer.text('expbar_job', {text=jobString, size=14, color=HXUI_COL_WHITE, marginX=2});
 
 		imgui.SameLine();
 
 		local xpString = string.format('%s / %s', addCommas(currentExp), addCommas(totalExp));
 
-		svgrenderer.text('expbar_xp', xpString, 14, HXUI_COL_WHITE, {justify='right', marginX=2});
+		svgrenderer.text('expbar_xp', {text=xpString, size=14, color=HXUI_COL_WHITE, justify='right', marginX=2});
     end
 
 	imgui.End();

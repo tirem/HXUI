@@ -173,39 +173,35 @@ playerbar.DrawWindow = function(settings)
 		imgui.Columns(barCount, 'playerbar_columns', false);
 
 		-- HP bar
-		svgrenderer.text('playerbar_hp_label', 'HP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true, static=true});
+		svgrenderer.text('playerbar_hp_label', {text='HP', size=12, color=HXUI_COL_WHITE, marginX=10, layer='foreground', static=true});
 
 		imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 		
 		progressbar.ProgressBar(hpPercentData, {-1, settings.barHeight}, {decorate = gConfig.showPlayerBarBookends});
 
-		svgrenderer.popDelayedDraws(1);
-
 		imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 
-		svgrenderer.text('playerbar_hp_hpp', SelfHP, 16, HXUI_COL_WHITE, {justify='right', marginX=16});
+		svgrenderer.text('playerbar_hp_hpp', {text=SelfHP, size=16, color=HXUI_COL_WHITE, justify='right', marginX=16});
 
 		imgui.NextColumn();
 
 		if bShowMp then
 			-- MP bar
-			svgrenderer.text('playerbar_mp_label', 'MP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true, static=true});
+			svgrenderer.text('playerbar_mp_label', {text='MP', size=12, color=HXUI_COL_WHITE, marginX=10, layer='foreground', static=true});
 
 			imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 			
 			progressbar.ProgressBar({{SelfMPPercent / 100, {'#9abb5a', '#bfe07d'}}}, {-1, settings.barHeight}, {decorate = gConfig.showPlayerBarBookends});
 
-			svgrenderer.popDelayedDraws(1);
-
 			imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 
-			svgrenderer.text('targetbar_mp_mpp', SelfMP, 16, HXUI_COL_WHITE, {justify='right', marginX=16});
+			svgrenderer.text('targetbar_mp_mpp', {text=SelfMP, size=16, color=HXUI_COL_WHITE, justify='right', marginX=16});
 
 			imgui.NextColumn();
 		end
 
 		-- TP bar
-		svgrenderer.text('playerbar_tp_label', 'TP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true, static=true});
+		svgrenderer.text('playerbar_tp_label', {text='TP', size=12, color=HXUI_COL_WHITE, marginX=10, layer='foreground', static=true});
 
 		imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 
@@ -236,11 +232,9 @@ playerbar.DrawWindow = function(settings)
 		
 		progressbar.ProgressBar({{mainPercent, tpGradient}}, {-1, settings.barHeight}, {overlayBar=tpOverlay, decorate = gConfig.showPlayerBarBookends});
 
-		svgrenderer.popDelayedDraws(1);
-
 		imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 
-		svgrenderer.text('targetbar_tp_tpp', SelfTP, 16, HXUI_COL_WHITE, {justify='right', marginX=16});
+		svgrenderer.text('targetbar_tp_tpp', {text=SelfTP, size=16, color=HXUI_COL_WHITE, justify='right', marginX=16});
 
 		imgui.NextColumn();
 

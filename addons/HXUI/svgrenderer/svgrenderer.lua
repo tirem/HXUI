@@ -27,7 +27,6 @@ local svgrenderer = {
     renderedStrings = {},
     renderedDropShadows = {},
     renderedWindowBackgrounds = {},
-    delayedDrawingStack = {}
 };
 
 -- Initialize our resvg options and load our font(s)
@@ -117,6 +116,9 @@ svgrenderer.renderToTexture = function(svgString, crop, heightOverride)
     return {texture=texture, width=width, height=height};
 end
 
+-- Keeping this for posterity
+-- This is fast, but shitty table comparison ended up being faster
+--[[
 svgrenderer.encodeArgs = function(args)
     local result = {};
 
@@ -132,6 +134,35 @@ svgrenderer.encodeArgs = function(args)
 
     return table.concat(result);
 end
+]]--
+
+-- Shitty table comparison, but fast.
+-- This could potentially break with a dynamic number of arguments.
+svgrenderer.tableEquals = function(table1, table2)
+    if #table1 ~= #table2 then
+        return false;
+    end
+
+    local tableMismatch = false;
+
+    for key, value in pairs(table1) do
+        if type(value) == 'table' then
+            if not svgrenderer.tableEquals(table2[key], value) then
+                tableMismatch = true;
+    
+                break;
+            end
+        else
+            if table2[key] ~= value then
+                tableMismatch = true;
+    
+                break;
+            end
+        end
+    end
+
+    return not tableMismatch;
+end
 
 -- TODO: Make this work properly
 svgrenderer.getDropShadowPadding = function(blurRadius)
@@ -140,13 +171,13 @@ end
 
 -- TODO: We need to clear this cache at some point, maybe just force it when resize our bars?
 svgrenderer.getDropShadowTexture = function(width, height, rounding, offsetX, offsetY, blurRadius, alpha)
-    local args = svgrenderer.encodeArgs({width, height, rounding, offsetX, offsetY, blurRadius, alpha});
+    local args = {width, height, rounding, offsetX, offsetY, blurRadius, alpha};
 
     local dropShadowIndex;
     local dropShadowData;
 
     for index, data in ipairs(svgrenderer.renderedDropShadows) do
-        if data.args == args then
+        if svgrenderer.tableEquals(data.args, args) then
             dropShadowIndex = index;
             dropShadowData = data;
 
@@ -282,25 +313,19 @@ svgrenderer.htmlEscape = function(text)
     });
 end
 
-svgrenderer.getTextTexture = function(cacheKey, text, size, color, options)
-    local args;
-
-    if not options.static then
-        local args = svgrenderer.encodeArgs({text, size, color, options});
-    end
-
-    if svgrenderer.renderedStrings[cacheKey] == nil or (options.static and svgrenderer.renderedStrings[cacheKey].args ~= args) then
+svgrenderer.getTextTexture = function(cacheKey, args)
+    if svgrenderer.renderedStrings[cacheKey] == nil or (not args.static and not svgrenderer.tableEquals(svgrenderer.renderedStrings[cacheKey].args, args)) then
         local gradientString = '';
         local fillString;
 
-        if type(color) == 'string' then
-            fillString = color;
-        elseif type(color) == 'table' then
+        if type(args.color) == 'string' then
+            fillString = args.color;
+        elseif type(args.color) == 'table' then
             gradientString = [[
                 <defs>
                     <linearGradient id="gradientFill" gradientTransform="rotate(90)">
-                        <stop offset="0%" stop-color="]] .. color[1] .. [[" />
-                        <stop offset="100%" stop-color="]] .. color[2] .. [[" />
+                        <stop offset="0%" stop-color="]] .. args.color[1] .. [[" />
+                        <stop offset="100%" stop-color="]] .. args.color[2] .. [[" />
                     </linearGradient>
                 </defs>
             ]]
@@ -311,19 +336,19 @@ svgrenderer.getTextTexture = function(cacheKey, text, size, color, options)
         end
 
         -- Escape our text, otherwise we'll crash on a special door in Upper Jeuno
-        text = svgrenderer.htmlEscape(text);
+        local text = svgrenderer.htmlEscape(args.text);
         
         local svgString = [[
         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg">
             ]] .. gradientString .. [[
-            <text id="text1" x="3" y="3" dominant-baseline="hanging" font-family="'Roboto', sans-serif" font-size="]] .. size .. [[" fill="]] .. fillString .. [[" filter="drop-shadow(0 1 2 rgba(0, 0, 0, 0.4))" stroke="#01112A" stroke-width="3px" paint-order="stroke">
+            <text id="text1" x="3" y="3" dominant-baseline="hanging" font-family="'Roboto', sans-serif" font-size="]] .. args.size .. [[" fill="]] .. fillString .. [[" filter="drop-shadow(0 1 2 rgba(0, 0, 0, 0.4))" stroke="#01112A" stroke-width="3px" paint-order="stroke">
                 ]] .. text .. [[
             </text>
         </svg>
         ]]
 
         svgrenderer.renderedStrings[cacheKey] = {
-            textureData=svgrenderer.renderToTexture(svgString, true, size),
+            textureData=svgrenderer.renderToTexture(svgString, true, args.size),
             args=args
         };
     end
@@ -331,14 +356,12 @@ svgrenderer.getTextTexture = function(cacheKey, text, size, color, options)
     return svgrenderer.renderedStrings[cacheKey].textureData;
 end
 
-svgrenderer.text = function(cacheKey, text, size, color, options)
-    if not options then options = {} end;
+svgrenderer.text = function(cacheKey, args)
+    local textureData = svgrenderer.getTextTexture(cacheKey, args);
 
-    local textureData = svgrenderer.getTextTexture(cacheKey, text, size, color, options);
+    local marginX = args.marginX and args.marginX or 0;
 
-    local marginX = options.marginX and options.marginX or 0;
-
-    if options.justify == 'right' then
+    if args.justify == 'right' then
         local contentWidthX, contentWidthY = imgui.GetWindowContentRegionMax();
 
         if imgui.GetColumnsCount() > 1 then
@@ -350,50 +373,32 @@ svgrenderer.text = function(cacheKey, text, size, color, options)
         imgui.SetCursorPosX(imgui.GetCursorPosX() + marginX);
     end
 
-    if not options.delayDrawing then
-        local texture = tonumber(ffi.cast("uint32_t", textureData.texture));
+    local texture = tonumber(ffi.cast("uint32_t", textureData.texture));
 
+    if args.layer == nil then
         imgui.Image(texture, {textureData.width, textureData.height});
-    else
-        -- Draw a dummy instead for layout purposes, and then draw the actual text
-        -- when we call popDelayedDraws()
+    elseif args.layer == 'foreground' then
         local cursorX, cursorY = imgui.GetCursorScreenPos();
 
-        table.insert(svgrenderer.delayedDrawingStack, {
-            cacheKey = cacheKey,
-            cursor = {
-                x = cursorX,
-                y = cursorY
-            }
-        });
-
         imgui.Dummy({textureData.width, textureData.height});
-    end
 
-    return textureData.width, textureData.height;
-end
-
-svgrenderer.popDelayedDraws = function(count)
-    if count > #svgrenderer.delayedDrawingStack then
-        error("Number of popped delayed draws exceeded stack size.");
-    end
-
-    for i = 1, count do
-        local stackConfig = table.remove(svgrenderer.delayedDrawingStack, i);
-
-        local textureData = svgrenderer.renderedStrings[stackConfig.cacheKey].textureData;
-
-        local texture = tonumber(ffi.cast("uint32_t", textureData.texture));
-
-        imgui.GetWindowDrawList():AddImage(
+        imgui.GetForegroundDrawList():AddImage(
             texture,
-            {stackConfig.cursor.x, stackConfig.cursor.y},
-            {stackConfig.cursor.x + textureData.width, stackConfig.cursor.y + textureData.height},
+            {
+                cursorX,
+                cursorY
+            },
+            {
+                cursorX + textureData.width,
+                cursorY + textureData.height
+            },
             {0, 0},
             {1, 1},
             IM_COL32_WHITE
         );
     end
+
+    return textureData.width, textureData.height;
 end
 
 svgrenderer.initialize();

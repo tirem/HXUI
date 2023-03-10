@@ -182,11 +182,11 @@ recastbar.DrawWindow = function()
 
             imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 
-            svgrenderer.text(string.format('recast_%s_name_%d', recast.type, recast.id), recast.name, 14, HXUI_COL_WHITE, {marginX=7});
+            svgrenderer.text(string.format('recast_%s_name_%d', recast.type, recast.id), {text=recast.name, size=14, color=HXUI_COL_WHITE, marginX=7});
 
             imgui.SameLine();
 
-            svgrenderer.text(string.format('recast_%s_timer_%d', recast.type, recast.id), format_timestamp(timeRemaining), 14, HXUI_COL_WHITE, {marginX=7, justify='right'});
+            svgrenderer.text(string.format('recast_%s_timer_%d', recast.type, recast.id), {text=format_timestamp(timeRemaining), size=14, color=HXUI_COL_WHITE, marginX=7, justify='right'});
         end);
     end
 

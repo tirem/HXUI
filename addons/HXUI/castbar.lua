@@ -46,13 +46,13 @@ castbar.DrawWindow = function(settings)
 
 			local labelString = showConfig[1] and 'Configuration Mode' or castbar.GetLabelText();
 
-			svgrenderer.text('castbar_label', labelString, 14, HXUI_COL_WHITE, {marginX=7});
+			svgrenderer.text('castbar_label', {text=labelString, size=14, color=HXUI_COL_WHITE, marginX=7});
 
 			imgui.SameLine();
 
 			local percentString = showConfig[1] and '50%' or math.floor(percent * 100) .. '%';
 
-			svgrenderer.text('castbar_percent', percentString, 14, HXUI_COL_WHITE, {justify='right', marginX=7});
+			svgrenderer.text('castbar_percent', {text=percentString, size=14, color=HXUI_COL_WHITE, justify='right', marginX=7});
 		end
 
 		imgui.End();
