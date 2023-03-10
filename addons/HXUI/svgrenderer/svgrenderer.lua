@@ -283,9 +283,13 @@ svgrenderer.htmlEscape = function(text)
 end
 
 svgrenderer.getTextTexture = function(cacheKey, text, size, color, options)
-    local args = svgrenderer.encodeArgs({text, size, color, options});
+    local args;
 
-    if svgrenderer.renderedStrings[cacheKey] == nil or svgrenderer.renderedStrings[cacheKey].args ~= args then
+    if not options.static then
+        local args = svgrenderer.encodeArgs({text, size, color, options});
+    end
+
+    if svgrenderer.renderedStrings[cacheKey] == nil or (options.static and svgrenderer.renderedStrings[cacheKey].args ~= args) then
         local gradientString = '';
         local fillString;
 

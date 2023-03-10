@@ -173,7 +173,7 @@ playerbar.DrawWindow = function(settings)
 		imgui.Columns(barCount, 'playerbar_columns', false);
 
 		-- HP bar
-		svgrenderer.text('playerbar_hp_label', 'HP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true});
+		svgrenderer.text('playerbar_hp_label', 'HP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true, static=true});
 
 		imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 		
@@ -189,7 +189,7 @@ playerbar.DrawWindow = function(settings)
 
 		if bShowMp then
 			-- MP bar
-			svgrenderer.text('playerbar_mp_label', 'MP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true});
+			svgrenderer.text('playerbar_mp_label', 'MP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true, static=true});
 
 			imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 			
@@ -205,7 +205,7 @@ playerbar.DrawWindow = function(settings)
 		end
 
 		-- TP bar
-		svgrenderer.text('playerbar_tp_label', 'TP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true});
+		svgrenderer.text('playerbar_tp_label', 'TP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true, static=true});
 
 		imgui.SetCursorPosY(imgui.GetCursorPosY() - 15);
 

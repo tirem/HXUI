@@ -44,7 +44,7 @@ expbar.DrawWindow = function(settings)
     if (imgui.Begin('ExpBar', true, windowFlags)) then
 		local expPercent = currentExp / totalExp;
 
-		svgrenderer.text('expbar_label', 'EXP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true});
+		svgrenderer.text('expbar_label', 'EXP', 12, HXUI_COL_WHITE, {marginX=10, delayDrawing=true, static=true});
 
 		imgui.SetCursorPosY(imgui.GetCursorPosY() - 13);
 
