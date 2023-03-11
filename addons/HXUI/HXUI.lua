@@ -25,7 +25,7 @@ svgrenderer = require('svgrenderer/svgrenderer');
 require('colors');
 
 -- Initialize our status lib and begin tracking by packet
-gStatusLib = require('status.status');
+gStatusLib = require('libs/status/status');
 
 -- =================
 -- = HXUI DEV ONLY =
