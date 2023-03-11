@@ -8,9 +8,9 @@ local resMgr = AshitaCore:GetResourceManager();
 local mmRecast = AshitaCore:GetMemoryManager():GetRecast();
 local player = AshitaCore:GetMemoryManager():GetPlayer();
 
-local recastbar = T{
-    recasts = T{},
-    twoHours = T{
+local recastbar = {
+    recasts = {},
+    twoHours = {
         [1] = 'Mighty Strikes', -- WAR
         [2] = 'Hundred Fists', -- MNK
         [3] = 'Benediction', -- WHM
@@ -73,9 +73,17 @@ end
 recastbar.updateRecasts = function()
     local currentTime = os.clock();
 
+    --[[
     recastbar.recasts = recastbar.recasts:filteri(function(recast)
         return currentTime < recast.timer;
     end);
+    ]]--
+
+    for i, recast in ipairs(recastbar.recasts) do
+        if currentTime > recast.timer then
+            table.remove(recastbar.recasts, i);
+        end
+    end
 
     -- Ability recasts
     for x = 0, 31 do
@@ -99,14 +107,14 @@ recastbar.updateRecasts = function()
 
             local alreadyTracked = false;
 
-            recastbar.recasts:ieach(function(recast)
+            for i, recast in ipairs(recastbar.recasts) do
                 if recast.type == 'ability' and recast.id == id then
                     alreadyTracked = true;
                 end
-            end);
+            end
 
             if not alreadyTracked then
-                recastbar.recasts:append(T{
+                table.insert(recastbar.recasts, {
                     type='ability',
                     id=id,
                     name=name,
@@ -137,14 +145,14 @@ recastbar.updateRecasts = function()
 
             local alreadyTracked = false;
 
-            recastbar.recasts:ieach(function(recast)
+            for i, recast in ipairs(recastbar.recasts) do
                 if recast.type == 'spell' and recast.id == id then
                     alreadyTracked = true;
                 end
-            end);
+            end
 
             if not alreadyTracked then
-                recastbar.recasts:append(T{
+                table.insert(recastbar.recasts, {
                     type='spell',
                     id=id,
                     name=name,
@@ -159,7 +167,7 @@ end
 recastbar.DrawWindow = function()
     recastbar.updateRecasts();
 
-    if recastbar.recasts:length() == 0 then
+    if #recastbar.recasts == 0 then
         return;
     end
 
@@ -174,7 +182,7 @@ recastbar.DrawWindow = function()
     local currentTime = os.clock();
 
     if (imgui.Begin('Recast_Bar', true, windowFlags)) then
-        recastbar.recasts:ieach(function(recast)
+        for i, recast in ipairs(recastbar.recasts) do
             local timeRemaining = recast.timer - os.clock();
             local percent = timeRemaining / recast.totalTime;
 
@@ -187,7 +195,7 @@ recastbar.DrawWindow = function()
             imgui.SameLine();
 
             svgrenderer.text(string.format('recast_%s_timer_%d', recast.type, recast.id), {text=format_timestamp(timeRemaining), size=14, color=HXUI_COL_WHITE, marginX=7, justify='right'});
-        end);
+        end
     end
 
     imgui.End();
