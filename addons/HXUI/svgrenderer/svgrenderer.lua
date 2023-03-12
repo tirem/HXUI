@@ -5,7 +5,7 @@ local imgui = require('imgui');
 
 -- Require our header files
 require('svgrenderer/include/resvg_h');
-require('svgrenderer/include/libhxui_h');
+-- require('svgrenderer/include/libhxui_h');
 
 -- Returns a path to a file, relative to our addon directory
 local function getRelativePath(filename)
@@ -18,7 +18,7 @@ end
 
 -- Load our DLLs
 local resvg = ffi.load(getRelativePath('svgrenderer/bin/resvg'));
-local libhxui = ffi.load(getRelativePath('svgrenderer/bin/libhxui'));
+-- local libhxui = ffi.load(getRelativePath('svgrenderer/bin/libhxui'));
 
 local svgrenderer = {
     -- Font file's path relative to our addon directory
@@ -38,7 +38,7 @@ svgrenderer.initialize = function()
     resvgCheckResponse(resvg.resvg_options_load_font_file(svgrenderer.resvgOptions, fontPath));
 end
 
-svgrenderer.renderToTexture = function(svgString, crop, heightOverride)
+svgrenderer.renderToTexture = function(svgString, crop, padding, heightOverride)
     -- Initialize our SVG rendering tree
     local tree = ffi.new('resvg_render_tree*');
     local treeBuff = ffi.new('resvg_render_tree*[1]');
@@ -65,12 +65,13 @@ svgrenderer.renderToTexture = function(svgString, crop, heightOverride)
     local width = math.ceil(size.width);
     local height = math.ceil(size.height);
 
-    if crop then
-        width = width + 3;
+    if heightOverride then
+        height = heightOverride;
     end
 
-    if heightOverride then
-        height = heightOverride + 6;
+    if padding then
+        width = width + (padding * 2);
+        height = height + (padding * 2);
     end
 
     -- Initialize our DirectX texture
@@ -101,7 +102,7 @@ svgrenderer.renderToTexture = function(svgString, crop, heightOverride)
     resvg.resvg_render(treeBuff[0], fitTo, resvg.resvg_transform_identity(), lockedRect.Pitch / 4, height, lockedRect.pBits);
 
     -- resvg renders in RGBA, we want BGRA
-    libhxui.libhxui_texture_convert_rgba_bgra(lockedRect.pBits, lockedRect.Pitch * height);
+    -- libhxui.libhxui_texture_convert_rgba_bgra(lockedRect.pBits, lockedRect.Pitch * height);
 
     -- Done drawing, unlock our texture
     texturePointer[0]:UnlockRect(0);
@@ -200,7 +201,18 @@ svgrenderer.getDropShadowTexture = function(width, height, rounding, offsetX, of
 
         local svgString = [[
             <svg viewBox="]] .. table.concat(viewBox, ' ') .. [[" xmlns="http://www.w3.org/2000/svg">
-                <rect fill="black" width="]] .. width .. [[" height="]] .. height .. [[" rx="]] .. rounding .. [[" filter="drop-shadow(]] .. offsetX ..  ' ' .. offsetY .. ' ' .. blurRadius .. [[ rgba(0, 0, 0, ]] .. alpha .. [[))"/>
+                <defs>
+                    <filter id="bgraShift" x="-50%" y="-50%" width="200%" height="200%">
+                        <feColorMatrix type="matrix"
+                            values="0 0 1 0 0
+                                    0 1 0 0 0
+                                    1 0 0 0 0
+                                    0 0 0 1 0" />
+                    </filter>
+                </defs>
+                <g filter="url(#bgraShift)">
+                    <rect fill="black" width="]] .. width .. [[" height="]] .. height .. [[" rx="]] .. rounding .. [[" filter="drop-shadow(]] .. offsetX ..  ' ' .. offsetY .. ' ' .. blurRadius .. [[ rgba(0, 0, 0, ]] .. alpha .. [[))"/>
+                </g>
             </svg>
         ]]
 
@@ -279,8 +291,17 @@ svgrenderer.windowBackground = function()
                         <stop offset="25%" stop-color="#061d3a" />
                         <stop offset="75%" stop-color="#01112a" />
                     </radialGradient>
+                    <filter id="bgraShift" x="-50%" y="-50%" width="200%" height="200%">
+                        <feColorMatrix type="matrix"
+                            values="0 0 1 0 0
+                                    0 1 0 0 0
+                                    1 0 0 0 0
+                                    0 0 0 1 0" />
+                    </filter>
                 </defs>
-                <rect fill="url(#bgGradient)" width="]] .. windowWidth .. [[" height="]] .. windowHeight .. [[" rx="15"/>
+                <g filter="url(#bgraShift)">
+                    <rect fill="url(#bgGradient)" width="]] .. windowWidth .. [[" height="]] .. windowHeight .. [[" rx="15"/>
+                </g>
             </svg>
         ]]
 
@@ -314,6 +335,9 @@ svgrenderer.htmlEscape = function(text)
 end
 
 svgrenderer.getTextTexture = function(cacheKey, args)
+    -- Hardcoded for now, drop shadow * 2
+    padding = 2 * 2;
+
     if svgrenderer.renderedStrings[cacheKey] == nil or (not args.static and not svgrenderer.tableEquals(svgrenderer.renderedStrings[cacheKey].args, args)) then
         local gradientString = '';
         local fillString;
@@ -339,16 +363,27 @@ svgrenderer.getTextTexture = function(cacheKey, args)
         local text = svgrenderer.htmlEscape(args.text);
         
         local svgString = [[
-        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg">
+        <svg xmlns="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg">
             ]] .. gradientString .. [[
-            <text id="text1" x="3" y="3" dominant-baseline="hanging" font-family="'Roboto', sans-serif" font-size="]] .. args.size .. [[" fill="]] .. fillString .. [[" filter="drop-shadow(0 1 2 rgba(0, 0, 0, 0.4))" stroke="#01112A" stroke-width="3px" paint-order="stroke">
-                ]] .. text .. [[
-            </text>
+            <defs>
+                <filter id="bgraShift" x="-50%" y="-50%" width="200%" height="200%">
+                    <feColorMatrix type="matrix"
+                        values="0 0 1 0 0
+                                0 1 0 0 0
+                                1 0 0 0 0
+                                0 0 0 1 0" />
+                </filter>
+            </defs>
+            <g filter="url(#bgraShift)">
+                <text x="]] .. padding .. [[" y="]] .. padding .. [[" dominant-baseline="hanging" font-family="'Roboto', sans-serif" font-size="]] .. args.size .. [[" fill="]] .. fillString .. [[" filter="drop-shadow(0 1 2 rgba(0, 0, 0, 0.4))" stroke="#01112A" stroke-width="3px" paint-order="stroke">
+                    ]] .. text .. [[
+                </text>
+            </g>
         </svg>
         ]]
 
         svgrenderer.renderedStrings[cacheKey] = {
-            textureData=svgrenderer.renderToTexture(svgString, true, args.size),
+            textureData=svgrenderer.renderToTexture(svgString, true, padding, args.size),
             args=args
         };
     end
