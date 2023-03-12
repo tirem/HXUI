@@ -30,6 +30,14 @@ gStatusLib = require('libs/status/status');
 -- =================
 -- = HXUI DEV ONLY =
 -- =================
+-- Perf profiling
+local _HXUI_DEV_PROFILING_ENABLED = false;
+local profiler;
+
+if _HXUI_DEV_PROFILING_ENABLED then
+	profiler = require("libs/profiler");
+end
+
 -- Hot reloading of development files functionality
 local _HXUI_DEV_HOT_RELOADING_ENABLED = false;
 local _HXUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS = 1;
@@ -774,6 +782,19 @@ ashita.events.register('load', 'load_cb', function ()
 	inventoryTracker.Initialize(gAdjustedSettings.inventoryTrackerSettings);
 	partyList.Initialize(gAdjustedSettings.partyListSettings);
 	castBar.Initialize(gAdjustedSettings.castBarSettings);
+
+	if _HXUI_DEV_PROFILING_ENABLED then
+		profiler.start();
+
+		print("== HXUI == Running with profiler enabled.  This may impact performance.");
+	end
+end);
+
+ashita.events.register('unload', 'unload_cb', function()
+	if _HXUI_DEV_PROFILING_ENABLED then
+		profiler.stop()
+		profiler.report("hxui_profile.log");
+	end
 end);
 
 ashita.events.register('command', 'command_cb', function (e)
