@@ -101,7 +101,7 @@ config.DrawWindow = function(us)
                 gConfig.alwaysShowMpBar = not gConfig.alwaysShowMpBar;
                 UpdateSettings();
             end
-            imgui.ShowHelp('Always display the MP Bar even if your current jobs cannot cast spells.'); 
+            imgui.ShowHelp('Always display the MP Bar even if your current jobs cannot cast spells.');
             local scaleX = { gConfig.playerBarScaleX };
             if (imgui.SliderFloat('Scale X', scaleX, 0.1, 3.0, '%.1f')) then
                 gConfig.playerBarScaleX = scaleX[1];
@@ -133,12 +133,12 @@ config.DrawWindow = function(us)
                 gConfig.showEnemyId = not gConfig.showEnemyId;
                 UpdateSettings();
             end
-            imgui.ShowHelp('Display the internal ID of the monster next to its name.'); 
+            imgui.ShowHelp('Display the internal ID of the monster next to its name.');
             if (imgui.Checkbox('Always Show Health Percent', { gConfig.alwaysShowHealthPercent })) then
                 gConfig.alwaysShowHealthPercent = not gConfig.alwaysShowHealthPercent;
                 UpdateSettings();
             end
-            imgui.ShowHelp('Always display the percent of HP remanining regardless if the target is an enemy or not.'); 
+            imgui.ShowHelp('Always display the percent of HP remanining regardless if the target is an enemy or not.');
             local scaleX = { gConfig.targetBarScaleX };
             if (imgui.SliderFloat('Scale X', scaleX, 0.1, 3.0, '%.1f')) then
                 gConfig.targetBarScaleX = scaleX[1];
@@ -242,8 +242,8 @@ config.DrawWindow = function(us)
                 end
                 imgui.EndCombo();
             end
-            imgui.ShowHelp('The image to use for the party list background. [Resolution: 512x512 @ HXUI\\assets\\backgrounds]'); 
-            
+            imgui.ShowHelp('The image to use for the party list background. [Resolution: 512x512 @ HXUI\\assets\\backgrounds]');
+
             -- Arrow
             local cursor_paths = statusHandler.get_cursor_paths();
             if (imgui.BeginCombo('Cursor', gConfig.partyListCursor)) then
@@ -262,8 +262,8 @@ config.DrawWindow = function(us)
                 end
                 imgui.EndCombo();
             end
-            imgui.ShowHelp('The image to use for the party list cursor. [@ HXUI\\assets\\cursors]'); 
-            
+            imgui.ShowHelp('The image to use for the party list cursor. [@ HXUI\\assets\\cursors]');
+
 
             local comboBoxItems = {};
             comboBoxItems[0] = 'HorizonXI';
@@ -353,6 +353,10 @@ config.DrawWindow = function(us)
             imgui.BeginChild("InventoryTrackerSettings", { 0, 160 }, true);
             if (imgui.Checkbox('Enabled', { gConfig.showInventoryTracker })) then
                 gConfig.showInventoryTracker = not gConfig.showInventoryTracker;
+                UpdateSettings();
+            end
+            if (imgui.Checkbox('Color Based On Space Remaining', { gConfig.colorBasedOnSpaceRemaining })) then
+                gConfig.colorBasedOnSpaceRemaining = not gConfig.colorBasedOnSpaceRemaining;
                 UpdateSettings();
             end
             local scale = { gConfig.inventoryTrackerScale };

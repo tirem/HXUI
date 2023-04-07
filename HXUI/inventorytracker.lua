@@ -37,7 +37,7 @@ inventoryTracker.DrawWindow = function(settings)
 
 	local mainJob = player:GetMainJob();
     if (player.isZoning or mainJob == 0) then
-		UpdateTextVisibility(false);	
+		UpdateTextVisibility(false);
         return;
 	end
 
@@ -46,9 +46,21 @@ inventoryTracker.DrawWindow = function(settings)
 		UpdateTextVisibility(false);
 		return;
 	end
-	
+
 	local usedBagSlots = inventory:GetContainerCount(0);
 	local maxBagSlots = inventory:GetContainerCountMax(0);
+
+	-- Determine dot color based on inventory space status
+	local dotColor = {.37, .7, .88, 1}
+	if (gConfig.colorBasedOnSpaceRemaining) then
+		if (usedBagSlots == maxBagSlots) then
+			-- Bags are full
+			dotColor = {1, 0, 0, 1}
+		elseif ((maxBagSlots / usedBagSlots) >= .75) then
+			-- Bags are 3/4 or more full
+			dotColor = {1, 1, 0, 1}
+		end
+	end
 
 	-- Get max X size
 	local groupOffsetX, groupOffsetY = GetDotOffset(settings.rowCount, settings.columnCount, settings);
@@ -61,7 +73,7 @@ inventoryTracker.DrawWindow = function(settings)
 	local winSizeY = groupOffsetY;
 
     imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
-		
+
 	local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus);
 	if (gConfig.lockPositions) then
 		windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
@@ -83,7 +95,7 @@ inventoryTracker.DrawWindow = function(settings)
 			if (i > usedBagSlots) then
 				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, {0, .07, .17, 1}, settings.dotRadius * 3, true)
 			else
-				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, {.37, .7, .88, 1}, settings.dotRadius * 3, true)
+				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, dotColor, settings.dotRadius * 3, true)
 				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, {0, .07, .17, 1}, settings.dotRadius * 3, false)
 			end
 		end
@@ -92,7 +104,7 @@ inventoryTracker.DrawWindow = function(settings)
 		inventoryText:SetPositionX(locX + winSizeX);
 		inventoryText:SetPositionY(locY + settings.textOffsetY - inventoryText:GetFontHeight());
 
-		UpdateTextVisibility(true);	
+		UpdateTextVisibility(true);
     end
 	imgui.End();
 end
