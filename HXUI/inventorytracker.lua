@@ -56,7 +56,7 @@ inventoryTracker.DrawWindow = function(settings)
 		if (usedBagSlots == maxBagSlots) then
 			-- Bags are full
 			dotColor = {1, 0, 0, 1}
-		elseif ((maxBagSlots / usedBagSlots) >= .75) then
+		elseif ((usedBagSlots / maxBagSlots) >= .75) then
 			-- Bags are 3/4 or more full
 			dotColor = {1, 1, 0, 1}
 		end
