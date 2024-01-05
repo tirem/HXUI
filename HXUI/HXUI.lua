@@ -174,6 +174,8 @@ T{
 	partyListBackground = 'BlueGradient.png',
 	partyListEntrySpacing = 0,
     partyListHideDuringEvents = true,
+    partyListExpandHeight = false,
+    partyListAlignBottom = false,
 
 	castBarScaleX = 1,
 	castBarScaleY = 1,
@@ -480,6 +482,8 @@ T{
 		buffOffset = 10,
 		xivBuffOffsetY = 1,
 		entrySpacing = 8,
+        expandHeight = false,
+        alignBottom = false,
 
 		hp_font_settings = 
 		T{
@@ -685,6 +689,8 @@ local function UpdateUserSettings()
     gAdjustedSettings.partyListSettings.name_font_settings.font_height = math.max(ns.partyListSettings.name_font_settings.font_height + us.partyListFontOffset, 1);
 	gAdjustedSettings.partyListSettings.iconSize = ns.partyListSettings.iconSize * us.partyListBuffScale;
 	gAdjustedSettings.partyListSettings.entrySpacing = ns.partyListSettings.entrySpacing + us.partyListEntrySpacing;
+    gAdjustedSettings.partyListSettings.expandHeight = us.partyListExpandHeight;
+    gAdjustedSettings.partyListSettings.alignBottom = us.partyListAlignBottom;
 
 	-- Player Bar
 	gAdjustedSettings.playerBarSettings.barWidth = ns.playerBarSettings.barWidth * us.playerBarScaleX;

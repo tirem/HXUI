@@ -214,7 +214,7 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Party List")) then
-            imgui.BeginChild("PartyListSettings", { 0, 380 }, true);
+            imgui.BeginChild("PartyListSettings", { 0, 440 }, true);
             if (imgui.Checkbox('Enabled', { gConfig.showPartyList })) then
                 gConfig.showPartyList = not gConfig.showPartyList;
                 UpdateSettings();
@@ -229,6 +229,14 @@ config.DrawWindow = function(us)
             end
             if (imgui.Checkbox('Hide During Events', { gConfig.partyListHideDuringEvents })) then
                 gConfig.partyListHideDuringEvents = not gConfig.partyListHideDuringEvents;
+                UpdateSettings();
+            end
+            if (imgui.Checkbox('Align Bottom', { gConfig.partyListAlignBottom })) then
+                gConfig.partyListAlignBottom = not gConfig.partyListAlignBottom;
+                UpdateSettings();
+            end
+            if (imgui.Checkbox('Expand Height', { gConfig.partyListExpandHeight })) then
+                gConfig.partyListExpandHeight = not gConfig.partyListExpandHeight;
                 UpdateSettings();
             end
             local scaleX = { gConfig.partyListScaleX };

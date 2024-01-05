@@ -5,6 +5,8 @@ local primitives = require('primitives');
 local statusHandler = require('statushandler');
 local buffTable = require('bufftable');
 local progressbar = require('progressbar');
+local encoding = require('gdifonts.encoding');
+local ashita_settings = require('settings');
 
 local fullMenuSizeX;
 local fullMenuSizeY;
@@ -43,11 +45,11 @@ local function GetMemberInformation(memIdx)
 
     local party = AshitaCore:GetMemoryManager():GetParty();
     local player = AshitaCore:GetMemoryManager():GetPlayer();
-
-	local playerTarget = AshitaCore:GetMemoryManager():GetTarget();
     if (player == nil or party == nil or party:GetMemberIsActive(memIdx) == 0) then
         return nil;
     end
+
+    local playerTarget = AshitaCore:GetMemoryManager():GetTarget();
 
     local memberInfo = {};
     memberInfo.zone = party:GetMemberZone(memIdx);
@@ -106,10 +108,32 @@ end
 local function DrawMember(memIdx, settings)
 
     local memInfo = GetMemberInformation(memIdx);
-    local playerTarget = AshitaCore:GetMemoryManager():GetTarget();
-    if (memInfo == nil or playerTarget == nil) then
-        UpdateTextVisibilityByMember(memIdx, false);
-        return;
+    if (memInfo == nil) then
+        if (settings.expandHeight) then
+            -- dummy data to render an empty space
+            memInfo = {};
+            memInfo.hp = 0;
+            memInfo.hpp = 0;
+            memInfo.maxhp = 0;
+            memInfo.mp = 0;
+            memInfo.mpp = 0;
+            memInfo.maxmp = 0;
+            memInfo.tp = 0;
+            memInfo.job = '';
+            memInfo.level = '';
+            memInfo.targeted = false;
+            memInfo.serverid = 0;
+            memInfo.buffs = nil;
+            memInfo.sync = false;
+            memInfo.subTargeted = false;
+            memInfo.zone = '';
+            memInfo.inzone = false;
+            memInfo.name = '';
+            memInfo.leader = false;
+        else
+            UpdateTextVisibilityByMember(memIdx, false);
+            return;
+        end
     end
 
     local subTargetActive = GetSubTargetActive();
@@ -149,8 +173,10 @@ local function DrawMember(memIdx, settings)
     -- Draw the HP bar
     if (memInfo.inzone) then
         progressbar.ProgressBar({{memInfo.hpp, hpGradient}}, {settings.hpBarWidth, settings.barHeight}, {borderConfig=borderConfig, backgroundGradientOverride=bgGradientOverride, decorate = gConfig.showPartyListBookends});
+    elseif (memInfo.zone == '') then
+        imgui.Dummy({allBarsLengths, settings.barHeight + hpSize.cy + settings.hpTextOffsetY});
     else
-        imgui.ProgressBar(0, { allBarsLengths, settings.barHeight + hpSize.cy + settings.hpTextOffsetY}, AshitaCore:GetResourceManager():GetString("zones.names", memInfo.zone));
+        imgui.ProgressBar(0, {allBarsLengths, settings.barHeight + hpSize.cy + settings.hpTextOffsetY}, encoding:ShiftJIS_To_UTF8(AshitaCore:GetResourceManager():GetString("zones.names", memInfo.zone), true));
     end
 
     -- Draw the leader icon
@@ -213,7 +239,7 @@ local function DrawMember(memIdx, settings)
         memberText[memIdx].tp:SetText(tostring(memInfo.tp));
 
         -- Draw targeted
-        local entrySize = hpSize.cy + offsetSize + settings.hpTextOffsetY + settings.barHeight + settings.cursorPaddingY1 + settings.cursorPaddingY2;
+        local entrySize = hpSize.cy + offsetSize + settings.hpTextOffsetY + settings.barHeight + settings.cursorPaddingY1 + settings.cursorPaddingY2 + settings.entrySpacing;
         if (memInfo.targeted == true) then
             selectionPrim.visible = true;
             selectionPrim.position_x = hpStartX - settings.cursorPaddingX1;
@@ -350,6 +376,8 @@ partyList.DrawWindow = function(settings)
         return;
 	end
 
+    local imguiPosX, imguiPosY;
+
     local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus);
     if (gConfig.lockPositions) then
         windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
@@ -364,7 +392,7 @@ partyList.DrawWindow = function(settings)
         imgui.Dummy({0, settings.nameTextOffsetY + offsetSize});
         if (fullMenuSizeX ~= nil and fullMenuSizeY ~= nil) then
             backgroundPrim.visible = true;
-            local imguiPosX, imguiPosY = imgui.GetWindowPos();
+            imguiPosX, imguiPosY = imgui.GetWindowPos();
             backgroundPrim.position_x = imguiPosX - settings.backgroundPaddingX1;
             backgroundPrim.position_y = imguiPosY - settings.backgroundPaddingY1;
             backgroundPrim.scale_x = (fullMenuSizeX + settings.backgroundPaddingX1 + settings.backgroundPaddingX2) / 512;
@@ -387,7 +415,33 @@ partyList.DrawWindow = function(settings)
 
     fullMenuSizeX, fullMenuSizeY = imgui.GetWindowSize();
 	imgui.End();
-    imgui.PopStyleVar(2);  
+    imgui.PopStyleVar(2);
+
+    if (settings.alignBottom) then
+        if (gConfig.partyListState ~= nil) then
+            -- Move window if size changed
+            if (fullMenuSizeY ~= gConfig.partyListState.height) then
+                -- local oldBottomY = gConfig.partyListState.y + gConfig.partyListState.height;
+                -- local newPositionY = oldBottomY - fullMenuSizeY;
+
+                imguiPosY = imguiPosY + (gConfig.partyListState.height - fullMenuSizeY);
+                imgui.SetWindowPos('PartyList', {imguiPosX, imguiPosY});
+            end
+        end
+
+        -- Update if the state changed
+        if (gConfig.partyListState == nil or 
+            imguiPosX ~= gConfig.partyListState.x or imguiPosY ~= gConfig.partyListState.y or 
+            fullMenuSizeX ~= gConfig.partyListState.width or fullMenuSizeY ~= gConfig.partyListState.height) then
+            gConfig.partyListState = {
+                x = imguiPosX,
+                y = imguiPosY,
+                width = fullMenuSizeX,
+                height = fullMenuSizeY,
+            };
+            ashita_settings.save();
+        end
+    end
 end
 
 
