@@ -152,6 +152,10 @@ T{
 
 	inventoryTrackerScale = 1,
 	inventoryTrackerFontOffset = 0,
+    inventoryTrackerOpacity = 1.0,
+    inventoryTrackerColumnCount = 5,
+    inventoryTrackerRowCount = 6,
+    inventoryShowCount = true,
 
 	partyListScaleX = 1,
 	partyListScaleY = 1,
@@ -698,6 +702,10 @@ local function UpdateUserSettings()
 	gAdjustedSettings.inventoryTrackerSettings.dotSpacing = ns.inventoryTrackerSettings.dotSpacing * us.inventoryTrackerScale;
 	gAdjustedSettings.inventoryTrackerSettings.groupSpacing = ns.inventoryTrackerSettings.groupSpacing * us.inventoryTrackerScale;
 	gAdjustedSettings.inventoryTrackerSettings.font_settings.font_height = math.max(ns.inventoryTrackerSettings.font_settings.font_height + us.inventoryTrackerFontOffset, 1);
+    gAdjustedSettings.inventoryTrackerSettings.columnCount = us.inventoryTrackerColumnCount;
+    gAdjustedSettings.inventoryTrackerSettings.rowCount = us.inventoryTrackerRowCount;
+    gAdjustedSettings.inventoryTrackerSettings.opacity = us.inventoryTrackerOpacity;
+    gAdjustedSettings.inventoryTrackerSettings.showText = us.inventoryShowCount;
 
 	-- Enemy List
 	gAdjustedSettings.enemyListSettings.barWidth = ns.enemyListSettings.barWidth * us.enemyListScaleX;

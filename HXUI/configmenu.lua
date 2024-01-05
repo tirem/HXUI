@@ -357,9 +357,28 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Inventory Tracker")) then
-            imgui.BeginChild("InventoryTrackerSettings", { 0, 160 }, true);
+            imgui.BeginChild("InventoryTrackerSettings", { 0, 210 }, true);
             if (imgui.Checkbox('Enabled', { gConfig.showInventoryTracker })) then
                 gConfig.showInventoryTracker = not gConfig.showInventoryTracker;
+                UpdateSettings();
+            end
+            if (imgui.Checkbox('Show Count', { gConfig.inventoryShowCount })) then
+                gConfig.inventoryShowCount = not gConfig.inventoryShowCount;
+                UpdateSettings();
+            end
+            local columnCount = { gConfig.inventoryTrackerColumnCount };
+            if (imgui.SliderInt('Columns', columnCount, 1, 80)) then
+                gConfig.inventoryTrackerColumnCount = columnCount[1];
+                UpdateSettings();
+            end
+            local rowCount = { gConfig.inventoryTrackerRowCount };
+            if (imgui.SliderInt('Rows', rowCount, 1, 80)) then
+                gConfig.inventoryTrackerRowCount = rowCount[1];
+                UpdateSettings();
+            end
+            local opacity = { gConfig.inventoryTrackerOpacity };
+            if (imgui.SliderFloat('Opacity', opacity, 0, 1.0, '%.2f')) then
+                gConfig.inventoryTrackerOpacity = opacity[1];
                 UpdateSettings();
             end
             local scale = { gConfig.inventoryTrackerScale };
