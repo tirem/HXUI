@@ -106,6 +106,7 @@ T{
 	noBookendRounding = 4,
 	lockPositions = false,
     tooltipScale = 1.0,
+    hideDuringEvents = true,
 
 	showPlayerBar = true,
 	showTargetBar = true,
@@ -127,6 +128,7 @@ T{
 	playerBarFontOffset = 0,
 	showPlayerBarBookends = true,
 	alwaysShowMpBar = true,
+    playerBarHideDuringEvents = true,
 
 	targetBarScaleX = 1,
 	targetBarScaleY = 1,
@@ -135,6 +137,7 @@ T{
 	showTargetBarBookends = true,
 	showEnemyId = false;
 	alwaysShowHealthPercent = false,
+    targetBarHideDuringEvents = true,
 
 	enemyListScaleX = 1,
 	enemyListScaleY = 1,
@@ -170,6 +173,7 @@ T{
 	partyListCursor = 'GreyArrow.png',
 	partyListBackground = 'BlueGradient.png',
 	partyListEntrySpacing = 0,
+    partyListHideDuringEvents = true,
 
 	castBarScaleX = 1,
 	castBarScaleY = 1,
@@ -800,9 +804,9 @@ end
 
 function GetHidden()
 
-	if (GetEventSystemActive()) then
-		return true;
-	end
+	if (gConfig.hideDuringEvents and GetEventSystemActive()) then
+    	return true;
+    end
 
 	if (string.match(GetMenuName(), 'map')) then
 		return true;
@@ -824,12 +828,17 @@ end
 * desc : Event called when the Direct3D device is presenting a scene.
 --]]
 ashita.events.register('d3d_present', 'present_cb', function ()
+    local eventSystemActive = GetEventSystemActive();
 
 	if (GetHidden() == false) then
-		if (gConfig.showPlayerBar) then
+		if (not gConfig.showPlayerBar or (gConfig.playerBarHideDuringEvents and eventSystemActive)) then
+            playerBar.SetHidden(true);
+        else
 			playerBar.DrawWindow(gAdjustedSettings.playerBarSettings);
 		end
-		if (gConfig.showTargetBar) then
+        if (not gConfig.showTargetBar or (gConfig.targetBarHideDuringEvents and eventSystemActive)) then
+            targetBar.SetHidden(true);
+        else
 			targetBar.DrawWindow(gAdjustedSettings.targetBarSettings);
 		end
 		if (gConfig.showEnemyList) then
@@ -844,7 +853,9 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 		if (gConfig.showInventoryTracker) then
 			inventoryTracker.DrawWindow(gAdjustedSettings.inventoryTrackerSettings);
 		end
-		if (gConfig.showPartyList) then
+        if (not gConfig.showPartyList or (gConfig.partyListHideDuringEvents and eventSystemActive)) then
+            partyList.SetHidden(true);
+        else
 			partyList.DrawWindow(gAdjustedSettings.partyListSettings);
 		end
 		if (gConfig.showCastBar) then

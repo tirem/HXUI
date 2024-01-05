@@ -28,7 +28,7 @@ config.DrawWindow = function(us)
         end
         imgui.BeginChild("Config Options", { 0, 0 }, true);
         if (imgui.CollapsingHeader("General")) then
-            imgui.BeginChild("GeneralSettings", { 0, 180 }, true);
+            imgui.BeginChild("GeneralSettings", { 0, 210 }, true);
             if (imgui.Checkbox('Lock HUD Position', { gConfig.lockPositions })) then
                 gConfig.lockPositions = not gConfig.lockPositions;
                 UpdateSettings();
@@ -92,16 +92,25 @@ config.DrawWindow = function(us)
             end
             imgui.ShowHelp('Scales the size of the tooltip. Note that text may appear blured if scaled too large.');
 
+            if (imgui.Checkbox('Hide During Events', { gConfig.hideDuringEvents })) then
+                gConfig.hideDuringEvents = not gConfig.hideDuringEvents;
+                UpdateSettings();
+            end
+
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Player Bar")) then
-            imgui.BeginChild("PlayerBarSettings", { 0, 160 }, true);
+            imgui.BeginChild("PlayerBarSettings", { 0, 210 }, true);
             if (imgui.Checkbox('Enabled', { gConfig.showPlayerBar })) then
                 gConfig.showPlayerBar = not gConfig.showPlayerBar;
                 UpdateSettings();
             end
             if (imgui.Checkbox('Show Bookends', { gConfig.showPlayerBarBookends })) then
                 gConfig.showPlayerBarBookends = not gConfig.showPlayerBarBookends;
+                UpdateSettings();
+            end
+            if (imgui.Checkbox('Hide During Events', { gConfig.playerBarHideDuringEvents })) then
+                gConfig.playerBarHideDuringEvents = not gConfig.playerBarHideDuringEvents;
                 UpdateSettings();
             end
             if (imgui.Checkbox('Always Show MP Bar', { gConfig.alwaysShowMpBar })) then
@@ -127,13 +136,17 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Target Bar")) then
-            imgui.BeginChild("TargetBarSettings", { 0, 220 }, true);
+            imgui.BeginChild("TargetBarSettings", { 0, 270 }, true);
             if (imgui.Checkbox('Enabled', { gConfig.showTargetBar })) then
                 gConfig.showTargetBar = not gConfig.showTargetBar;
                 UpdateSettings();
             end
             if (imgui.Checkbox('Show Bookends', { gConfig.showTargetBarBookends })) then
                 gConfig.showTargetBarBookends = not gConfig.showTargetBarBookends;
+                UpdateSettings();
+            end
+            if (imgui.Checkbox('Hide During Events', { gConfig.targetBarHideDuringEvents })) then
+                gConfig.targetBarHideDuringEvents = not gConfig.targetBarHideDuringEvents;
                 UpdateSettings();
             end
             if (imgui.Checkbox('Show Enemy Id', { gConfig.showEnemyId })) then
@@ -169,7 +182,7 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Enemy List")) then
-            imgui.BeginChild("EnemyListSettings", { 0, 160 }, true);
+            imgui.BeginChild("EnemyListSettings", { 0, 180 }, true);
             if (imgui.Checkbox('Enabled', { gConfig.showEnemyList })) then
                 gConfig.showEnemyList = not gConfig.showEnemyList;
                 UpdateSettings();
@@ -201,7 +214,7 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Party List")) then
-            imgui.BeginChild("PartyListSettings", { 0, 300 }, true);
+            imgui.BeginChild("PartyListSettings", { 0, 380 }, true);
             if (imgui.Checkbox('Enabled', { gConfig.showPartyList })) then
                 gConfig.showPartyList = not gConfig.showPartyList;
                 UpdateSettings();
@@ -212,6 +225,10 @@ config.DrawWindow = function(us)
             end
             if (imgui.Checkbox('Show When Solo', { gConfig.showPartyListWhenSolo })) then
                 gConfig.showPartyListWhenSolo = not gConfig.showPartyListWhenSolo;
+                UpdateSettings();
+            end
+            if (imgui.Checkbox('Hide During Events', { gConfig.partyListHideDuringEvents })) then
+                gConfig.partyListHideDuringEvents = not gConfig.partyListHideDuringEvents;
                 UpdateSettings();
             end
             local scaleX = { gConfig.partyListScaleX };
