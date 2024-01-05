@@ -1,0 +1,3 @@
+[submodule "HXUI/gdifonts"]
+	path = HXUI/gdifonts
+	url = git@github.com:ThornyFFXI/gdifonts.git

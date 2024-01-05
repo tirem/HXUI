@@ -42,6 +42,7 @@ local configMenu = require('configmenu');
 local debuffHandler = require('debuffhandler');
 local patchNotes = require('patchNotes');
 local statusHandler = require('statushandler');
+local gdi = require('gdifonts.include');
 
 -- =================
 -- = HXUI DEV ONLY =
@@ -561,42 +562,28 @@ T{
 	T{
 		barWidth = 500,
 		barHeight = 20,
-		spellOffsetY = 0,
+		spellOffsetY = 2,
 		percentOffsetY = 2,
 		percentOffsetX = -10,
-		spell_font_settings = 
+		spell_font_settings =
 		T{
-			visible = true,
-			locked = true,
+            font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
-			font_height = 11,
-			color = 0xFFFFFFFF,
-			bold = false,
-			italic = true;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = false;
+			font_height = 20,
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.Bold,
+			outline_color = 0xFF000000,
+            outline_width = 2,
 		};
-		percent_font_settings = 
+		percent_font_settings =
 		T{
-			visible = true,
-			locked = true,
+            font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
-			font_height = 11,
-			color = 0xFFFFFFFF,
-			bold = false,
-			italic = true;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_height = 20,
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.Bold,
+			outline_color = 0xFF000000,
+            outline_width = 2,
 		};
 	};
 };
@@ -882,6 +869,10 @@ ashita.events.register('load', 'load_cb', function ()
 	inventoryTracker.Initialize(gAdjustedSettings.inventoryTrackerSettings);
 	partyList.Initialize(gAdjustedSettings.partyListSettings);
 	castBar.Initialize(gAdjustedSettings.castBarSettings);
+end);
+
+ashita.events.register('unload', 'unload_cb', function ()
+    gdi:destroy_interface()
 end);
 
 ashita.events.register('command', 'command_cb', function (e)

@@ -2,13 +2,15 @@ require('common');
 local imgui = require('imgui');
 local fonts = require('fonts');
 local progressbar = require('progressbar');
+local gdi = require('gdifonts.include');
+local encoding = require('gdifonts.encoding');
 
 local spellText;
 local percentText;
 
 local function UpdateTextVisibility(visible)
-	spellText:SetVisible(visible);
-	percentText:SetVisible(visible);
+	spellText:set_visible(visible);
+	percentText:set_visible(visible);
 end
 
 local castbar = {
@@ -27,9 +29,9 @@ end
 
 castbar.GetLabelText = function()
 	if (castbar.currentSpellId) then
-		return castbar.GetSpellName(castbar.currentSpellId);
+		return encoding:ShiftJIS_To_UTF8(castbar.GetSpellName(castbar.currentSpellId), true);
 	elseif (castbar.currentItemId) then
-		return castbar.GetItemName(castbar.currentItemId)
+		return encoding:ShiftJIS_To_UTF8(castbar.GetItemName(castbar.currentItemId), true);
 	else
 		return '';
 	end
@@ -62,13 +64,13 @@ castbar.DrawWindow = function(settings)
 			-- Draw Spell/Item name
 			imgui.SameLine();
 
-			spellText:SetPositionX(startX);
-			spellText:SetPositionY(startY + settings.barHeight + settings.spellOffsetY);
-			spellText:SetText(showConfig[1] and 'Configuration Mode' or castbar.GetLabelText());
+			spellText:set_position_x(startX);
+			spellText:set_position_y(startY + settings.barHeight + settings.spellOffsetY);
+			spellText:set_text(showConfig[1] and 'Configuration Mode' or castbar.GetLabelText());
 
-			percentText:SetPositionX(startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 4);
-			percentText:SetPositionY(startY + settings.barHeight + settings.percentOffsetY);
-			percentText:SetText(showConfig[1] and '50%' or math.floor(percent * 100) .. '%');
+			percentText:set_position_x(startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 4);
+			percentText:set_position_y(startY + settings.barHeight + settings.percentOffsetY);
+			percentText:set_text(showConfig[1] and '50%' or math.floor(percent * 100) .. '%');
 
 			UpdateTextVisibility(true);
 		end
@@ -82,8 +84,8 @@ castbar.DrawWindow = function(settings)
 end
 
 castbar.UpdateFonts = function(settings)
-	spellText:SetFontHeight(settings.spell_font_settings.font_height);
-	percentText:SetFontHeight(settings.percent_font_settings.font_height);
+	spellText:set_font_height(settings.spell_font_settings.font_height);
+	percentText:set_font_height(settings.percent_font_settings.font_height);
 end
 
 castbar.SetHidden = function(hidden)
@@ -93,8 +95,8 @@ castbar.SetHidden = function(hidden)
 end
 
 castbar.Initialize = function(settings)
-	spellText = fonts.new(settings.spell_font_settings);
-	percentText = fonts.new(settings.percent_font_settings);
+	spellText = gdi:create_object(settings.spell_font_settings);
+	percentText = gdi:create_object(settings.percent_font_settings);
 end
 
 castbar.HandleActionPacket = function(actionPacket)
