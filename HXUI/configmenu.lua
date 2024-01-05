@@ -28,7 +28,7 @@ config.DrawWindow = function(us)
         end
         imgui.BeginChild("Config Options", { 0, 0 }, true);
         if (imgui.CollapsingHeader("General")) then
-            imgui.BeginChild("GeneralSettings", { 0, 150 }, true);
+            imgui.BeginChild("GeneralSettings", { 0, 180 }, true);
             if (imgui.Checkbox('Lock HUD Position', { gConfig.lockPositions })) then
                 gConfig.lockPositions = not gConfig.lockPositions;
                 UpdateSettings();
@@ -84,6 +84,13 @@ config.DrawWindow = function(us)
                 UpdateSettings();
             end
             imgui.ShowHelp('For bars with no bookends, how round they should be.');
+
+            local tooltipScale = { gConfig.tooltipScale };
+            if (imgui.SliderFloat('Tooltip Scale', tooltipScale, 0.1, 3.0, '%.2f')) then
+                gConfig.tooltipScale = tooltipScale[1];
+                UpdateSettings();
+            end
+            imgui.ShowHelp('Scales the size of the tooltip. Note that text may appear blured if scaled too large.');
 
             imgui.EndChild();
         end

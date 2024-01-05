@@ -105,7 +105,7 @@ T{
 
 	noBookendRounding = 4,
 	lockPositions = false,
-
+    tooltipScale = 1.0,
 
 	showPlayerBar = true,
 	showTargetBar = true,
@@ -569,9 +569,9 @@ T{
 		T{
             font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
-			font_height = 20,
+			font_height = 15,
 			font_color = 0xFFFFFFFF,
-			font_flags = gdi.FontFlags.Bold,
+			font_flags = gdi.FontFlags.Italic,
 			outline_color = 0xFF000000,
             outline_width = 2,
 		};
@@ -579,9 +579,9 @@ T{
 		T{
             font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
-			font_height = 20,
+			font_height = 15,
 			font_color = 0xFFFFFFFF,
-			font_flags = gdi.FontFlags.Bold,
+			font_flags = gdi.FontFlags.Italic,
 			outline_color = 0xFF000000,
             outline_width = 2,
 		};
