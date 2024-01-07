@@ -463,10 +463,10 @@ T{
 		tpTextOffsetX = -2,
 		tpTextOffsetY = -3,
 
-		backgroundPaddingX1 = 0,
-		backgroundPaddingX2 = 0,
-		backgroundPaddingY1 = 0,
-		backgroundPaddingY2 = 0,
+		borderSize = 11,
+        bgPadding = 5,
+        bgOffset = 1,
+        bgScale = 2,
 
 		cursorPaddingX1 = 5,
 		cursorPaddingX2 = 5,

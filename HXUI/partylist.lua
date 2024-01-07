@@ -12,7 +12,7 @@ local fullMenuSizeX;
 local fullMenuSizeY;
 local buffWindowX = {};
 local debuffWindowX = {};
-local backgroundPrim;
+local backgroundPrim = {};
 local selectionPrim;
 local arrowPrim;
 local partyTargeted;
@@ -20,6 +20,8 @@ local partySubTargeted;
 local memberText = {};
 
 local borderConfig = {1, '#243e58'};
+
+local bgImageKeys = { 'bg', 'tl', 'tr', 'br', 'bl' };
 
 local partyList = {};
 
@@ -36,9 +38,12 @@ local function UpdateTextVisibility(visible)
     for i = 0, 5 do
         UpdateTextVisibilityByMember(i, visible);
     end
-    backgroundPrim.visible = visible;
     selectionPrim.visible = visible;
     arrowPrim.visible = visible;
+
+    for _, k in ipairs(bgImageKeys) do
+        backgroundPrim[k].visible = visible;
+    end
 end
 
 local function GetMemberInformation(memIdx)
@@ -395,11 +400,38 @@ partyList.DrawWindow = function(settings)
         local offsetSize = nameSize.cy > settings.iconSize and nameSize.cy or settings.iconSize;
         imgui.Dummy({0, settings.nameTextOffsetY + offsetSize});
         if (fullMenuSizeX ~= nil and fullMenuSizeY ~= nil) then
-            backgroundPrim.visible = true;
-            backgroundPrim.position_x = imguiPosX - settings.backgroundPaddingX1;
-            backgroundPrim.position_y = imguiPosY - settings.backgroundPaddingY1;
-            backgroundPrim.scale_x = (fullMenuSizeX + settings.backgroundPaddingX1 + settings.backgroundPaddingX2) / 512;
-            backgroundPrim.scale_y = (fullMenuSizeY - settings.entrySpacing + settings.backgroundPaddingY1 + settings.backgroundPaddingY2 - (settings.nameTextOffsetY + offsetSize)) / 512;
+            local bgWidth = fullMenuSizeX + (settings.bgPadding * 2);
+            local bgHeight = fullMenuSizeY + (settings.bgPadding * 2);
+
+            backgroundPrim.bg.visible = true;
+            backgroundPrim.bg.position_x = imguiPosX - settings.bgPadding;
+            backgroundPrim.bg.position_y = imguiPosY - settings.bgPadding;
+            backgroundPrim.bg.width = bgWidth / settings.bgScale;
+            backgroundPrim.bg.height = bgHeight / settings.bgScale;
+
+            backgroundPrim.tl.visible = true;
+            backgroundPrim.tl.position_x = backgroundPrim.bg.position_x - settings.bgOffset * settings.bgScale;
+            backgroundPrim.tl.position_y = backgroundPrim.bg.position_y - settings.bgOffset * settings.bgScale;
+            backgroundPrim.tl.width = (bgWidth - settings.borderSize) / settings.bgScale;
+            backgroundPrim.tl.height = (bgHeight - settings.borderSize) / settings.bgScale;
+
+            backgroundPrim.tr.visible = true;
+            backgroundPrim.tr.position_x = backgroundPrim.bg.position_x + bgWidth - (settings.borderSize * settings.bgScale) + settings.bgOffset * settings.bgScale;
+            backgroundPrim.tr.position_y = backgroundPrim.bg.position_y - settings.bgOffset * settings.bgScale;
+            backgroundPrim.tr.width = settings.borderSize;
+            backgroundPrim.tr.height = (bgHeight - settings.borderSize) / settings.bgScale;
+
+            backgroundPrim.bl.visible = true;
+            backgroundPrim.bl.position_x = backgroundPrim.tl.position_x;
+            backgroundPrim.bl.position_y = backgroundPrim.tl.position_y + bgHeight - (settings.borderSize * settings.bgScale) + settings.bgOffset * settings.bgScale * 2;
+            backgroundPrim.bl.width = backgroundPrim.tl.width;
+            backgroundPrim.bl.height = settings.borderSize;
+
+            backgroundPrim.br.visible = true;
+            backgroundPrim.br.position_x = backgroundPrim.bg.position_x + bgWidth - (settings.borderSize * settings.bgScale) + settings.bgOffset * settings.bgScale;
+            backgroundPrim.br.position_y = backgroundPrim.bg.position_y + bgHeight - (settings.borderSize * settings.bgScale) + settings.bgOffset * settings.bgScale;
+            backgroundPrim.br.width = settings.borderSize;
+            backgroundPrim.br.height = settings.borderSize;
         end
         partyTargeted = false;
         partySubTargeted = false;
@@ -457,13 +489,18 @@ partyList.Initialize = function(settings)
         memberText[i].mp = fonts.new(settings.mp_font_settings);
         memberText[i].tp = fonts.new(settings.tp_font_settings);
     end
-    
-    backgroundPrim = primitives:new(settings.prim_data);
-    backgroundPrim.color = tonumber(string.format('%02x%02x%02x%02x', gConfig.partyListBgOpacity, 255, 255, 255), 16);
 
-    backgroundPrim.texture = string.format('%s/assets/backgrounds/'..gConfig.partyListBackground, addon.path);
-    backgroundPrim.visible = false;
-    backgroundPrim.can_focus = false;
+    local bgColor = tonumber(string.format('%02x%02x%02x%02x', gConfig.partyListBgOpacity, 255, 255, 255), 16);
+    for _, k in ipairs(bgImageKeys) do
+        local file_name = string.format('window6-%s.png', k);
+        backgroundPrim[k] = primitives:new(settings.prim_data);
+        backgroundPrim[k].color = bgColor;
+        backgroundPrim[k].texture = string.format('%s/assets/backgrounds-tiled/%s', addon.path, file_name);
+        backgroundPrim[k].visible = false;
+        backgroundPrim[k].can_focus = false;
+        backgroundPrim[k].scale_x = settings.bgScale;
+        backgroundPrim[k].scale_y = settings.bgScale;
+    end
 
     selectionPrim = primitives.new(settings.prim_data);
     selectionPrim.color = 0xFFFFFFFF;
@@ -486,15 +523,25 @@ partyList.UpdateFonts = function(settings)
         memberText[i].mp:SetFontHeight(settings.mp_font_settings.font_height);
         memberText[i].tp:SetFontHeight(settings.tp_font_settings.font_height);
     end
-    backgroundPrim.color = tonumber(string.format('%02x%02x%02x%02x', gConfig.partyListBgOpacity, 255, 255, 255), 16);
-    backgroundPrim.texture = string.format('%s/assets/backgrounds/'..gConfig.partyListBackground, addon.path);
     arrowPrim.texture = string.format('%s/assets/cursors/'..gConfig.partyListCursor, addon.path);
+
+    local bgColor = tonumber(string.format('%02x%02x%02x%02x', gConfig.partyListBgOpacity, 255, 255, 255), 16);
+    for _, k in ipairs(bgImageKeys) do
+        local file_name = string.format('window6-%s.png', k); -- gConfig.partyListBackground
+        backgroundPrim[k].color = bgColor;
+        backgroundPrim[k].texture = string.format('%s/assets/backgrounds-tiled/%s', addon.path, file_name);
+        backgroundPrim[k].scale_x = settings.bgScale;
+        backgroundPrim[k].scale_y = settings.bgScale;
+    end
 end
 
 partyList.SetHidden = function(hidden)
 	if (hidden == true) then
         UpdateTextVisibility(false);
-        backgroundPrim.visible = false;
+        
+        for _, k in ipairs(bgImageKeys) do
+            backgroundPrim[k].visible = false;
+        end
 	end
 end
 
