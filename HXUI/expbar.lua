@@ -39,8 +39,10 @@ expbar.DrawWindow = function(settings)
 		UpdateTextVisibility(false);	
         return;
 	end
+
+    local textMargin = 10;
 	
-    imgui.SetNextWindowSize({ settings.barWidth, -1, }, ImGuiCond_Always);
+    imgui.SetNextWindowSize({ settings.barWidth * 2 + textMargin, -1, }, ImGuiCond_Always);
 	local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus);
 	if (gConfig.lockPositions) then
 		windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
@@ -54,28 +56,35 @@ expbar.DrawWindow = function(settings)
 		-- imgui.ProgressBar(expPercent, { -1, settings.barHeight }, '');
 		-- imgui.PopStyleColor(1);
 
-		progressbar.ProgressBar({{expPercent, {'#c39040', '#e9c466'}}}, {-1, settings.barHeight}, {decorate = gConfig.showExpBarBookends});
+        local col1X = startX;
+        local col2X = startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 2;
+        
+        imgui.SetCursorScreenPos({col2X, startY});
+		progressbar.ProgressBar({{expPercent, {'#c39040', '#e9c466'}}}, {settings.barWidth, settings.barHeight}, {decorate = gConfig.showExpBarBookends});
 
 		imgui.SameLine();
+
+        imgui.SetCursorScreenPos({startX, startY});
 		
 		-- Update our text objects
 		local mainJobString = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", mainJob);
 		local SubJobString = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", subJob);
 		local jobString = mainJobString..' '..jobLevel..' / '..SubJobString..' '..subJobLevel;
-		jobText:SetPositionX(startX);
-		jobText:SetPositionY(startY + settings.barHeight + settings.jobOffsetY);
-		jobText:SetText(jobString);	
+		jobText:SetPositionX(col1X);
+		jobText:SetPositionY(startY - settings.job_font_settings.font_height / 2.5);-- + settings.barHeight + settings.jobOffsetY);
+		jobText:SetText(jobString);
 
 		local expString = 'EXP ('..currentExp..' / '..totalExp..')';
-		expText:SetPositionX(startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 4);
-		expText:SetPositionY(startY + settings.barHeight + settings.expOffsetY);
-		expText:SetText(expString);	
+		expText:SetPositionX(col1X + settings.barWidth - imgui.GetStyle().FramePadding.x * 4);
+		expText:SetPositionY(startY - settings.exp_font_settings.font_height / 2.5);-- + settings.barHeight + settings.expOffsetY);
+		expText:SetText(expString);
 
-		local expPercentString = ('%.f'):fmt(expPercent * 100);
-		local percentString = 'EXP - '..expPercentString..'%';
-		percentText:SetPositionX(startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 4 + settings.percentOffsetX);
-		percentText:SetPositionY(startY - (percentText:GetFontHeight()*2) + settings.percentOffsetY);
-		percentText:SetText(percentString);	
+		-- local expPercentString = ('%.f'):fmt(expPercent * 100);
+		-- local percentString = 'EXP - '..expPercentString..'%';
+		-- percentText:SetPositionX(startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 4 + settings.percentOffsetX);
+		-- percentText:SetPositionY(startY - (percentText:GetFontHeight()*2) + settings.percentOffsetY);
+		-- percentText:SetText(percentString);	
+        percentText:SetVisible(false);
 
 		UpdateTextVisibility(true);	
 	

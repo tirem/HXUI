@@ -350,10 +350,10 @@ T{
 			visible = true,
 			locked = true,
 			font_family = 'Consolas',
-			font_height = 11,
+			font_height = 13,
 			color = 0xFFFFFFFF,
-			bold = false,
-			italic = true;
+			bold = true,
+			italic = false;
 			color_outline = 0xFF000000,
 			draw_flags = 0x10,
 			background = 
@@ -367,10 +367,10 @@ T{
 			visible = true,
 			locked = true,
 			font_family = 'Consolas',
-			font_height = 11,
+			font_height = 13,
 			color = 0xFFFFFFFF,
-			bold = false,
-			italic = true;
+			bold = true,
+			italic = false;
 			color_outline = 0xFF000000,
 			draw_flags = 0x10,
 			background = 
