@@ -389,13 +389,13 @@ partyList.DrawWindow = function(settings)
     imgui.PushStyleVar(ImGuiStyleVar_FramePadding, {0,0});
     imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {settings.barSpacing,0});
     if (imgui.Begin('PartyList', true, windowFlags)) then
+        imguiPosX, imguiPosY = imgui.GetWindowPos();
         local nameSize = SIZE.new();
         memberText[0].name:GetTextSize(nameSize);
         local offsetSize = nameSize.cy > settings.iconSize and nameSize.cy or settings.iconSize;
         imgui.Dummy({0, settings.nameTextOffsetY + offsetSize});
         if (fullMenuSizeX ~= nil and fullMenuSizeY ~= nil) then
             backgroundPrim.visible = true;
-            imguiPosX, imguiPosY = imgui.GetWindowPos();
             backgroundPrim.position_x = imguiPosX - settings.backgroundPaddingX1;
             backgroundPrim.position_y = imguiPosY - settings.backgroundPaddingY1;
             backgroundPrim.scale_x = (fullMenuSizeX + settings.backgroundPaddingX1 + settings.backgroundPaddingX2) / 512;
@@ -423,13 +423,10 @@ partyList.DrawWindow = function(settings)
 	imgui.End();
     imgui.PopStyleVar(2);
 
-    if (settings.alignBottom) then
+    if (settings.alignBottom and imguiPosX ~= nil) then
         if (gConfig.partyListState ~= nil) then
             -- Move window if size changed
             if (fullMenuSizeY ~= gConfig.partyListState.height) then
-                -- local oldBottomY = gConfig.partyListState.y + gConfig.partyListState.height;
-                -- local newPositionY = oldBottomY - fullMenuSizeY;
-
                 imguiPosY = imguiPosY + (gConfig.partyListState.height - fullMenuSizeY);
                 imgui.SetWindowPos('PartyList', {imguiPosX, imguiPosY});
             end
