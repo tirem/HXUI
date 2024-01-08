@@ -168,15 +168,18 @@ T{
 	partyListFontOffset = 0,
 	partyListStatusTheme = 0, -- 0: HorizonXI-L, 1: HorizonXI-R 2: XIV1.0, 3: XIV, 4: Disabled
 	partyListTheme = 0, 
-	partyListBgOpacity = 200;
 	showPartyListBookends = true,
 	partyListCursor = 'GreyArrow.png',
-	partyListBackground = 'BlueGradient.png',
+	partyListBackgroundName = 'Window1',
 	partyListEntrySpacing = 0,
     partyListHideDuringEvents = true,
     partyListExpandHeight = false,
     partyListAlignBottom = false,
     partyListMinRows = 1,
+    partyListBgScale = 1.8,
+    partyListBgColor = { 255, 255, 255, 255 },
+    partyListBorderColor = { 255, 255, 255, 255 },
+    partyListPreview = true,
 
 	castBarScaleX = 1,
 	castBarScaleY = 1,
@@ -463,10 +466,9 @@ T{
 		tpTextOffsetX = -2,
 		tpTextOffsetY = -3,
 
-		borderSize = 11,
+		borderSize = 21,
         bgPadding = 5,
         bgOffset = 1,
-        bgScale = 2,
 
 		cursorPaddingX1 = 5,
 		cursorPaddingX2 = 5,

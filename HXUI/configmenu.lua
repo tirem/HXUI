@@ -214,9 +214,13 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Party List")) then
-            imgui.BeginChild("PartyListSettings", { 0, 440 }, true);
+            imgui.BeginChild("PartyListSettings", { 0, 550 }, true);
             if (imgui.Checkbox('Enabled', { gConfig.showPartyList })) then
                 gConfig.showPartyList = not gConfig.showPartyList;
+                UpdateSettings();
+            end
+            if (imgui.Checkbox('Preview Full Party (when config open)', { gConfig.partyListPreview })) then
+                gConfig.partyListPreview = not gConfig.partyListPreview;
                 UpdateSettings();
             end
             if (imgui.Checkbox('Show Bookends', { gConfig.showPartyListBookends })) then
@@ -245,30 +249,48 @@ config.DrawWindow = function(us)
                 UpdateSettings();
             end
             local scaleX = { gConfig.partyListScaleX };
-            if (imgui.SliderFloat('Scale X', scaleX, 0.1, 3.0, '%.1f')) then
+            if (imgui.SliderFloat('Scale X', scaleX, 0.1, 3.0, '%.2f')) then
                 gConfig.partyListScaleX = scaleX[1];
                 UpdateSettings();
             end
             local scaleY = { gConfig.partyListScaleY };
-            if (imgui.SliderFloat('Scale Y', scaleY, 0.1, 3.0, '%.1f')) then
+            if (imgui.SliderFloat('Scale Y', scaleY, 0.1, 3.0, '%.2f')) then
                 gConfig.partyListScaleY = scaleY[1];
                 UpdateSettings();
             end
 
-            local bgOpacity = { gConfig.partyListBgOpacity };
-            if (imgui.SliderFloat('Background Opacity', bgOpacity, 0, 255, '%.f')) then
-                gConfig.partyListBgOpacity = bgOpacity[1];
+            -- Background
+            local bgScale = { gConfig.partyListBgScale };
+            if (imgui.SliderFloat('Background Scale', bgScale, 0.1, 3.0, '%.2f')) then
+                gConfig.partyListBgScale = bgScale[1];
                 UpdateSettings();
             end
 
-            -- Background
-            local bg_theme_paths = statusHandler.get_background_paths();
-            if (imgui.BeginCombo('Background', gConfig.partyListBackground)) then
-                for i = 1,#bg_theme_paths,1 do
-                    local is_selected = i == gConfig.partyListBackground;
+            local bgColor = { gConfig.partyListBgColor[1] / 255, gConfig.partyListBgColor[2] / 255, gConfig.partyListBgColor[3] / 255, gConfig.partyListBgColor[4] / 255 };
+            if (imgui.ColorEdit4('Background Color', bgColor, ImGuiColorEditFlags_AlphaBar)) then
+                gConfig.partyListBgColor[1] = bgColor[1] * 255;
+                gConfig.partyListBgColor[2] = bgColor[2] * 255;
+                gConfig.partyListBgColor[3] = bgColor[3] * 255;
+                gConfig.partyListBgColor[4] = bgColor[4] * 255;
+                UpdateSettings();
+            end
 
-                    if (imgui.Selectable(bg_theme_paths[i], is_selected) and bg_theme_paths[i] ~= gConfig.partyListBackground) then
-                        gConfig.partyListBackground = bg_theme_paths[i];
+            local borderColor = { gConfig.partyListBorderColor[1] / 255, gConfig.partyListBorderColor[2] / 255, gConfig.partyListBorderColor[3] / 255, gConfig.partyListBorderColor[4] / 255 };
+            if (imgui.ColorEdit4('Border Color', borderColor, ImGuiColorEditFlags_AlphaBar)) then
+                gConfig.partyListBorderColor[1] = borderColor[1] * 255;
+                gConfig.partyListBorderColor[2] = borderColor[2] * 255;
+                gConfig.partyListBorderColor[3] = borderColor[3] * 255;
+                gConfig.partyListBorderColor[4] = borderColor[4] * 255;
+                UpdateSettings();
+            end
+
+            local bg_theme_paths = statusHandler.get_background_paths();
+            if (imgui.BeginCombo('Background', gConfig.partyListBackgroundName)) then
+                for i = 1,#bg_theme_paths,1 do
+                    local is_selected = i == gConfig.partyListBackgroundName;
+
+                    if (imgui.Selectable(bg_theme_paths[i], is_selected) and bg_theme_paths[i] ~= gConfig.partyListBackgroundName) then
+                        gConfig.partyListBackgroundName = bg_theme_paths[i];
                         statusHandler.clear_cache();
                         UpdateSettings();
                     end
