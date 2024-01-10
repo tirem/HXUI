@@ -214,7 +214,7 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Party List")) then
-            imgui.BeginChild("PartyListSettings", { 0, 550 }, true);
+            imgui.BeginChild("PartyListSettings", { 0, 580 }, true);
             if (imgui.Checkbox('Enabled', { gConfig.showPartyList })) then
                 gConfig.showPartyList = not gConfig.showPartyList;
                 UpdateSettings();
@@ -229,6 +229,10 @@ config.DrawWindow = function(us)
             end
             if (imgui.Checkbox('Show When Solo', { gConfig.showPartyListWhenSolo })) then
                 gConfig.showPartyListWhenSolo = not gConfig.showPartyListWhenSolo;
+                UpdateSettings();
+            end
+            if (imgui.Checkbox('Show Title', { gConfig.showPartyListTitle })) then
+                gConfig.showPartyListTitle = not gConfig.showPartyListTitle;
                 UpdateSettings();
             end
             if (imgui.Checkbox('Hide During Events', { gConfig.partyListHideDuringEvents })) then

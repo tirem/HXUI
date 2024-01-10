@@ -208,7 +208,7 @@ statusHandler.get_background_paths = function()
     local path = ('%s\\addons\\%s\\assets\\backgrounds\\'):fmt(AshitaCore:GetInstallPath(), 'HXUI');
     local directories = ashita.fs.get_dir(path, '.*.png', true);
     if (directories ~= nil) then
-        local backgrounds = {};
+        local backgrounds = { '-None-' };
         for _, filename in ipairs(directories) do
             local bg_name = filename:match('(.+)%-bg.png');
             if bg_name ~= nil then

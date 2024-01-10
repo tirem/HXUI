@@ -13,6 +13,7 @@ local fullMenuSizeY;
 local buffWindowX = {};
 local debuffWindowX = {};
 local backgroundPrim = {};
+local bgTitlePrim;
 local selectionPrim;
 local arrowPrim;
 local partyTargeted;
@@ -22,6 +23,8 @@ local memberText = {};
 local borderConfig = {1, '#243e58'};
 
 local bgImageKeys = { 'bg', 'tl', 'tr', 'br', 'bl' };
+local bgTitleAtlasItemCount = 4;
+local bgTitleItemHeight;
 local loadedBg = nil;
 
 local partyList = {};
@@ -41,6 +44,7 @@ local function UpdateTextVisibility(visible)
     end
     selectionPrim.visible = visible;
     arrowPrim.visible = visible;
+    bgTitlePrim.visible = visible and gConfig.showPartyListTitle;
 
     for _, k in ipairs(bgImageKeys) do
         backgroundPrim[k].visible = visible and backgroundPrim[k].exists;
@@ -416,6 +420,9 @@ partyList.DrawWindow = function(settings)
         return;
 	end
 
+    -- TODO: bgTitleItemHeight*2 or bgTitleItemHeight*3 for Party B and Party C in Alliance
+    bgTitlePrim.texture_offset_y = partyMemberCount == 1 and 0 or bgTitleItemHeight;
+
     local imguiPosX, imguiPosY;
 
     local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus);
@@ -442,8 +449,8 @@ partyList.DrawWindow = function(settings)
             backgroundPrim.bg.height = math.ceil(bgHeight / gConfig.partyListBgScale);
 
             backgroundPrim.br.visible = backgroundPrim.br.exists;
-            backgroundPrim.br.position_x = backgroundPrim.bg.position_x + bgWidth - math.ceil((settings.borderSize * gConfig.partyListBgScale) - (settings.bgOffset * gConfig.partyListBgScale));
-            backgroundPrim.br.position_y = backgroundPrim.bg.position_y + bgHeight - math.ceil((settings.borderSize * gConfig.partyListBgScale) - (settings.bgOffset * gConfig.partyListBgScale));
+            backgroundPrim.br.position_x = backgroundPrim.bg.position_x + bgWidth - math.floor((settings.borderSize * gConfig.partyListBgScale) - (settings.bgOffset * gConfig.partyListBgScale));
+            backgroundPrim.br.position_y = backgroundPrim.bg.position_y + bgHeight - math.floor((settings.borderSize * gConfig.partyListBgScale) - (settings.bgOffset * gConfig.partyListBgScale));
             backgroundPrim.br.width = settings.borderSize;
             backgroundPrim.br.height = settings.borderSize;
 
@@ -451,12 +458,12 @@ partyList.DrawWindow = function(settings)
             backgroundPrim.tr.position_x = backgroundPrim.br.position_x;
             backgroundPrim.tr.position_y = backgroundPrim.bg.position_y - settings.bgOffset * gConfig.partyListBgScale;
             backgroundPrim.tr.width = backgroundPrim.br.width;
-            backgroundPrim.tr.height = math.floor((backgroundPrim.br.position_y - backgroundPrim.tr.position_y) / gConfig.partyListBgScale);
+            backgroundPrim.tr.height = math.ceil((backgroundPrim.br.position_y - backgroundPrim.tr.position_y) / gConfig.partyListBgScale);
 
             backgroundPrim.tl.visible = backgroundPrim.tl.exists;
             backgroundPrim.tl.position_x = backgroundPrim.bg.position_x - settings.bgOffset * gConfig.partyListBgScale;
             backgroundPrim.tl.position_y = backgroundPrim.tr.position_y
-            backgroundPrim.tl.width = math.floor((backgroundPrim.tr.position_x - backgroundPrim.tl.position_x) / gConfig.partyListBgScale);
+            backgroundPrim.tl.width = math.ceil((backgroundPrim.tr.position_x - backgroundPrim.tl.position_x) / gConfig.partyListBgScale);
             backgroundPrim.tl.height = backgroundPrim.tr.height;
 
             backgroundPrim.bl.visible = backgroundPrim.bl.exists;
@@ -464,6 +471,10 @@ partyList.DrawWindow = function(settings)
             backgroundPrim.bl.position_y = backgroundPrim.br.position_y;
             backgroundPrim.bl.width = backgroundPrim.tl.width;
             backgroundPrim.bl.height = backgroundPrim.br.height;
+
+            bgTitlePrim.visible = gConfig.showPartyListTitle;
+            bgTitlePrim.position_x = imguiPosX + math.floor((bgWidth / 2) - (bgTitlePrim.width * bgTitlePrim.scale_x / 2));
+            bgTitlePrim.position_y = imguiPosY - math.floor((bgTitlePrim.height * bgTitlePrim.scale_y / 2) + (2 / bgTitlePrim.scale_y));
         end
         partyTargeted = false;
         partySubTargeted = false;
@@ -530,6 +541,14 @@ partyList.Initialize = function(settings)
         backgroundPrim[k].exists = false;
     end
 
+    bgTitlePrim = primitives.new(settings.prim_data);
+    bgTitlePrim.color = 0xFFCCCCCC;
+    bgTitlePrim.texture = string.format('%s/assets/PartyList-Titles.png', addon.path);
+    bgTitlePrim.visible = false;
+    bgTitlePrim.can_focus = false;
+    bgTitleItemHeight = bgTitlePrim.height / bgTitleAtlasItemCount;
+    bgTitlePrim.height = bgTitleItemHeight;
+
     selectionPrim = primitives.new(settings.prim_data);
     selectionPrim.color = 0xFFFFFFFF;
     selectionPrim.texture = string.format('%s/assets/Selector.png', addon.path);
@@ -575,16 +594,15 @@ partyList.UpdateFonts = function(settings)
         backgroundPrim[k].scale_y = gConfig.partyListBgScale;
     end
 
+    bgTitlePrim.scale_x = gConfig.partyListBgScale / 2.30;
+    bgTitlePrim.scale_y = gConfig.partyListBgScale / 2.30;
+
     arrowPrim.texture = string.format('%s/assets/cursors/%s', addon.path, gConfig.partyListCursor);
 end
 
 partyList.SetHidden = function(hidden)
 	if (hidden == true) then
         UpdateTextVisibility(false);
-        
-        for _, k in ipairs(bgImageKeys) do
-            backgroundPrim[k].visible = false;
-        end
 	end
 end
 

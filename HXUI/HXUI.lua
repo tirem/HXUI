@@ -169,6 +169,7 @@ T{
 	partyListStatusTheme = 0, -- 0: HorizonXI-L, 1: HorizonXI-R 2: XIV1.0, 3: XIV, 4: Disabled
 	partyListTheme = 0, 
 	showPartyListBookends = true,
+    showPartyListTitle = true,
 	partyListCursor = 'GreyArrow.png',
 	partyListBackgroundName = 'Window1',
 	partyListEntrySpacing = 0,
