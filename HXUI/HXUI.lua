@@ -149,6 +149,9 @@ T{
 	expBarScaleY = 1,
 	showExpBarBookends = true,
 	expBarFontOffset = 0,
+    expBarShowText = true,
+    expBarShowPercent = true,
+    expBarInlineMode = false,
 
 	gilTrackerScale = 1,
 	gilTrackerFontOffset = 0,
@@ -341,16 +344,14 @@ T{
 	T{
 		barWidth = 550;
 		barHeight = 12;
-		jobOffsetY = 0;
-		expOffsetY = 0;
-		percentOffsetY = 2;
-		percentOffsetX = -10;
+		textOffsetY = 5;
+		percentOffsetX = -5;
 		job_font_settings = 
 		T{
 			visible = true,
 			locked = true,
 			font_family = 'Consolas',
-			font_height = 13,
+			font_height = 11,
 			color = 0xFFFFFFFF,
 			bold = true,
 			italic = false;
@@ -367,7 +368,7 @@ T{
 			visible = true,
 			locked = true,
 			font_family = 'Consolas',
-			font_height = 13,
+			font_height = 11,
 			color = 0xFFFFFFFF,
 			bold = true,
 			italic = false;

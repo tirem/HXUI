@@ -368,13 +368,25 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Exp Bar")) then
-            imgui.BeginChild("ExpBarSettings", { 0, 160 }, true);
+            imgui.BeginChild("ExpBarSettings", { 0, 200 }, true);
             if (imgui.Checkbox('Enabled', { gConfig.showExpBar })) then
                 gConfig.showExpBar = not gConfig.showExpBar;
                 UpdateSettings();
             end
+            if (imgui.Checkbox('Inline Mode', { gConfig.expBarInlineMode })) then
+                gConfig.expBarInlineMode = not gConfig.expBarInlineMode;
+                UpdateSettings();
+            end
             if (imgui.Checkbox('Show Bookends', { gConfig.showExpBarBookends })) then
                 gConfig.showExpBarBookends = not gConfig.showExpBarBookends;
+                UpdateSettings();
+            end
+            if (imgui.Checkbox('Show Text', { gConfig.expBarShowText })) then
+                gConfig.expBarShowText = not gConfig.expBarShowText;
+                UpdateSettings();
+            end
+            if (imgui.Checkbox('Show Percent', { gConfig.expBarShowPercent })) then
+                gConfig.expBarShowPercent = not gConfig.expBarShowPercent;
                 UpdateSettings();
             end
             local scaleX = { gConfig.expBarScaleX };
