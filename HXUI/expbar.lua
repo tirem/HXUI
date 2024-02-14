@@ -21,7 +21,7 @@ end
 --]]
 expbar.DrawWindow = function(settings)
     -- Obtain the player entity..
-    local player    = AshitaCore:GetMemoryManager():GetPlayer();
+    local player = AshitaCore:GetMemoryManager():GetPlayer();
 
 	if (player == nil) then
 		UpdateTextVisibility(false);
@@ -38,11 +38,18 @@ expbar.DrawWindow = function(settings)
     local jobLevel = player:GetMainJobLevel();
     local subJob = player:GetSubJob();
     local subJobLevel = player:GetSubJobLevel();
-    local currentExp = player:GetExpCurrent();
-    local totalExp = player:GetExpNeeded();
+    local expPoints = { player:GetExpCurrent(), player:GetExpNeeded() };
+    local expPointsProgress = expPoints[1] / expPoints[2];
+
+    local limitPoints = { player:GetLimitPoints(), 10000 };
+    local limitPointsProgress = limitPoints[1] / limitPoints[2];
+    local meritPoints = { player:GetMeritPoints(), player:GetMeritPointsMax() };
+
+    local meritMode = gConfig.expBarLimitPointsMode and (expPoints[1] == 55999 or ((player:GetIsLimitModeEnabled() or player:GetIsExperiencePointsLocked()) and jobLevel >= 75));
+    local progressBarProgress = meritMode and limitPointsProgress or expPointsProgress;
 
     local inlineMode = gConfig.expBarInlineMode;
-    local windowSize = inlineMode and settings.barWidth * 2 + imgui.GetStyle().FramePadding.x * 2 or settings.barWidth;
+    local windowSize = inlineMode and settings.barWidth + settings.textWidth or math.max(settings.barWidth, settings.textWidth);
 
     imgui.SetNextWindowSize({ windowSize, -1 }, ImGuiCond_Always);
 	local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus);
@@ -52,21 +59,19 @@ expbar.DrawWindow = function(settings)
     if (imgui.Begin('ExpBar', true, windowFlags)) then
 
 		-- Draw HP Bar
-		local expPercent = currentExp / totalExp;
 		local startX, startY = imgui.GetCursorScreenPos();
-        local col2X = startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 2;
+        local col2X = startX + settings.textWidth - imgui.GetStyle().FramePadding.x * 2;
 
-        local progressBarWidth = -1;
+        local progressBarWidth = settings.barWidth - imgui.GetStyle().FramePadding.x * 2;
         if inlineMode then
-            progressBarWidth = settings.barWidth;
             imgui.SetCursorScreenPos({col2X, startY});
         end
-		progressbar.ProgressBar({{expPercent, {'#c39040', '#e9c466'}}}, {progressBarWidth, settings.barHeight}, {decorate = gConfig.showExpBarBookends});
+		progressbar.ProgressBar({{progressBarProgress, {'#c39040', '#e9c466'}}}, {progressBarWidth, settings.barHeight}, {decorate = gConfig.showExpBarBookends});
 
 		imgui.SameLine();
 
         local textY = inlineMode and startY or startY + settings.barHeight + settings.textOffsetY;
-        local textXRightAlign = startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 4;
+        local textXRightAlign = startX + settings.textWidth - imgui.GetStyle().FramePadding.x * 4;
 
 		-- Update our text objects
 
@@ -78,14 +83,19 @@ expbar.DrawWindow = function(settings)
             jobText:SetText(jobString);
             local textW, textH = jobText:get_text_size();
             jobText:SetPositionX(startX);
-            jobText:SetPositionY(inlineMode and textY + (settings.barHeight - textH) / 2 or textY); -- - jobText:GetFontHeight() / 2.5);
+            jobText:SetPositionY(inlineMode and textY + (settings.barHeight - textH) / 2 - 1 or textY); -- - jobText:GetFontHeight() / 2.5);
 
             -- Exp Text
-            local expString = 'EXP ('..currentExp..' / '..totalExp..')';
-            expText:SetText(expString);
+            if meritMode then
+                local expString = 'MERIT (' .. meritPoints[1] .. ' / ' .. meritPoints[2] .. ')' .. ' LIMIT (' .. limitPoints[1] .. ' / ' .. limitPoints[2] .. ')';
+                expText:SetText(expString);
+            else
+                local expString = 'EXP (' .. expPoints[1] .. ' / ' .. expPoints[2] .. ')';
+                expText:SetText(expString);
+            end
             local textW, textH = expText:get_text_size();
             expText:SetPositionX(textXRightAlign);
-            expText:SetPositionY(inlineMode and textY + (settings.barHeight - textH) / 2 or textY); -- - expText:GetFontHeight() / 2.5);
+            expText:SetPositionY(inlineMode and textY + (settings.barHeight - textH) / 2 - 1 or textY); -- - expText:GetFontHeight() / 2.5);
 
             jobText:SetVisible(true);
             expText:SetVisible(true);
@@ -98,12 +108,12 @@ expbar.DrawWindow = function(settings)
 
         -- Percent Text
         if gConfig.expBarShowPercent then
-            local expPercentString = ('%.f'):fmt(1 * 100);
-            local percentString = 'EXP - '..expPercentString..'%';
-            percentText:SetText(percentString);
+            local expPercentString = ('%.f'):fmt(progressBarProgress * 100);
+            local percentString = expPercentString .. '%';
+            percentText:SetText(percentString); 
             local textW, textH = percentText:get_text_size();
             local percentTextX = inlineMode and startX + windowSize or textXRightAlign;
-            local percentTextY = inlineMode and textY + (settings.barHeight - textH) / 2 or startY - settings.textOffsetY;
+            local percentTextY = inlineMode and textY + (settings.barHeight - textH) / 2 - 1 or startY - settings.textOffsetY;
             percentText:SetAnchor(inlineMode and 0 or 2);
             percentText:SetPositionX(percentTextX + settings.percentOffsetX);
             percentText:SetPositionY(percentTextY);

@@ -368,11 +368,16 @@ config.DrawWindow = function(us)
             imgui.EndChild();
         end
         if (imgui.CollapsingHeader("Exp Bar")) then
-            imgui.BeginChild("ExpBarSettings", { 0, 200 }, true);
+            imgui.BeginChild("ExpBarSettings", { 0, 300 }, true);
             if (imgui.Checkbox('Enabled', { gConfig.showExpBar })) then
                 gConfig.showExpBar = not gConfig.showExpBar;
                 UpdateSettings();
             end
+            if (imgui.Checkbox('Limit Points Mode', { gConfig.expBarLimitPointsMode })) then
+                gConfig.expBarLimitPointsMode = not gConfig.expBarLimitPointsMode;
+                UpdateSettings();
+            end
+            imgui.ShowHelp('Shows Limit Points if character is set to earn Limit Points in the game.');
             if (imgui.Checkbox('Inline Mode', { gConfig.expBarInlineMode })) then
                 gConfig.expBarInlineMode = not gConfig.expBarInlineMode;
                 UpdateSettings();
@@ -390,17 +395,22 @@ config.DrawWindow = function(us)
                 UpdateSettings();
             end
             local scaleX = { gConfig.expBarScaleX };
-            if (imgui.SliderFloat('Scale X', scaleX, 0.1, 3.0, '%.1f')) then
+            if (imgui.SliderFloat('Scale X', scaleX, 0.1, 3.0, '%.2f')) then
                 gConfig.expBarScaleX = scaleX[1];
                 UpdateSettings();
             end
             local scaleY = { gConfig.expBarScaleY };
-            if (imgui.SliderFloat('Scale Y', scaleY, 0.1, 3.0, '%.1f')) then
+            if (imgui.SliderFloat('Scale Y', scaleY, 0.1, 3.0, '%.2f')) then
                 gConfig.expBarScaleY = scaleY[1];
                 UpdateSettings();
             end
+            local textScaleX = { gConfig.expBarTextScaleX };
+            if (imgui.SliderFloat('Text Scale X', textScaleX, 0.1, 3.0, '%.2f')) then
+                gConfig.expBarTextScaleX = textScaleX[1];
+                UpdateSettings();
+            end
             local fontOffset = { gConfig.expBarFontOffset };
-            if (imgui.SliderInt('Font Scale', fontOffset, -5, 10)) then
+            if (imgui.SliderInt('Font Height', fontOffset, -5, 10)) then
                 gConfig.expBarFontOffset = fontOffset[1];
                 UpdateSettings();
             end

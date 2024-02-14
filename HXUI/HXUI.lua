@@ -145,6 +145,7 @@ T{
 	enemyListIconScale = 1,
 	showEnemyListBookends = true,
 
+    expBarTextScaleX = 1,
 	expBarScaleX = 1,
 	expBarScaleY = 1,
 	showExpBarBookends = true,
@@ -152,6 +153,7 @@ T{
     expBarShowText = true,
     expBarShowPercent = true,
     expBarInlineMode = false,
+    expBarLimitPointsMode = true,
 
 	gilTrackerScale = 1,
 	gilTrackerFontOffset = 0,
@@ -343,6 +345,7 @@ T{
 	expBarSettings =
 	T{
 		barWidth = 550;
+        textWidth = 550;
 		barHeight = 12;
 		textOffsetY = 5;
 		percentOffsetX = -5;
@@ -706,6 +709,7 @@ local function UpdateUserSettings()
 	gAdjustedSettings.playerBarSettings.font_settings.font_height = math.max(ns.playerBarSettings.font_settings.font_height + us.playerBarFontOffset, 1);
 
 	-- Exp Bar
+    gAdjustedSettings.expBarSettings.textWidth = ns.expBarSettings.textWidth * us.expBarTextScaleX;
 	gAdjustedSettings.expBarSettings.barWidth = ns.expBarSettings.barWidth * us.expBarScaleX;
 	gAdjustedSettings.expBarSettings.barHeight = ns.expBarSettings.barHeight * us.expBarScaleY;
 	gAdjustedSettings.expBarSettings.job_font_settings.font_height = math.max(ns.expBarSettings.job_font_settings.font_height + us.expBarFontOffset, 1);
