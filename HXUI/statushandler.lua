@@ -6,6 +6,7 @@
 local d3d8 = require('d3d8');
 local ffi = require('ffi');
 local imgui = require('imgui');
+local encoding = require('gdifonts.encoding');
 -------------------------------------------------------------------------------
 -- local state
 -------------------------------------------------------------------------------
@@ -179,10 +180,12 @@ statusHandler.render_tooltip = function(status)
     local name = resMan:GetString('buffs.names', status);
     if (name ~= nil and info ~= nil) then
         imgui.BeginTooltip();
-            imgui.Text(('%s (#%d)'):fmt(name, status));
+            imgui.SetWindowFontScale(gConfig.tooltipScale);
+            imgui.Text(('%s (#%d)'):fmt(encoding:ShiftJIS_To_UTF8(name, true), status));
             if (info.Description[1] ~= nil) then
-                imgui.Text(info.Description[1]);
+                imgui.Text(encoding:ShiftJIS_To_UTF8(info.Description[1], true));
             end
+            imgui.SetWindowFontScale(1);
         imgui.EndTooltip();
     end
 end
@@ -205,7 +208,14 @@ statusHandler.get_background_paths = function()
     local path = ('%s\\addons\\%s\\assets\\backgrounds\\'):fmt(AshitaCore:GetInstallPath(), 'HXUI');
     local directories = ashita.fs.get_dir(path, '.*.png', true);
     if (directories ~= nil) then
-        return directories;
+        local backgrounds = { '-None-' };
+        for _, filename in ipairs(directories) do
+            local bg_name = filename:match('(.+)%-bg.png');
+            if bg_name ~= nil then
+                table.insert(backgrounds, bg_name);
+            end
+        end
+        return backgrounds;
     end
     return T{};
 end 

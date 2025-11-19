@@ -81,18 +81,21 @@ inventoryTracker.DrawWindow = function(settings)
 			x = x + ((groupNum - 1) * groupOffsetX);
 
 			if (i > usedBagSlots) then
-				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, {0, .07, .17, 1}, settings.dotRadius * 3, true)
+				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, {0, .07, .17, settings.opacity}, settings.dotRadius * 3, true)
 			else
-				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, {.37, .7, .88, 1}, settings.dotRadius * 3, true)
-				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, {0, .07, .17, 1}, settings.dotRadius * 3, false)
+				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, {.37, .7, .88, settings.opacity}, settings.dotRadius * 3, true)
+				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, {0, .07, .17, settings.opacity}, settings.dotRadius * 3, false)
 			end
 		end
 
-		inventoryText:SetText(usedBagSlots.. '/'..maxBagSlots);
-		inventoryText:SetPositionX(locX + winSizeX);
-		inventoryText:SetPositionY(locY + settings.textOffsetY - inventoryText:GetFontHeight());
-
-		UpdateTextVisibility(true);	
+        if (settings.showText) then
+            inventoryText:SetText(usedBagSlots.. '/'..maxBagSlots);
+            inventoryText:SetPositionX(locX + winSizeX);
+		    inventoryText:SetPositionY(locY + settings.textOffsetY - inventoryText:GetFontHeight());
+            UpdateTextVisibility(true);
+        else
+            UpdateTextVisibility(false);
+        end
     end
 	imgui.End();
 end
