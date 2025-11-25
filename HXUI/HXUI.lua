@@ -24,7 +24,7 @@
 
 addon.name      = 'HXUI';
 addon.author    = 'Team HXUI';
-addon.version   = '1.3.5';
+addon.version   = '1.3.6';
 addon.desc      = 'Multiple UI elements with manager';
 addon.link      = 'https://github.com/tirem/HXUI'
 
@@ -219,29 +219,31 @@ T{
 	castBarFontOffset = 0,
 	castBarFastCastEnabled = false,
 	castBarFastCastRDMSJ = 0.17,
+	castBarFastCastWHMCureSpeed = 0.15,
+	castBarFastCastBRDSingSpeed = 0.37,
 	castBarFastCast = {
-		[1] = 0.02,
-		[2] = 0.02,
-		[3] = 0.04,
-		[4] = 0.04,
-		[5] = 0.42,
-		[6] = 0.07,
-		[7] = 0.07,
-		[8] = 0.07,
-		[9] = 0.02,
-		[10] = 0.04,
-		[11] = 0.02,
-		[12] = 0.02,
-		[13] = 0.02,
-		[14] = 0.07,
-		[15] = 0.04,
-		[16] = 0.07,
-		[17] = 0.02,
-		[18] = 0.04,
-		[19] = 0.02,
-		[20] = 0.02,
-		[21] = 0.02,
-		[22] = 0.02,
+		[1] = 0.02, -- WAR
+		[2] = 0.02, -- MNK
+		[3] = 0.04, -- WHM
+		[4] = 0.04, -- BLM
+		[5] = 0.42, -- RDM
+		[6] = 0.07, -- THF
+		[7] = 0.07, -- PLD
+		[8] = 0.07, -- DRK
+		[9] = 0.02, -- BST
+		[10] = 0.04, -- BRD
+		[11] = 0.02, -- RNG
+		[12] = 0.02, -- SAM
+		[13] = 0.02, -- NIN
+		[14] = 0.07, -- DRG
+		[15] = 0.04, -- SMN
+		[16] = 0.07, -- BLU
+		[17] = 0.02, -- COR
+		[18] = 0.04, -- PUP
+		[19] = 0.02, -- DNC
+		[20] = 0.02, -- SCH
+		[21] = 0.02, -- GEO
+		[22] = 0.02, -- RUN
 	},
 
 	healthBarFlashEnabled = true,

@@ -19,8 +19,14 @@ local castbar = {
 	currentItemId = nil,
 };
 
+local CureSpells = T{ 'Cure','Cure II','Cure III','Cure IV','Cure V','Cure VI','Full Cure','Curaga','Curaga II','Curaga III','Curaga IV','Curaga V' }
+
 castbar.GetSpellName = function(spellId)
 	return AshitaCore:GetResourceManager():GetSpellById(spellId).Name[1];
+end
+
+castbar.GetSpellType = function(spellId)
+	return AshitaCore:GetResourceManager():GetSpellById(spellId).Skill;
 end
 
 castbar.GetItemName = function(itemId)
@@ -51,6 +57,17 @@ castbar.DrawWindow = function(settings)
 		if (gConfig.castBarFastCast[MID]) then
 			fastCast = fastCast + tonumber(string.format("%.2f", gConfig.castBarFastCast[MID]))
 		end
+
+		if (castbar.currentSpellId) then
+			if (MID == 3 and castbar.GetSpellType(castbar.currentSpellId) == 33) then -- if WHM MJ and Healing Magic
+				if (CureSpells:contains(castbar.GetSpellName(castbar.currentSpellId))) then
+					fastCast = fastCast + tonumber(string.format("%.2f", gConfig.castBarFastCastWHMCureSpeed))
+				end
+			elseif (MID == 10 and castbar.GetSpellType(castbar.currentSpellId) == 40) then -- if BRD MJ and Singing
+				fastCast = fastCast + tonumber(string.format("%.2f", gConfig.castBarFastCastBRDSingSpeed))
+			end
+		end
+
 		if (SID == 5 and gConfig.castBarFastCastRDMSJ) then -- if RDM SJ
 			fastCast = fastCast + tonumber(string.format("%.2f", gConfig.castBarFastCastRDMSJ))
 		end

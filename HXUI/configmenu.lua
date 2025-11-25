@@ -653,6 +653,16 @@ config.DrawWindow = function(us)
                 gConfig.castBarFastCastRDMSJ = castBarFCRDMSJ[1];
                 UpdateSettings();
             end
+            local castBarFCWHMCureSpeed = { gConfig.castBarFastCastWHMCureSpeed };
+            if (imgui.SliderFloat('WHM Cure Speed', castBarFCWHMCureSpeed, 0.00, 1.00, '%.2f')) then
+                gConfig.castBarFastCastWHMCureSpeed = castBarFCWHMCureSpeed[1];
+                UpdateSettings();
+            end
+            local castBarFCBRDSingSpeed = { gConfig.castBarFastCastBRDSingSpeed };
+            if (imgui.SliderFloat('BRD Sing Speed', castBarFCBRDSingSpeed, 0.00, 1.00, '%.2f')) then
+                gConfig.castBarFastCastBRDSingSpeed = castBarFCBRDSingSpeed[1];
+                UpdateSettings();
+            end
             local castBarFC1 = { gConfig.castBarFastCast[1] };
             if (imgui.SliderFloat('Fast Cast - WAR', castBarFC1, 0.00, 1.00, '%.2f')) then
                 gConfig.castBarFastCast[1] = castBarFC1[1];
