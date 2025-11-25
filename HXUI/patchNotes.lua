@@ -76,16 +76,6 @@ patchNotes.DrawWindow = function()
 		imgui.NewLine();
 		imgui.TextColored({0.8, 0.8, 0.8, 1.0}, 'Special thanks to ');
 		imgui.SameLine();
-		imgui.TextColored({0.4, 0.6, 1.0, 1.0}, 'onimitch');
-		if imgui.IsItemHovered() then
-			imgui.SetMouseCursor(ImGuiMouseCursor_Hand);
-			if imgui.IsItemClicked() then
-				os.execute('start https://github.com/onimitch');
-			end
-		end
-		imgui.SameLine();
-		imgui.TextColored({0.8, 0.8, 0.8, 1.0}, ' and ');
-		imgui.SameLine();
 		imgui.TextColored({0.4, 0.6, 1.0, 1.0}, 'Rag');
 		if imgui.IsItemHovered() then
 			imgui.SetMouseCursor(ImGuiMouseCursor_Hand);
@@ -94,51 +84,12 @@ patchNotes.DrawWindow = function()
 			end
 		end
 		imgui.SameLine();
-		imgui.TextColored({0.8, 0.8, 0.8, 1.0}, ' for this massive update!');
-		imgui.NewLine();
-		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'Party List');
-		imgui.BulletText('New tiled backgrounds: 8 window themes (Windows 1-8) plus Plain background');
-		imgui.BulletText('Party list titles with option to toggle them on/off');
-		imgui.BulletText('Preview dummy party data when config is open');
-		imgui.BulletText('Added Min Rows, Expand Height, and Align Bottom options');
-		imgui.BulletText('Command support: /hxui partylist to toggle party window visibility');
-		imgui.BulletText('Added ability to display distance to party members');
-		imgui.BulletText('Added ability to highlight party member names when within a set distance');
-		imgui.BulletText('Added ability to flash TP when above 100%% (1000 TP)');
-		imgui.NewLine();
-		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'ExpBar');
-		imgui.BulletText('Added Limit Points mode to track limit points instead of experience');
-		imgui.BulletText('Added inline mode for compact display');
-		imgui.BulletText('Added options to show/hide text and percentage');
-		imgui.BulletText('Improved text positioning');
-		imgui.BulletText('Fixed ExpBar not updating immediately after kills in limit mode');
-		imgui.NewLine();
-		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'Target Bar');
-		imgui.BulletText('Added ability to hide distance display');
+		imgui.TextColored({0.8, 0.8, 0.8, 1.0}, ' for this update!');
 		imgui.NewLine();
 		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'Cast Bar');
-		imgui.BulletText('Added fast cast calculations so casts finish at 100%% instead of 75%% or lower');
-		imgui.BulletText('Default values provided based on BiS for 75-era and can be adjusted');
-		imgui.NewLine();
-		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'Debuff Handling');
-		imgui.BulletText('Fixed timers for multiple debuffs for 75-era');
-		imgui.BulletText('Fixed dispels not removing buff icons correctly');
-		imgui.BulletText('Fixed Sleep II not removing Sleep I icon');
-		imgui.BulletText('Fixed Diabolos Nightmare tracking');
-		imgui.NewLine();
-		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'Japanese Text Support');
-		imgui.BulletText('Cast bar now uses Thorny gdifonts to properly render Japanese text');
-		imgui.BulletText('Fixed Japanese Spell and Ability names appearing as garbled characters');
-		imgui.BulletText('Fixed Japanese text rendering in status icon tooltips');
-		imgui.NewLine();
-		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'Other Improvements');
-		imgui.BulletText('Hide during events option for global, player bar, target bar, and party list');
-		imgui.BulletText('Gil Tracker: Added Position Offset and Right Align options');
-		imgui.BulletText('Inventory Tracker: Added Rows, Columns, Opacity, and Show Count Text options');
-		imgui.BulletText('Enemy List: Enemies now hidden from list once HP reaches 0');
-		imgui.BulletText('Enemy List: Added ability to display distance to enemies');
-		imgui.BulletText('Status Handler: Added Tooltip scale config');
-		imgui.BulletText('Fixed addon error when alignBottom is enabled on first load');
+		imgui.BulletText('Added WHM Cure Speed support (Cure Clogs, Minstrel\'s Ring, etc.)');
+		imgui.BulletText('Added BRD Sing Speed support (Minstrel\'s Ring, etc.)');
+		imgui.BulletText('Cure Speed and Sing Speed work independently from Fast Cast calculations');
     end
 	imgui.PopStyleVar(1);
 	imgui.PopStyleColor(4);
