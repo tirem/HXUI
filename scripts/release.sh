@@ -80,7 +80,7 @@ if [ "$NO_TAG" = true ]; then
 fi
 
 # Check if git is clean
-if [ -n "$(git status --porcelain | grep -v '^?? release.sh')" ]; then
+if [ -n "$(git status --porcelain | grep -v '^?? scripts/release\.')" ]; then
     echo -e "${YELLOW}Warning: You have uncommitted changes${NC}"
     echo ""
     git status --short

@@ -63,7 +63,7 @@ if ($NoTag) {
 }
 
 # Check if git is clean
-$gitStatus = git status --porcelain | Where-Object { $_ -notmatch '^\?\? release\.' }
+$gitStatus = git status --porcelain | Where-Object { $_ -notmatch '^\?\? scripts/release\.' }
 if ($gitStatus) {
     Write-Host "Warning: You have uncommitted changes" -ForegroundColor Yellow
     Write-Host ""
@@ -77,7 +77,7 @@ if ($gitStatus) {
 }
 
 # Check if tag already exists
-$tagExists = git rev-parse "v$Version" 2>$null
+git rev-parse "v$Version" *>$null
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Error: Tag v$Version already exists" -ForegroundColor Red
     exit 1
@@ -90,7 +90,7 @@ $Description = Read-Host "Enter a brief description for this release (press Ente
 if ([string]::IsNullOrWhiteSpace($Description)) {
     $Description = "Release v$Version"
 } else {
-    $Description = "Release v$Version: $Description"
+    $Description = "Release v${Version}: $Description"
 }
 
 # Create tag
