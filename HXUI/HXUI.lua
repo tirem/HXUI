@@ -857,6 +857,9 @@ if playerIndex ~= 0 then
 	end
 end
 
+-- Track initialization state to prevent rendering before font objects are created
+local bInitialized = false;
+
 --Thanks to Velyn for the event system and interface hidden signatures!
 local pGameMenu = ashita.memory.find('FFXiMain.dll', 0, "8B480C85C974??8B510885D274??3B05", 16, 0);
 local pEventSystem = ashita.memory.find('FFXiMain.dll', 0, "A0????????84C0741AA1????????85C0741166A1????????663B05????????0F94C0C3", 0, 0);
@@ -924,6 +927,11 @@ end
 * desc : Event called when the Direct3D device is presenting a scene.
 --]]
 ashita.events.register('d3d_present', 'present_cb', function ()
+	-- Prevent rendering before initialization completes
+	if not bInitialized then
+		return;
+	end
+
     local eventSystemActive = GetEventSystemActive();
 
 	if (GetHidden() == false) then
@@ -993,6 +1001,9 @@ ashita.events.register('load', 'load_cb', function ()
 	inventoryTracker.Initialize(gAdjustedSettings.inventoryTrackerSettings);
 	partyList.Initialize(gAdjustedSettings.partyListSettings);
 	castBar.Initialize(gAdjustedSettings.castBarSettings);
+
+	-- Mark initialization as complete to allow rendering
+	bInitialized = true;
 end);
 
 ashita.events.register('unload', 'unload_cb', function ()
