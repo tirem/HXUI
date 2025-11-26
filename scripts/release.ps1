@@ -33,7 +33,7 @@ if (-not (Test-Path "HXUI/patchNotes.lua")) {
 }
 
 # Safety Check 1: Verify we're on the main branch
-Write-Host "Running pre-flight safety checks..." -ForegroundColor Yellow
+Write-Host "Running release checks..." -ForegroundColor Yellow
 $currentBranch = git rev-parse --abbrev-ref HEAD
 if ($currentBranch -ne "main") {
     Write-Host "Error: Not on main branch (currently on: $currentBranch)" -ForegroundColor Red
