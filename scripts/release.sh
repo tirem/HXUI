@@ -54,6 +54,57 @@ if [ ! -f "HXUI/patchNotes.lua" ]; then
     exit 1
 fi
 
+# Safety Check 1: Verify we're on the main branch
+echo -e "${YELLOW}Running pre-flight safety checks...${NC}"
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$CURRENT_BRANCH" != "main" ]; then
+    echo -e "${RED}Error: Not on main branch (currently on: $CURRENT_BRANCH)${NC}"
+    echo "Releases must be created from the main branch"
+    exit 1
+fi
+echo -e "${GREEN}[✓] On main branch${NC}"
+
+# Safety Check 2: Verify clean working directory
+if [ -n "$(git status --porcelain)" ]; then
+    echo -e "${RED}Error: Working directory has uncommitted changes${NC}"
+    echo -e "${RED}Please commit or stash your changes before creating a release${NC}"
+    echo ""
+    git status --short
+    exit 1
+fi
+echo -e "${GREEN}[✓] Working directory is clean${NC}"
+
+# Safety Check 3: Fetch and verify we're up to date with origin
+echo -e "${YELLOW}Fetching from origin...${NC}"
+if ! git fetch origin 2>/dev/null; then
+    echo -e "${YELLOW}Warning: Could not fetch from origin (offline?)${NC}"
+    read -p "Continue without verifying remote state? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Aborted."
+        exit 1
+    fi
+else
+    LOCAL_COMMIT=$(git rev-parse main)
+    REMOTE_COMMIT=$(git rev-parse origin/main)
+    if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
+        BEHIND_COUNT=$(git rev-list --count main..origin/main)
+        AHEAD_COUNT=$(git rev-list --count origin/main..main)
+
+        if [ "$BEHIND_COUNT" -gt 0 ]; then
+            echo -e "${RED}Error: Local main is $BEHIND_COUNT commit(s) behind origin/main${NC}"
+            echo "Please pull the latest changes: git pull origin main"
+            exit 1
+        fi
+        if [ "$AHEAD_COUNT" -gt 0 ]; then
+            echo -e "${YELLOW}Warning: Local main is $AHEAD_COUNT commit(s) ahead of origin/main${NC}"
+            echo "You have unpushed commits"
+        fi
+    fi
+    echo -e "${GREEN}[✓] Up to date with origin/main${NC}"
+fi
+echo ""
+
 # Update HXUI.lua
 echo -e "${YELLOW}Updating HXUI.lua...${NC}"
 sed -i "s/addon\.version[[:space:]]*=[[:space:]]*'[0-9.]*'/addon.version   = '$VERSION'/" HXUI/HXUI.lua
@@ -69,8 +120,8 @@ echo ""
 echo "HXUI.lua version:"
 grep "addon.version" HXUI/HXUI.lua
 echo ""
-echo "patchNotes.lua version:"
-grep "UPDATE" HXUI/patchNotes.lua | head -n 1
+echo "patchNotes.lua version (line 59):"
+grep "imgui\.BulletText(' UPDATE" HXUI/patchNotes.lua
 echo ""
 
 if [ "$NO_TAG" = true ]; then
@@ -79,25 +130,22 @@ if [ "$NO_TAG" = true ]; then
     exit 0
 fi
 
-# Check if git is clean
-if [ -n "$(git status --porcelain | grep -v '^?? scripts/release\.')" ]; then
-    echo -e "${YELLOW}Warning: You have uncommitted changes${NC}"
-    echo ""
-    git status --short
-    echo ""
-    read -p "Continue with tagging anyway? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo "Aborted."
-        exit 1
-    fi
-fi
-
 # Check if tag already exists
 if git rev-parse "v$VERSION" >/dev/null 2>&1; then
     echo -e "${RED}Error: Tag v$VERSION already exists${NC}"
     exit 1
 fi
+
+# Commit version changes
+echo -e "${YELLOW}Committing version changes...${NC}"
+git add HXUI/HXUI.lua HXUI/patchNotes.lua
+git commit -m "Bump version to $VERSION"
+
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Error: Failed to create commit${NC}"
+    exit 1
+fi
+echo -e "${GREEN}[✓] Version bump committed${NC}"
 
 # Prompt for release description
 echo ""
@@ -110,25 +158,61 @@ else
     DESCRIPTION="Release v$VERSION: $DESCRIPTION"
 fi
 
-# Create and push tag
+# Create tag
 echo ""
 echo -e "${YELLOW}Creating git tag v$VERSION...${NC}"
 git tag -a "v$VERSION" -m "$DESCRIPTION"
 
-echo -e "${GREEN}Tag created successfully!${NC}"
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Error: Failed to create tag${NC}"
+    exit 1
+fi
+echo -e "${GREEN}[✓] Tag created successfully!${NC}"
+
+# Show what will be pushed
 echo ""
-echo "To push the tag and trigger the release, run:"
-echo -e "${GREEN}git push origin v$VERSION${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════${NC}"
+echo -e "${CYAN}Ready to push to main (this is a release exception)${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════${NC}"
 echo ""
-echo "Or to push now:"
-read -p "Push tag now? (y/N) " -n 1 -r
+echo "Changes to be pushed:"
+echo "  • Commit: Bump version to $VERSION"
+echo "  • Tag:    v$VERSION"
+echo ""
+echo "File changes:"
+git show --stat HEAD
+echo ""
+echo -e "${YELLOW}This will push BOTH the commit and tag to origin/main${NC}"
+echo ""
+read -p "Push to main now? (y/N) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    git push origin "v$VERSION"
     echo ""
-    echo -e "${GREEN}Release tag pushed! GitHub Actions will create the release.${NC}"
-    echo "Check the Actions tab: https://github.com/tirem/HXUI/actions"
+    echo -e "${YELLOW}Pushing commit and tag to origin/main...${NC}"
+    git push origin main
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Error: Failed to push commit to main${NC}"
+        echo "Tag is still local. Clean up with: git tag -d v$VERSION && git reset --hard HEAD~1"
+        exit 1
+    fi
+    git push origin "v$VERSION"
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Error: Failed to push tag${NC}"
+        exit 1
+    fi
+    echo ""
+    echo -e "${GREEN}═══════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}[✓] Release v$VERSION pushed successfully!${NC}"
+    echo -e "${GREEN}═══════════════════════════════════════════════${NC}"
+    echo ""
+    echo "GitHub Actions will now create the release."
+    echo -e "${CYAN}Check the Actions tab: https://github.com/tirem/HXUI/actions${NC}"
 else
-    echo "Tag created but not pushed. Push later with:"
-    echo "  git push origin v$VERSION"
+    echo ""
+    echo -e "${YELLOW}Commit and tag created but not pushed.${NC}"
+    echo "Push later with:"
+    echo "  git push origin main && git push origin v$VERSION"
+    echo ""
+    echo "Or to abort this release:"
+    echo "  git tag -d v$VERSION && git reset --hard HEAD~1"
 fi

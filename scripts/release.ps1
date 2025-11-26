@@ -17,7 +17,6 @@ if ($Version -notmatch '^\d+\.\d+\.\d+$') {
 }
 
 Write-Host "HXUI Release Script" -ForegroundColor Green
-Write-Host "==================="
 Write-Host "Version: $Version"
 Write-Host ""
 
@@ -32,6 +31,58 @@ if (-not (Test-Path "HXUI/patchNotes.lua")) {
     Write-Host "Error: HXUI/patchNotes.lua not found" -ForegroundColor Red
     exit 1
 }
+
+# Safety Check 1: Verify we're on the main branch
+Write-Host "Running pre-flight safety checks..." -ForegroundColor Yellow
+$currentBranch = git rev-parse --abbrev-ref HEAD
+if ($currentBranch -ne "main") {
+    Write-Host "Error: Not on main branch (currently on: $currentBranch)" -ForegroundColor Red
+    Write-Host "Releases must be created from the main branch"
+    exit 1
+}
+Write-Host "[✓] On main branch" -ForegroundColor Green
+
+# Safety Check 2: Verify clean working directory
+$gitStatus = git status --porcelain
+if ($gitStatus) {
+    Write-Host "Error: Working directory has uncommitted changes" -ForegroundColor Red
+    Write-Host "Please commit or stash your changes before creating a release" -ForegroundColor Red
+    Write-Host ""
+    git status --short
+    exit 1
+}
+Write-Host "[✓] Working directory is clean" -ForegroundColor Green
+
+# Safety Check 3: Fetch and verify we're up to date with origin
+Write-Host "Fetching from origin..." -ForegroundColor Yellow
+git fetch origin 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Warning: Could not fetch from origin (offline?)" -ForegroundColor Yellow
+    $continue = Read-Host "Continue without verifying remote state? (y/N)"
+    if ($continue -ne 'y' -and $continue -ne 'Y') {
+        Write-Host "Aborted."
+        exit 1
+    }
+} else {
+    $localCommit = git rev-parse main
+    $remoteCommit = git rev-parse origin/main
+    if ($localCommit -ne $remoteCommit) {
+        $behindCount = git rev-list --count main..origin/main
+        $aheadCount = git rev-list --count origin/main..main
+
+        if ($behindCount -gt 0) {
+            Write-Host "Error: Local main is $behindCount commit(s) behind origin/main" -ForegroundColor Red
+            Write-Host "Please pull the latest changes: git pull origin main"
+            exit 1
+        }
+        if ($aheadCount -gt 0) {
+            Write-Host "Warning: Local main is $aheadCount commit(s) ahead of origin/main" -ForegroundColor Yellow
+            Write-Host "You have unpushed commits"
+        }
+    }
+    Write-Host "[✓] Up to date with origin/main" -ForegroundColor Green
+}
+Write-Host ""
 
 # Update HXUI.lua
 Write-Host "Updating HXUI.lua..." -ForegroundColor Yellow
@@ -52,8 +103,8 @@ Write-Host ""
 Write-Host "HXUI.lua version:"
 Select-String -Path "HXUI/HXUI.lua" -Pattern "addon.version"
 Write-Host ""
-Write-Host "patchNotes.lua version:"
-Select-String -Path "HXUI/patchNotes.lua" -Pattern "UPDATE" | Select-Object -First 1
+Write-Host "patchNotes.lua version (line 59):"
+Select-String -Path "HXUI/patchNotes.lua" -Pattern "imgui\.BulletText\(' UPDATE"
 Write-Host ""
 
 if ($NoTag) {
@@ -62,26 +113,23 @@ if ($NoTag) {
     exit 0
 }
 
-# Check if git is clean
-$gitStatus = git status --porcelain | Where-Object { $_ -notmatch '^\?\? scripts/release\.' }
-if ($gitStatus) {
-    Write-Host "Warning: You have uncommitted changes" -ForegroundColor Yellow
-    Write-Host ""
-    git status --short
-    Write-Host ""
-    $continue = Read-Host "Continue with tagging anyway? (y/N)"
-    if ($continue -ne 'y' -and $continue -ne 'Y') {
-        Write-Host "Aborted."
-        exit 1
-    }
-}
-
 # Check if tag already exists
 git rev-parse "v$Version" *>$null
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Error: Tag v$Version already exists" -ForegroundColor Red
     exit 1
 }
+
+# Commit version changes
+Write-Host "Committing version changes..." -ForegroundColor Yellow
+git add HXUI/HXUI.lua HXUI/patchNotes.lua
+git commit -m "Bump version to $Version"
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Error: Failed to create commit" -ForegroundColor Red
+    exit 1
+}
+Write-Host "[✓] Version bump committed" -ForegroundColor Green
 
 # Prompt for release description
 Write-Host ""
@@ -98,18 +146,55 @@ Write-Host ""
 Write-Host "Creating git tag v$Version..." -ForegroundColor Yellow
 git tag -a "v$Version" -m "$Description"
 
-Write-Host "Tag created successfully!" -ForegroundColor Green
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Error: Failed to create tag" -ForegroundColor Red
+    exit 1
+}
+Write-Host "[✓] Tag created successfully!" -ForegroundColor Green
+
+# Show what will be pushed
 Write-Host ""
-Write-Host "To push the tag and trigger the release, run:" -ForegroundColor White
-Write-Host "git push origin v$Version" -ForegroundColor Green
+Write-Host "═══════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "Ready to push to main (this is a release exception)" -ForegroundColor Cyan
+Write-Host "═══════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
-$push = Read-Host "Push tag now? (y/N)"
+Write-Host "Changes to be pushed:" -ForegroundColor White
+Write-Host "  • Commit: Bump version to $Version" -ForegroundColor White
+Write-Host "  • Tag:    v$Version" -ForegroundColor White
+Write-Host ""
+Write-Host "File changes:" -ForegroundColor White
+git show --stat HEAD
+Write-Host ""
+Write-Host "This will push BOTH the commit and tag to origin/main" -ForegroundColor Yellow
+Write-Host ""
+$push = Read-Host "Push to main now? (y/N)"
 if ($push -eq 'y' -or $push -eq 'Y') {
-    git push origin "v$Version"
     Write-Host ""
-    Write-Host "Release tag pushed! GitHub Actions will create the release." -ForegroundColor Green
-    Write-Host "Check the Actions tab: https://github.com/tirem/HXUI/actions"
+    Write-Host "Pushing commit and tag to origin/main..." -ForegroundColor Yellow
+    git push origin main
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Error: Failed to push commit to main" -ForegroundColor Red
+        Write-Host "Tag is still local. Clean up with: git tag -d v$Version && git reset --hard HEAD~1"
+        exit 1
+    }
+    git push origin "v$Version"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Error: Failed to push tag" -ForegroundColor Red
+        exit 1
+    }
+    Write-Host ""
+    Write-Host "═══════════════════════════════════════════════" -ForegroundColor Green
+    Write-Host "[✓] Release v$Version pushed successfully!" -ForegroundColor Green
+    Write-Host "═══════════════════════════════════════════════" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "GitHub Actions will now create the release." -ForegroundColor White
+    Write-Host "Check the Actions tab: https://github.com/tirem/HXUI/actions" -ForegroundColor Cyan
 } else {
-    Write-Host "Tag created but not pushed. Push later with:"
-    Write-Host "  git push origin v$Version"
+    Write-Host ""
+    Write-Host "Commit and tag created but not pushed." -ForegroundColor Yellow
+    Write-Host "Push later with:"
+    Write-Host "  git push origin main && git push origin v$Version" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Or to abort this release:"
+    Write-Host "  git tag -d v$Version && git reset --hard HEAD~1" -ForegroundColor White
 }
