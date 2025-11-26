@@ -243,7 +243,7 @@ local function DrawMember(memIdx, settings)
     memberText[memIdx].hp:GetTextSize(hpSize);
 
     -- Get the hp color for bars and text
-    local hpNameColor, hpGradient = GetHpColors(memInfo.hpp);
+    local hpNameColor, hpGradient = GetCustomHpColors(memInfo.hpp, gConfig.colorCustomization.partyList);
 
     local bgGradientOverride = {'#000813', '#000813'};
 
@@ -329,10 +329,11 @@ local function DrawMember(memIdx, settings)
         local mpStartX, mpStartY;
         imgui.SetCursorPosX(imgui.GetCursorPosX());
         mpStartX, mpStartY = imgui.GetCursorScreenPos();
-        progressbar.ProgressBar({{memInfo.mpp, {'#9abb5a', '#bfe07d'}}}, {mpBarWidth, barHeight}, {borderConfig=borderConfig, backgroundGradientOverride=bgGradientOverride, decorate = gConfig.showPartyListBookends});
+        local mpGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'mpGradient') or {'#9abb5a', '#bfe07d'};
+        progressbar.ProgressBar({{memInfo.mpp, mpGradient}}, {mpBarWidth, barHeight}, {borderConfig=borderConfig, backgroundGradientOverride=bgGradientOverride, decorate = gConfig.showPartyListBookends});
 
         -- Update the mp text
-        memberText[memIdx].mp:SetColor(gAdjustedSettings.mpColor);
+        memberText[memIdx].mp:SetColor(gConfig.colorCustomization.partyList.mpTextColor);
         memberText[memIdx].mp:SetPositionX(mpStartX + mpBarWidth + settings.mpTextOffsetX);
         memberText[memIdx].mp:SetPositionY(mpStartY + barHeight + settings.mpTextOffsetY);
         memberText[memIdx].mp:SetText(tostring(memInfo.mp));
@@ -344,7 +345,7 @@ local function DrawMember(memIdx, settings)
             imgui.SetCursorPosX(imgui.GetCursorPosX());
             tpStartX, tpStartY = imgui.GetCursorScreenPos();
 
-            local tpGradient = {'#3898ce', '#78c4ee'};
+            local tpGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'tpGradient') or {'#3898ce', '#78c4ee'};
             local tpOverlayGradient = {'#0078CC', '#0078CC'};
             local mainPercent;
             local tpOverlay;

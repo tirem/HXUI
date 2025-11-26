@@ -124,7 +124,7 @@ playerbar.DrawWindow = function(settings)
 	end
     if (imgui.Begin('PlayerBar', true, windowFlags)) then
 
-		local hpNameColor, hpGradient = GetHpColors(SelfHPPercent/100);
+		local hpNameColor, hpGradient = GetCustomHpColors(SelfHPPercent/100, gConfig.colorCustomization.playerBar);
 
 		local SelfJob = GetJobStr(party:GetMemberMainJob(0));
 		local SelfSubJob = GetJobStr(party:GetMemberSubJob(0));
@@ -183,15 +183,16 @@ playerbar.DrawWindow = function(settings)
 		if (bShowMp) then
 			-- Draw MP Bar
 			imgui.SetCursorPosX(hpEndX + settings.barSpacing);
-			progressbar.ProgressBar({{SelfMPPercent / 100, {'#9abb5a', '#bfe07d'}}}, {barSize, settings.barHeight}, {decorate = gConfig.showPlayerBarBookends});
+			local mpGradient = GetCustomGradient(gConfig.colorCustomization.playerBar, 'mpGradient') or {'#9abb5a', '#bfe07d'};
+			progressbar.ProgressBar({{SelfMPPercent / 100, mpGradient}}, {barSize, settings.barHeight}, {decorate = gConfig.showPlayerBarBookends});
 			imgui.SameLine();
 			mpLocX, mpLocY  = imgui.GetCursorScreenPos()
 		end
-		
+
 		-- Draw TP Bars
 		imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
-		
-		local tpGradient = {'#3898ce', '#78c4ee'};
+
+		local tpGradient = GetCustomGradient(gConfig.colorCustomization.playerBar, 'tpGradient') or {'#3898ce', '#78c4ee'};
 		local mainPercent;
 		local tpOverlay;
 		
@@ -235,21 +236,16 @@ playerbar.DrawWindow = function(settings)
 			mpText:SetPositionX(mpLocX - settings.barSpacing - settings.barHeight / 2);
 			mpText:SetPositionY(mpLocY + settings.barHeight + settings.textYOffset);
 			mpText:SetText(tostring(SelfMP));
-			mpText:SetColor(gAdjustedSettings.mpColor);
+			mpText:SetColor(gConfig.colorCustomization.playerBar.mpTextColor);
 		end
 
 		mpText:SetVisible(bShowMp);
-			
+
 		-- Update our TP Text
 		tpText:SetPositionX(tpLocX - settings.barSpacing - settings.barHeight / 2);
 		tpText:SetPositionY(tpLocY + settings.barHeight + settings.textYOffset);
 		tpText:SetText(tostring(SelfTP));
-
-		if (SelfTP >= 1000) then 
-			tpText:SetColor(gAdjustedSettings.tpFullColor);
-		else
-			tpText:SetColor(gAdjustedSettings.tpEmptyColor);
-	    end
+		tpText:SetColor(gConfig.colorCustomization.playerBar.tpTextColor);
 
 		tpText:SetVisible(true);
     end

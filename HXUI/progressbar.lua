@@ -22,20 +22,34 @@ local progressbar = {
 	gradientTextures = {}
 };
 
+-- Helper function to extract RGBA from hex string (supports #RRGGBB or #RRGGBBAA)
+local function hex2rgba(hex)
+	local hex = hex:gsub("#", "");
+	local r = tonumber("0x"..hex:sub(1,2));
+	local g = tonumber("0x"..hex:sub(3,4));
+	local b = tonumber("0x"..hex:sub(5,6));
+	local a = 255;
+	if #hex == 8 then
+		a = tonumber("0x"..hex:sub(7,8));
+	end
+	return r, g, b, a;
+end
+
 function MakeGradientBitmap(startColor, endColor)
 	local height = 100;
 
 	local image = bitmap:new(1, height);
 
-	startColor = table.pack(hex2rgb(startColor));
-	endColor = table.pack(hex2rgb(endColor));
+	local sr, sg, sb, sa = hex2rgba(startColor);
+	local er, eg, eb, ea = hex2rgba(endColor);
 
 	for pixel = 1, height  do
-		local red = startColor[1] + (endColor[1] - startColor[1]) * (pixel / height);
-		local green = startColor[2] + (endColor[2] - startColor[2]) * (pixel / height);
-		local blue = startColor[3] + (endColor[3] - startColor[3]) * (pixel / height);
+		local red = sr + (er - sr) * (pixel / height);
+		local green = sg + (eg - sg) * (pixel / height);
+		local blue = sb + (eb - sb) * (pixel / height);
+		local alpha = sa + (ea - sa) * (pixel / height);
 
-		image:setPixelColor(1, (height - pixel) + 1, {red, green, blue, 255});
+		image:setPixelColor(1, (height - pixel) + 1, {red, green, blue, alpha});
 	end
 
 	return image;
@@ -153,6 +167,14 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 	-- Draw the background
 	local bgGradientStart = progressbar.backgroundGradientStartColor;
 	local bgGradientEnd = progressbar.backgroundGradientEndColor;
+
+	-- Apply custom background gradient if available
+	if gConfig and gConfig.colorCustomization and gConfig.colorCustomization.shared.backgroundGradient then
+		local bgSettings = gConfig.colorCustomization.shared.backgroundGradient;
+		bgGradientStart = bgSettings.start;
+		-- If gradient disabled, use same color for both (static color)
+		bgGradientEnd = bgSettings.enabled and bgSettings.stop or bgSettings.start;
+	end
 
 	if options.backgroundGradientOverride then
 		bgGradientStart = options.backgroundGradientOverride[1];

@@ -96,7 +96,8 @@ castbar.DrawWindow = function(settings)
 			imgui.PopStyleColor(1);
 			]]--
 			
-			progressbar.ProgressBar({{showConfig[1] and 0.5 or percent, {'#3798ce', '#78c5ee'}}}, {-1, settings.barHeight}, {decorate = gConfig.showCastBarBookends});
+			local castGradient = GetCustomGradient(gConfig.colorCustomization.castBar, 'barGradient') or {'#3798ce', '#78c5ee'};
+			progressbar.ProgressBar({{showConfig[1] and 0.5 or percent, castGradient}}, {-1, settings.barHeight}, {decorate = gConfig.showCastBarBookends});
 
 			-- Draw Spell/Item name
 			imgui.SameLine();
@@ -121,8 +122,9 @@ castbar.DrawWindow = function(settings)
 end
 
 castbar.UpdateFonts = function(settings)
-	spellText:set_font_height(settings.spell_font_settings.font_height);
-	percentText:set_font_height(settings.percent_font_settings.font_height);
+	-- Recreate font objects to apply color changes
+	spellText = gdi:create_object(settings.spell_font_settings);
+	percentText = gdi:create_object(settings.percent_font_settings);
 end
 
 castbar.SetHidden = function(hidden)

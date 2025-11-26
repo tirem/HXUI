@@ -197,8 +197,9 @@ targetbar.DrawWindow = function(settings)
 			targetNameText = targetNameText .. " [".. string.sub(targetServerIdHex, -3) .."]";
 		end
 
-		local hpGradientStart = '#e26c6c';
-		local hpGradientEnd = '#fb9494';
+		local targetGradient = GetCustomGradient(gConfig.colorCustomization.targetBar, 'hpGradient') or {'#e26c6c', '#fb9494'};
+		local hpGradientStart = targetGradient[1];
+		local hpGradientEnd = targetGradient[2];
 
 		local hpPercentData = {{targetEntity.HPPercent / 100, {hpGradientStart, hpGradientEnd}}};
 
@@ -317,7 +318,8 @@ targetbar.DrawWindow = function(settings)
 				imgui.SetCursorScreenPos({totX, totY - (settings.totBarHeight / 2) + (settings.barHeight/2) + settings.totBarOffset});
 
 				local totStartX, totStartY = imgui.GetCursorScreenPos();
-				progressbar.ProgressBar({{totEntity.HPPercent / 100, {'#e16c6c', '#fb9494'}}}, {settings.barWidth / 3, settings.totBarHeight}, {decorate = gConfig.showTargetBarBookends});
+				local totGradient = GetCustomGradient(gConfig.colorCustomization.totBar, 'hpGradient') or {'#e16c6c', '#fb9494'};
+				progressbar.ProgressBar({{totEntity.HPPercent / 100, totGradient}}, {settings.barWidth / 3, settings.totBarHeight}, {decorate = gConfig.showTargetBarBookends});
 
 				local totNameSize = SIZE.new();
 				totNameText:GetTextSize(totNameSize);
@@ -386,7 +388,8 @@ targetbar.DrawWindow = function(settings)
 				local totStartX, totStartY = imgui.GetCursorScreenPos();
 
 				-- Use adjusted ToT settings for split bar
-				progressbar.ProgressBar({{totEntity.HPPercent / 100, {'#e16c6c', '#fb9494'}}}, {settings.totBarWidth, settings.totBarHeightSplit}, {decorate = gConfig.showTargetBarBookends});
+				local totGradientSplit = GetCustomGradient(gConfig.colorCustomization.totBar, 'hpGradient') or {'#e16c6c', '#fb9494'};
+				progressbar.ProgressBar({{totEntity.HPPercent / 100, totGradientSplit}}, {settings.totBarWidth, settings.totBarHeightSplit}, {decorate = gConfig.showTargetBarBookends});
 
 				-- Set font height for split ToT bar
 				totNameText:SetFontHeight(settings.totName_font_settings_split.font_height);

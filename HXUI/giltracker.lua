@@ -71,6 +71,7 @@ end
 giltracker.UpdateFonts = function(settings)
     gilText:SetFontHeight(settings.font_settings.font_height);
     gilText:SetRightJustified(settings.font_settings.right_justified);
+    gilText:SetColor(settings.font_settings.color);
 end
 
 giltracker.SetHidden = function(hidden)

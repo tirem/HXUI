@@ -71,6 +71,12 @@ inventoryTracker.DrawWindow = function(settings)
 		imgui.Dummy({winSizeX,winSizeY});
 		local locX, locY = imgui.GetWindowPos();
 
+		-- Get custom colors
+		local emptyColor = gConfig.colorCustomization.inventoryTracker.emptySlotColor;
+		local usedColor = gConfig.colorCustomization.inventoryTracker.usedSlotColor;
+		local emptyColorWithOpacity = {emptyColor.r, emptyColor.g, emptyColor.b, emptyColor.a * settings.opacity};
+		local usedColorWithOpacity = {usedColor.r, usedColor.g, usedColor.b, usedColor.a * settings.opacity};
+
 		for i = 1, maxBagSlots do
 			local groupNum = math.ceil(i / numPerGroup);
 			local offsetFromGroup = i - ((groupNum - 1) * numPerGroup);
@@ -81,10 +87,10 @@ inventoryTracker.DrawWindow = function(settings)
 			x = x + ((groupNum - 1) * groupOffsetX);
 
 			if (i > usedBagSlots) then
-				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, {0, .07, .17, settings.opacity}, settings.dotRadius * 3, true)
+				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, emptyColorWithOpacity, settings.dotRadius * 3, true)
 			else
-				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, {.37, .7, .88, settings.opacity}, settings.dotRadius * 3, true)
-				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, {0, .07, .17, settings.opacity}, settings.dotRadius * 3, false)
+				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, usedColorWithOpacity, settings.dotRadius * 3, true)
+				draw_circle({x + locX + imgui.GetStyle().FramePadding.x, y + locY}, settings.dotRadius, emptyColorWithOpacity, settings.dotRadius * 3, false)
 			end
 		end
 
@@ -107,6 +113,7 @@ end
 
 inventoryTracker.UpdateFonts = function(settings)
     inventoryText:SetFontHeight(settings.font_settings.font_height);
+    inventoryText:SetColor(settings.font_settings.color);
 end
 
 

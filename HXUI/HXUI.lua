@@ -39,6 +39,7 @@ local inventoryTracker = require('inventorytracker');
 local partyList = require('partylist');
 local castBar = require('castbar');
 local configMenu = require('configmenu');
+local colorCustom = require('colorcustom');
 local debuffHandler = require('debuffhandler');
 local patchNotes = require('patchNotes');
 local statusHandler = require('statushandler');
@@ -48,7 +49,7 @@ local gdi = require('gdifonts.include');
 -- = HXUI DEV ONLY =
 -- =================
 -- Hot reloading of development files functionality
-local _HXUI_DEV_HOT_RELOADING_ENABLED = false;
+local _HXUI_DEV_HOT_RELOADING_ENABLED = true;
 local _HXUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS = 1;
 local _HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME;
 local _HXUI_DEV_HOT_RELOAD_FILES = {};
@@ -99,7 +100,7 @@ end
 -- = /HXUI DEV ONLY =
 -- ==================
 
-local user_settings = 
+local user_settings =
 T{
 	patchNotesVer = -1,
 
@@ -251,9 +252,96 @@ T{
 	},
 
 	healthBarFlashEnabled = true,
+
+	-- Color customization settings
+	colorCustomization = T{
+		-- Player Bar
+		playerBar = T{
+			hpGradient = T{
+				enabled = true,
+				low = T{ start = '#ec3232', stop = '#f16161' },      -- 0-25%
+				medLow = T{ start = '#ee9c06', stop = '#ecb44e' },   -- 25-50%
+				medHigh = T{ start = '#ffff0c', stop = '#ffff97' },  -- 50-75%
+				high = T{ start = '#e26c6c', stop = '#fa9c9c' },     -- 75-100%
+			},
+			mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
+			tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' },
+			hpTextColor = 0xFFFFFFFF,
+			mpTextColor = 0xFFdef2db,
+			tpTextColor = 0xFF2fa9ff,
+		},
+
+		-- Target Bar
+		targetBar = T{
+			hpGradient = T{ enabled = true, start = '#e26c6c', stop = '#fb9494' },
+			nameTextColor = 0xFFFFFFFF,
+			distanceTextColor = 0xFFFFFFFF,
+			percentTextColor = 0xFFFFFFFF,
+		},
+
+		-- Target of Target Bar
+		totBar = T{
+			hpGradient = T{ enabled = true, start = '#e16c6c', stop = '#fb9494' },
+			nameTextColor = 0xFFFFFFFF,
+		},
+
+		-- Enemy List
+		enemyList = T{
+			hpGradient = T{ enabled = true, start = '#e16c6c', stop = '#fb9494' },
+		},
+
+		-- Party List
+		partyList = T{
+			hpGradient = T{
+				enabled = true,
+				low = T{ start = '#ec3232', stop = '#f16161' },
+				medLow = T{ start = '#ee9c06', stop = '#ecb44e' },
+				medHigh = T{ start = '#ffff0c', stop = '#ffff97' },
+				high = T{ start = '#e26c6c', stop = '#fa9c9c' },
+			},
+			mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
+			tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' },
+			nameTextColor = 0xFFFFFFFF,
+			hpTextColor = 0xFFFFFFFF,
+			mpTextColor = 0xFFFFFFFF,
+			tpTextColor = 0xFFFFFFFF,
+		},
+
+		-- Exp Bar
+		expBar = T{
+			barGradient = T{ enabled = true, start = '#c39040', stop = '#e9c466' },
+			jobTextColor = 0xFFFFFFFF,
+			expTextColor = 0xFFFFFFFF,
+			percentTextColor = 0xFFFFFF00,
+		},
+
+		-- Gil Tracker
+		gilTracker = T{
+			textColor = 0xFFFFFFFF,
+		},
+
+		-- Inventory Tracker
+		inventoryTracker = T{
+			textColor = 0xFFFFFFFF,
+			emptySlotColor = T{ r = 0, g = 0.07, b = 0.17, a = 1 },
+			usedSlotColor = T{ r = 0.37, g = 0.7, b = 0.88, a = 1 },
+		},
+
+		-- Cast Bar
+		castBar = T{
+			barGradient = T{ enabled = true, start = '#3798ce', stop = '#78c5ee' },
+			spellTextColor = 0xFFFFFFFF,
+			percentTextColor = 0xFFFFFFFF,
+		},
+
+		-- Global/Shared
+		shared = T{
+			backgroundGradient = T{ enabled = true, start = '#01122b', stop = '#061c39' },
+		},
+	},
 };
 
-local user_settings_container = 
+local user_settings_container =
 T{
 	userSettings = user_settings;
 };
@@ -670,7 +758,7 @@ T{
 };
 
 gAdjustedSettings = deep_copy_table(default_settings);
-local defaultUserSettings = deep_copy_table(user_settings);
+defaultUserSettings = deep_copy_table(user_settings);
 
 local config = settings.load(user_settings_container);
 gConfig = config.userSettings;
@@ -792,12 +880,16 @@ local function UpdateUserSettings()
 	gAdjustedSettings.expBarSettings.barWidth = ds.expBarSettings.barWidth * us.expBarScaleX;
 	gAdjustedSettings.expBarSettings.barHeight = ds.expBarSettings.barHeight * us.expBarScaleY;
 	gAdjustedSettings.expBarSettings.job_font_settings.font_height = math.max(ds.expBarSettings.job_font_settings.font_height + us.expBarFontOffset, 1);
+	gAdjustedSettings.expBarSettings.job_font_settings.color = us.colorCustomization.expBar.jobTextColor;
 	gAdjustedSettings.expBarSettings.exp_font_settings.font_height = math.max(ds.expBarSettings.exp_font_settings.font_height + us.expBarFontOffset, 1);
+	gAdjustedSettings.expBarSettings.exp_font_settings.color = us.colorCustomization.expBar.expTextColor;
 	gAdjustedSettings.expBarSettings.percent_font_settings.font_height = math.max(ds.expBarSettings.percent_font_settings.font_height + us.expBarFontOffset, 1);
+	gAdjustedSettings.expBarSettings.percent_font_settings.color = us.colorCustomization.expBar.percentTextColor;
 
 	-- Gil Tracker
 	gAdjustedSettings.gilTrackerSettings.iconScale = ds.gilTrackerSettings.iconScale * us.gilTrackerScale;
 	gAdjustedSettings.gilTrackerSettings.font_settings.font_height = math.max(ds.gilTrackerSettings.font_settings.font_height + us.gilTrackerFontOffset, 1);
+	gAdjustedSettings.gilTrackerSettings.font_settings.color = us.colorCustomization.gilTracker.textColor;
     gAdjustedSettings.gilTrackerSettings.font_settings.right_justified = us.gilTrackerRightAlign;
     if (us.gilTrackerRightAlign) then
         gAdjustedSettings.gilTrackerSettings.offsetX = ds.gilTrackerSettings.offsetX + us.gilTrackerPosOffset[1];
@@ -811,6 +903,7 @@ local function UpdateUserSettings()
 	gAdjustedSettings.inventoryTrackerSettings.dotSpacing = ds.inventoryTrackerSettings.dotSpacing * us.inventoryTrackerScale;
 	gAdjustedSettings.inventoryTrackerSettings.groupSpacing = ds.inventoryTrackerSettings.groupSpacing * us.inventoryTrackerScale;
 	gAdjustedSettings.inventoryTrackerSettings.font_settings.font_height = math.max(ds.inventoryTrackerSettings.font_settings.font_height + us.inventoryTrackerFontOffset, 1);
+	gAdjustedSettings.inventoryTrackerSettings.font_settings.color = us.colorCustomization.inventoryTracker.textColor;
     gAdjustedSettings.inventoryTrackerSettings.columnCount = us.inventoryTrackerColumnCount;
     gAdjustedSettings.inventoryTrackerSettings.rowCount = us.inventoryTrackerRowCount;
     gAdjustedSettings.inventoryTrackerSettings.opacity = us.inventoryTrackerOpacity;
@@ -826,10 +919,17 @@ local function UpdateUserSettings()
 	gAdjustedSettings.castBarSettings.barWidth = ds.castBarSettings.barWidth * us.castBarScaleX;
 	gAdjustedSettings.castBarSettings.barHeight = ds.castBarSettings.barHeight * us.castBarScaleY;
 	gAdjustedSettings.castBarSettings.spell_font_settings.font_height = math.max(ds.castBarSettings.spell_font_settings.font_height + us.castBarFontOffset, 1);
+	gAdjustedSettings.castBarSettings.spell_font_settings.color = us.colorCustomization.castBar.spellTextColor;
 	gAdjustedSettings.castBarSettings.percent_font_settings.font_height = math.max(ds.castBarSettings.percent_font_settings.font_height + us.castBarFontOffset, 1);
+	gAdjustedSettings.castBarSettings.percent_font_settings.color = us.colorCustomization.castBar.percentTextColor;
 end
 
 function UpdateSettings()
+    -- Ensure colorCustomization exists with defaults for existing users
+    if gConfig.colorCustomization == nil then
+        gConfig.colorCustomization = deep_copy_table(defaultUserSettings.colorCustomization);
+    end
+
     -- Save the current settings..
     settings.save();
 
@@ -959,6 +1059,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 		end
 
 		configMenu.DrawWindow();
+		colorCustom.DrawWindow();
 
 		if (gConfig.patchNotesVer < gAdjustedSettings.currentPatchVer) then
 			patchNotes.DrawWindow();
@@ -1016,6 +1117,12 @@ ashita.events.register('command', 'command_cb', function (e)
         if (#command_args == 2 and command_args[2]:any('partylist')) then
             gConfig.showPartyList = not gConfig.showPartyList;
             CheckVisibility();
+            return;
+        end
+
+        -- Toggle the color customization window
+        if (#command_args == 2 and command_args[2]:any('colors', 'colour', 'color')) then
+            gShowColorCustom[1] = not gShowColorCustom[1];
             return;
         end
 	end

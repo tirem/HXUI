@@ -90,7 +90,8 @@ expbar.DrawWindow = function(settings)
         if inlineMode then
             imgui.SetCursorScreenPos({col2X, startY});
         end
-		progressbar.ProgressBar({{progressBarProgress, {'#c39040', '#e9c466'}}}, {progressBarWidth, settings.barHeight}, {decorate = gConfig.showExpBarBookends});
+		local expGradient = GetCustomGradient(gConfig.colorCustomization.expBar, 'barGradient') or {'#c39040', '#e9c466'};
+		progressbar.ProgressBar({{progressBarProgress, expGradient}}, {progressBarWidth, settings.barHeight}, {decorate = gConfig.showExpBarBookends});
 
 		imgui.SameLine();
 
@@ -178,8 +179,11 @@ end
 
 expbar.UpdateFonts = function(settings)
     jobText:SetFontHeight(settings.job_font_settings.font_height);
+    jobText:SetColor(settings.job_font_settings.color);
 	expText:SetFontHeight(settings.exp_font_settings.font_height);
+	expText:SetColor(settings.exp_font_settings.color);
 	percentText:SetFontHeight(settings.percent_font_settings.font_height);
+	percentText:SetColor(settings.percent_font_settings.color);
 end
 
 expbar.SetHidden = function(hidden)

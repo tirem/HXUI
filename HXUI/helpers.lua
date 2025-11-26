@@ -518,7 +518,7 @@ end
 function GetHpColors(hpPercent)
     local hpNameColor;
     local hpGradient;
-    if (hpPercent < .25) then 
+    if (hpPercent < .25) then
         hpNameColor = 0xFFFF0000;
         hpGradient = {"#ec3232", "#f16161"};
     elseif (hpPercent < .50) then;
@@ -533,4 +533,125 @@ function GetHpColors(hpPercent)
     end
 
     return hpNameColor, hpGradient;
+end
+
+-- =====================================
+-- = Color Conversion Utility Functions =
+-- =====================================
+
+-- Convert ARGB integer (0xAARRGGBB) to ImGui RGBA float table {r, g, b, a}
+function ARGBToImGui(argb)
+    local a = bit.rshift(bit.band(argb, 0xFF000000), 24) / 255;
+    local r = bit.rshift(bit.band(argb, 0x00FF0000), 16) / 255;
+    local g = bit.rshift(bit.band(argb, 0x0000FF00), 8) / 255;
+    local b = bit.band(argb, 0x000000FF) / 255;
+    return {r, g, b, a};
+end
+
+-- Convert ImGui RGBA float table to ARGB integer
+function ImGuiToARGB(rgba)
+    local a = math.floor(rgba[4] * 255);
+    local r = math.floor(rgba[1] * 255);
+    local g = math.floor(rgba[2] * 255);
+    local b = math.floor(rgba[3] * 255);
+    return bit.bor(
+        bit.lshift(a, 24),
+        bit.lshift(r, 16),
+        bit.lshift(g, 8),
+        b
+    );
+end
+
+-- Convert hex string (#RRGGBB or #RRGGBBAA) to ImGui RGBA float table
+function HexToImGui(hex)
+    hex = hex:gsub("#", "");
+    local r = tonumber(hex:sub(1,2), 16) / 255;
+    local g = tonumber(hex:sub(3,4), 16) / 255;
+    local b = tonumber(hex:sub(5,6), 16) / 255;
+    local a = 1.0;
+    if #hex == 8 then
+        a = tonumber(hex:sub(7,8), 16) / 255;
+    end
+    return {r, g, b, a};
+end
+
+-- Convert ImGui RGBA float table to hex string
+function ImGuiToHex(rgba)
+    local r = math.floor(rgba[1] * 255);
+    local g = math.floor(rgba[2] * 255);
+    local b = math.floor(rgba[3] * 255);
+    if rgba[4] and rgba[4] < 1.0 then
+        local a = math.floor(rgba[4] * 255);
+        return string.format("#%02x%02x%02x%02x", r, g, b, a);
+    end
+    return string.format("#%02x%02x%02x", r, g, b);
+end
+
+-- Convert hex string to ARGB integer (for text colors)
+function HexToARGB(hexString, alpha)
+    hexString = hexString:gsub("#", "");
+    local r = tonumber(hexString:sub(1,2), 16);
+    local g = tonumber(hexString:sub(3,4), 16);
+    local b = tonumber(hexString:sub(5,6), 16);
+    local a = alpha or 0xFF;
+    return bit.bor(
+        bit.lshift(a, 24),
+        bit.lshift(r, 16),
+        bit.lshift(g, 8),
+        b
+    );
+end
+
+-- ======================================
+-- = Custom Color Accessor Functions =
+-- ======================================
+
+-- Get HP gradient based on HP percent and custom colors
+function GetCustomHpColors(hppPercent, moduleColorSettings)
+    local hpNameColor, hpGradient;
+
+    if not gConfig or not gConfig.colorCustomization or not moduleColorSettings then
+        -- Fallback to original GetHpColors logic
+        return GetHpColors(hppPercent);
+    end
+
+    local hpSettings = moduleColorSettings.hpGradient;
+
+    if not hpSettings then
+        return GetHpColors(hppPercent);
+    end
+
+    if hppPercent < 0.25 then
+        hpGradient = {hpSettings.low.start, hpSettings.low.stop};
+    elseif hppPercent < 0.5 then
+        hpGradient = {hpSettings.medLow.start, hpSettings.medLow.stop};
+    elseif hppPercent < 0.75 then
+        hpGradient = {hpSettings.medHigh.start, hpSettings.medHigh.stop};
+    else
+        hpGradient = {hpSettings.high.start, hpSettings.high.stop};
+    end
+
+    -- Convert first gradient color to ARGB for text
+    hpNameColor = HexToARGB(hpGradient[1], 0xFF);
+
+    return hpNameColor, hpGradient;
+end
+
+-- Get gradient colors from settings with fallback to defaults
+function GetCustomGradient(moduleSettings, gradientName)
+    if not gConfig or not gConfig.colorCustomization or not moduleSettings then
+        return nil; -- Fallback to hardcoded
+    end
+
+    local gradient = moduleSettings[gradientName];
+    if not gradient then
+        return nil;
+    end
+
+    if gradient.enabled then
+        return {gradient.start, gradient.stop};
+    else
+        -- Static color (both same)
+        return {gradient.start, gradient.start};
+    end
 end
