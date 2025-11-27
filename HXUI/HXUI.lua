@@ -833,7 +833,7 @@ function ResetSettings()
 	UpdateSettings();
 end
 
-local function CheckVisibility()
+function CheckVisibility()
 	if (gConfig.showPlayerBar == false) then
 		playerBar.SetHidden(true);
 	end
@@ -879,7 +879,7 @@ local function UpdateFonts()
 	enemyList.UpdateFonts(gAdjustedSettings.enemyListSettings);
 end
 
-local function UpdateUserSettings()
+function UpdateUserSettings()
     local ds = default_settings;
 	local us = gConfig;
 
@@ -1014,6 +1014,15 @@ local function UpdateUserSettings()
 	gAdjustedSettings.castBarSettings.percent_font_settings.font_color = us.colorCustomization.castBar.percentTextColor;
 end
 
+-- Just save settings to disk (no updates)
+function SaveSettingsToDisk()
+    -- Ensure colorCustomization exists with defaults for existing users
+    if gConfig.colorCustomization == nil then
+        gConfig.colorCustomization = deep_copy_table(defaultUserSettings.colorCustomization);
+    end
+    settings.save();
+end
+
 -- Lightweight settings save that doesn't recreate fonts (for color changes, etc.)
 function SaveSettingsOnly()
     -- Ensure colorCustomization exists with defaults for existing users
@@ -1026,6 +1035,47 @@ function SaveSettingsOnly()
 
     -- Update adjusted settings (scales, offsets, etc.)
     UpdateUserSettings();
+end
+
+-- Module-specific font updates (only recreate fonts for one module)
+function UpdatePlayerBarFonts()
+	SaveSettingsOnly();
+	playerBar.UpdateFonts(gAdjustedSettings.playerBarSettings);
+end
+
+function UpdateTargetBarFonts()
+	SaveSettingsOnly();
+	targetBar.UpdateFonts(gAdjustedSettings.targetBarSettings);
+end
+
+function UpdatePartyListFonts()
+	SaveSettingsOnly();
+	partyList.UpdateFonts(gAdjustedSettings.partyListSettings);
+end
+
+function UpdateEnemyListFonts()
+	SaveSettingsOnly();
+	enemyList.UpdateFonts(gAdjustedSettings.enemyListSettings);
+end
+
+function UpdateExpBarFonts()
+	SaveSettingsOnly();
+	expBar.UpdateFonts(gAdjustedSettings.expBarSettings);
+end
+
+function UpdateGilTrackerFonts()
+	SaveSettingsOnly();
+	gilTracker.UpdateFonts(gAdjustedSettings.gilTrackerSettings);
+end
+
+function UpdateInventoryTrackerFonts()
+	SaveSettingsOnly();
+	inventoryTracker.UpdateFonts(gAdjustedSettings.inventoryTrackerSettings);
+end
+
+function UpdateCastBarFonts()
+	SaveSettingsOnly();
+	castBar.UpdateFonts(gAdjustedSettings.castBarSettings);
 end
 
 -- Full settings update including font recreation (for font changes, visibility, etc.)
