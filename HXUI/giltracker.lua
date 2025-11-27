@@ -1,6 +1,6 @@
 require('common');
 local imgui = require('imgui');
-local fonts = require('fonts');
+local gdi = require('gdifonts.include');
 local ffi = require("ffi");
 
 local gilTexture;
@@ -9,7 +9,7 @@ local gilText;
 local giltracker = {};
 
 local function UpdateTextVisibility(visible)
-	gilText:SetVisible(visible);
+	gilText:set_visible(visible);
 end
 
 --[[
@@ -53,10 +53,10 @@ giltracker.DrawWindow = function(settings)
 		local cursorX, cursorY  = imgui.GetCursorScreenPos();
 		imgui.Image(tonumber(ffi.cast("uint32_t", gilTexture.image)), { settings.iconScale, settings.iconScale });
 
-		gilText:SetText(FormatInt(gilAmount.Count));
-        local posOffsetX = settings.font_settings.right_justified and settings.offsetX or settings.offsetX + settings.iconScale;
-		gilText:SetPositionX(cursorX + posOffsetX);
-		gilText:SetPositionY(cursorY + (settings.iconScale/2) + settings.offsetY);
+		gilText:set_text(FormatInt(gilAmount.Count));
+        local posOffsetX = (settings.font_settings.font_alignment == gdi.Alignment.Right) and settings.offsetX or settings.offsetX + settings.iconScale;
+		gilText:set_position_x(cursorX + posOffsetX);
+		gilText:set_position_y(cursorY + (settings.iconScale/2) + settings.offsetY);
 
 		UpdateTextVisibility(true);
     end
@@ -64,22 +64,27 @@ giltracker.DrawWindow = function(settings)
 end
 
 giltracker.Initialize = function(settings)
-    gilText = fonts.new(settings.font_settings);
+    gilText = gdi:create_object(settings.font_settings);
 	gilTexture = LoadTexture("gil");
 end
 
 giltracker.UpdateFonts = function(settings)
 	-- Destroy old font object
-	if (gilText ~= nil) then gilText:destroy(); end
+	if (gilText ~= nil) then gdi:destroy_object(gilText); end
 
 	-- Recreate font object with new settings
-    gilText = fonts.new(settings.font_settings);
+    gilText = gdi:create_object(settings.font_settings);
 end
 
 giltracker.SetHidden = function(hidden)
 	if (hidden == true) then
 		UpdateTextVisibility(false);
 	end
+end
+
+giltracker.Cleanup = function()
+	-- Destroy all font objects on unload
+	if (gilText ~= nil) then gdi:destroy_object(gilText); gilText = nil; end
 end
 
 return giltracker;

@@ -4,7 +4,7 @@ local imgui = require('imgui');
 local statusHandler = require('statushandler');
 local debuffHandler = require('debuffhandler');
 local progressbar = require('progressbar');
-local fonts = require('fonts');
+local gdi = require('gdifonts.include');
 local ffi = require("ffi");
 
 -- TODO: Calculate these instead of manually setting them
@@ -27,10 +27,10 @@ local lastPercentTextColor;
 local lastTotNameTextColor;
 
 local function UpdateTextVisibility(visible)
-	percentText:SetVisible(visible);
-	nameText:SetVisible(visible);
-	totNameText:SetVisible(visible);
-	distText:SetVisible(visible);
+	percentText:set_visible(visible);
+	nameText:set_visible(visible);
+	totNameText:set_visible(visible);
+	distText:set_visible(visible);
 end
 
 local _HXUI_DEV_DEBUG_INTERPOLATION = false;
@@ -237,44 +237,42 @@ targetbar.DrawWindow = function(settings)
 		local startX, startY = imgui.GetCursorScreenPos();
 		progressbar.ProgressBar(hpPercentData, {settings.barWidth, settings.barHeight}, {decorate = gConfig.showTargetBarBookends});
 
-		local nameSize = SIZE.new();
-		nameText:GetTextSize(nameSize);
+		local nameWidth, nameHeight = nameText:get_text_size();
 
-		nameText:SetPositionX(startX + settings.barHeight / 2 + settings.topTextXOffset);
-		nameText:SetPositionY(startY - settings.topTextYOffset - nameSize.cy);
-		-- Only call SetColor if the color has changed (expensive operation for GDI fonts)
+		nameText:set_position_x(startX + settings.barHeight / 2 + settings.topTextXOffset);
+		nameText:set_position_y(startY - settings.topTextYOffset - nameHeight);
+		-- Only call set_font_color if the color has changed (expensive operation for GDI fonts)
 		if (lastNameTextColor ~= color) then
-			nameText:SetColor(color);
+			nameText:set_font_color(color);
 			lastNameTextColor = color;
 		end
-		nameText:SetText(targetNameText);
-		nameText:SetVisible(true);
+		nameText:set_text(targetNameText);
+		nameText:set_visible(true);
 
-		local distSize = SIZE.new();
-		distText:GetTextSize(distSize);
+		local distWidth, distHeight = distText:get_text_size();
 
-		distText:SetPositionX(startX + settings.barWidth - settings.barHeight / 2 - settings.topTextXOffset);
-		distText:SetPositionY(startY - settings.topTextYOffset - distSize.cy);
-		distText:SetText(tostring(dist));
+		distText:set_position_x(startX + settings.barWidth - settings.barHeight / 2 - settings.topTextXOffset);
+		distText:set_position_y(startY - settings.topTextYOffset - distHeight);
+		distText:set_text(tostring(dist));
 		if (gConfig.showTargetDistance) then
-			distText:SetVisible(true);
+			distText:set_visible(true);
 		else
-			distText:SetVisible(false);
+			distText:set_visible(false);
 		end
 
 		if (isMonster or gConfig.alwaysShowHealthPercent) then
-			percentText:SetPositionX(startX + settings.barWidth - settings.barHeight / 2 - settings.bottomTextXOffset);
-			percentText:SetPositionY(startY + settings.barHeight + settings.bottomTextYOffset);
-			percentText:SetText(tostring(targetHpPercent));
-			percentText:SetVisible(true);
+			percentText:set_position_x(startX + settings.barWidth - settings.barHeight / 2 - settings.bottomTextXOffset);
+			percentText:set_position_y(startY + settings.barHeight + settings.bottomTextYOffset);
+			percentText:set_text(tostring(targetHpPercent));
+			percentText:set_visible(true);
 			local hpColor, _ = GetHpColors(targetEntity.HPPercent / 100);
-			-- Only call SetColor if the color has changed
+			-- Only call set_font_color if the color has changed
 			if (lastPercentTextColor ~= hpColor) then
-				percentText:SetColor(hpColor);
+				percentText:set_font_color(hpColor);
 				lastPercentTextColor = hpColor;
 			end
 		else
-			percentText:SetVisible(false);
+			percentText:set_visible(false);
 		end
 
 		-- Draw buffs and debuffs
@@ -320,7 +318,7 @@ targetbar.DrawWindow = function(settings)
 			-- Draw ToT in same window (original behavior)
 			if (totEntity ~= nil and totEntity.Name ~= nil) then
 				-- Reset font height to regular ToT settings when not split
-				totNameText:SetFontHeight(settings.totName_font_settings.font_height);
+				totNameText:set_font_height(settings.totName_font_settings.font_height);
 
 				imgui.SetCursorScreenPos({preBuffX, preBuffY});
 				local totX, totY = imgui.GetCursorScreenPos();
@@ -336,24 +334,23 @@ targetbar.DrawWindow = function(settings)
 				local totGradient = GetCustomGradient(gConfig.colorCustomization.totBar, 'hpGradient') or {'#e16c6c', '#fb9494'};
 				progressbar.ProgressBar({{totEntity.HPPercent / 100, totGradient}}, {settings.barWidth / 3, settings.totBarHeight}, {decorate = gConfig.showTargetBarBookends});
 
-				local totNameSize = SIZE.new();
-				totNameText:GetTextSize(totNameSize);
+				local totNameWidth, totNameHeight = totNameText:get_text_size();
 
-				totNameText:SetPositionX(totStartX + settings.barHeight / 2);
-				totNameText:SetPositionY(totStartY - totNameSize.cy);
-				-- Only call SetColor if the color has changed
+				totNameText:set_position_x(totStartX + settings.barHeight / 2);
+				totNameText:set_position_y(totStartY - totNameHeight);
+				-- Only call set_font_color if the color has changed
 				if (lastTotNameTextColor ~= totColor) then
-					totNameText:SetColor(totColor);
+					totNameText:set_font_color(totColor);
 					lastTotNameTextColor = totColor;
 				end
-				totNameText:SetText(totEntity.Name);
-				totNameText:SetVisible(true);
+				totNameText:set_text(totEntity.Name);
+				totNameText:set_visible(true);
 			else
-				totNameText:SetVisible(false);
+				totNameText:set_visible(false);
 			end
 		else
 			-- When split is enabled, hide the totName text here (it will be shown in separate window)
-			totNameText:SetVisible(false);
+			totNameText:set_visible(false);
 		end
     end
 	local winPosX, winPosY = imgui.GetWindowPos();
@@ -365,7 +362,7 @@ targetbar.DrawWindow = function(settings)
 		local playerEnt = GetPlayerEntity();
 		local player = GetPlayerSafe();
 		if (playerEnt == nil or player == nil) then
-			totNameText:SetVisible(false);
+			totNameText:set_visible(false);
 			return;
 		end
 
@@ -378,7 +375,7 @@ targetbar.DrawWindow = function(settings)
 			targetEntity = GetEntity(targetIndex);
 		end
 		if (targetEntity == nil or targetEntity.Name == nil) then
-			totNameText:SetVisible(false);
+			totNameText:set_visible(false);
 			return;
 		end
 
@@ -411,53 +408,52 @@ targetbar.DrawWindow = function(settings)
 				progressbar.ProgressBar({{totEntity.HPPercent / 100, totGradientSplit}}, {settings.totBarWidth, settings.totBarHeightSplit}, {decorate = gConfig.showTargetBarBookends});
 
 				-- Set font height for split ToT bar
-				totNameText:SetFontHeight(settings.totName_font_settings_split.font_height);
+				totNameText:set_font_height(settings.totName_font_settings_split.font_height);
 
-				local totNameSize = SIZE.new();
-				totNameText:GetTextSize(totNameSize);
+				local totNameWidth, totNameHeight = totNameText:get_text_size();
 
-				totNameText:SetPositionX(totStartX + settings.barHeight / 2);
-				totNameText:SetPositionY(totStartY - totNameSize.cy);
-				-- Only call SetColor if the color has changed
+				totNameText:set_position_x(totStartX + settings.barHeight / 2);
+				totNameText:set_position_y(totStartY - totNameHeight);
+				-- Only call set_font_color if the color has changed
 				if (lastTotNameTextColor ~= totColor) then
-					totNameText:SetColor(totColor);
+					totNameText:set_font_color(totColor);
 					lastTotNameTextColor = totColor;
 				end
-				totNameText:SetText(totEntity.Name);
-				totNameText:SetVisible(true);
+				totNameText:set_text(totEntity.Name);
+				totNameText:set_visible(true);
 			end
 			imgui.End();
 		else
-			totNameText:SetVisible(false);
+			totNameText:set_visible(false);
 		end
 	end
 end
 
 targetbar.Initialize = function(settings)
-    percentText = fonts.new(settings.percent_font_settings);
-	nameText = fonts.new(settings.name_font_settings);
-	totNameText = fonts.new(settings.totName_font_settings);
-	distText = fonts.new(settings.distance_font_settings);
+    percentText = gdi:create_object(settings.percent_font_settings);
+	nameText = gdi:create_object(settings.name_font_settings);
+	totNameText = gdi:create_object(settings.totName_font_settings);
+	distText = gdi:create_object(settings.distance_font_settings);
 	arrowTexture = 	LoadTexture("arrow");
 end
 
 targetbar.UpdateFonts = function(settings)
 	-- Destroy old font objects
-	if (percentText ~= nil) then percentText:destroy(); end
-	if (nameText ~= nil) then nameText:destroy(); end
-	if (totNameText ~= nil) then totNameText:destroy(); end
-	if (distText ~= nil) then distText:destroy(); end
+	if (percentText ~= nil) then gdi:destroy_object(percentText); end
+	if (nameText ~= nil) then gdi:destroy_object(nameText); end
+	if (totNameText ~= nil) then gdi:destroy_object(totNameText); end
+	if (distText ~= nil) then gdi:destroy_object(distText); end
 
 	-- Recreate font objects with new settings
-    percentText = fonts.new(settings.percent_font_settings);
+    percentText = gdi:create_object(settings.percent_font_settings);
+	nameText = gdi:create_object(settings.name_font_settings);
+	totNameText = gdi:create_object(settings.totName_font_settings);
+	distText = gdi:create_object(settings.distance_font_settings);
 
 	-- Reset cached colors when fonts are recreated
 	lastNameTextColor = nil;
 	lastPercentTextColor = nil;
 	lastTotNameTextColor = nil;
-	nameText = fonts.new(settings.name_font_settings);
-	totNameText = fonts.new(settings.totName_font_settings);
-	distText = fonts.new(settings.distance_font_settings);
 end
 
 targetbar.SetHidden = function(hidden)
@@ -468,10 +464,10 @@ end
 
 targetbar.Cleanup = function()
 	-- Destroy all font objects on unload
-	if (percentText ~= nil) then percentText:destroy(); percentText = nil; end
-	if (nameText ~= nil) then nameText:destroy(); nameText = nil; end
-	if (totNameText ~= nil) then totNameText:destroy(); totNameText = nil; end
-	if (distText ~= nil) then distText:destroy(); distText = nil; end
+	if (percentText ~= nil) then gdi:destroy_object(percentText); percentText = nil; end
+	if (nameText ~= nil) then gdi:destroy_object(nameText); nameText = nil; end
+	if (totNameText ~= nil) then gdi:destroy_object(totNameText); totNameText = nil; end
+	if (distText ~= nil) then gdi:destroy_object(distText); distText = nil; end
 end
 
 return targetbar;

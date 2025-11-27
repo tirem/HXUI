@@ -1,7 +1,7 @@
 require('common');
 require('helpers');
 local imgui = require('imgui');
-local fonts = require('fonts');
+local gdi = require('gdifonts.include');
 local primitives = require('primitives');
 local debuffHandler = require('debuffhandler');
 local statusHandler = require('statushandler');
@@ -65,11 +65,10 @@ end
 -- Truncates text to fit within maxWidth by progressively shortening and adding "..."
 local function TruncateTextToFit(fontObj, text, maxWidth)
 	-- First check if text fits without truncation
-	fontObj:SetText(text);
-	local size = SIZE.new();
-	fontObj:GetTextSize(size);
+	fontObj:set_text(text);
+	local width, height = fontObj:get_text_size();
 
-	if (size.cx <= maxWidth) then
+	if (width <= maxWidth) then
 		return text;
 	end
 
@@ -80,10 +79,10 @@ local function TruncateTextToFit(fontObj, text, maxWidth)
 	-- Binary search for optimal length would be faster, but linear is simpler and sufficient
 	for len = maxLength - 1, 1, -1 do
 		local truncated = text:sub(1, len) .. ellipsis;
-		fontObj:SetText(truncated);
-		fontObj:GetTextSize(size);
+		fontObj:set_text(truncated);
+		width, height = fontObj:get_text_size();
 
-		if (size.cx <= maxWidth) then
+		if (width <= maxWidth) then
 			return truncated;
 		end
 	end
@@ -234,18 +233,18 @@ enemylist.DrawWindow = function(settings)
 
 				local nameFontKey = 'name_' .. k;
 				if (enemyNameFonts[nameFontKey] == nil) then
-					enemyNameFonts[nameFontKey] = fonts.new(settings.name_font_settings);
+					enemyNameFonts[nameFontKey] = gdi:create_object(settings.name_font_settings);
 				end
 				local nameFont = enemyNameFonts[nameFontKey];
-				nameFont:SetPositionX(nameX);
-				nameFont:SetPositionY(nameY);
+				nameFont:set_position_x(nameX);
+				nameFont:set_position_y(nameY);
 
 				-- Truncate name to fit within available width
 				local maxNameWidth = entryWidth - (padding * 2);
 				local displayName = TruncateTextToFit(nameFont, ent.Name, maxNameWidth);
-				nameFont:SetText(displayName);
+				nameFont:set_text(displayName);
 
-				-- Only call SetColor if the color has changed (expensive operation for GDI fonts)
+				-- Only call set_font_color if the color has changed (expensive operation for GDI fonts)
 				local desiredColor = bit.bor(
 					bit.lshift(color[4] * 255, 24),
 					bit.lshift(color[3] * 255, 16),
@@ -253,10 +252,10 @@ enemylist.DrawWindow = function(settings)
 					color[1] * 255
 				);
 				if (enemyNameColorCache[nameFontKey] ~= desiredColor) then
-					nameFont:SetColor(desiredColor);
+					nameFont:set_font_color(desiredColor);
 					enemyNameColorCache[nameFontKey] = desiredColor;
 				end
-				nameFont:SetVisible(true);
+				nameFont:set_visible(true);
 
 				-- ROW 2: HP Bar (full width)
 				local row2Y = nameY + nameHeight + nameToBarGap;
@@ -278,32 +277,30 @@ enemylist.DrawWindow = function(settings)
 					if (gConfig.showEnemyDistance) then
 						local distanceFontKey = 'distance_' .. k;
 						if (enemyDistanceFonts[distanceFontKey] == nil) then
-							enemyDistanceFonts[distanceFontKey] = fonts.new(settings.info_font_settings);
+							enemyDistanceFonts[distanceFontKey] = gdi:create_object(settings.info_font_settings);
 						end
 						local distanceFont = enemyDistanceFonts[distanceFontKey];
-						distanceFont:SetPositionX(entryStartX + padding);
-						distanceFont:SetPositionY(row3Y);
-						distanceFont:SetText(distanceText);
-						distanceFont:SetVisible(true);
+						distanceFont:set_position_x(entryStartX + padding);
+						distanceFont:set_position_y(row3Y);
+						distanceFont:set_text(distanceText);
+						distanceFont:set_visible(true);
 					end
 
 					-- HP% text (right-aligned)
 					if (gConfig.showEnemyHPPText) then
 						local hpFontKey = 'hp_' .. k;
 						if (enemyHPFonts[hpFontKey] == nil) then
-							enemyHPFonts[hpFontKey] = fonts.new(settings.info_font_settings);
+							enemyHPFonts[hpFontKey] = gdi:create_object(settings.info_font_settings);
 						end
 						local hpFont = enemyHPFonts[hpFontKey];
-						hpFont:SetText(hpText);
+						hpFont:set_text(hpText);
 
 						-- Calculate text width for right-alignment
-						local hpSize = SIZE.new();
-						hpFont:GetTextSize(hpSize);
-						local hpTextWidth = hpSize.cx or 0;
+						local hpTextWidth, hpTextHeight = hpFont:get_text_size();
 
-						hpFont:SetPositionX(entryStartX + entryWidth - padding - hpTextWidth);
-						hpFont:SetPositionY(row3Y);
-						hpFont:SetVisible(true);
+						hpFont:set_position_x(entryStartX + entryWidth - padding - hpTextWidth);
+						hpFont:set_position_y(row3Y);
+						hpFont:set_visible(true);
 					end
 				end
 
@@ -342,19 +339,19 @@ enemylist.DrawWindow = function(settings)
 		for fontKey, fontObj in pairs(enemyNameFonts) do
 			local enemyIndex = tonumber(fontKey:match('name_(%d+)'));
 			if (enemyIndex == nil or allClaimedTargets[enemyIndex] == nil) then
-				fontObj:SetVisible(false);
+				fontObj:set_visible(false);
 			end
 		end
 		for fontKey, fontObj in pairs(enemyDistanceFonts) do
 			local enemyIndex = tonumber(fontKey:match('distance_(%d+)'));
 			if (enemyIndex == nil or allClaimedTargets[enemyIndex] == nil) then
-				fontObj:SetVisible(false);
+				fontObj:set_visible(false);
 			end
 		end
 		for fontKey, fontObj in pairs(enemyHPFonts) do
 			local enemyIndex = tonumber(fontKey:match('hp_(%d+)'));
 			if (enemyIndex == nil or allClaimedTargets[enemyIndex] == nil) then
-				fontObj:SetVisible(false);
+				fontObj:set_visible(false);
 			end
 		end
 		for bgKey, bgObj in pairs(enemyBackgrounds) do
@@ -407,13 +404,13 @@ enemylist.HandleZonePacket = function(e)
 
 	-- Clear font caches on zone
 	for k, v in pairs(enemyNameFonts) do
-		if (v ~= nil) then v:destroy(); end
+		if (v ~= nil) then gdi:destroy_object(v); end
 	end
 	for k, v in pairs(enemyDistanceFonts) do
-		if (v ~= nil) then v:destroy(); end
+		if (v ~= nil) then gdi:destroy_object(v); end
 	end
 	for k, v in pairs(enemyHPFonts) do
-		if (v ~= nil) then v:destroy(); end
+		if (v ~= nil) then gdi:destroy_object(v); end
 	end
 	enemyNameFonts = {};
 	enemyDistanceFonts = {};
@@ -434,13 +431,13 @@ end
 enemylist.UpdateFonts = function(settings)
 	-- Destroy all existing font objects
 	for k, v in pairs(enemyNameFonts) do
-		if (v ~= nil) then v:destroy(); end
+		if (v ~= nil) then gdi:destroy_object(v); end
 	end
 	for k, v in pairs(enemyDistanceFonts) do
-		if (v ~= nil) then v:destroy(); end
+		if (v ~= nil) then gdi:destroy_object(v); end
 	end
 	for k, v in pairs(enemyHPFonts) do
-		if (v ~= nil) then v:destroy(); end
+		if (v ~= nil) then gdi:destroy_object(v); end
 	end
 
 	-- Clear the tables to force recreation with new settings
@@ -455,13 +452,13 @@ end
 enemylist.Cleanup = function()
 	-- Destroy all font objects
 	for k, v in pairs(enemyNameFonts) do
-		if (v ~= nil) then v:destroy(); end
+		if (v ~= nil) then gdi:destroy_object(v); end
 	end
 	for k, v in pairs(enemyDistanceFonts) do
-		if (v ~= nil) then v:destroy(); end
+		if (v ~= nil) then gdi:destroy_object(v); end
 	end
 	for k, v in pairs(enemyHPFonts) do
-		if (v ~= nil) then v:destroy(); end
+		if (v ~= nil) then gdi:destroy_object(v); end
 	end
 
 	-- Destroy all background primitives

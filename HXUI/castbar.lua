@@ -172,4 +172,10 @@ castbar.HandleActionPacket = function(actionPacket)
 	end
 end
 
+castbar.Cleanup = function()
+	-- Destroy all font objects on unload
+	if (spellText ~= nil) then gdi:destroy_object(spellText); spellText = nil; end
+	if (percentText ~= nil) then gdi:destroy_object(percentText); percentText = nil; end
+end
+
 return castbar;

@@ -125,6 +125,7 @@ T{
 	statusIconTheme = 'XIView';
 	jobIconTheme = 'FFXI',
 	fontFamily = 'Consolas',
+	fontWeight = 'Normal', -- Options: 'Normal', 'Bold'
 
 	showPartyListWhenSolo = false,
 	maxEnemyListEntries = 8,
@@ -391,70 +392,45 @@ T{
 		topTextXOffset = 5,
 		bottomTextYOffset = -3,
 		bottomTextXOffset = 15,
-		name_font_settings = 
+		name_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
 			font_height = 13,
-			color = 0xFFFFFFFF,
-			bold = true,
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = false;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		totName_font_settings = 
+		totName_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
 			font_height = 12,
-			color = 0xFFFFFFFF,
-			bold = true,
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = false;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		distance_font_settings = 
+		distance_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 11,
-			color = 0xFFFFFFFF,
-			bold = true,
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		percent_font_settings = 
+		percent_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 11,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = true;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = bit.bor(gdi.FontFlags.Italic, gdi.FontFlags.None),
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 	};
 
@@ -467,21 +443,15 @@ T{
 		barSpacing = 10,
 		barHeight = 20,
 		textYOffset = -3,
-		font_settings = 
+		font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Center,
 			font_family = 'Consolas',
 			font_height = 15,
-			color = 0xFFFFFFFF,
-			bold = true,
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 	};
 
@@ -500,37 +470,23 @@ T{
 		debuffOffsetY = 0;
 		name_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
-			font_height = 11,  -- Reduced from 13 for smaller enemy name
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background =
-			T{
-				visible = false,
-			},
-			right_justified = false;
+			font_height = 11,
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 		info_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
-			font_height = 9,  -- Reduced from 11 for smaller HP% text
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background =
-			T{
-				visible = false,
-			},
-			right_justified = false;
+			font_height = 9,
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 		prim_data = {
 			texture_offset_x= 0.0,
@@ -560,56 +516,35 @@ T{
 		barHeight = 12;
 		textOffsetY = 5;
 		percentOffsetX = -5;
-		job_font_settings = 
+		job_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
 			font_height = 11,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = false;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		exp_font_settings = 
+		exp_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 11,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		percent_font_settings = 
+		percent_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 8,
-			color = 0xFFFFFF00,
-			bold = false,
-			italic = true;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFF00,
+			font_flags = gdi.FontFlags.Italic,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 	};
 
@@ -619,22 +554,15 @@ T{
 		iconScale = 30;
 		offsetX = -5;
 		offsetY = -7;
-		font_settings = 
+		font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 13,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 	};
 
@@ -646,22 +574,15 @@ T{
 		dotSpacing = 1;
 		groupSpacing = 8;
 		textOffsetY = -3;
-		font_settings = 
+		font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 13,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 	};
 
@@ -887,25 +808,51 @@ function UpdateUserSettings()
     local ds = default_settings;
 	local us = gConfig;
 
-	-- Apply global font family to all font settings
+	-- Apply global font family and weight to all font settings
+	local fontWeightFlags = GetFontWeightFlags(us.fontWeight);
+
 	gAdjustedSettings.targetBarSettings.name_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.targetBarSettings.name_font_settings.font_flags = fontWeightFlags;
 	gAdjustedSettings.targetBarSettings.totName_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.targetBarSettings.totName_font_settings.font_flags = fontWeightFlags;
 	gAdjustedSettings.targetBarSettings.distance_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.targetBarSettings.distance_font_settings.font_flags = fontWeightFlags;
 	gAdjustedSettings.targetBarSettings.percent_font_settings.font_family = us.fontFamily;
+	-- Keep italic for percent text, add bold if needed
+	gAdjustedSettings.targetBarSettings.percent_font_settings.font_flags = bit.bor(gdi.FontFlags.Italic, fontWeightFlags);
+
 	gAdjustedSettings.playerBarSettings.font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.playerBarSettings.font_settings.font_flags = fontWeightFlags;
+
 	gAdjustedSettings.expBarSettings.job_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.expBarSettings.job_font_settings.font_flags = fontWeightFlags;
 	gAdjustedSettings.expBarSettings.exp_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.expBarSettings.exp_font_settings.font_flags = fontWeightFlags;
 	gAdjustedSettings.expBarSettings.percent_font_settings.font_family = us.fontFamily;
+	-- Keep italic for percent text, add bold if needed
+	gAdjustedSettings.expBarSettings.percent_font_settings.font_flags = bit.bor(gdi.FontFlags.Italic, fontWeightFlags);
+
 	gAdjustedSettings.gilTrackerSettings.font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.gilTrackerSettings.font_settings.font_flags = fontWeightFlags;
+
 	gAdjustedSettings.inventoryTrackerSettings.font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.inventoryTrackerSettings.font_settings.font_flags = fontWeightFlags;
+
 	gAdjustedSettings.partyListSettings.hp_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.partyListSettings.mp_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.partyListSettings.tp_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.partyListSettings.name_font_settings.font_family = us.fontFamily;
+
 	gAdjustedSettings.castBarSettings.spell_font_settings.font_family = us.fontFamily;
+	-- Keep italic for spell text, add bold if needed
+	gAdjustedSettings.castBarSettings.spell_font_settings.font_flags = bit.bor(gdi.FontFlags.Italic, fontWeightFlags);
 	gAdjustedSettings.castBarSettings.percent_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.castBarSettings.percent_font_settings.font_flags = fontWeightFlags;
+
 	gAdjustedSettings.enemyListSettings.name_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.enemyListSettings.name_font_settings.font_flags = fontWeightFlags;
 	gAdjustedSettings.enemyListSettings.info_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.enemyListSettings.info_font_settings.font_flags = fontWeightFlags;
 
 	-- Target Bar
 	gAdjustedSettings.targetBarSettings.barWidth = ds.targetBarSettings.barWidth * us.targetBarScaleX;
@@ -1286,6 +1233,15 @@ ashita.events.register('unload', 'unload_cb', function ()
     end
     if castBar and castBar.Cleanup then
         castBar.Cleanup();
+    end
+    if expBar and expBar.Cleanup then
+        expBar.Cleanup();
+    end
+    if gilTracker and gilTracker.Cleanup then
+        gilTracker.Cleanup();
+    end
+    if inventoryTracker and inventoryTracker.Cleanup then
+        inventoryTracker.Cleanup();
     end
 
     -- Cleanup GDI interface last

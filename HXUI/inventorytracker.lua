@@ -1,13 +1,13 @@
 require('common');
 local imgui = require('imgui');
-local fonts = require('fonts');
+local gdi = require('gdifonts.include');
 
 local inventoryText;
 
 local inventoryTracker = {};
 
 local function UpdateTextVisibility(visible)
-	inventoryText:SetVisible(visible);
+	inventoryText:set_visible(visible);
 end
 
 local function GetDotOffset(row, column, settings)
@@ -114,9 +114,10 @@ inventoryTracker.DrawWindow = function(settings)
 		end
 
         if (settings.showText) then
-            inventoryText:SetText(usedBagSlots.. '/'..maxBagSlots);
-            inventoryText:SetPositionX(locX + winSizeX);
-		    inventoryText:SetPositionY(locY + settings.textOffsetY - inventoryText:GetFontHeight());
+            inventoryText:set_text(usedBagSlots.. '/'..maxBagSlots);
+            local textWidth, textHeight = inventoryText:get_text_size();
+            inventoryText:set_position_x(locX + winSizeX);
+		    inventoryText:set_position_y(locY + settings.textOffsetY - textHeight);
             UpdateTextVisibility(true);
         else
             UpdateTextVisibility(false);
@@ -127,15 +128,15 @@ end
 
 
 inventoryTracker.Initialize = function(settings)
-    inventoryText = fonts.new(settings.font_settings);
+    inventoryText = gdi:create_object(settings.font_settings);
 end
 
 inventoryTracker.UpdateFonts = function(settings)
 	-- Destroy old font object
-	if (inventoryText ~= nil) then inventoryText:destroy(); end
+	if (inventoryText ~= nil) then gdi:destroy_object(inventoryText); end
 
 	-- Recreate font object with new settings
-    inventoryText = fonts.new(settings.font_settings);
+    inventoryText = gdi:create_object(settings.font_settings);
 end
 
 
@@ -145,5 +146,9 @@ inventoryTracker.SetHidden = function(hidden)
 	end
 end
 
+inventoryTracker.Cleanup = function()
+	-- Destroy all font objects on unload
+	if (inventoryText ~= nil) then gdi:destroy_object(inventoryText); inventoryText = nil; end
+end
 
 return inventoryTracker;

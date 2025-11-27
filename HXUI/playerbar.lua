@@ -1,7 +1,7 @@
 require('common');
 require('helpers');
 local imgui = require('imgui');
-local fonts = require('fonts');
+local gdi = require('gdifonts.include');
 local progressbar = require('progressbar');
 local buffTable = require('bufftable');
 
@@ -26,9 +26,9 @@ if _HXUI_DEV_DEBUG_INTERPOLATION then
 end
 
 local function UpdateTextVisibility(visible)
-	hpText:SetVisible(visible);
-	mpText:SetVisible(visible);
-	tpText:SetVisible(visible);
+	hpText:set_visible(visible);
+	mpText:set_visible(visible);
+	tpText:set_visible(visible);
 end
 
 playerbar.DrawWindow = function(settings)
@@ -229,64 +229,64 @@ playerbar.DrawWindow = function(settings)
 		local tpLocX, tpLocY  = imgui.GetCursorScreenPos();
 		
 		-- Update our HP Text
-		hpText:SetPositionX(hpLocX - settings.barSpacing - settings.barHeight / 2);
-		hpText:SetPositionY(hpLocY + settings.barHeight + settings.textYOffset);
-		hpText:SetText(tostring(SelfHP));
-		-- Only call SetColor if the color has changed (expensive operation for GDI fonts)
+		hpText:set_position_x(hpLocX - settings.barSpacing - settings.barHeight / 2);
+		hpText:set_position_y(hpLocY + settings.barHeight + settings.textYOffset);
+		hpText:set_text(tostring(SelfHP));
+		-- Only call set_font_color if the color has changed (expensive operation for GDI fonts)
 		if (lastHpTextColor ~= gConfig.colorCustomization.playerBar.hpTextColor) then
-			hpText:SetColor(gConfig.colorCustomization.playerBar.hpTextColor);
+			hpText:set_font_color(gConfig.colorCustomization.playerBar.hpTextColor);
 			lastHpTextColor = gConfig.colorCustomization.playerBar.hpTextColor;
 		end
 
-		hpText:SetVisible(true);
+		hpText:set_visible(true);
 
 		if (bShowMp) then
 			-- Update our MP Text
-			mpText:SetPositionX(mpLocX - settings.barSpacing - settings.barHeight / 2);
-			mpText:SetPositionY(mpLocY + settings.barHeight + settings.textYOffset);
-			mpText:SetText(tostring(SelfMP));
-			-- Only call SetColor if the color has changed
+			mpText:set_position_x(mpLocX - settings.barSpacing - settings.barHeight / 2);
+			mpText:set_position_y(mpLocY + settings.barHeight + settings.textYOffset);
+			mpText:set_text(tostring(SelfMP));
+			-- Only call set_font_color if the color has changed
 			if (lastMpTextColor ~= gConfig.colorCustomization.playerBar.mpTextColor) then
-				mpText:SetColor(gConfig.colorCustomization.playerBar.mpTextColor);
+				mpText:set_font_color(gConfig.colorCustomization.playerBar.mpTextColor);
 				lastMpTextColor = gConfig.colorCustomization.playerBar.mpTextColor;
 			end
 		end
 
-		mpText:SetVisible(bShowMp);
+		mpText:set_visible(bShowMp);
 
 		-- Update our TP Text
-		tpText:SetPositionX(tpLocX - settings.barSpacing - settings.barHeight / 2);
-		tpText:SetPositionY(tpLocY + settings.barHeight + settings.textYOffset);
-		tpText:SetText(tostring(SelfTP));
+		tpText:set_position_x(tpLocX - settings.barSpacing - settings.barHeight / 2);
+		tpText:set_position_y(tpLocY + settings.barHeight + settings.textYOffset);
+		tpText:set_text(tostring(SelfTP));
 		local desiredTpColor = (SelfTP >= 1000) and gConfig.colorCustomization.playerBar.tpFullTextColor or gConfig.colorCustomization.playerBar.tpEmptyTextColor;
-		-- Only call SetColor if the color has changed
+		-- Only call set_font_color if the color has changed
 		if (lastTpTextColor ~= desiredTpColor) then
-			tpText:SetColor(desiredTpColor);
+			tpText:set_font_color(desiredTpColor);
 			lastTpTextColor = desiredTpColor;
 		end
 
-		tpText:SetVisible(true);
+		tpText:set_visible(true);
     end
 	imgui.End();
 end
 
 
 playerbar.Initialize = function(settings)
-    hpText = fonts.new(settings.font_settings);
-	mpText = fonts.new(settings.font_settings);
-	tpText = fonts.new(settings.font_settings);
+    hpText = gdi:create_object(settings.font_settings);
+	mpText = gdi:create_object(settings.font_settings);
+	tpText = gdi:create_object(settings.font_settings);
 end
 
 playerbar.UpdateFonts = function(settings)
 	-- Destroy old font objects
-	if (hpText ~= nil) then hpText:destroy(); end
-	if (mpText ~= nil) then mpText:destroy(); end
-	if (tpText ~= nil) then tpText:destroy(); end
+	if (hpText ~= nil) then gdi:destroy_object(hpText); end
+	if (mpText ~= nil) then gdi:destroy_object(mpText); end
+	if (tpText ~= nil) then gdi:destroy_object(tpText); end
 
 	-- Recreate font objects with new settings
-    hpText = fonts.new(settings.font_settings);
-	mpText = fonts.new(settings.font_settings);
-	tpText = fonts.new(settings.font_settings);
+    hpText = gdi:create_object(settings.font_settings);
+	mpText = gdi:create_object(settings.font_settings);
+	tpText = gdi:create_object(settings.font_settings);
 
 	-- Reset cached colors when fonts are recreated
 	lastHpTextColor = nil;
@@ -302,9 +302,9 @@ end
 
 playerbar.Cleanup = function()
 	-- Destroy all font objects on unload
-	if (hpText ~= nil) then hpText:destroy(); hpText = nil; end
-	if (mpText ~= nil) then mpText:destroy(); mpText = nil; end
-	if (tpText ~= nil) then tpText:destroy(); tpText = nil; end
+	if (hpText ~= nil) then gdi:destroy_object(hpText); hpText = nil; end
+	if (mpText ~= nil) then gdi:destroy_object(mpText); mpText = nil; end
+	if (tpText ~= nil) then gdi:destroy_object(tpText); tpText = nil; end
 end
 
 return playerbar;

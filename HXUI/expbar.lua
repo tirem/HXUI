@@ -1,6 +1,6 @@
 require('common');
 local imgui = require('imgui');
-local fonts = require('fonts');
+local gdi = require('gdifonts.include');
 local progressbar = require('progressbar');
 
 local jobText;
@@ -15,9 +15,9 @@ local expbar = {
 };
 
 local function UpdateTextVisibility(visible)
-	jobText:SetVisible(visible);
-	expText:SetVisible(visible);
-	percentText:SetVisible(visible);
+	jobText:set_visible(visible);
+	expText:set_visible(visible);
+	percentText:set_visible(visible);
 end
 
 --[[
@@ -105,57 +105,55 @@ expbar.DrawWindow = function(settings)
             local mainJobString = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', mainJob);
             local subJobString = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', subJob);
             local jobString = mainJobString .. ' ' .. jobLevel .. ' / ' .. subJobString .. ' ' .. subJobLevel;
-            jobText:SetText(jobString);
-            local textW, textH = jobText:get_text_size();
-            jobText:SetPositionX(startX);
-            jobText:SetPositionY(inlineMode and textY + (settings.barHeight - textH) / 2 - 1 or textY); -- - jobText:GetFontHeight() / 2.5);
+            jobText:set_text(jobString);
+            local textWidth, textHeight = jobText:get_text_size();
+            jobText:set_position_x(startX);
+            jobText:set_position_y(inlineMode and textY + (settings.barHeight - textHeight) / 2 - 1 or textY);
 
             -- Exp Text
             if meritMode then
                 if jobLevel >= 99 then
                     local expString = 'JP (' .. jobPoints[1] .. ' / ' .. jobPoints[2] .. ')' .. ' MP (' .. meritPoints[1] .. ' / ' .. meritPoints[2] .. ')' .. ' LP (' .. limitPoints[1] .. ' / ' .. limitPoints[2] .. ')';
-                    expText:SetText(expString);
+                    expText:set_text(expString);
                 else
                     local expString = 'MP (' .. meritPoints[1] .. ' / ' .. meritPoints[2] .. ')' .. ' LP (' .. limitPoints[1] .. ' / ' .. limitPoints[2] .. ')';
-                    expText:SetText(expString);
+                    expText:set_text(expString);
                 end
             elseif jobLevel >= 99 then
                 local expString = 'JP (' .. jobPoints[1] .. ' / ' .. jobPoints[2] .. ')' .. ' MP (' .. meritPoints[1] .. ' / ' .. meritPoints[2] .. ')' .. ' CP (' .. capPoints[1] .. ' / ' .. capPoints[2] .. ')';
-                expText:SetText(expString);
+                expText:set_text(expString);
             else
                 local expString = 'EXP (' .. expPoints[1] .. ' / ' .. expPoints[2] .. ')';
-                expText:SetText(expString);
+                expText:set_text(expString);
             end
-            local textW, textH = expText:get_text_size();
-            expText:SetPositionX(textXRightAlign);
-            expText:SetPositionY(inlineMode and textY + (settings.barHeight - textH) / 2 - 1 or textY); -- - expText:GetFontHeight() / 2.5);
+            local expTextWidth, expTextHeight = expText:get_text_size();
+            expText:set_position_x(textXRightAlign);
+            expText:set_position_y(inlineMode and textY + (settings.barHeight - expTextHeight) / 2 - 1 or textY);
 
-            jobText:SetVisible(true);
-            expText:SetVisible(true);
+            jobText:set_visible(true);
+            expText:set_visible(true);
         else
-            jobText:SetText('');
-            jobText:SetVisible(false);
-            expText:SetText('');
-            expText:SetVisible(false);
+            jobText:set_text('');
+            jobText:set_visible(false);
+            expText:set_text('');
+            expText:set_visible(false);
         end
 
         -- Percent Text
         if gConfig.expBarShowPercent then
             local expPercentString = ('%.f'):fmt(progressBarProgress * 100);
             local percentString = expPercentString .. '%';
-            percentText:SetText(percentString); 
-            local textW, textH = percentText:get_text_size();
+            percentText:set_text(percentString);
+            local percentTextWidth, percentTextHeight = percentText:get_text_size();
             local percentTextX = inlineMode and startX + windowSize or textXRightAlign;
-            local percentTextY = inlineMode and textY + (settings.barHeight - textH) / 2 - 1 or startY - settings.textOffsetY;
-            percentText:SetAnchor(inlineMode and 0 or 2);
-            percentText:SetPositionX(percentTextX + settings.percentOffsetX);
-            percentText:SetPositionY(percentTextY);
-            percentText:SetRightJustified(settings.percent_font_settings.right_justified and not inlineMode);
+            local percentTextY = inlineMode and textY + (settings.barHeight - percentTextHeight) / 2 - 1 or startY - settings.textOffsetY;
+            percentText:set_position_x(percentTextX + settings.percentOffsetX);
+            percentText:set_position_y(percentTextY);
 
-            percentText:SetVisible(true);
+            percentText:set_visible(true);
         else
-            percentText:SetText('');
-            percentText:SetVisible(false);
+            percentText:set_text('');
+            percentText:set_visible(false);
         end
 
     end
@@ -164,9 +162,9 @@ end
 
 
 expbar.Initialize = function(settings)
-    jobText = fonts.new(settings.job_font_settings);
-	expText = fonts.new(settings.exp_font_settings);
-	percentText = fonts.new(settings.percent_font_settings);
+    jobText = gdi:create_object(settings.job_font_settings);
+	expText = gdi:create_object(settings.exp_font_settings);
+	percentText = gdi:create_object(settings.percent_font_settings);
 
     local player = GetPlayerSafe();
     if player ~= nil then
@@ -181,14 +179,14 @@ end
 
 expbar.UpdateFonts = function(settings)
 	-- Destroy old font objects
-	if (jobText ~= nil) then jobText:destroy(); end
-	if (expText ~= nil) then expText:destroy(); end
-	if (percentText ~= nil) then percentText:destroy(); end
+	if (jobText ~= nil) then gdi:destroy_object(jobText); end
+	if (expText ~= nil) then gdi:destroy_object(expText); end
+	if (percentText ~= nil) then gdi:destroy_object(percentText); end
 
 	-- Recreate font objects with new settings
-    jobText = fonts.new(settings.job_font_settings);
-	expText = fonts.new(settings.exp_font_settings);
-	percentText = fonts.new(settings.percent_font_settings);
+    jobText = gdi:create_object(settings.job_font_settings);
+	expText = gdi:create_object(settings.exp_font_settings);
+	percentText = gdi:create_object(settings.percent_font_settings);
 end
 
 expbar.SetHidden = function(hidden)
@@ -239,6 +237,13 @@ expbar.HandlePacket = function(e)
             end
         end
     end
+end
+
+expbar.Cleanup = function()
+	-- Destroy all font objects on unload
+	if (jobText ~= nil) then gdi:destroy_object(jobText); jobText = nil; end
+	if (expText ~= nil) then gdi:destroy_object(expText); expText = nil; end
+	if (percentText ~= nil) then gdi:destroy_object(percentText); percentText = nil; end
 end
 
 return expbar;

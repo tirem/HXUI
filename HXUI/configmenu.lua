@@ -118,6 +118,14 @@ local function DrawGeneralSettings()
         end);
         imgui.ShowHelp('The font family to use for all text in HXUI. Fonts must be installed on your system.');
 
+        -- Font Weight Selector
+        DrawComboBox('Font Weight', gConfig.fontWeight, {'Normal', 'Bold'}, function(newValue)
+            gConfig.fontWeight = newValue;
+            ClearDebuffFontCache();
+            UpdateSettings();
+        end);
+        imgui.ShowHelp('The font weight (boldness) to use for all text in HXUI.');
+
         DrawCheckbox('Show Health Bar Flash Effects', 'healthBarFlashEnabled');
         DrawSlider('Basic Bar Roundness', 'noBookendRounding', 0, 10);
         imgui.ShowHelp('For bars with no bookends, how round they should be.');

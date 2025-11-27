@@ -1,6 +1,6 @@
 require('common');
 local imgui = require('imgui');
-local fonts = require('fonts');
+local gdi = require('gdifonts.include');
 local primitives = require('primitives');
 local statusHandler = require('statushandler');
 local buffTable = require('bufftable');
@@ -83,10 +83,10 @@ end
 
 local function UpdateTextVisibilityByMember(memIdx, visible)
 
-    memberText[memIdx].hp:SetVisible(visible);
-    memberText[memIdx].mp:SetVisible(visible);
-    memberText[memIdx].tp:SetVisible(visible);
-    memberText[memIdx].name:SetVisible(visible);
+    memberText[memIdx].hp:set_visible(visible);
+    memberText[memIdx].mp:set_visible(visible);
+    memberText[memIdx].tp:set_visible(visible);
+    memberText[memIdx].name:set_visible(visible);
 end
 
 local function UpdateTextVisibility(visible, partyIndex)
@@ -243,10 +243,8 @@ local function DrawMember(memIdx, settings)
     local showTP = showPartyTP(partyIndex);
 
     local subTargetActive = GetSubTargetActive();
-    local nameSize = SIZE.new();
-    local hpSize = SIZE.new();
-    memberText[memIdx].name:GetTextSize(nameSize);
-    memberText[memIdx].hp:GetTextSize(hpSize);
+    local nameWidth, nameHeight = memberText[memIdx].name:get_text_size();
+    local hpWidth, hpHeight = memberText[memIdx].hp:get_text_size();
 
     -- Get the hp color for bars and text
     local hpNameColor, hpGradient = GetCustomHpColors(memInfo.hpp, gConfig.colorCustomization.partyList);
@@ -278,15 +276,15 @@ local function DrawMember(memIdx, settings)
     imgui.SetCursorScreenPos({hpStartX, hpStartY});
 
     -- Update the hp text
-    -- Only call SetColor if the color has changed (expensive operation for GDI fonts)
+    -- Only call set_color if the color has changed (expensive operation for GDI fonts)
     if not memberTextColorCache[memIdx] then memberTextColorCache[memIdx] = {}; end
     if (memberTextColorCache[memIdx].hp ~= gConfig.colorCustomization.partyList.hpTextColor) then
-        memberText[memIdx].hp:SetColor(gConfig.colorCustomization.partyList.hpTextColor);
+        memberText[memIdx].hp:set_font_color(gConfig.colorCustomization.partyList.hpTextColor);
         memberTextColorCache[memIdx].hp = gConfig.colorCustomization.partyList.hpTextColor;
     end
-    memberText[memIdx].hp:SetPositionX(hpStartX + hpBarWidth + settings.hpTextOffsetX);
-    memberText[memIdx].hp:SetPositionY(hpStartY + barHeight + settings.hpTextOffsetY);
-    memberText[memIdx].hp:SetText(tostring(memInfo.hp));
+    memberText[memIdx].hp:set_position_x(hpStartX + hpBarWidth + settings.hpTextOffsetX);
+    memberText[memIdx].hp:set_position_y(hpStartY + barHeight + settings.hpTextOffsetY);
+    memberText[memIdx].hp:set_text(tostring(memInfo.hp));
 
     -- Draw the HP bar
     if (memInfo.inzone) then
@@ -323,18 +321,17 @@ local function DrawMember(memIdx, settings)
     end
 
     local desiredNameColor = highlightDistance and 0xFF00FFFF or gConfig.colorCustomization.partyList.nameTextColor;
-    -- Only call SetColor if the color has changed
+    -- Only call set_color if the color has changed
     if (memberTextColorCache[memIdx].name ~= desiredNameColor) then
-        memberText[memIdx].name:SetColor(desiredNameColor);
+        memberText[memIdx].name:set_font_color(desiredNameColor);
         memberTextColorCache[memIdx].name = desiredNameColor;
     end
-    memberText[memIdx].name:SetPositionX(namePosX);
-    memberText[memIdx].name:SetPositionY(hpStartY - nameSize.cy - settings.nameTextOffsetY);
-    memberText[memIdx].name:SetText(tostring(memInfo.name) .. distanceText);
+    memberText[memIdx].name:set_position_x(namePosX);
+    memberText[memIdx].name:set_position_y(hpStartY - nameHeight - settings.nameTextOffsetY);
+    memberText[memIdx].name:set_text(tostring(memInfo.name) .. distanceText);
 
-    local nameSize = SIZE.new();
-    memberText[memIdx].name:GetTextSize(nameSize);
-    local offsetSize = nameSize.cy > settings.iconSize and nameSize.cy or settings.iconSize;
+    nameWidth, nameHeight = memberText[memIdx].name:get_text_size();
+    local offsetSize = nameHeight > settings.iconSize and nameHeight or settings.iconSize;
 
     if (memInfo.inzone) then
         imgui.SameLine();
@@ -347,14 +344,14 @@ local function DrawMember(memIdx, settings)
         progressbar.ProgressBar({{memInfo.mpp, mpGradient}}, {mpBarWidth, barHeight}, {borderConfig=borderConfig, backgroundGradientOverride=bgGradientOverride, decorate = gConfig.showPartyListBookends});
 
         -- Update the mp text
-        -- Only call SetColor if the color has changed
+        -- Only call set_color if the color has changed
         if (memberTextColorCache[memIdx].mp ~= gConfig.colorCustomization.partyList.mpTextColor) then
-            memberText[memIdx].mp:SetColor(gConfig.colorCustomization.partyList.mpTextColor);
+            memberText[memIdx].mp:set_font_color(gConfig.colorCustomization.partyList.mpTextColor);
             memberTextColorCache[memIdx].mp = gConfig.colorCustomization.partyList.mpTextColor;
         end
-        memberText[memIdx].mp:SetPositionX(mpStartX + mpBarWidth + settings.mpTextOffsetX);
-        memberText[memIdx].mp:SetPositionY(mpStartY + barHeight + settings.mpTextOffsetY);
-        memberText[memIdx].mp:SetText(tostring(memInfo.mp));
+        memberText[memIdx].mp:set_position_x(mpStartX + mpBarWidth + settings.mpTextOffsetX);
+        memberText[memIdx].mp:set_position_y(mpStartY + barHeight + settings.mpTextOffsetY);
+        memberText[memIdx].mp:set_text(tostring(memInfo.mp));
 
         -- Draw the TP bar
         if (showTP) then
@@ -383,18 +380,18 @@ local function DrawMember(memIdx, settings)
 
             -- Update the tp text
             local desiredTpColor = (memInfo.tp >= 1000) and gConfig.colorCustomization.partyList.tpFullTextColor or gConfig.colorCustomization.partyList.tpEmptyTextColor;
-            -- Only call SetColor if the color has changed
+            -- Only call set_color if the color has changed
             if (memberTextColorCache[memIdx].tp ~= desiredTpColor) then
-                memberText[memIdx].tp:SetColor(desiredTpColor);
+                memberText[memIdx].tp:set_font_color(desiredTpColor);
                 memberTextColorCache[memIdx].tp = desiredTpColor;
             end
-            memberText[memIdx].tp:SetPositionX(tpStartX + tpBarWidth + settings.tpTextOffsetX);
-            memberText[memIdx].tp:SetPositionY(tpStartY + barHeight + settings.tpTextOffsetY);
-            memberText[memIdx].tp:SetText(tostring(memInfo.tp));
+            memberText[memIdx].tp:set_position_x(tpStartX + tpBarWidth + settings.tpTextOffsetX);
+            memberText[memIdx].tp:set_position_y(tpStartY + barHeight + settings.tpTextOffsetY);
+            memberText[memIdx].tp:set_text(tostring(memInfo.tp));
         end
 
         -- Draw targeted
-        local entrySize = hpSize.cy + offsetSize + settings.hpTextOffsetY + barHeight + settings.cursorPaddingY1 + settings.cursorPaddingY2;
+        local entrySize = hpHeight + offsetSize + settings.hpTextOffsetY + barHeight + settings.cursorPaddingY1 + settings.cursorPaddingY2;
         if (memInfo.targeted == true) then
             selectionPrim.visible = true;
             selectionPrim.position_x = hpStartX - settings.cursorPaddingX1;
@@ -407,7 +404,7 @@ local function DrawMember(memIdx, settings)
         -- Draw subtargeted
         if ((memInfo.targeted == true and not subTargetActive) or memInfo.subTargeted) then
             arrowPrim.visible = true;
-            local newArrowX =  memberText[memIdx].name:GetPositionX() - arrowPrim:GetWidth();
+            local newArrowX =  memberText[memIdx].name.settings.position_x - arrowPrim:GetWidth();
             if (jobIcon ~= nil) then
                 newArrowX = newArrowX - jobIconSize;
             end
@@ -485,7 +482,7 @@ local function DrawMember(memIdx, settings)
                 imgui.SetCursorScreenPos({resetX, resetY});
             elseif (gConfig.partyListStatusTheme == 3) then
                 if (buffWindowX[memIdx] ~= nil) then
-                    imgui.SetNextWindowPos({hpStartX - buffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name:GetPositionY() - settings.iconSize/2});
+                    imgui.SetNextWindowPos({hpStartX - buffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name.settings.position_y - settings.iconSize/2});
                 end
                 if (imgui.Begin('PlayerBuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
                     imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 3});
@@ -504,12 +501,12 @@ local function DrawMember(memIdx, settings)
         draw_circle({hpStartX + settings.dotRadius/2, hpStartY + barHeight}, settings.dotRadius, {.5, .5, 1, 1}, settings.dotRadius * 3, true);
     end
 
-    memberText[memIdx].hp:SetVisible(memInfo.inzone);
-    memberText[memIdx].mp:SetVisible(memInfo.inzone);
-    memberText[memIdx].tp:SetVisible(memInfo.inzone and showTP);
+    memberText[memIdx].hp:set_visible(memInfo.inzone);
+    memberText[memIdx].mp:set_visible(memInfo.inzone);
+    memberText[memIdx].tp:set_visible(memInfo.inzone and showTP);
 
     --if (memInfo.inzone) then
-        imgui.Dummy({0, settings.entrySpacing[partyIndex] + hpSize.cy + settings.hpTextOffsetY + settings.nameTextOffsetY});
+        imgui.Dummy({0, settings.entrySpacing[partyIndex] + hpHeight + settings.hpTextOffsetY + settings.nameTextOffsetY});
     --else
     --    imgui.Dummy({0, settings.entrySpacing[partyIndex] + settings.nameTextOffsetY});
     --end
@@ -613,9 +610,8 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
     if (imgui.Begin(windowName, true, windowFlags)) then
         imguiPosX, imguiPosY = imgui.GetWindowPos();
 
-        local nameSize = SIZE.new();
-        memberText[(partyIndex - 1) * 6].name:GetTextSize(nameSize);
-        local offsetSize = nameSize.cy > iconSize and nameSize.cy or iconSize;
+        local nameWidth, nameHeight = memberText[(partyIndex - 1) * 6].name:get_text_size();
+        local offsetSize = nameHeight > iconSize and nameHeight or iconSize;
         imgui.Dummy({0, settings.nameTextOffsetY + offsetSize});
 
         UpdateTextVisibility(true, partyIndex);
@@ -743,10 +739,10 @@ partyList.Initialize = function(settings)
         tp_font_settings.font_height = math.max(settings.tp_font_settings.font_height + fontOffset, 1);
 
         memberText[i] = {};
-        memberText[i].name = fonts.new(name_font_settings);
-        memberText[i].hp = fonts.new(hp_font_settings);
-        memberText[i].mp = fonts.new(mp_font_settings);
-        memberText[i].tp = fonts.new(tp_font_settings);
+        memberText[i].name = gdi:create_object(name_font_settings);
+        memberText[i].hp = gdi:create_object(hp_font_settings);
+        memberText[i].mp = gdi:create_object(mp_font_settings);
+        memberText[i].tp = gdi:create_object(tp_font_settings);
     end
 
     -- Initialize images
@@ -823,17 +819,17 @@ partyList.UpdateFonts = function(settings)
 
         -- Destroy old font objects
         if (memberText[i] ~= nil) then
-            if (memberText[i].name ~= nil) then memberText[i].name:destroy(); end
-            if (memberText[i].hp ~= nil) then memberText[i].hp:destroy(); end
-            if (memberText[i].mp ~= nil) then memberText[i].mp:destroy(); end
-            if (memberText[i].tp ~= nil) then memberText[i].tp:destroy(); end
+            if (memberText[i].name ~= nil) then gdi:destroy_object(memberText[i].name); end
+            if (memberText[i].hp ~= nil) then gdi:destroy_object(memberText[i].hp); end
+            if (memberText[i].mp ~= nil) then gdi:destroy_object(memberText[i].mp); end
+            if (memberText[i].tp ~= nil) then gdi:destroy_object(memberText[i].tp); end
         end
 
         -- Recreate font objects with new settings
-        memberText[i].name = fonts.new(name_font_settings);
-        memberText[i].hp = fonts.new(hp_font_settings);
-        memberText[i].mp = fonts.new(mp_font_settings);
-        memberText[i].tp = fonts.new(tp_font_settings);
+        memberText[i].name = gdi:create_object(name_font_settings);
+        memberText[i].hp = gdi:create_object(hp_font_settings);
+        memberText[i].mp = gdi:create_object(mp_font_settings);
+        memberText[i].tp = gdi:create_object(tp_font_settings);
 
         ::continue::
     end
@@ -896,10 +892,10 @@ partyList.Cleanup = function()
 	-- Destroy all member text font objects
 	for i = 0, memberTextCount - 1 do
 		if (memberText[i] ~= nil) then
-			if (memberText[i].name ~= nil) then memberText[i].name:destroy(); end
-			if (memberText[i].hp ~= nil) then memberText[i].hp:destroy(); end
-			if (memberText[i].mp ~= nil) then memberText[i].mp:destroy(); end
-			if (memberText[i].tp ~= nil) then memberText[i].tp:destroy(); end
+			if (memberText[i].name ~= nil) then gdi:destroy_object(memberText[i].name); end
+			if (memberText[i].hp ~= nil) then gdi:destroy_object(memberText[i].hp); end
+			if (memberText[i].mp ~= nil) then gdi:destroy_object(memberText[i].mp); end
+			if (memberText[i].tp ~= nil) then gdi:destroy_object(memberText[i].tp); end
 		end
 	end
 

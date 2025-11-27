@@ -7,8 +7,21 @@ local C         = ffi.C;
 local d3d8dev   = d3d.get_device();
 local statusHandler = require('statushandler');
 local buffTable = require('bufftable');
+local gdi = require('gdifonts.include');
 
 debuffTable = T{};
+
+-- ========================================
+-- Font Weight Helper
+-- ========================================
+-- Converts fontWeight string setting to GDI font flags
+function GetFontWeightFlags(fontWeight)
+	if fontWeight == 'Bold' then
+		return gdi.FontFlags.Bold;
+	else
+		return gdi.FontFlags.None;
+	end
+end
 
 -- Entity spawn flags constants
 local SPAWN_FLAG_PLAYER = 0x0001;  -- Entity is a player character
@@ -101,7 +114,36 @@ local debuff_font_settings = T{
 	right_justified = false;
 };
 
-function draw_rect(top_left, bot_right, color, radius, fill)
+function draw_rect(top_left, bot_right, color, radius, fill, shadowConfig)
+    -- Draw shadow first if configured
+    if shadowConfig then
+        local shadowOffsetX = shadowConfig.offsetX or 2;
+        local shadowOffsetY = shadowConfig.offsetY or 2;
+        local shadowColor = shadowConfig.color or 0x80000000;
+
+        -- Apply alpha override if specified
+        if shadowConfig.alpha then
+            local baseColor = bit.band(shadowColor, 0x00FFFFFF);
+            local alpha = math.floor(math.clamp(shadowConfig.alpha, 0, 1) * 255);
+            shadowColor = bit.bor(baseColor, bit.lshift(alpha, 24));
+        end
+
+        local shadow_top_left = {top_left[1] + shadowOffsetX, top_left[2] + shadowOffsetY};
+        local shadow_bot_right = {bot_right[1] + shadowOffsetX, bot_right[2] + shadowOffsetY};
+        local shadowColorU32 = imgui.GetColorU32(shadowColor);
+        local shadowDimensions = {
+            { shadow_top_left[1], shadow_top_left[2] },
+            { shadow_bot_right[1], shadow_bot_right[2] }
+        };
+
+        if (fill == true) then
+            imgui.GetWindowDrawList():AddRectFilled(shadowDimensions[1], shadowDimensions[2], shadowColorU32, radius, ImDrawCornerFlags_All);
+        else
+            imgui.GetWindowDrawList():AddRect(shadowDimensions[1], shadowDimensions[2], shadowColorU32, radius, ImDrawCornerFlags_All, 1);
+        end
+    end
+
+    -- Draw main rectangle
     local color = imgui.GetColorU32(color);
     local dimensions = {
         { top_left[1], top_left[2] },
@@ -114,7 +156,36 @@ function draw_rect(top_left, bot_right, color, radius, fill)
 	end
 end
 
-function draw_rect_background(top_left, bot_right, color, radius, fill)
+function draw_rect_background(top_left, bot_right, color, radius, fill, shadowConfig)
+    -- Draw shadow first if configured
+    if shadowConfig then
+        local shadowOffsetX = shadowConfig.offsetX or 2;
+        local shadowOffsetY = shadowConfig.offsetY or 2;
+        local shadowColor = shadowConfig.color or 0x80000000;
+
+        -- Apply alpha override if specified
+        if shadowConfig.alpha then
+            local baseColor = bit.band(shadowColor, 0x00FFFFFF);
+            local alpha = math.floor(math.clamp(shadowConfig.alpha, 0, 1) * 255);
+            shadowColor = bit.bor(baseColor, bit.lshift(alpha, 24));
+        end
+
+        local shadow_top_left = {top_left[1] + shadowOffsetX, top_left[2] + shadowOffsetY};
+        local shadow_bot_right = {bot_right[1] + shadowOffsetX, bot_right[2] + shadowOffsetY};
+        local shadowColorU32 = imgui.GetColorU32(shadowColor);
+        local shadowDimensions = {
+            { shadow_top_left[1], shadow_top_left[2] },
+            { shadow_bot_right[1], shadow_bot_right[2] }
+        };
+
+        if (fill == true) then
+            imgui.GetBackgroundDrawList():AddRectFilled(shadowDimensions[1], shadowDimensions[2], shadowColorU32, radius, ImDrawCornerFlags_All);
+        else
+            imgui.GetBackgroundDrawList():AddRect(shadowDimensions[1], shadowDimensions[2], shadowColorU32, radius, ImDrawCornerFlags_All, 1);
+        end
+    end
+
+    -- Draw main rectangle
     local color = imgui.GetColorU32(color);
     local dimensions = {
         { top_left[1], top_left[2] },
@@ -127,7 +198,31 @@ function draw_rect_background(top_left, bot_right, color, radius, fill)
 	end
 end
 
-function draw_circle(center, radius, color, segments, fill)
+function draw_circle(center, radius, color, segments, fill, shadowConfig)
+    -- Draw shadow first if configured
+    if shadowConfig then
+        local shadowOffsetX = shadowConfig.offsetX or 2;
+        local shadowOffsetY = shadowConfig.offsetY or 2;
+        local shadowColor = shadowConfig.color or 0x80000000;
+
+        -- Apply alpha override if specified
+        if shadowConfig.alpha then
+            local baseColor = bit.band(shadowColor, 0x00FFFFFF);
+            local alpha = math.floor(math.clamp(shadowConfig.alpha, 0, 1) * 255);
+            shadowColor = bit.bor(baseColor, bit.lshift(alpha, 24));
+        end
+
+        local shadow_center = {center[1] + shadowOffsetX, center[2] + shadowOffsetY};
+        local shadowColorU32 = imgui.GetColorU32(shadowColor);
+
+        if (fill == true) then
+            imgui.GetWindowDrawList():AddCircleFilled(shadow_center, radius, shadowColorU32, segments);
+        else
+            imgui.GetWindowDrawList():AddCircle(shadow_center, radius, shadowColorU32, segments, 1);
+        end
+    end
+
+    -- Draw main circle
     local color = imgui.GetColorU32(color);
 
 	if (fill == true) then
@@ -780,4 +875,165 @@ end
 
 function ClearDebuffFontCache()
     debuffTable = T{};
+end
+
+-- ========================================
+-- Drop Shadow Utility Functions
+-- ========================================
+
+--[[
+    Drop shadow support for text (font objects) and primitives.
+    Font shadows work by wrapping font methods to automatically update a paired shadow font.
+]]--
+
+-- Table to store shadow data for fonts
+local fontShadowData = {};
+
+--[[
+    Applies a drop shadow to a font object. After calling this, use the font normally
+    and the shadow will automatically follow all changes.
+
+    @param mainFont: The font object to add shadow to
+    @param shadowConfig: Table with shadow properties:
+        - offsetX: number - X offset for shadow (default: 2)
+        - offsetY: number - Y offset for shadow (default: 2)
+        - color: number - ARGB color for shadow (default: 0xFF000000 black)
+        - alpha: number - Override alpha channel 0-1 (optional)
+
+    Example:
+        myFont = fonts.new(settings);
+        ApplyFontShadow(myFont, {offsetX = 2, offsetY = 2, alpha = 0.7});
+        -- Now use font normally:
+        myFont:SetText("Hello");
+        myFont:SetPositionX(100);
+        myFont:SetVisible(true);
+]]--
+function ApplyFontShadow(mainFont, shadowConfig)
+    if mainFont == nil then
+        return;
+    end
+
+    -- If already has shadow, clean it up first
+    if fontShadowData[mainFont] then
+        CleanupFont(mainFont);
+    end
+
+    -- Set default shadow config
+    shadowConfig = shadowConfig or {};
+    shadowConfig.offsetX = shadowConfig.offsetX or 2;
+    shadowConfig.offsetY = shadowConfig.offsetY or 2;
+    shadowConfig.color = shadowConfig.color or 0xFF000000;
+
+    -- Apply alpha override if specified
+    local shadowColor = shadowConfig.color;
+    if shadowConfig.alpha then
+        local baseColor = bit.band(shadowColor, 0x00FFFFFF);
+        local alpha = math.floor(math.clamp(shadowConfig.alpha, 0, 1) * 255);
+        shadowColor = bit.bor(baseColor, bit.lshift(alpha, 24));
+    end
+
+    -- Create shadow font with same settings as main font
+    local shadowSettings = T{
+        visible = false,
+        locked = true,
+        font_family = mainFont.settings.font_family or 'Arial',
+        font_height = mainFont.settings.font_height or 12,
+        color = shadowColor,
+        bold = mainFont.settings.bold or false,
+        italic = mainFont.settings.italic or false,
+        color_outline = 0x00000000, -- No outline on shadow
+        draw_flags = 0x00,
+        background = T{ visible = false },
+        right_justified = mainFont.settings.right_justified or false,
+    };
+
+    local shadowFont = fonts.new(shadowSettings);
+
+    -- Store shadow data
+    fontShadowData[mainFont] = {
+        shadowFont = shadowFont,
+        config = shadowConfig,
+        originalMethods = {}
+    };
+
+    local data = fontShadowData[mainFont];
+
+    -- Wrap SetText to update shadow
+    data.originalMethods.SetText = mainFont.SetText;
+    mainFont.SetText = function(self, text)
+        data.originalMethods.SetText(self, text);
+        shadowFont:SetText(text);
+    end
+
+    -- Wrap SetPositionX to update shadow with offset
+    data.originalMethods.SetPositionX = mainFont.SetPositionX;
+    mainFont.SetPositionX = function(self, x)
+        data.originalMethods.SetPositionX(self, x);
+        shadowFont:SetPositionX(x + shadowConfig.offsetX);
+    end
+
+    -- Wrap SetPositionY to update shadow with offset
+    data.originalMethods.SetPositionY = mainFont.SetPositionY;
+    mainFont.SetPositionY = function(self, y)
+        data.originalMethods.SetPositionY(self, y);
+        shadowFont:SetPositionY(y + shadowConfig.offsetY);
+    end
+
+    -- Wrap SetVisible to update shadow
+    data.originalMethods.SetVisible = mainFont.SetVisible;
+    mainFont.SetVisible = function(self, visible)
+        data.originalMethods.SetVisible(self, visible);
+        shadowFont:SetVisible(visible);
+    end
+
+    -- Wrap SetFontHeight to update shadow
+    data.originalMethods.SetFontHeight = mainFont.SetFontHeight;
+    mainFont.SetFontHeight = function(self, height)
+        data.originalMethods.SetFontHeight(self, height);
+        shadowFont:SetFontHeight(height);
+    end
+
+    -- Wrap SetColor (shadow keeps its own color)
+    data.originalMethods.SetColor = mainFont.SetColor;
+    mainFont.SetColor = function(self, color)
+        data.originalMethods.SetColor(self, color);
+        -- Shadow keeps its configured color
+    end
+
+    -- Wrap destroy to clean up shadow
+    data.originalMethods.destroy = mainFont.destroy;
+    mainFont.destroy = function(self)
+        CleanupFont(self);
+    end
+end
+
+--[[
+    Cleans up a font and its shadow (if it has one).
+    Call this instead of font:destroy() if the font might have a shadow.
+
+    @param mainFont: The font object to clean up
+]]--
+function CleanupFont(mainFont)
+    if mainFont == nil then
+        return;
+    end
+
+    local data = fontShadowData[mainFont];
+    if data then
+        -- Restore original methods
+        for methodName, originalMethod in pairs(data.originalMethods) do
+            mainFont[methodName] = originalMethod;
+        end
+
+        -- Destroy shadow font
+        if data.shadowFont then
+            data.shadowFont:destroy();
+        end
+
+        -- Remove from tracking
+        fontShadowData[mainFont] = nil;
+    end
+
+    -- Destroy main font (using original or current destroy method)
+    mainFont:destroy();
 end
