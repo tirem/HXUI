@@ -322,10 +322,10 @@ enemylist.DrawWindow = function(settings)
 		-- Add bottom margin
 		imgui.Dummy({0, windowMargin});
 	end
-	imgui.End();
 
-	-- Restore ImGui style variables
+	-- Restore ImGui style variables (must be before End() to avoid affecting other windows)
 	imgui.PopStyleVar(3);
+	imgui.End();
 end
 
 -- If a mob performns an action on us or a party member add it to the list

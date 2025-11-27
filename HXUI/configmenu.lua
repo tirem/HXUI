@@ -29,6 +29,12 @@ config.DrawWindow = function(us)
     imgui.PushStyleColor(ImGuiCol_HeaderHovered, {0,0.06,.16, .9});
     imgui.PushStyleColor(ImGuiCol_HeaderActive, {0,0.06,.16, 1});
     imgui.PushStyleColor(ImGuiCol_FrameBg, {0,0.06,.16, 1});
+
+    -- Set proper spacing and padding for config menu
+    imgui.PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
+    imgui.PushStyleVar(ImGuiStyleVar_FramePadding, {4, 3});
+    imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {8, 4});
+
     imgui.SetNextWindowSize({ 600, 600 }, ImGuiCond_FirstUseEver);
     if(showConfig[1] and imgui.Begin(("HXUI Config"):fmt(addon.version), showConfig, bit.bor(ImGuiWindowFlags_NoSavedSettings))) then
         if(imgui.Button("Restore Defaults", { 160, 20 })) then
@@ -846,6 +852,8 @@ config.DrawWindow = function(us)
         end
         imgui.EndChild();
     end
+
+    imgui.PopStyleVar(3);
     imgui.PopStyleColor(8);
 	imgui.End();
 end

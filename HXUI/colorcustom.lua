@@ -82,6 +82,11 @@ colorcustom.DrawWindow = function()
     imgui.PushStyleColor(ImGuiCol_HeaderActive, {0,0.06,.16, 1});
     imgui.PushStyleColor(ImGuiCol_FrameBg, {0,0.06,.16, 1});
 
+    -- Set proper spacing and padding for color customization menu
+    imgui.PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
+    imgui.PushStyleVar(ImGuiStyleVar_FramePadding, {4, 3});
+    imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {8, 4});
+
     imgui.SetNextWindowSize({ 700, 600 }, ImGuiCond_FirstUseEver);
     if (imgui.Begin("HXUI Color Customization", gShowColorCustom, bit.bor(ImGuiWindowFlags_NoSavedSettings))) then
 
@@ -317,6 +322,7 @@ colorcustom.DrawWindow = function()
         imgui.EndChild();
     end
 
+    imgui.PopStyleVar(3);
     imgui.PopStyleColor(8);
     imgui.End();
 end
