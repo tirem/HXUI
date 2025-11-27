@@ -34,10 +34,16 @@ local function DrawSlider(label, configKey, min, max, format, callback)
     local value = { gConfig[configKey] };
     local changed = false;
 
-    if type(gConfig[configKey]) == 'number' and math.floor(gConfig[configKey]) == gConfig[configKey] then
+    -- Use SliderFloat if format is specified, otherwise check if value is integer
+    if format ~= nil then
+        -- Format specified, use float slider
+        changed = imgui.SliderFloat(label, value, min, max, format);
+    elseif type(gConfig[configKey]) == 'number' and math.floor(gConfig[configKey]) == gConfig[configKey] then
+        -- No format and value is integer, use int slider
         changed = imgui.SliderInt(label, value, min, max);
     else
-        changed = imgui.SliderFloat(label, value, min, max, format or '%.2f');
+        -- No format but value is float, use float slider with default format
+        changed = imgui.SliderFloat(label, value, min, max, '%.2f');
     end
 
     if changed then
