@@ -940,15 +940,13 @@ function UpdateUserSettings()
     gAdjustedSettings.partyListSettings.alignBottom = us.partyListAlignBottom;
     gAdjustedSettings.partyListSettings.minRows = us.partyListMinRows;
 
-    -- gAdjustedSettings.partyListSettings.hpBarWidth = ds.partyListSettings.hpBarWidth * us.partyListScaleX;
-    -- gAdjustedSettings.partyListSettings.barHeight = ds.partyListSettings.barHeight * us.partyListScaleY;
-    -- gAdjustedSettings.partyListSettings.tpBarWidth = ds.partyListSettings.tpBarWidth * us.partyListScaleX;
-	-- gAdjustedSettings.partyListSettings.mpBarWidth = ds.partyListSettings.mpBarWidth * us.partyListScaleX;
-	-- gAdjustedSettings.partyListSettings.barSpacing = ds.partyListSettings.barSpacing * us.partyListScaleX;
-    -- gAdjustedSettings.partyListSettings.hp_font_settings.font_height = math.max(ds.partyListSettings.hp_font_settings.font_height + us.partyListFontOffset, 1);
-    -- gAdjustedSettings.partyListSettings.mp_font_settings.font_height = math.max(ds.partyListSettings.mp_font_settings.font_height + us.partyListFontOffset, 1);
-	-- gAdjustedSettings.partyListSettings.tp_font_settings.font_height = math.max(ds.partyListSettings.tp_font_settings.font_height + us.partyListFontOffset, 1);
-    -- gAdjustedSettings.partyListSettings.name_font_settings.font_height = math.max(ds.partyListSettings.name_font_settings.font_height + us.partyListFontOffset, 1);
+	-- Apply font offsets for each party (stored as arrays indexed by party)
+	gAdjustedSettings.partyListSettings.fontOffsets = {
+		us.partyListFontOffset,   -- Party 1
+		us.partyList2FontOffset,  -- Party 2
+		us.partyList3FontOffset,  -- Party 3
+	};
+
 	gAdjustedSettings.partyListSettings.entrySpacing = {
         ds.partyListSettings.entrySpacing + us.partyListEntrySpacing,
         ds.partyListSettings.entrySpacing + us.partyList2EntrySpacing,

@@ -36,6 +36,9 @@ local memberTextCount = partyMaxSize * 3;
 -- Cache last set colors to avoid expensive SetColor() calls every frame
 local memberTextColorCache = {};
 
+-- Cache last used font offsets to avoid unnecessary font recreation
+local cachedFontOffsets = {0, 0, 0};
+
 local borderConfig = {1, '#243e58'};
 
 local bgImageKeys = { 'bg', 'tl', 'tr', 'br', 'bl' };
@@ -715,26 +718,27 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
 end
 
 partyList.Initialize = function(settings)
-    -- Initialize all our font objects we need
-    local name_font_settings = deep_copy_table(settings.name_font_settings);
-    local hp_font_settings = deep_copy_table(settings.hp_font_settings);
-    local mp_font_settings = deep_copy_table(settings.mp_font_settings);
-    local tp_font_settings = deep_copy_table(settings.tp_font_settings);
+    -- Cache the initial font offsets
+    cachedFontOffsets = {
+		settings.fontOffsets[1],
+		settings.fontOffsets[2],
+		settings.fontOffsets[3],
+	};
 
+    -- Initialize all our font objects we need
     for i = 0, memberTextCount-1 do
         local partyIndex = math.ceil((i + 1) / partyMaxSize);
+		local fontOffset = settings.fontOffsets[partyIndex];
 
-        local partyListFontOffset = gConfig.partyListFontOffset;
-        if (partyIndex == 2) then
-            partyListFontOffset = gConfig.partyList2FontOffset;
-        elseif (partyIndex == 3) then
-            partyListFontOffset = gConfig.partyList3FontOffset;
-        end
+        local name_font_settings = deep_copy_table(settings.name_font_settings);
+        local hp_font_settings = deep_copy_table(settings.hp_font_settings);
+        local mp_font_settings = deep_copy_table(settings.mp_font_settings);
+        local tp_font_settings = deep_copy_table(settings.tp_font_settings);
 
-        name_font_settings.font_height = math.max(settings.name_font_settings.font_height + partyListFontOffset, 1);
-        hp_font_settings.font_height = math.max(settings.hp_font_settings.font_height + partyListFontOffset, 1);
-        mp_font_settings.font_height = math.max(settings.mp_font_settings.font_height + partyListFontOffset, 1);
-        tp_font_settings.font_height = math.max(settings.tp_font_settings.font_height + partyListFontOffset, 1);
+        name_font_settings.font_height = math.max(settings.name_font_settings.font_height + fontOffset, 1);
+        hp_font_settings.font_height = math.max(settings.hp_font_settings.font_height + fontOffset, 1);
+        mp_font_settings.font_height = math.max(settings.mp_font_settings.font_height + fontOffset, 1);
+        tp_font_settings.font_height = math.max(settings.tp_font_settings.font_height + fontOffset, 1);
 
         memberText[i] = {};
         memberText[i].name = fonts.new(name_font_settings);
@@ -784,70 +788,36 @@ partyList.Initialize = function(settings)
 end
 
 partyList.UpdateFonts = function(settings)
-    -- Destroy and recreate fonts
+    -- Check which party font offsets changed
+    local offsetsChanged = {false, false, false};
+    for partyIndex = 1, 3 do
+        if settings.fontOffsets[partyIndex] ~= cachedFontOffsets[partyIndex] then
+            offsetsChanged[partyIndex] = true;
+            cachedFontOffsets[partyIndex] = settings.fontOffsets[partyIndex];
+        end
+    end
+
+    -- Only recreate fonts for members of parties whose offset changed
     for i = 0, memberTextCount-1 do
         local partyIndex = math.ceil((i + 1) / partyMaxSize);
 
-        local partyListFontOffset = gConfig.partyListFontOffset;
-        if (partyIndex == 2) then
-            partyListFontOffset = gConfig.partyList2FontOffset;
-        elseif (partyIndex == 3) then
-            partyListFontOffset = gConfig.partyList3FontOffset;
+        -- Skip if this party's offset didn't change
+        if not offsetsChanged[partyIndex] then
+            goto continue
         end
 
+		local fontOffset = settings.fontOffsets[partyIndex];
+
         -- Create font settings with proper height offset
-        local name_font_settings = {
-            visible = settings.name_font_settings.visible,
-            locked = settings.name_font_settings.locked,
-            font_family = settings.name_font_settings.font_family,
-            font_height = math.max(settings.name_font_settings.font_height + partyListFontOffset, 1),
-            color = settings.name_font_settings.color,
-            bold = settings.name_font_settings.bold,
-            italic = settings.name_font_settings.italic,
-            color_outline = settings.name_font_settings.color_outline,
-            draw_flags = settings.name_font_settings.draw_flags,
-            background = settings.name_font_settings.background,
-            right_justified = settings.name_font_settings.right_justified,
-        };
-        local hp_font_settings = {
-            visible = settings.hp_font_settings.visible,
-            locked = settings.hp_font_settings.locked,
-            font_family = settings.hp_font_settings.font_family,
-            font_height = math.max(settings.hp_font_settings.font_height + partyListFontOffset, 1),
-            color = settings.hp_font_settings.color,
-            bold = settings.hp_font_settings.bold,
-            italic = settings.hp_font_settings.italic,
-            color_outline = settings.hp_font_settings.color_outline,
-            draw_flags = settings.hp_font_settings.draw_flags,
-            background = settings.hp_font_settings.background,
-            right_justified = settings.hp_font_settings.right_justified,
-        };
-        local mp_font_settings = {
-            visible = settings.mp_font_settings.visible,
-            locked = settings.mp_font_settings.locked,
-            font_family = settings.mp_font_settings.font_family,
-            font_height = math.max(settings.mp_font_settings.font_height + partyListFontOffset, 1),
-            color = settings.mp_font_settings.color,
-            bold = settings.mp_font_settings.bold,
-            italic = settings.mp_font_settings.italic,
-            color_outline = settings.mp_font_settings.color_outline,
-            draw_flags = settings.mp_font_settings.draw_flags,
-            background = settings.mp_font_settings.background,
-            right_justified = settings.mp_font_settings.right_justified,
-        };
-        local tp_font_settings = {
-            visible = settings.tp_font_settings.visible,
-            locked = settings.tp_font_settings.locked,
-            font_family = settings.tp_font_settings.font_family,
-            font_height = math.max(settings.tp_font_settings.font_height + partyListFontOffset, 1),
-            color = settings.tp_font_settings.color,
-            bold = settings.tp_font_settings.bold,
-            italic = settings.tp_font_settings.italic,
-            color_outline = settings.tp_font_settings.color_outline,
-            draw_flags = settings.tp_font_settings.draw_flags,
-            background = settings.tp_font_settings.background,
-            right_justified = settings.tp_font_settings.right_justified,
-        };
+        local name_font_settings = deep_copy_table(settings.name_font_settings);
+        local hp_font_settings = deep_copy_table(settings.hp_font_settings);
+        local mp_font_settings = deep_copy_table(settings.mp_font_settings);
+        local tp_font_settings = deep_copy_table(settings.tp_font_settings);
+
+        name_font_settings.font_height = math.max(settings.name_font_settings.font_height + fontOffset, 1);
+        hp_font_settings.font_height = math.max(settings.hp_font_settings.font_height + fontOffset, 1);
+        mp_font_settings.font_height = math.max(settings.mp_font_settings.font_height + fontOffset, 1);
+        tp_font_settings.font_height = math.max(settings.tp_font_settings.font_height + fontOffset, 1);
 
         -- Destroy old font objects
         if (memberText[i] ~= nil) then
@@ -862,11 +832,18 @@ partyList.UpdateFonts = function(settings)
         memberText[i].hp = fonts.new(hp_font_settings);
         memberText[i].mp = fonts.new(mp_font_settings);
         memberText[i].tp = fonts.new(tp_font_settings);
-        -- Note: All text colors are set dynamically in DrawWindow every frame
+
+        ::continue::
     end
 
-    -- Reset cached colors when fonts are recreated
-    memberTextColorCache = {};
+    -- Reset cached colors for parties that changed
+    for partyIndex = 1, 3 do
+        if offsetsChanged[partyIndex] then
+            for i = (partyIndex - 1) * partyMaxSize, (partyIndex * partyMaxSize) - 1 do
+                memberTextColorCache[i] = nil;
+            end
+        end
+    end
 
     -- Update images
     local bgChanged = gConfig.partyListBackgroundName ~= loadedBg;

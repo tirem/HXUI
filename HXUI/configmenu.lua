@@ -551,9 +551,10 @@ config.DrawWindow = function(us)
                 local fontOffset = { gConfig.partyListFontOffset };
                 if (imgui.SliderInt('Font Scale', fontOffset, -5, 10)) then
                     gConfig.partyListFontOffset = fontOffset[1];
-                    UpdatePartyListFonts();
+                    UpdateUserSettings();
                 end
                 if (imgui.IsItemDeactivatedAfterEdit()) then
+                    UpdatePartyListFonts();
                     SaveSettingsToDisk();
                 end
 
@@ -607,9 +608,10 @@ config.DrawWindow = function(us)
                 local fontOffset = { gConfig.partyList2FontOffset };
                 if (imgui.SliderInt('Font Scale', fontOffset, -5, 10)) then
                     gConfig.partyList2FontOffset = fontOffset[1];
-                    UpdatePartyListFonts();
+                    UpdateUserSettings();
                 end
                 if (imgui.IsItemDeactivatedAfterEdit()) then
+                    UpdatePartyListFonts();
                     SaveSettingsToDisk();
                 end
 
@@ -663,9 +665,10 @@ config.DrawWindow = function(us)
                 local fontOffset = { gConfig.partyList3FontOffset };
                 if (imgui.SliderInt('Font Scale', fontOffset, -5, 10)) then
                     gConfig.partyList3FontOffset = fontOffset[1];
-                    UpdatePartyListFonts();
+                    UpdateUserSettings();
                 end
                 if (imgui.IsItemDeactivatedAfterEdit()) then
+                    UpdatePartyListFonts();
                     SaveSettingsToDisk();
                 end
 
