@@ -20,7 +20,8 @@ local enemylist = {};
 
 -- Font objects for enemy list (keyed by enemy index)
 local enemyNameFonts = {};  -- Enemy name font objects
-local enemyInfoFonts = {};  -- Enemy info text font objects
+local enemyDistanceFonts = {};  -- Distance text font objects
+local enemyHPFonts = {};  -- HP% text font objects
 
 -- Cache last set colors to avoid expensive SetColor() calls every frame
 local enemyNameColorCache = {};
@@ -137,38 +138,33 @@ enemylist.DrawWindow = function(settings)
 
 				-- Calculate entry dimensions
 				-- Row 1: Name text (uses name_font_settings.font_height)
-				-- Row 2: Info text + HP bar side-by-side (height = max of info font height or bar height)
+				-- Row 2: HP bar (full width, uses barHeight)
+				-- Row 3: Distance (left) and HP% (right) (uses info_font_settings.font_height)
 				local nameHeight = settings.name_font_settings.font_height;
-				local barRowHeight = math.max(settings.info_font_settings.font_height, settings.barHeight);
-				local nameToBarGap = 10;  -- Vertical spacing between enemy name and HP bar row (increased for better readability)
-				local totalContentHeight = nameHeight + nameToBarGap + barRowHeight;
+				local barHeight = settings.barHeight;
+				local infoRowHeight = settings.info_font_settings.font_height;
+				local nameToBarGap = 10;  -- Vertical spacing between name and HP bar
+				local barToInfoGap = 5;  -- Vertical spacing between HP bar and info row
+
+				-- Calculate total height based on which rows are visible
+				local totalContentHeight = nameHeight + nameToBarGap + barHeight;
+				if (gConfig.showEnemyDistance or gConfig.showEnemyHPPText) then
+					totalContentHeight = totalContentHeight + barToInfoGap + infoRowHeight;
+				end
 				local entryHeight = (padding * 2) + totalContentHeight;
 
-				-- Prepare info text
-				local infoText = '';
-				if (gConfig.showEnemyDistance and gConfig.showEnemyHPPText) then
-					infoText = ('D:%.1f  %%:%.0f'):format(math.sqrt(ent.Distance), ent.HPPercent);
-				elseif (gConfig.showEnemyDistance) then
-					infoText = ('D:%.1f'):format(math.sqrt(ent.Distance));
-				elseif (gConfig.showEnemyHPPText) then
-					infoText = ('%.0f%%'):format(ent.HPPercent);
+				-- Prepare distance and HP% text separately
+				local distanceText = '';
+				local hpText = '';
+				if (gConfig.showEnemyDistance) then
+					distanceText = ('%.1f'):format(math.sqrt(ent.Distance));
+				end
+				if (gConfig.showEnemyHPPText) then
+					hpText = ('%.0f%%'):format(ent.HPPercent);
 				end
 
-				-- Create/get info font early so we can calculate text width correctly
-				local infoFontKey = 'info_' .. k;
-				if (enemyInfoFonts[infoFontKey] == nil) then
-					enemyInfoFonts[infoFontKey] = fonts.new(settings.info_font_settings);
-				end
-				local infoFont = enemyInfoFonts[infoFontKey];
-				infoFont:SetText(infoText);
-
-				-- Calculate info text width using actual font metrics
-				local infoSize = SIZE.new();
-				infoFont:GetTextSize(infoSize);
-				local infoTextWidth = infoSize.cx or 0;
-
-				local barStartX = entryStartX + padding + infoTextWidth + 5;  -- 5px gap after text
-				local barWidth = entryWidth - padding - (barStartX - entryStartX);
+				-- HP bar is full width
+				local barWidth = entryWidth - (padding * 2);
 
 				-- ===== BACKGROUND & BORDER RENDERING =====
 				-- We need to draw these BEFORE the ImGui content so they appear behind progress bars
@@ -250,20 +246,10 @@ enemylist.DrawWindow = function(settings)
 				end
 				nameFont:SetVisible(true);
 
-				-- ROW 2: Info Text (left) and HP Bar (right) on same line
+				-- ROW 2: HP Bar (full width)
 				local row2Y = nameY + nameHeight + nameToBarGap;
-
-				-- Position info text at row2Y
-				local infoX = entryStartX + padding;
-				local infoY = row2Y;
-				infoFont:SetPositionX(infoX);
-				infoFont:SetPositionY(infoY);
-				infoFont:SetVisible(true);
-
-				-- Position HP bar slightly below to align with text center
-				-- fontHeight=9px, barHeight=10px, so offset bar down by 1px to center with text
-				local barY = row2Y + 2;  -- Push bar down 1px to align with text
-				imgui.SetCursorScreenPos({barStartX, barY});
+				local barX = entryStartX + padding;
+				imgui.SetCursorScreenPos({barX, row2Y});
 
 				local enemyGradient = GetCustomGradient(gConfig.colorCustomization.enemyList, 'hpGradient') or {'#e16c6c', '#fb9494'};
 				progressbar.ProgressBar(
@@ -271,6 +257,43 @@ enemylist.DrawWindow = function(settings)
 					{barWidth, settings.barHeight},
 					{decorate = gConfig.showEnemyListBookends}
 				);
+
+				-- ROW 3: Distance (left aligned) and HP% (right aligned)
+				if (gConfig.showEnemyDistance or gConfig.showEnemyHPPText) then
+					local row3Y = row2Y + barHeight + barToInfoGap;
+
+					-- Distance text (left-aligned)
+					if (gConfig.showEnemyDistance) then
+						local distanceFontKey = 'distance_' .. k;
+						if (enemyDistanceFonts[distanceFontKey] == nil) then
+							enemyDistanceFonts[distanceFontKey] = fonts.new(settings.info_font_settings);
+						end
+						local distanceFont = enemyDistanceFonts[distanceFontKey];
+						distanceFont:SetPositionX(entryStartX + padding);
+						distanceFont:SetPositionY(row3Y);
+						distanceFont:SetText(distanceText);
+						distanceFont:SetVisible(true);
+					end
+
+					-- HP% text (right-aligned)
+					if (gConfig.showEnemyHPPText) then
+						local hpFontKey = 'hp_' .. k;
+						if (enemyHPFonts[hpFontKey] == nil) then
+							enemyHPFonts[hpFontKey] = fonts.new(settings.info_font_settings);
+						end
+						local hpFont = enemyHPFonts[hpFontKey];
+						hpFont:SetText(hpText);
+
+						-- Calculate text width for right-alignment
+						local hpSize = SIZE.new();
+						hpFont:GetTextSize(hpSize);
+						local hpTextWidth = hpSize.cx or 0;
+
+						hpFont:SetPositionX(entryStartX + entryWidth - padding - hpTextWidth);
+						hpFont:SetPositionY(row3Y);
+						hpFont:SetVisible(true);
+					end
+				end
 
 				-- ===== DEBUFF ICONS =====
 				-- Positioned to the right of the entry in a separate window
@@ -306,8 +329,14 @@ enemylist.DrawWindow = function(settings)
 				fontObj:SetVisible(false);
 			end
 		end
-		for fontKey, fontObj in pairs(enemyInfoFonts) do
-			local enemyIndex = tonumber(fontKey:match('info_(%d+)'));
+		for fontKey, fontObj in pairs(enemyDistanceFonts) do
+			local enemyIndex = tonumber(fontKey:match('distance_(%d+)'));
+			if (enemyIndex == nil or allClaimedTargets[enemyIndex] == nil) then
+				fontObj:SetVisible(false);
+			end
+		end
+		for fontKey, fontObj in pairs(enemyHPFonts) do
+			local enemyIndex = tonumber(fontKey:match('hp_(%d+)'));
 			if (enemyIndex == nil or allClaimedTargets[enemyIndex] == nil) then
 				fontObj:SetVisible(false);
 			end
@@ -364,11 +393,15 @@ enemylist.HandleZonePacket = function(e)
 	for k, v in pairs(enemyNameFonts) do
 		if (v ~= nil) then v:destroy(); end
 	end
-	for k, v in pairs(enemyInfoFonts) do
+	for k, v in pairs(enemyDistanceFonts) do
+		if (v ~= nil) then v:destroy(); end
+	end
+	for k, v in pairs(enemyHPFonts) do
 		if (v ~= nil) then v:destroy(); end
 	end
 	enemyNameFonts = {};
-	enemyInfoFonts = {};
+	enemyDistanceFonts = {};
+	enemyHPFonts = {};
 
 	-- Clear background primitives on zone
 	for k, v in pairs(enemyBackgrounds) do
@@ -387,13 +420,17 @@ enemylist.UpdateFonts = function(settings)
 	for k, v in pairs(enemyNameFonts) do
 		if (v ~= nil) then v:destroy(); end
 	end
-	for k, v in pairs(enemyInfoFonts) do
+	for k, v in pairs(enemyDistanceFonts) do
+		if (v ~= nil) then v:destroy(); end
+	end
+	for k, v in pairs(enemyHPFonts) do
 		if (v ~= nil) then v:destroy(); end
 	end
 
 	-- Clear the tables to force recreation with new settings
 	enemyNameFonts = {};
-	enemyInfoFonts = {};
+	enemyDistanceFonts = {};
+	enemyHPFonts = {};
 
 	-- Reset cached colors when fonts are recreated
 	enemyNameColorCache = {};
