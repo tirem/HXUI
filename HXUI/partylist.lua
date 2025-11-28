@@ -40,6 +40,11 @@ local memberTextColorCache = {};
 -- Cache last used font sizes to avoid unnecessary font recreation
 local cachedFontSizes = {12, 12, 12};
 
+-- Cache last used font family, flags, and outline width to detect changes
+local cachedFontFamily = '';
+local cachedFontFlags = 0;
+local cachedOutlineWidth = 2;
+
 local borderConfig = {1, '#243e58'};
 
 local bgImageKeys = { 'bg', 'tl', 'tr', 'br', 'bl' };
@@ -824,6 +829,11 @@ partyList.Initialize = function(settings)
 		settings.fontSizes[3],
 	};
 
+	-- Cache the initial font family, flags, and outline width
+	cachedFontFamily = settings.name_font_settings.font_family or '';
+	cachedFontFlags = settings.name_font_settings.font_flags or 0;
+	cachedOutlineWidth = settings.name_font_settings.outline_width or 2;
+
     -- Initialize all our font objects we need
     for i = 0, memberTextCount-1 do
         local partyIndex = math.ceil((i + 1) / partyMaxSize);
@@ -881,6 +891,26 @@ partyList.Initialize = function(settings)
 end
 
 partyList.UpdateVisuals = function(settings)
+    -- Check if font family, flags (weight), or outline width changed - if so, recreate ALL fonts
+    local fontFamilyChanged = false;
+    local fontFlagsChanged = false;
+    local outlineWidthChanged = false;
+
+    if settings.name_font_settings.font_family ~= cachedFontFamily then
+        fontFamilyChanged = true;
+        cachedFontFamily = settings.name_font_settings.font_family;
+    end
+
+    if settings.name_font_settings.font_flags ~= cachedFontFlags then
+        fontFlagsChanged = true;
+        cachedFontFlags = settings.name_font_settings.font_flags;
+    end
+
+    if settings.name_font_settings.outline_width ~= cachedOutlineWidth then
+        outlineWidthChanged = true;
+        cachedOutlineWidth = settings.name_font_settings.outline_width;
+    end
+
     -- Check which party font sizes changed
     local sizesChanged = {false, false, false};
     for partyIndex = 1, 3 do
@@ -888,6 +918,11 @@ partyList.UpdateVisuals = function(settings)
             sizesChanged[partyIndex] = true;
             cachedFontSizes[partyIndex] = settings.fontSizes[partyIndex];
         end
+    end
+
+    -- If font family, weight, or outline width changed, mark all parties as needing recreation
+    if fontFamilyChanged or fontFlagsChanged or outlineWidthChanged then
+        sizesChanged = {true, true, true};
     end
 
     -- Only recreate fonts for members of parties whose size changed

@@ -126,24 +126,25 @@ T{
 	jobIconTheme = 'FFXI',
 	fontFamily = 'Consolas',
 	fontWeight = 'Normal', -- Options: 'Normal', 'Bold'
+	fontOutlineWidth = 2, -- Global outline width for all text (range: 0-5)
 
 	showPartyListWhenSolo = false,
 	maxEnemyListEntries = 8,
 
 	playerBarScaleX = 1,
 	playerBarScaleY = 1,
-	playerBarFontSize = 12,
+	playerBarFontSize = 16,
 	showPlayerBarBookends = true,
 	alwaysShowMpBar = true,
     playerBarHideDuringEvents = true,
 
 	targetBarScaleX = 1,
 	targetBarScaleY = 1,
-	targetBarNameFontSize = 12,
-	targetBarDistanceFontSize = 12,
-	targetBarPercentFontSize = 12,
+	targetBarNameFontSize = 16,
+	targetBarDistanceFontSize = 16,
+	targetBarPercentFontSize = 16,
 	targetBarIconScale = 1,
-	targetBarIconFontSize = 14,
+	targetBarIconFontSize = 16,
 	showTargetDistance = true,
 	showTargetBarBookends = true,
 	showEnemyId = false;
@@ -152,11 +153,11 @@ T{
 	splitTargetOfTarget = false,
 	totBarScaleX = 1,
 	totBarScaleY = 1,
-	totBarFontSize = 12,
+	totBarFontSize = 16,
 
 	enemyListScaleX = 1,
 	enemyListScaleY = 1,
-	enemyListFontSize = 12,
+	enemyListFontSize = 16,
 	enemyListIconScale = 1,
 	showEnemyDistance = false,
 	showEnemyHPPText = true,
@@ -166,19 +167,19 @@ T{
 	expBarScaleX = 1,
 	expBarScaleY = 1,
 	showExpBarBookends = true,
-	expBarFontSize = 12,
+	expBarFontSize = 16,
     expBarShowText = true,
     expBarShowPercent = true,
     expBarInlineMode = false,
     expBarLimitPointsMode = true,
 
 	gilTrackerScale = 1,
-	gilTrackerFontSize = 12,
+	gilTrackerFontSize = 16,
     gilTrackerPosOffset = { 0, -7 },
     gilTrackerRightAlign = true,
 
 	inventoryTrackerScale = 1,
-	inventoryTrackerFontSize = 12,
+	inventoryTrackerFontSize = 16,
     inventoryTrackerOpacity = 1.0,
     inventoryTrackerColumnCount = 5,
     inventoryTrackerRowCount = 6,
@@ -187,26 +188,26 @@ T{
 	partyListDistanceHighlight = 0,
 	partyListScaleX = 1,
 	partyListScaleY = 1,
-    partyListFontSize = 12,
+    partyListFontSize = 16,
     partyListJobIconScale = 1,
     partyListEntrySpacing = 0,
     partyListTP = true,
 
     partyList2ScaleX = 0.7,
     partyList2ScaleY = 0.7,
-    partyList2FontSize = 12,
+    partyList2FontSize = 16,
     partyList2JobIconScale = 0.8,
     partyList2EntrySpacing = -20,
     partyList2TP = false,
 
     partyList3ScaleX = 0.7,
     partyList3ScaleY = 0.7,
-    partyList3FontSize = 12,
+    partyList3FontSize = 16,
     partyList3JobIconScale = 0.8,
     partyList3EntrySpacing = -20,
     partyList3TP = false,
 
-	partyListTitleFontSize = 14,
+	partyListTitleFontSize = 16,
 	partyListBuffScale = 1,
 	partyListStatusTheme = 0, -- 0: HorizonXI-L, 1: HorizonXI-R 2: XIV1.0, 3: XIV, 4: Disabled
 	partyListTheme = 0, 
@@ -230,7 +231,7 @@ T{
 	castBarScaleX = 1,
 	castBarScaleY = 1,
 	showCastBarBookends = true,
-	castBarFontSize = 12,
+	castBarFontSize = 16,
 	castBarFastCastEnabled = false,
 	castBarFastCastRDMSJ = 0.17,
 	castBarFastCastWHMCureSpeed = 0.15,
@@ -746,7 +747,9 @@ function ResetSettings()
 	local patchNotesVer = gConfig.patchNotesVer;
 	gConfig = deep_copy_table(defaultUserSettings);
 	gConfig.patchNotesVer = patchNotesVer;
+	config.userSettings = gConfig; -- Update the config reference so settings.save() saves the new values
 	UpdateSettings();
+	settings.save(); -- Save the reset settings to disk
 end
 
 function CheckVisibility()
@@ -799,54 +802,81 @@ function UpdateUserSettings()
     local ds = default_settings;
 	local us = gConfig;
 
-	-- Apply global font family and weight to all font settings
+	-- Apply global font family, weight, and outline width to all font settings
 	local fontWeightFlags = GetFontWeightFlags(us.fontWeight);
 
+	-- Target Bar
 	gAdjustedSettings.targetBarSettings.name_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.targetBarSettings.name_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.targetBarSettings.name_font_settings.outline_width = us.fontOutlineWidth;
 	gAdjustedSettings.targetBarSettings.totName_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.targetBarSettings.totName_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.targetBarSettings.totName_font_settings.outline_width = us.fontOutlineWidth;
 	gAdjustedSettings.targetBarSettings.distance_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.targetBarSettings.distance_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.targetBarSettings.distance_font_settings.outline_width = us.fontOutlineWidth;
 	gAdjustedSettings.targetBarSettings.percent_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.targetBarSettings.percent_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.targetBarSettings.percent_font_settings.outline_width = us.fontOutlineWidth;
 
+	-- Player Bar
 	gAdjustedSettings.playerBarSettings.font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.playerBarSettings.font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.playerBarSettings.font_settings.outline_width = us.fontOutlineWidth;
 
+	-- Exp Bar
 	gAdjustedSettings.expBarSettings.job_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.expBarSettings.job_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.expBarSettings.job_font_settings.outline_width = us.fontOutlineWidth;
 	gAdjustedSettings.expBarSettings.exp_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.expBarSettings.exp_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.expBarSettings.exp_font_settings.outline_width = us.fontOutlineWidth;
 	gAdjustedSettings.expBarSettings.percent_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.expBarSettings.percent_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.expBarSettings.percent_font_settings.outline_width = us.fontOutlineWidth;
 
+	-- Gil Tracker
 	gAdjustedSettings.gilTrackerSettings.font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.gilTrackerSettings.font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.gilTrackerSettings.font_settings.outline_width = us.fontOutlineWidth;
 
+	-- Inventory Tracker
 	gAdjustedSettings.inventoryTrackerSettings.font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.inventoryTrackerSettings.font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.inventoryTrackerSettings.font_settings.outline_width = us.fontOutlineWidth;
 
+	-- Party List
 	gAdjustedSettings.partyListSettings.hp_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.partyListSettings.hp_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.partyListSettings.hp_font_settings.outline_width = us.fontOutlineWidth;
 	gAdjustedSettings.partyListSettings.mp_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.partyListSettings.mp_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.partyListSettings.mp_font_settings.outline_width = us.fontOutlineWidth;
 	gAdjustedSettings.partyListSettings.tp_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.partyListSettings.tp_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.partyListSettings.tp_font_settings.outline_width = us.fontOutlineWidth;
 	gAdjustedSettings.partyListSettings.name_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.partyListSettings.name_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.partyListSettings.name_font_settings.outline_width = us.fontOutlineWidth;
 	gAdjustedSettings.partyListSettings.title_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.partyListSettings.title_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.partyListSettings.title_font_settings.outline_width = us.fontOutlineWidth;
 
+	-- Cast Bar
 	gAdjustedSettings.castBarSettings.spell_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.castBarSettings.spell_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.castBarSettings.spell_font_settings.outline_width = us.fontOutlineWidth;
 	gAdjustedSettings.castBarSettings.percent_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.castBarSettings.percent_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.castBarSettings.percent_font_settings.outline_width = us.fontOutlineWidth;
 
+	-- Enemy List
 	gAdjustedSettings.enemyListSettings.name_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.enemyListSettings.name_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.enemyListSettings.name_font_settings.outline_width = us.fontOutlineWidth;
 	gAdjustedSettings.enemyListSettings.info_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.enemyListSettings.info_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.enemyListSettings.info_font_settings.outline_width = us.fontOutlineWidth;
 
 	-- Target Bar
 	gAdjustedSettings.targetBarSettings.barWidth = ds.targetBarSettings.barWidth * us.targetBarScaleX;

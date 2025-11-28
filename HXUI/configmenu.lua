@@ -88,7 +88,7 @@ end
 -- Section: General Settings
 local function DrawGeneralSettings()
     if (imgui.CollapsingHeader("General")) then
-        imgui.BeginChild("GeneralSettings", { 0, 210 }, true);
+        imgui.BeginChild("GeneralSettings", { 0, 240 }, true);
 
         DrawCheckbox('Lock HUD Position', 'lockPositions');
 
@@ -125,6 +125,13 @@ local function DrawGeneralSettings()
             UpdateSettings();
         end);
         imgui.ShowHelp('The font weight (boldness) to use for all text in HXUI.');
+
+        -- Font Outline Width Slider
+        DrawSlider('Font Outline Width', 'fontOutlineWidth', 0, 5, nil, function()
+            ClearDebuffFontCache();
+            DeferredUpdateVisuals(); -- Tell all modules to recreate fonts with new outline width
+        end);
+        imgui.ShowHelp('The thickness of the text outline/stroke for all text in HXUI.');
 
         DrawCheckbox('Show Health Bar Flash Effects', 'healthBarFlashEnabled');
         DrawSlider('Basic Bar Roundness', 'noBookendRounding', 0, 10);
