@@ -25,13 +25,14 @@ partyWindowPrim[3] = {
     background = {},
 }
 
-local selectionPrim;
 local arrowPrim;
 local partyTargeted;
 local partySubTargeted;
 local memberText = {};
+local titleText = {}; -- GDI font objects for party titles
 local partyMaxSize = 6;
 local memberTextCount = partyMaxSize * 3;
+
 
 -- Cache last set colors to avoid expensive SetColor() calls every frame
 local memberTextColorCache = {};
@@ -42,8 +43,6 @@ local cachedFontSizes = {12, 12, 12};
 local borderConfig = {1, '#243e58'};
 
 local bgImageKeys = { 'bg', 'tl', 'tr', 'br', 'bl' };
-local bgTitleAtlasItemCount = 4;
-local bgTitleItemHeight;
 local loadedBg = nil;
 
 local partyList = {};
@@ -105,7 +104,10 @@ local function UpdateTextVisibility(visible, partyIndex)
 
     for i = 1, 3 do
         if (partyIndex == nil or i == partyIndex) then
-            partyWindowPrim[i].bgTitle.visible = visible and gConfig.showPartyListTitle;
+            -- Update title text visibility
+            if (titleText[i] ~= nil) then
+                titleText[i]:set_visible(visible and gConfig.showPartyListTitle);
+            end
             local backgroundPrim = partyWindowPrim[i].background;
             for _, k in ipairs(bgImageKeys) do
                 backgroundPrim[k].visible = visible and backgroundPrim[k].exists;
@@ -264,9 +266,81 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
 
     local hpStartX, hpStartY = imgui.GetCursorScreenPos();
 
-    -- Draw the job icon before we draw anything else
-    local namePosX = hpStartX;
+    -- PRE-CALCULATE dimensions needed for selection box BEFORE drawing anything
+    local partyIndex = math.ceil((memIdx + 1) / partyMaxSize);
+    local fontSize = settings.fontSizes[partyIndex];
+
+    -- Set font heights to get accurate text measurements
+    memberText[memIdx].hp:set_font_height(fontSize);
+    memberText[memIdx].name:set_font_height(fontSize);
+
+    -- Calculate text sizes
+    memberText[memIdx].name:set_text(tostring(memInfo.name));
+    local nameWidth, nameHeight = memberText[memIdx].name:get_text_size();
+    local hpHeight = memberText[memIdx].hp:get_text_size();
+
+    -- Calculate layout dimensions
     local jobIconSize = settings.iconSize * 1.1 * scale.icon;
+    local offsetSize = nameHeight > settings.iconSize and nameHeight or settings.iconSize;
+    -- entrySize includes the full member entry: name/icon area + bars + text below bars + padding
+    local entrySize = hpHeight + barHeight + 10;
+
+    -- DRAW SELECTION BOX using GetBackgroundDrawList (renders behind everything with rounded corners)
+    if (memInfo.targeted == true) then
+        local drawList = imgui.GetBackgroundDrawList();
+
+        local selectionWidth = allBarsLengths + settings.cursorPaddingX1 + settings.cursorPaddingX2;
+        local selectionHeight = entrySize;
+        local selectionTL = {hpStartX - settings.cursorPaddingX1, hpStartY - offsetSize - settings.cursorPaddingY1 + 3};
+        local selectionBR = {selectionTL[1] + selectionWidth, selectionTL[2] + selectionHeight};
+
+        -- Get selection gradient colors from config using helper
+        local selectionGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'selectionGradient') or {'#4da5d9', '#78c0ed'};
+        local startColor = HexToImGui(selectionGradient[1]);
+        local endColor = HexToImGui(selectionGradient[2]);
+
+        -- Draw gradient effect with multiple rectangles (top to bottom fade)
+        local gradientSteps = 8;
+        local stepHeight = selectionHeight / gradientSteps;
+        for i = 1, gradientSteps do
+            -- Calculate interpolation factor (0 at top, 1 at bottom)
+            local t = (i - 1) / (gradientSteps - 1);
+
+            -- Interpolate between start and end colors (RGBA float table)
+            local r = startColor[1] + (endColor[1] - startColor[1]) * t;
+            local g = startColor[2] + (endColor[2] - startColor[2]) * t;
+            local b = startColor[3] + (endColor[3] - startColor[3]) * t;
+
+            -- Fade alpha from more opaque at top to more transparent at bottom
+            local alpha = 0.35 - t * 0.25; -- 0.35 to 0.10
+
+            local stepColor = imgui.GetColorU32({r, g, b, alpha});
+
+            local stepTL_y = selectionTL[2] + (i - 1) * stepHeight;
+            local stepBR_y = stepTL_y + stepHeight;
+
+            -- AddRectFilled with rounded corners (params: min{x,y}, max{x,y}, color, rounding, flags)
+            if i == 1 then
+                drawList:AddRectFilled({selectionTL[1], stepTL_y}, {selectionBR[1], stepBR_y}, stepColor, 6, 3); -- 6px radius, top corners only
+            elseif i == gradientSteps then
+                drawList:AddRectFilled({selectionTL[1], stepTL_y}, {selectionBR[1], stepBR_y}, stepColor, 6, 12); -- 6px radius, bottom corners only
+            else
+                drawList:AddRectFilled({selectionTL[1], stepTL_y}, {selectionBR[1], stepBR_y}, stepColor, 0);
+            end
+        end
+
+        -- Draw border outline with rounded corners (convert ARGB to ImGui format for real-time updates)
+        local borderColorARGB = gConfig.colorCustomization.partyList.selectionBorderColor;
+        local borderColor = imgui.GetColorU32(ARGBToImGui(borderColorARGB));
+        drawList:AddRect({selectionTL[1], selectionTL[2]}, {selectionBR[1], selectionBR[2]}, borderColor, 6, 15, 2); -- 6px radius, all corners, 2px thick
+
+        partyTargeted = true;
+    end
+
+    -- NOW draw all member content (will appear on top of selection box)
+
+    -- Draw the job icon
+    local namePosX = hpStartX;
     local offsetStartY = hpStartY - jobIconSize - settings.nameTextOffsetY;
     imgui.SetCursorScreenPos({namePosX, offsetStartY});
     local jobIcon = statusHandler.GetJobIcon(memInfo.job);
@@ -276,17 +350,12 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     end
     imgui.SetCursorScreenPos({hpStartX, hpStartY});
 
-    -- Dynamically set font heights based on settings (avoids expensive font recreation)
-    local partyIndex = math.ceil((memIdx + 1) / partyMaxSize);
-    local fontSize = settings.fontSizes[partyIndex];
-    memberText[memIdx].hp:set_font_height(fontSize);
+    -- Set remaining font heights
     memberText[memIdx].mp:set_font_height(fontSize);
     memberText[memIdx].tp:set_font_height(fontSize);
-    memberText[memIdx].name:set_font_height(fontSize);
     memberText[memIdx].distance:set_font_height(fontSize);
 
     -- Update the hp text
-    -- Only call set_color if the color has changed (expensive operation for GDI fonts)
     if not memberTextColorCache[memIdx] then memberTextColorCache[memIdx] = {}; end
     if (memberTextColorCache[memIdx].hp ~= gConfig.colorCustomization.partyList.hpTextColor) then
         memberText[memIdx].hp:set_font_color(gConfig.colorCustomization.partyList.hpTextColor);
@@ -309,11 +378,6 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     if (memInfo.leader) then
         draw_circle({hpStartX + settings.dotRadius/2, hpStartY + settings.dotRadius/2}, settings.dotRadius, {1, 1, .5, 1}, settings.dotRadius * 3, true);
     end
-
-    -- Update the name text (without distance)
-    memberText[memIdx].name:set_text(tostring(memInfo.name));
-    local nameWidth, nameHeight = memberText[memIdx].name:get_text_size();
-    local offsetSize = nameHeight > settings.iconSize and nameHeight or settings.iconSize;
 
     local desiredNameColor = gConfig.colorCustomization.partyList.nameTextColor;
     -- Only call set_color if the color has changed
@@ -413,17 +477,6 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
             memberText[memIdx].tp:set_position_x(tpStartX + tpBarWidth + settings.tpTextOffsetX);
             memberText[memIdx].tp:set_position_y(tpStartY + barHeight + settings.tpTextOffsetY);
             memberText[memIdx].tp:set_text(tostring(memInfo.tp));
-        end
-
-        -- Draw targeted
-        local entrySize = hpHeight + offsetSize + settings.hpTextOffsetY + barHeight + settings.cursorPaddingY1 + settings.cursorPaddingY2;
-        if (memInfo.targeted == true) then
-            selectionPrim.visible = true;
-            selectionPrim.position_x = hpStartX - settings.cursorPaddingX1;
-            selectionPrim.position_y = hpStartY - offsetSize - settings.cursorPaddingY1 + 3;
-            selectionPrim.scale_x = (allBarsLengths + settings.cursorPaddingX1 + settings.cursorPaddingX2) / 346;
-            selectionPrim.scale_y = entrySize / 108;
-            partyTargeted = true;
         end
 
         -- Draw subtargeted
@@ -530,11 +583,10 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     memberText[memIdx].mp:set_visible(memInfo.inzone);
     memberText[memIdx].tp:set_visible(memInfo.inzone and showTP);
 
-    --if (memInfo.inzone) then
-        imgui.Dummy({0, settings.entrySpacing[partyIndex] + hpHeight + settings.hpTextOffsetY + settings.nameTextOffsetY});
-    --else
-    --    imgui.Dummy({0, settings.entrySpacing[partyIndex] + settings.nameTextOffsetY});
-    --end
+    -- Reserve space in ImGui layout for the text below bars (which is rendered with absolute positioning)
+    -- Don't include cursorPadding here - that's only for the selection box visual padding
+    local bottomSpacing = settings.entrySpacing[partyIndex];
+    imgui.Dummy({0, bottomSpacing});
 
     -- Only add spacing between members if this isn't the last visible member
     if (not isLastVisibleMember) then
@@ -568,7 +620,6 @@ partyList.DrawWindow = function(settings)
         UpdateTextVisibility(false, 3);
     end
 
-    selectionPrim.visible = partyTargeted;
     arrowPrim.visible = partySubTargeted;
 end
 
@@ -600,18 +651,21 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
         return;
     end
 
-    local bgTitlePrim = partyWindowPrim[partyIndex].bgTitle;
     local backgroundPrim = partyWindowPrim[partyIndex].background;
 
-    -- Graphic has multiple titles
-    -- 0 = Solo
-    -- bgTitleItemHeight = Party
-    -- bgTitleItemHeight*2 = Party B
-    -- bgTitleItemHeight*3 = Party C
+    -- Determine title text based on party index and member count
+    local titleString;
     if (partyIndex == 1) then
-        bgTitlePrim.texture_offset_y = partyMemberCount == 1 and 0 or bgTitleItemHeight;
+        titleString = partyMemberCount == 1 and "Solo" or "Party A";
+    elseif (partyIndex == 2) then
+        titleString = "Party B";
     else
-        bgTitlePrim.texture_offset_y = bgTitleItemHeight * partyIndex
+        titleString = "Party C";
+    end
+
+    -- Update title text
+    if (titleText[partyIndex] ~= nil) then
+        titleText[partyIndex]:set_text(titleString);
     end
 
     local imguiPosX, imguiPosY;
@@ -709,9 +763,15 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
         backgroundPrim.bl.height = backgroundPrim.br.height;
         backgroundPrim.bl.color = borderColor;
 
-        bgTitlePrim.visible = gConfig.showPartyListTitle;
-        bgTitlePrim.position_x = imguiPosX + math.floor((bgWidth / 2) - (bgTitlePrim.width * bgTitlePrim.scale_x / 2));
-        bgTitlePrim.position_y = imguiPosY - math.floor((bgTitlePrim.height * bgTitlePrim.scale_y / 2) + (2 / bgTitlePrim.scale_y));
+        -- Position title text centered above the window
+        if (titleText[partyIndex] ~= nil) then
+            titleText[partyIndex]:set_visible(gConfig.showPartyListTitle);
+            local titleWidth, titleHeight = titleText[partyIndex]:get_text_size();
+            local titlePosX = imguiPosX + math.floor((bgWidth / 2) - (titleWidth / 2));
+            local titlePosY = imguiPosY - math.floor(titleHeight);
+            titleText[partyIndex]:set_position_x(titlePosX);
+            titleText[partyIndex]:set_position_y(titlePosY);
+        end
     -- end
 
 	imgui.End();
@@ -789,6 +849,13 @@ partyList.Initialize = function(settings)
         memberText[i].distance = gdi:create_object(distance_font_settings);
     end
 
+    -- Initialize title fonts for each party (3 parties)
+    for i = 1, 3 do
+        local title_font_settings = deep_copy_table(settings.title_font_settings);
+        -- Font height is already set in the settings, no need to override
+        titleText[i] = gdi:create_object(title_font_settings);
+    end
+
     -- Initialize images
     loadedBg = nil;
 
@@ -803,23 +870,7 @@ partyList.Initialize = function(settings)
         end
 
         partyWindowPrim[i].background = backgroundPrim;
-
-        local bgTitlePrim = primitives.new(settings.prim_data);
-        bgTitlePrim.color = 0xFFC5CFDC;
-        bgTitlePrim.texture = string.format('%s/assets/PartyList-Titles.png', addon.path);
-        bgTitlePrim.visible = false;
-        bgTitlePrim.can_focus = false;
-        bgTitleItemHeight = bgTitlePrim.height / bgTitleAtlasItemCount;
-        bgTitlePrim.height = bgTitleItemHeight;
-
-        partyWindowPrim[i].bgTitle = bgTitlePrim;
     end
-
-    selectionPrim = primitives.new(settings.prim_data);
-    selectionPrim.color = 0xFFFFFFFF;
-    selectionPrim.texture = string.format('%s/assets/Selector.png', addon.path);
-    selectionPrim.visible = false;
-    selectionPrim.can_focus = false;
 
     arrowPrim = primitives.new(settings.prim_data);
     arrowPrim.color = 0xFFFFFFFF;
@@ -896,9 +947,6 @@ partyList.UpdateVisuals = function(settings)
     loadedBg = gConfig.partyListBackgroundName;
 
     for i = 1, 3 do
-        partyWindowPrim[i].bgTitle.scale_x = gConfig.partyListBgScale / 2.30;
-        partyWindowPrim[i].bgTitle.scale_y = gConfig.partyListBgScale / 2.30;
-
         local backgroundPrim = partyWindowPrim[i].background;
 
         for _, k in ipairs(bgImageKeys) do
@@ -924,7 +972,6 @@ end
 partyList.SetHidden = function(hidden)
 	if (hidden == true) then
         UpdateTextVisibility(false);
-        selectionPrim.visible = false;
         arrowPrim.visible = false;
 	end
 end
@@ -945,16 +992,19 @@ partyList.Cleanup = function()
 		end
 	end
 
+	-- Destroy title text font objects
+	for i = 1, 3 do
+		if (titleText[i] ~= nil) then
+			gdi:destroy_object(titleText[i]);
+		end
+	end
+
 	-- Destroy primitives
-	if (selectionPrim ~= nil) then selectionPrim:destroy(); selectionPrim = nil; end
 	if (arrowPrim ~= nil) then arrowPrim:destroy(); arrowPrim = nil; end
 
 	-- Destroy party window primitives
 	for i = 1, 3 do
 		if (partyWindowPrim[i] ~= nil) then
-			if (partyWindowPrim[i].bgTitle ~= nil) then
-				partyWindowPrim[i].bgTitle:destroy();
-			end
 			if (partyWindowPrim[i].background ~= nil) then
 				for _, k in ipairs(bgImageKeys) do
 					if (partyWindowPrim[i].background[k] ~= nil) then
@@ -967,6 +1017,7 @@ partyList.Cleanup = function()
 
 	-- Clear tables
 	memberText = {};
+	titleText = {};
 	partyWindowPrim = {{background = {}}, {background = {}}, {background = {}}};
 end
 

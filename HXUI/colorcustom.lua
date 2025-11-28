@@ -184,7 +184,7 @@ colorcustom.DrawWindow = function()
 
         -- Party List
         if (imgui.CollapsingHeader("Party List")) then
-            imgui.BeginChild("PartyListColors", { 0, 700 }, true);
+            imgui.BeginChild("PartyListColors", { 0, 800 }, true);
 
             imgui.Text("HP Bar Colors:");
             imgui.Separator();
@@ -213,6 +213,12 @@ colorcustom.DrawWindow = function()
             imgui.Separator();
             DrawTextColorPicker("Background Color", gConfig.colorCustomization.partyList, 'bgColor', "Color of party list background");
             DrawTextColorPicker("Border Color", gConfig.colorCustomization.partyList, 'borderColor', "Color of party list borders");
+
+            imgui.Separator();
+            imgui.Text("Selection Colors:");
+            imgui.Separator();
+            DrawGradientPicker("Selection Box", gConfig.colorCustomization.partyList.selectionGradient, "Color gradient for the selection box around targeted party members");
+            DrawTextColorPicker("Selection Border", gConfig.colorCustomization.partyList, 'selectionBorderColor', "Color of the selection box border");
 
             imgui.EndChild();
         end

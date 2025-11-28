@@ -206,6 +206,7 @@ T{
     partyList3EntrySpacing = -20,
     partyList3TP = false,
 
+	partyListTitleFontSize = 14,
 	partyListBuffScale = 1,
 	partyListStatusTheme = 0, -- 0: HorizonXI-L, 1: HorizonXI-R 2: XIV1.0, 3: XIV, 4: Disabled
 	partyListTheme = 0, 
@@ -323,6 +324,8 @@ T{
 			tpFullTextColor = 0xFF2fa9ff,   -- TP >= 1000
 			bgColor = 0xFFFFFFFF,           -- Background color
 			borderColor = 0xFFFFFFFF,       -- Border color
+			selectionGradient = T{ enabled = true, start = '#4da5d9', stop = '#78c0ed' },  -- Selection box gradient
+			selectionBorderColor = 0xFF78C0ED,  -- Selection box border
 		},
 
 		-- Exp Bar
@@ -608,9 +611,9 @@ T{
 		tpTextOffsetY = -3,
 
 		borderSize = 21,
-        bgPadding = 5,
-        bgPaddingY = 10,
-        bgOffset = 1,
+        bgPadding = 2,
+        bgPaddingY = 8,
+        bgOffset = 0,
 
 		cursorPaddingX1 = 5,
 		cursorPaddingX2 = 5,
@@ -667,6 +670,16 @@ T{
 			font_family = 'Consolas',
 			font_height = 13,
 			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
+		};
+		title_font_settings =
+		T{
+			font_alignment = gdi.Alignment.None,
+			font_family = 'Consolas',
+			font_height = 14,
+			font_color = 0xFFC5CFDC,
 			font_flags = gdi.FontFlags.None,
 			outline_color = 0xFF000000,
 			outline_width = 2,
@@ -822,6 +835,8 @@ function UpdateUserSettings()
 	gAdjustedSettings.partyListSettings.tp_font_settings.font_flags = fontWeightFlags;
 	gAdjustedSettings.partyListSettings.name_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.partyListSettings.name_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.partyListSettings.title_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.partyListSettings.title_font_settings.font_flags = fontWeightFlags;
 
 	gAdjustedSettings.castBarSettings.spell_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.castBarSettings.spell_font_settings.font_flags = fontWeightFlags;
@@ -874,6 +889,7 @@ function UpdateUserSettings()
 		us.partyList2FontSize,  -- Party 2
 		us.partyList3FontSize,  -- Party 3
 	};
+	gAdjustedSettings.partyListSettings.title_font_settings.font_height = math.max(us.partyListTitleFontSize, 6);
 
 	gAdjustedSettings.partyListSettings.entrySpacing = {
         ds.partyListSettings.entrySpacing + us.partyListEntrySpacing,
