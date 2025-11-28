@@ -724,6 +724,7 @@ local config = settings.load(user_settings_container);
 gConfig = config.userSettings;
 
 showConfig = { false };
+local pendingVisualUpdate = false;
 
 function ResetSettings()
 	local patchNotesVer = gConfig.patchNotesVer;
@@ -767,15 +768,15 @@ local function ForceHide()
 	castBar.SetHidden(true);
 end
 
-local function UpdateFonts()
-	playerBar.UpdateFonts(gAdjustedSettings.playerBarSettings);
-	targetBar.UpdateFonts(gAdjustedSettings.targetBarSettings);
-	expBar.UpdateFonts(gAdjustedSettings.expBarSettings);
-	gilTracker.UpdateFonts(gAdjustedSettings.gilTrackerSettings);
-	inventoryTracker.UpdateFonts(gAdjustedSettings.inventoryTrackerSettings);
-	partyList.UpdateFonts(gAdjustedSettings.partyListSettings);
-	castBar.UpdateFonts(gAdjustedSettings.castBarSettings);
-	enemyList.UpdateFonts(gAdjustedSettings.enemyListSettings);
+local function UpdateVisuals()
+	playerBar.UpdateVisuals(gAdjustedSettings.playerBarSettings);
+	targetBar.UpdateVisuals(gAdjustedSettings.targetBarSettings);
+	expBar.UpdateVisuals(gAdjustedSettings.expBarSettings);
+	gilTracker.UpdateVisuals(gAdjustedSettings.gilTrackerSettings);
+	inventoryTracker.UpdateVisuals(gAdjustedSettings.inventoryTrackerSettings);
+	partyList.UpdateVisuals(gAdjustedSettings.partyListSettings);
+	castBar.UpdateVisuals(gAdjustedSettings.castBarSettings);
+	enemyList.UpdateVisuals(gAdjustedSettings.enemyListSettings);
 end
 
 function UpdateUserSettings()
@@ -954,52 +955,57 @@ function SaveSettingsOnly()
     UpdateUserSettings();
 end
 
--- Module-specific font updates (only recreate fonts for one module)
-function UpdatePlayerBarFonts()
+-- Module-specific visual asset updates (only update visuals for one module)
+function UpdatePlayerBarVisuals()
 	SaveSettingsOnly();
-	playerBar.UpdateFonts(gAdjustedSettings.playerBarSettings);
+	playerBar.UpdateVisuals(gAdjustedSettings.playerBarSettings);
 end
 
-function UpdateTargetBarFonts()
+function UpdateTargetBarVisuals()
 	SaveSettingsOnly();
-	targetBar.UpdateFonts(gAdjustedSettings.targetBarSettings);
+	targetBar.UpdateVisuals(gAdjustedSettings.targetBarSettings);
 end
 
-function UpdatePartyListFonts()
+function UpdatePartyListVisuals()
 	SaveSettingsOnly();
-	partyList.UpdateFonts(gAdjustedSettings.partyListSettings);
+	partyList.UpdateVisuals(gAdjustedSettings.partyListSettings);
 end
 
-function UpdateEnemyListFonts()
+function UpdateEnemyListVisuals()
 	SaveSettingsOnly();
-	enemyList.UpdateFonts(gAdjustedSettings.enemyListSettings);
+	enemyList.UpdateVisuals(gAdjustedSettings.enemyListSettings);
 end
 
-function UpdateExpBarFonts()
+function UpdateExpBarVisuals()
 	SaveSettingsOnly();
-	expBar.UpdateFonts(gAdjustedSettings.expBarSettings);
+	expBar.UpdateVisuals(gAdjustedSettings.expBarSettings);
 end
 
-function UpdateGilTrackerFonts()
+function UpdateGilTrackerVisuals()
 	SaveSettingsOnly();
-	gilTracker.UpdateFonts(gAdjustedSettings.gilTrackerSettings);
+	gilTracker.UpdateVisuals(gAdjustedSettings.gilTrackerSettings);
 end
 
-function UpdateInventoryTrackerFonts()
+function UpdateInventoryTrackerVisuals()
 	SaveSettingsOnly();
-	inventoryTracker.UpdateFonts(gAdjustedSettings.inventoryTrackerSettings);
+	inventoryTracker.UpdateVisuals(gAdjustedSettings.inventoryTrackerSettings);
 end
 
-function UpdateCastBarFonts()
+function UpdateCastBarVisuals()
 	SaveSettingsOnly();
-	castBar.UpdateFonts(gAdjustedSettings.castBarSettings);
+	castBar.UpdateVisuals(gAdjustedSettings.castBarSettings);
 end
 
--- Full settings update including font recreation (for font changes, visibility, etc.)
+-- Full settings update including visual asset recreation (fonts, textures, etc.)
 function UpdateSettings()
     SaveSettingsOnly();
 	CheckVisibility();
-	UpdateFonts();
+	UpdateVisuals();
+end;
+
+function DeferredUpdateVisuals()
+	-- This schedules a visual asset update to happen outside the render loop
+	pendingVisualUpdate = true;
 end;
 
 settings.register('settings', 'settings_update', function (s)
@@ -1094,6 +1100,14 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 	-- Prevent rendering before initialization completes
 	if not bInitialized then
 		return;
+	end
+
+	-- Process any pending visual asset updates (fonts, textures, etc.) outside the render loop
+	if pendingVisualUpdate then
+		pendingVisualUpdate = false;
+		statusHandler.clear_cache();  -- Clear texture cache before reloading
+		UpdateUserSettings();
+		UpdateVisuals();
 	end
 
     local eventSystemActive = GetEventSystemActive();

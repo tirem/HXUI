@@ -790,10 +790,10 @@ partyList.Initialize = function(settings)
     arrowPrim.visible = false;
     arrowPrim.can_focus = false;
 
-    partyList.UpdateFonts(settings);
+    partyList.UpdateVisuals(settings);
 end
 
-partyList.UpdateFonts = function(settings)
+partyList.UpdateVisuals = function(settings)
     -- Check which party font sizes changed
     local sizesChanged = {false, false, false};
     for partyIndex = 1, 3 do

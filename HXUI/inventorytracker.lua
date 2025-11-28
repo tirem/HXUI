@@ -142,7 +142,7 @@ inventoryTracker.Initialize = function(settings)
     inventoryText = gdi:create_object(settings.font_settings);
 end
 
-inventoryTracker.UpdateFonts = function(settings)
+inventoryTracker.UpdateVisuals = function(settings)
 	-- Destroy old font object
 	if (inventoryText ~= nil) then gdi:destroy_object(inventoryText); end
 

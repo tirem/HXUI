@@ -202,7 +202,7 @@ expbar.Initialize = function(settings)
     -- expbar.mastery = { player:GetMasteryExp(), player:GetMasteryExpNeeded() };
 end
 
-expbar.UpdateFonts = function(settings)
+expbar.UpdateVisuals = function(settings)
 	-- Destroy old font objects
 	if (jobText ~= nil) then gdi:destroy_object(jobText); end
 	if (expText ~= nil) then gdi:destroy_object(expText); end

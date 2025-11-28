@@ -96,8 +96,8 @@ local function DrawGeneralSettings()
         local status_theme_paths = statusHandler.get_status_theme_paths();
         DrawComboBox('Status Icon Theme', gConfig.statusIconTheme, status_theme_paths, function(newValue)
             gConfig.statusIconTheme = newValue;
-            statusHandler.clear_cache();
             SaveSettingsOnly();
+            DeferredUpdateVisuals();
         end);
         imgui.ShowHelp('The folder to pull status icons from. [HXUI\\assets\\status]');
 
@@ -105,8 +105,8 @@ local function DrawGeneralSettings()
         local job_theme_paths = statusHandler.get_job_theme_paths();
         DrawComboBox('Job Icon Theme', gConfig.jobIconTheme, job_theme_paths, function(newValue)
             gConfig.jobIconTheme = newValue;
-            statusHandler.clear_cache();
             SaveSettingsOnly();
+            DeferredUpdateVisuals();
         end);
         imgui.ShowHelp('The folder to pull job icons from. [HXUI\\assets\\jobs]');
 
@@ -267,8 +267,8 @@ local function DrawPartyListSettings()
         local bg_theme_paths = statusHandler.get_background_paths();
         DrawComboBox('Background', gConfig.partyListBackgroundName, bg_theme_paths, function(newValue)
             gConfig.partyListBackgroundName = newValue;
-            statusHandler.clear_cache();
             SaveSettingsOnly();
+            DeferredUpdateVisuals();
         end);
         imgui.ShowHelp('The image to use for the party list background. [Resolution: 512x512 @ HXUI\\assets\\backgrounds]');
 
@@ -276,8 +276,8 @@ local function DrawPartyListSettings()
         local cursor_paths = statusHandler.get_cursor_paths();
         DrawComboBox('Cursor', gConfig.partyListCursor, cursor_paths, function(newValue)
             gConfig.partyListCursor = newValue;
-            statusHandler.clear_cache();
             SaveSettingsOnly();
+            DeferredUpdateVisuals();
         end);
         imgui.ShowHelp('The image to use for the party list cursor. [@ HXUI\\assets\\cursors]');
 

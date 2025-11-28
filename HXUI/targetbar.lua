@@ -445,7 +445,7 @@ targetbar.Initialize = function(settings)
 	arrowTexture = 	LoadTexture("arrow");
 end
 
-targetbar.UpdateFonts = function(settings)
+targetbar.UpdateVisuals = function(settings)
 	-- Destroy old font objects
 	if (percentText ~= nil) then gdi:destroy_object(percentText); end
 	if (nameText ~= nil) then gdi:destroy_object(nameText); end

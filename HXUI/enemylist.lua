@@ -434,7 +434,7 @@ enemylist.Initialize = function(settings)
 	-- Font objects are created on-demand for each enemy
 end
 
-enemylist.UpdateFonts = function(settings)
+enemylist.UpdateVisuals = function(settings)
 	-- Destroy all existing font objects
 	for k, v in pairs(enemyNameFonts) do
 		if (v ~= nil) then gdi:destroy_object(v); end

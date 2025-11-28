@@ -79,7 +79,7 @@ giltracker.Initialize = function(settings)
 	gilTexture = LoadTexture("gil");
 end
 
-giltracker.UpdateFonts = function(settings)
+giltracker.UpdateVisuals = function(settings)
 	-- Destroy old font object
 	if (gilText ~= nil) then gdi:destroy_object(gilText); end
 

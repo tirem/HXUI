@@ -282,7 +282,7 @@ playerbar.Initialize = function(settings)
 	tpText = gdi:create_object(settings.font_settings);
 end
 
-playerbar.UpdateFonts = function(settings)
+playerbar.UpdateVisuals = function(settings)
 	-- Destroy old font objects
 	if (hpText ~= nil) then gdi:destroy_object(hpText); end
 	if (mpText ~= nil) then gdi:destroy_object(mpText); end

@@ -132,7 +132,7 @@ castbar.DrawWindow = function(settings)
 	castbar.previousPercent = percent;
 end
 
-castbar.UpdateFonts = function(settings)
+castbar.UpdateVisuals = function(settings)
 	-- Destroy old font objects
 	if (spellText ~= nil) then gdi:destroy_object(spellText); end
 	if (percentText ~= nil) then gdi:destroy_object(percentText); end
