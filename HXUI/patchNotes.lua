@@ -56,7 +56,7 @@ patchNotes.DrawWindow = function()
 		-- Draw logo and version text
 		imgui.Image(tonumber(ffi.cast("uint32_t", HXUITexture.image)), { 83, 53});
 		imgui.SameLine();
-		imgui.BulletText(' UPDATE 1.3.8 ');
+		imgui.BulletText(' UPDATE 1.4.0-dev ');
 		imgui.SameLine();
 		imgui.BulletText('');
 
@@ -74,22 +74,30 @@ patchNotes.DrawWindow = function()
 		end
 
 		imgui.NewLine();
-		imgui.TextColored({0.8, 0.8, 0.8, 1.0}, 'Special thanks to ');
-		imgui.SameLine();
-		imgui.TextColored({0.4, 0.6, 1.0, 1.0}, 'Rag');
-		if imgui.IsItemHovered() then
-			imgui.SetMouseCursor(ImGuiMouseCursor_Hand);
-			if imgui.IsItemClicked() then
-				os.execute('start https://github.com/yzyii');
-			end
-		end
-		imgui.SameLine();
-		imgui.TextColored({0.8, 0.8, 0.8, 1.0}, ' for this update!');
+		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'New Feature: Color Customizer');
+		imgui.BulletText('Added comprehensive color customization system');
+		imgui.BulletText('Customize all text colors (HP, MP, TP, distance, etc.)');
+		imgui.BulletText('Customize bar gradient colors or use solid colors');
+		imgui.BulletText('Customize entity name colors by type (player/NPC/mob/claimed)');
+		imgui.BulletText('Customize texture tint colors for all UI elements');
 		imgui.NewLine();
-		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'Cast Bar');
-		imgui.BulletText('Added WHM Cure Speed support (Cure Clogs, Minstrel\'s Ring, etc.)');
-		imgui.BulletText('Added BRD Sing Speed support (Minstrel\'s Ring, etc.)');
-		imgui.BulletText('Cure Speed and Sing Speed work independently from Fast Cast calculations');
+		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'Font System Improvements');
+		imgui.BulletText('Changed font sizing from scale to pixel-based for better control');
+		imgui.BulletText('Added font weight options (Normal/Bold)');
+		imgui.BulletText('Added outline thickness control (0-5 pixels)');
+		imgui.BulletText('Individual font size controls for each UI element');
+		imgui.BulletText('Migrated all modules to GDI fonts for consistency');
+		imgui.NewLine();
+		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'Party List');
+		imgui.BulletText('Improved rendering performance (moved to DrawList)');
+		imgui.BulletText('Enhanced readability with better spacing and layout');
+		imgui.NewLine();
+		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'Enemy List');
+		imgui.BulletText('Updated spacing and layout for better readability');
+		imgui.NewLine();
+		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'General Improvements');
+		imgui.BulletText('Fixed texture color mixing and rendering issues');
+		imgui.BulletText('Updated config menu styling and organization');
     end
 	imgui.PopStyleVar(1);
 	imgui.PopStyleColor(4);

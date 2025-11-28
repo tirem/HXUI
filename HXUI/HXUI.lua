@@ -24,7 +24,7 @@
 
 addon.name      = 'HXUI';
 addon.author    = 'Team HXUI';
-addon.version   = '1.3.8';
+addon.version   = '1.4.0-dev';
 addon.desc      = 'Multiple UI elements with manager';
 addon.link      = 'https://github.com/tirem/HXUI'
 
@@ -53,7 +53,7 @@ local RENDER_FLAG_HIDDEN = 0x4000;  -- Entity is hidden (cutscene, menu, etc.)
 -- = HXUI DEV ONLY =
 -- =================
 -- Hot reloading of development files functionality
-local _HXUI_DEV_HOT_RELOADING_ENABLED = true;
+local _HXUI_DEV_HOT_RELOADING_ENABLED = false;
 local _HXUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS = 1;
 local _HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME;
 local _HXUI_DEV_HOT_RELOAD_FILES = {};
