@@ -292,8 +292,12 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     -- Calculate layout dimensions
     local jobIconSize = settings.iconSize * 1.1 * scale.icon;
     local offsetSize = nameHeight > settings.iconSize and nameHeight or settings.iconSize;
-    -- entrySize includes the full member entry: name/icon area + bars + text below bars + padding
-    local entrySize = hpHeight + barHeight + settings.entrySpacing[partyIndex] + -6;
+
+    -- Calculate the actual topmost point of the member (where name/icon are drawn)
+    local nameIconAreaHeight = math.max(jobIconSize, nameHeight);
+
+    -- entrySize includes the full member entry: name/icon area + bars + text below bars
+    local entrySize = nameIconAreaHeight + settings.nameTextOffsetY + barHeight + hpHeight + settings.entrySpacing[partyIndex] - 6;
 
     -- DRAW SELECTION BOX using GetBackgroundDrawList (renders behind everything with rounded corners)
     if (memInfo.targeted == true) then
@@ -301,7 +305,9 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
 
         local selectionWidth = allBarsLengths + settings.cursorPaddingX1 + settings.cursorPaddingX2;
         local selectionHeight = entrySize + settings.cursorPaddingY1 + settings.cursorPaddingY2;
-        local selectionTL = {hpStartX - settings.cursorPaddingX1, hpStartY - offsetSize - settings.cursorPaddingY1 + 3};
+        -- Anchor selection box to the topmost point: top of name/icon minus padding
+        local topOfMember = hpStartY - nameIconAreaHeight - settings.nameTextOffsetY;
+        local selectionTL = {hpStartX - settings.cursorPaddingX1, topOfMember - settings.cursorPaddingY1};
         local selectionBR = {selectionTL[1] + selectionWidth, selectionTL[2] + selectionHeight};
 
         -- Get selection gradient colors from config using helper
@@ -619,8 +625,9 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     memberText[memIdx].tp:set_visible(memInfo.inzone and showTP);
 
     -- Reserve space in ImGui layout for the text below bars (which is rendered with absolute positioning)
+    -- Include hpHeight to account for the text size so background grows with font size changes
     -- Don't include cursorPadding here - that's only for the selection box visual padding
-    local bottomSpacing = settings.entrySpacing[partyIndex];
+    local bottomSpacing = hpHeight / 3 + settings.entrySpacing[partyIndex];
     imgui.Dummy({0, bottomSpacing});
 
     -- Only add spacing between members if this isn't the last visible member
