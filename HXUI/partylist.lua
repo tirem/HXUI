@@ -757,8 +757,8 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
         backgroundPrim.bg.visible = backgroundPrim.bg.exists;
         backgroundPrim.bg.position_x = imguiPosX - settings.bgPadding;
         backgroundPrim.bg.position_y = imguiPosY - settings.bgPaddingY;
-        backgroundPrim.bg.width = bgWidth;
-        backgroundPrim.bg.height = bgHeight;
+        backgroundPrim.bg.width = bgWidth / gConfig.partyListBgScale;
+        backgroundPrim.bg.height = bgHeight / gConfig.partyListBgScale;
         backgroundPrim.bg.color = bgColor;
 
         backgroundPrim.br.visible = backgroundPrim.br.exists;
