@@ -94,6 +94,10 @@ castbar.DrawWindow = function(settings)
 		if (imgui.Begin('CastBar', true, windowFlags)) then
 			local startX, startY = imgui.GetCursorScreenPos();
 
+			-- Calculate bookend width and text padding (same as exp bar)
+			local bookendWidth = gConfig.showCastBarBookends and (settings.barHeight / 2) or 0;
+			local textPadding = 8;
+
 			-- Create progress bar
 			--[[
 			imgui.PushStyleColor(ImGuiCol_PlotHistogram, {0.2, 0.75, 1, 1});
@@ -102,7 +106,7 @@ castbar.DrawWindow = function(settings)
 
 			imgui.PopStyleColor(1);
 			]]--
-			
+
 			local castGradient = GetCustomGradient(gConfig.colorCustomization.castBar, 'barGradient') or {'#3798ce', '#78c5ee'};
 			progressbar.ProgressBar({{showConfig[1] and 0.5 or percent, castGradient}}, {-1, settings.barHeight}, {decorate = gConfig.showCastBarBookends});
 
@@ -113,11 +117,16 @@ castbar.DrawWindow = function(settings)
 			spellText:set_font_height(settings.spell_font_settings.font_height);
 			percentText:set_font_height(settings.percent_font_settings.font_height);
 
-			spellText:set_position_x(startX);
+			-- Left-aligned text position (spell name) - 8px from left edge (after bookend)
+			local leftTextX = startX + bookendWidth + textPadding;
+			spellText:set_position_x(leftTextX);
 			spellText:set_position_y(startY + settings.barHeight + settings.spellOffsetY);
 			spellText:set_text(showConfig[1] and 'Configuration Mode' or castbar.GetLabelText());
 
-			percentText:set_position_x(startX + settings.barWidth - imgui.GetStyle().FramePadding.x * 4);
+			-- Right-aligned text position (percent) - 8px from right edge (before bookend)
+			local progressBarWidth = settings.barWidth - imgui.GetStyle().FramePadding.x * 2;
+			local rightTextX = startX + progressBarWidth - bookendWidth - textPadding;
+			percentText:set_position_x(rightTextX);
 			percentText:set_position_y(startY + settings.barHeight + settings.percentOffsetY);
 			percentText:set_text(showConfig[1] and '50%' or math.floor(percent * 100) .. '%');
 

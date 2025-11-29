@@ -235,6 +235,11 @@ targetbar.DrawWindow = function(settings)
 		end
 
 		local startX, startY = imgui.GetCursorScreenPos();
+
+		-- Calculate bookend width and text padding (same as exp bar)
+		local bookendWidth = gConfig.showTargetBarBookends and (settings.barHeight / 2) or 0;
+		local textPadding = 8;
+
 		progressbar.ProgressBar(hpPercentData, {settings.barWidth, settings.barHeight}, {decorate = gConfig.showTargetBarBookends});
 
 		-- Dynamically set font heights based on settings (avoids expensive font recreation)
@@ -242,9 +247,10 @@ targetbar.DrawWindow = function(settings)
 		percentText:set_font_height(settings.percent_font_settings.font_height);
 		distText:set_font_height(settings.distance_font_settings.font_height);
 
+		-- Left-aligned text position (target name) - 8px from left edge (after bookend)
+		local leftTextX = startX + bookendWidth + textPadding;
 		local nameWidth, nameHeight = nameText:get_text_size();
-
-		nameText:set_position_x(startX + settings.barHeight / 2 + settings.topTextXOffset);
+		nameText:set_position_x(leftTextX);
 		nameText:set_position_y(startY - settings.topTextYOffset - nameHeight);
 		-- Only call set_font_color if the color has changed (expensive operation for GDI fonts)
 		if (lastNameTextColor ~= color) then
@@ -254,9 +260,10 @@ targetbar.DrawWindow = function(settings)
 		nameText:set_text(targetNameText);
 		nameText:set_visible(true);
 
+		-- Right-aligned text position (distance) - 8px from right edge (before bookend)
+		local rightTextX = startX + settings.barWidth - bookendWidth - textPadding;
 		local distWidth, distHeight = distText:get_text_size();
-
-		distText:set_position_x(startX + settings.barWidth - settings.barHeight / 2 - settings.topTextXOffset);
+		distText:set_position_x(rightTextX);
 		distText:set_position_y(startY - settings.topTextYOffset - distHeight);
 		distText:set_text(tostring(dist));
 		if (gConfig.showTargetDistance) then
@@ -266,7 +273,8 @@ targetbar.DrawWindow = function(settings)
 		end
 
 		if (isMonster or gConfig.alwaysShowHealthPercent) then
-			percentText:set_position_x(startX + settings.barWidth - settings.barHeight / 2 - settings.bottomTextXOffset);
+			-- Right-aligned text position (hp percent) - 8px from right edge (before bookend)
+			percentText:set_position_x(rightTextX);
 			percentText:set_position_y(startY + settings.barHeight + settings.bottomTextYOffset);
 			percentText:set_text(tostring(targetHpPercent));
 			percentText:set_visible(true);
@@ -336,6 +344,11 @@ targetbar.DrawWindow = function(settings)
 				imgui.SetCursorScreenPos({totX, totY - (settings.totBarHeight / 2) + (settings.barHeight/2) + settings.totBarOffset});
 
 				local totStartX, totStartY = imgui.GetCursorScreenPos();
+
+				-- Calculate bookend width and text padding for ToT bar
+				local totBookendWidth = gConfig.showTargetBarBookends and (settings.totBarHeight / 2) or 0;
+				local totTextPadding = 8;
+
 				local totGradient = GetCustomGradient(gConfig.colorCustomization.totBar, 'hpGradient') or {'#e16c6c', '#fb9494'};
 				progressbar.ProgressBar({{totEntity.HPPercent / 100, totGradient}}, {settings.barWidth / 3, settings.totBarHeight}, {decorate = gConfig.showTargetBarBookends});
 
@@ -344,7 +357,9 @@ targetbar.DrawWindow = function(settings)
 
 				local totNameWidth, totNameHeight = totNameText:get_text_size();
 
-				totNameText:set_position_x(totStartX + settings.barHeight / 2);
+				-- Left-aligned text position (ToT name) - 8px from left edge (after bookend)
+				local totLeftTextX = totStartX + totBookendWidth + totTextPadding;
+				totNameText:set_position_x(totLeftTextX);
 				totNameText:set_position_y(totStartY - totNameHeight);
 				-- Only call set_font_color if the color has changed
 				if (lastTotNameTextColor ~= totColor) then
@@ -411,6 +426,10 @@ targetbar.DrawWindow = function(settings)
 				local totColor = GetColorOfTarget(totEntity, totIndex);
 				local totStartX, totStartY = imgui.GetCursorScreenPos();
 
+				-- Calculate bookend width and text padding for split ToT bar
+				local totBookendWidthSplit = gConfig.showTargetBarBookends and (settings.totBarHeightSplit / 2) or 0;
+				local totTextPaddingSplit = 8;
+
 				-- Use adjusted ToT settings for split bar
 				local totGradientSplit = GetCustomGradient(gConfig.colorCustomization.totBar, 'hpGradient') or {'#e16c6c', '#fb9494'};
 				progressbar.ProgressBar({{totEntity.HPPercent / 100, totGradientSplit}}, {settings.totBarWidth, settings.totBarHeightSplit}, {decorate = gConfig.showTargetBarBookends});
@@ -420,7 +439,9 @@ targetbar.DrawWindow = function(settings)
 
 				local totNameWidth, totNameHeight = totNameText:get_text_size();
 
-				totNameText:set_position_x(totStartX + settings.barHeight / 2);
+				-- Left-aligned text position (ToT name) - 8px from left edge (after bookend)
+				local totLeftTextXSplit = totStartX + totBookendWidthSplit + totTextPaddingSplit;
+				totNameText:set_position_x(totLeftTextXSplit);
 				totNameText:set_position_y(totStartY - totNameHeight);
 				-- Only call set_font_color if the color has changed
 				if (lastTotNameTextColor ~= totColor) then

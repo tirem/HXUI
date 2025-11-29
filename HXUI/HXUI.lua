@@ -401,9 +401,9 @@ T{
 		iconSize = 22,
 		arrowSize = 30,
 		maxIconColumns = 12,
-		topTextYOffset = 0,
+		topTextYOffset = 2,
 		topTextXOffset = 5,
-		bottomTextYOffset = -3,
+		bottomTextYOffset = 0,
 		bottomTextXOffset = 15,
 		name_font_settings =
 		T{
@@ -455,10 +455,10 @@ T{
 		barWidth = 500,
 		barSpacing = 10,
 		barHeight = 20,
-		textYOffset = -3,
+		textYOffset = -1,
 		font_settings =
 		T{
-			font_alignment = gdi.Alignment.Center,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 15,
 			font_color = 0xFFFFFFFF,
@@ -527,7 +527,7 @@ T{
 		barWidth = 550;
         textWidth = 550;
 		barHeight = 12;
-		textOffsetY = 5;
+		textOffsetY = 4;
 		percentOffsetX = -5;
 		job_font_settings =
 		T{

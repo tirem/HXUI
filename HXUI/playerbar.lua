@@ -139,6 +139,10 @@ playerbar.DrawWindow = function(settings)
 		local hpX = imgui.GetCursorPosX();
 		local barSize = (settings.barWidth / 3) - settings.barSpacing;
 
+		-- Calculate bookend width and text padding (same as exp bar)
+		local bookendWidth = gConfig.showPlayerBarBookends and (settings.barHeight / 2) or 0;
+		local textPadding = 8;
+
 		local hpPercentData = {{SelfHPPercent / 100, hpGradient}};
 
 		if _HXUI_DEV_DEBUG_INTERPOLATION then
@@ -170,37 +174,41 @@ playerbar.DrawWindow = function(settings)
 
 			imgui.SameLine();
 		end
-		
+
+		-- Capture HP bar start position
+		local hpBarStartX, hpBarStartY = imgui.GetCursorScreenPos();
 		progressbar.ProgressBar(hpPercentData, {barSize, settings.barHeight}, {decorate = gConfig.showPlayerBarBookends});
-		
+
 		imgui.SameLine();
-		local hpEndX = imgui.GetCursorPosX();
-		local hpLocX, hpLocY = imgui.GetCursorScreenPos();	
+		local hpEndX = imgui.GetCursorPosX();	
 		if (SelfHPPercent > 0) then
 			imgui.SetCursorPosX(hpX);
 
 			imgui.SameLine();
 		end
 
-		local mpLocX
-		local mpLocY;
-		
+		local mpBarStartX, mpBarStartY;
+
 		if (bShowMp) then
 			-- Draw MP Bar
 			imgui.SetCursorPosX(hpEndX + settings.barSpacing);
+			-- Capture MP bar start position
+			mpBarStartX, mpBarStartY = imgui.GetCursorScreenPos();
 			local mpGradient = GetCustomGradient(gConfig.colorCustomization.playerBar, 'mpGradient') or {'#9abb5a', '#bfe07d'};
 			progressbar.ProgressBar({{SelfMPPercent / 100, mpGradient}}, {barSize, settings.barHeight}, {decorate = gConfig.showPlayerBarBookends});
 			imgui.SameLine();
-			mpLocX, mpLocY  = imgui.GetCursorScreenPos()
 		end
 
 		-- Draw TP Bars
 		imgui.SetCursorPosX(imgui.GetCursorPosX() + settings.barSpacing);
 
+		-- Capture TP bar start position
+		local tpBarStartX, tpBarStartY = imgui.GetCursorScreenPos();
+
 		local tpGradient = GetCustomGradient(gConfig.colorCustomization.playerBar, 'tpGradient') or {'#3898ce', '#78c4ee'};
 		local mainPercent;
 		local tpOverlay;
-		
+
 		if (SelfTP >= 1000) then
 			mainPercent = (SelfTP - 1000) / 2000;
 
@@ -221,21 +229,21 @@ playerbar.DrawWindow = function(settings)
 		else
 			mainPercent = SelfTP / 1000;
 		end
-		
-		progressbar.ProgressBar({{mainPercent, tpGradient}}, {barSize, settings.barHeight}, {overlayBar=tpOverlay, decorate = gConfig.showPlayerBarBookends});
-		
-		imgui.SameLine();
 
-		local tpLocX, tpLocY  = imgui.GetCursorScreenPos();
+		progressbar.ProgressBar({{mainPercent, tpGradient}}, {barSize, settings.barHeight}, {overlayBar=tpOverlay, decorate = gConfig.showPlayerBarBookends});
+
+		imgui.SameLine();
 
 		-- Dynamically set font heights based on settings (avoids expensive font recreation)
 		hpText:set_font_height(settings.font_settings.font_height);
 		mpText:set_font_height(settings.font_settings.font_height);
 		tpText:set_font_height(settings.font_settings.font_height);
 
-		-- Update our HP Text
-		hpText:set_position_x(hpLocX - settings.barSpacing - settings.barHeight / 2);
-		hpText:set_position_y(hpLocY + settings.barHeight + settings.textYOffset);
+		-- Update our HP Text (using proper padding like exp bar)
+		local hpTextX = hpBarStartX + barSize - bookendWidth - textPadding;
+		local hpTextY = hpBarStartY + settings.barHeight + settings.textYOffset;
+		hpText:set_position_x(hpTextX);
+		hpText:set_position_y(hpTextY);
 		hpText:set_text(tostring(SelfHP));
 		-- Only call set_font_color if the color has changed (expensive operation for GDI fonts)
 		if (lastHpTextColor ~= gConfig.colorCustomization.playerBar.hpTextColor) then
@@ -246,9 +254,11 @@ playerbar.DrawWindow = function(settings)
 		hpText:set_visible(true);
 
 		if (bShowMp) then
-			-- Update our MP Text
-			mpText:set_position_x(mpLocX - settings.barSpacing - settings.barHeight / 2);
-			mpText:set_position_y(mpLocY + settings.barHeight + settings.textYOffset);
+			-- Update our MP Text (using proper padding like exp bar)
+			local mpTextX = mpBarStartX + barSize - bookendWidth - textPadding;
+			local mpTextY = mpBarStartY + settings.barHeight + settings.textYOffset;
+			mpText:set_position_x(mpTextX);
+			mpText:set_position_y(mpTextY);
 			mpText:set_text(tostring(SelfMP));
 			-- Only call set_font_color if the color has changed
 			if (lastMpTextColor ~= gConfig.colorCustomization.playerBar.mpTextColor) then
@@ -259,9 +269,11 @@ playerbar.DrawWindow = function(settings)
 
 		mpText:set_visible(bShowMp);
 
-		-- Update our TP Text
-		tpText:set_position_x(tpLocX - settings.barSpacing - settings.barHeight / 2);
-		tpText:set_position_y(tpLocY + settings.barHeight + settings.textYOffset);
+		-- Update our TP Text (using proper padding like exp bar)
+		local tpTextX = tpBarStartX + barSize - bookendWidth - textPadding;
+		local tpTextY = tpBarStartY + settings.barHeight + settings.textYOffset;
+		tpText:set_position_x(tpTextX);
+		tpText:set_position_y(tpTextY);
 		tpText:set_text(tostring(SelfTP));
 		local desiredTpColor = (SelfTP >= 1000) and gConfig.colorCustomization.playerBar.tpFullTextColor or gConfig.colorCustomization.playerBar.tpEmptyTextColor;
 		-- Only call set_font_color if the color has changed
