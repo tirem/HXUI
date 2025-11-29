@@ -1,17 +1,15 @@
 require('common');
+require('helpers');
 local imgui = require('imgui');
 local gdi = require('gdifonts.include');
 
 local inventoryText;
+local allFonts; -- Table for batch visibility operations
 
 -- Cached color to avoid expensive set_font_color calls every frame
 local lastInventoryTextColor;
 
 local inventoryTracker = {};
-
-local function UpdateTextVisibility(visible)
-	inventoryText:set_visible(visible);
-end
 
 local function GetDotOffset(row, column, settings)
 
@@ -34,19 +32,19 @@ inventoryTracker.DrawWindow = function(settings)
 
     local player = GetPlayerSafe();
 	if (player == nil) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts,false);
 		return;
 	end
 
 	local mainJob = player:GetMainJob();
     if (player.isZoning or mainJob == 0) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts,false);
         return;
 	end
 
 	local inventory = GetInventorySafe();
 	if (inventory == nil) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts,false);
 		return;
 	end
 	
@@ -144,9 +142,9 @@ inventoryTracker.DrawWindow = function(settings)
 			    inventoryText:set_font_color(gConfig.colorCustomization.inventoryTracker.textColor);
 			    lastInventoryTextColor = gConfig.colorCustomization.inventoryTracker.textColor;
 		    end
-            UpdateTextVisibility(true);
+            SetFontsVisible(allFonts,true);
         else
-            UpdateTextVisibility(false);
+            SetFontsVisible(allFonts,false);
         end
     end
 	imgui.End();
@@ -154,15 +152,15 @@ end
 
 
 inventoryTracker.Initialize = function(settings)
-    inventoryText = gdi:create_object(settings.font_settings);
+	-- Use FontManager for cleaner font creation
+    inventoryText = FontManager.create(settings.font_settings);
+	allFonts = {inventoryText};
 end
 
 inventoryTracker.UpdateVisuals = function(settings)
-	-- Destroy old font object
-	if (inventoryText ~= nil) then gdi:destroy_object(inventoryText); end
-
-	-- Recreate font object with new settings
-    inventoryText = gdi:create_object(settings.font_settings);
+	-- Use FontManager for cleaner font recreation
+	inventoryText = FontManager.recreate(inventoryText, settings.font_settings);
+	allFonts = {inventoryText};
 
 	-- Reset cached color when font is recreated
 	lastInventoryTextColor = nil;
@@ -171,13 +169,14 @@ end
 
 inventoryTracker.SetHidden = function(hidden)
 	if (hidden == true) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts, false);
 	end
 end
 
 inventoryTracker.Cleanup = function()
-	-- Destroy all font objects on unload
-	if (inventoryText ~= nil) then gdi:destroy_object(inventoryText); inventoryText = nil; end
+	-- Use FontManager for cleaner font destruction
+	inventoryText = FontManager.destroy(inventoryText);
+	allFonts = nil;
 end
 
 return inventoryTracker;

@@ -1,4 +1,5 @@
 require('common');
+require('helpers');
 local imgui = require('imgui');
 local fonts = require('fonts');
 local progressbar = require('progressbar');
@@ -7,11 +8,7 @@ local encoding = require('gdifonts.encoding');
 
 local spellText;
 local percentText;
-
-local function UpdateTextVisibility(visible)
-	spellText:set_visible(visible);
-	percentText:set_visible(visible);
-end
+local allFonts; -- Table for batch visibility operations
 
 local castbar = {
 	previousPercent = 0,
@@ -130,36 +127,35 @@ castbar.DrawWindow = function(settings)
 			percentText:set_position_y(startY + settings.barHeight + settings.percentOffsetY);
 			percentText:set_text(showConfig[1] and '50%' or math.floor(percent * 100) .. '%');
 
-			UpdateTextVisibility(true);
+			SetFontsVisible(allFonts,true);
 		end
 
 		imgui.End();
 	else
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts,false);
 	end
 
 	castbar.previousPercent = percent;
 end
 
 castbar.UpdateVisuals = function(settings)
-	-- Destroy old font objects
-	if (spellText ~= nil) then gdi:destroy_object(spellText); end
-	if (percentText ~= nil) then gdi:destroy_object(percentText); end
-
-	-- Recreate font objects with new settings
-	spellText = gdi:create_object(settings.spell_font_settings);
-	percentText = gdi:create_object(settings.percent_font_settings);
+	-- Use FontManager for cleaner font recreation
+	spellText = FontManager.recreate(spellText, settings.spell_font_settings);
+	percentText = FontManager.recreate(percentText, settings.percent_font_settings);
+	allFonts = {spellText, percentText};
 end
 
 castbar.SetHidden = function(hidden)
 	if (hidden == true) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts, false);
 	end
 end
 
 castbar.Initialize = function(settings)
-	spellText = gdi:create_object(settings.spell_font_settings);
-	percentText = gdi:create_object(settings.percent_font_settings);
+	-- Use FontManager for cleaner font creation
+	spellText = FontManager.create(settings.spell_font_settings);
+	percentText = FontManager.create(settings.percent_font_settings);
+	allFonts = {spellText, percentText};
 end
 
 castbar.HandleActionPacket = function(actionPacket)
@@ -186,9 +182,10 @@ castbar.HandleActionPacket = function(actionPacket)
 end
 
 castbar.Cleanup = function()
-	-- Destroy all font objects on unload
-	if (spellText ~= nil) then gdi:destroy_object(spellText); spellText = nil; end
-	if (percentText ~= nil) then gdi:destroy_object(percentText); percentText = nil; end
+	-- Use FontManager for cleaner font destruction
+	spellText = FontManager.destroy(spellText);
+	percentText = FontManager.destroy(percentText);
+	allFonts = nil;
 end
 
 return castbar;

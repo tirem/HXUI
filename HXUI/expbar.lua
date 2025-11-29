@@ -1,4 +1,5 @@
 require('common');
+require('helpers');
 local imgui = require('imgui');
 local gdi = require('gdifonts.include');
 local progressbar = require('progressbar');
@@ -6,6 +7,7 @@ local progressbar = require('progressbar');
 local jobText;
 local expText;
 local percentText;
+local allFonts; -- Table for batch visibility operations
 
 -- Cached colors to avoid expensive set_font_color calls every frame
 local lastJobTextColor;
@@ -19,12 +21,6 @@ local expbar = {
     jobPoints = {},
 };
 
-local function UpdateTextVisibility(visible)
-	jobText:set_visible(visible);
-	expText:set_visible(visible);
-	percentText:set_visible(visible);
-end
-
 --[[
 * event: d3d_present
 * desc : Event called when the Direct3D device is presenting a scene.
@@ -34,14 +30,14 @@ expbar.DrawWindow = function(settings)
     local player = GetPlayerSafe();
 
 	if (player == nil) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts, false);
 		return;
 	end
 
 	local mainJob = player:GetMainJob();
 
     if (player.isZoning or mainJob == 0) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts, false);
         return;
 	end
 
@@ -293,9 +289,11 @@ end
 
 
 expbar.Initialize = function(settings)
-    jobText = gdi:create_object(settings.job_font_settings);
-	expText = gdi:create_object(settings.exp_font_settings);
-	percentText = gdi:create_object(settings.percent_font_settings);
+	-- Use FontManager for cleaner font creation
+    jobText = FontManager.create(settings.job_font_settings);
+	expText = FontManager.create(settings.exp_font_settings);
+	percentText = FontManager.create(settings.percent_font_settings);
+	allFonts = {jobText, expText, percentText};
 
     local player = GetPlayerSafe();
     if player ~= nil then
@@ -309,15 +307,11 @@ expbar.Initialize = function(settings)
 end
 
 expbar.UpdateVisuals = function(settings)
-	-- Destroy old font objects
-	if (jobText ~= nil) then gdi:destroy_object(jobText); end
-	if (expText ~= nil) then gdi:destroy_object(expText); end
-	if (percentText ~= nil) then gdi:destroy_object(percentText); end
-
-	-- Recreate font objects with new settings
-    jobText = gdi:create_object(settings.job_font_settings);
-	expText = gdi:create_object(settings.exp_font_settings);
-	percentText = gdi:create_object(settings.percent_font_settings);
+	-- Use FontManager for cleaner font recreation
+	jobText = FontManager.recreate(jobText, settings.job_font_settings);
+	expText = FontManager.recreate(expText, settings.exp_font_settings);
+	percentText = FontManager.recreate(percentText, settings.percent_font_settings);
+	allFonts = {jobText, expText, percentText};
 
 	-- Reset cached colors when fonts are recreated
 	lastJobTextColor = nil;
@@ -327,7 +321,7 @@ end
 
 expbar.SetHidden = function(hidden)
 	if (hidden == true) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts, false);
 	end
 end
 
@@ -376,10 +370,11 @@ expbar.HandlePacket = function(e)
 end
 
 expbar.Cleanup = function()
-	-- Destroy all font objects on unload
-	if (jobText ~= nil) then gdi:destroy_object(jobText); jobText = nil; end
-	if (expText ~= nil) then gdi:destroy_object(expText); expText = nil; end
-	if (percentText ~= nil) then gdi:destroy_object(percentText); percentText = nil; end
+	-- Use FontManager for cleaner font destruction
+	jobText = FontManager.destroy(jobText);
+	expText = FontManager.destroy(expText);
+	percentText = FontManager.destroy(percentText);
+	allFonts = nil;
 end
 
 return expbar;

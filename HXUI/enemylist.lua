@@ -7,9 +7,7 @@ local debuffHandler = require('debuffhandler');
 local statusHandler = require('statushandler');
 local progressbar = require('progressbar');
 
--- Render flags constants
-local RENDER_FLAG_VISIBLE = 0x200;  -- Entity is visible and rendered
-local RENDER_FLAG_HIDDEN = 0x4000;  -- Entity is hidden (cutscene, menu, etc.)
+-- Note: RENDER_FLAG_VISIBLE and RENDER_FLAG_HIDDEN are now imported from helpers.lua
 
 -- Background rendering constants
 local bgAlpha = 0.4;
@@ -62,7 +60,7 @@ local function GetPartyMemberIds()
 	return partyMemberIds;
 end
 
--- Truncates text to fit within maxWidth by progressively shortening and adding "..."
+-- Truncates text to fit within maxWidth using binary search for optimal performance
 local function TruncateTextToFit(fontObj, text, maxWidth)
 	-- First check if text fits without truncation
 	fontObj:set_text(text);
@@ -72,19 +70,32 @@ local function TruncateTextToFit(fontObj, text, maxWidth)
 		return text;
 	end
 
-	-- Text is too long, progressively truncate until it fits
+	-- Text is too long, use binary search to find optimal truncation point
 	local ellipsis = "...";
 	local maxLength = #text;
 
-	-- Binary search for optimal length would be faster, but linear is simpler and sufficient
-	for len = maxLength - 1, 1, -1 do
-		local truncated = text:sub(1, len) .. ellipsis;
+	-- Binary search for the longest substring that fits with ellipsis
+	local left, right = 1, maxLength;
+	local bestLength = 0;
+
+	while left <= right do
+		local mid = math.floor((left + right) / 2);
+		local truncated = text:sub(1, mid) .. ellipsis;
 		fontObj:set_text(truncated);
 		width, height = fontObj:get_text_size();
 
-		if (width <= maxWidth) then
-			return truncated;
+		if width <= maxWidth then
+			-- This length fits, try a longer one
+			bestLength = mid;
+			left = mid + 1;
+		else
+			-- This length is too long, try a shorter one
+			right = mid - 1;
 		end
+	end
+
+	if bestLength > 0 then
+		return text:sub(1, bestLength) .. ellipsis;
 	end
 
 	-- Fallback: just ellipsis
@@ -233,7 +244,8 @@ enemylist.DrawWindow = function(settings)
 
 				local nameFontKey = 'name_' .. k;
 				if (enemyNameFonts[nameFontKey] == nil) then
-					enemyNameFonts[nameFontKey] = gdi:create_object(settings.name_font_settings);
+					-- Use FontManager for cleaner font creation
+					enemyNameFonts[nameFontKey] = FontManager.create(settings.name_font_settings);
 				end
 				local nameFont = enemyNameFonts[nameFontKey];
 				-- Dynamically set font height based on settings (avoids expensive font recreation)
@@ -279,7 +291,8 @@ enemylist.DrawWindow = function(settings)
 					if (gConfig.showEnemyDistance) then
 						local distanceFontKey = 'distance_' .. k;
 						if (enemyDistanceFonts[distanceFontKey] == nil) then
-							enemyDistanceFonts[distanceFontKey] = gdi:create_object(settings.info_font_settings);
+							-- Use FontManager for cleaner font creation
+							enemyDistanceFonts[distanceFontKey] = FontManager.create(settings.info_font_settings);
 						end
 						local distanceFont = enemyDistanceFonts[distanceFontKey];
 						-- Dynamically set font height based on settings (avoids expensive font recreation)
@@ -294,7 +307,8 @@ enemylist.DrawWindow = function(settings)
 					if (gConfig.showEnemyHPPText) then
 						local hpFontKey = 'hp_' .. k;
 						if (enemyHPFonts[hpFontKey] == nil) then
-							enemyHPFonts[hpFontKey] = gdi:create_object(settings.info_font_settings);
+							-- Use FontManager for cleaner font creation
+							enemyHPFonts[hpFontKey] = FontManager.create(settings.info_font_settings);
 						end
 						local hpFont = enemyHPFonts[hpFontKey];
 						-- Dynamically set font height based on settings (avoids expensive font recreation)
@@ -409,14 +423,15 @@ enemylist.HandleZonePacket = function(e)
 	allClaimedTargets = T{};
 
 	-- Clear font caches on zone
+	-- Use FontManager for cleaner font destruction
 	for k, v in pairs(enemyNameFonts) do
-		if (v ~= nil) then gdi:destroy_object(v); end
+		enemyNameFonts[k] = FontManager.destroy(v);
 	end
 	for k, v in pairs(enemyDistanceFonts) do
-		if (v ~= nil) then gdi:destroy_object(v); end
+		enemyDistanceFonts[k] = FontManager.destroy(v);
 	end
 	for k, v in pairs(enemyHPFonts) do
-		if (v ~= nil) then gdi:destroy_object(v); end
+		enemyHPFonts[k] = FontManager.destroy(v);
 	end
 	enemyNameFonts = {};
 	enemyDistanceFonts = {};
@@ -436,14 +451,15 @@ end
 
 enemylist.UpdateVisuals = function(settings)
 	-- Destroy all existing font objects
+	-- Use FontManager for cleaner font destruction
 	for k, v in pairs(enemyNameFonts) do
-		if (v ~= nil) then gdi:destroy_object(v); end
+		enemyNameFonts[k] = FontManager.destroy(v);
 	end
 	for k, v in pairs(enemyDistanceFonts) do
-		if (v ~= nil) then gdi:destroy_object(v); end
+		enemyDistanceFonts[k] = FontManager.destroy(v);
 	end
 	for k, v in pairs(enemyHPFonts) do
-		if (v ~= nil) then gdi:destroy_object(v); end
+		enemyHPFonts[k] = FontManager.destroy(v);
 	end
 
 	-- Clear the tables to force recreation with new settings
@@ -457,14 +473,15 @@ end
 
 enemylist.Cleanup = function()
 	-- Destroy all font objects
+	-- Use FontManager for cleaner font destruction
 	for k, v in pairs(enemyNameFonts) do
-		if (v ~= nil) then gdi:destroy_object(v); end
+		enemyNameFonts[k] = FontManager.destroy(v);
 	end
 	for k, v in pairs(enemyDistanceFonts) do
-		if (v ~= nil) then gdi:destroy_object(v); end
+		enemyDistanceFonts[k] = FontManager.destroy(v);
 	end
 	for k, v in pairs(enemyHPFonts) do
-		if (v ~= nil) then gdi:destroy_object(v); end
+		enemyHPFonts[k] = FontManager.destroy(v);
 	end
 
 	-- Destroy all background primitives

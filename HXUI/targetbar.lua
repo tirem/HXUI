@@ -17,6 +17,7 @@ local percentText;
 local nameText;
 local totNameText;
 local distText;
+local allFonts; -- Table for batch visibility operations
 local targetbar = {
 	interpolation = {}
 };
@@ -25,13 +26,6 @@ local targetbar = {
 local lastNameTextColor;
 local lastPercentTextColor;
 local lastTotNameTextColor;
-
-local function UpdateTextVisibility(visible)
-	percentText:set_visible(visible);
-	nameText:set_visible(visible);
-	totNameText:set_visible(visible);
-	distText:set_visible(visible);
-end
 
 local _HXUI_DEV_DEBUG_INTERPOLATION = false;
 local _HXUI_DEV_DEBUG_INTERPOLATION_DELAY = 1;
@@ -43,7 +37,7 @@ targetbar.DrawWindow = function(settings)
     local playerEnt = GetPlayerEntity();
 	local player = GetPlayerSafe();
     if (playerEnt == nil or player == nil) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts, false);
         return;
     end
 
@@ -56,7 +50,7 @@ targetbar.DrawWindow = function(settings)
 		targetEntity = GetEntity(targetIndex);
 	end
     if (targetEntity == nil or targetEntity.Name == nil) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts, false);
         for i=1,32 do
             local textObjName = "debuffText" .. tostring(i)
             textObj = debuffTable[textObjName]
@@ -459,25 +453,22 @@ targetbar.DrawWindow = function(settings)
 end
 
 targetbar.Initialize = function(settings)
-    percentText = gdi:create_object(settings.percent_font_settings);
-	nameText = gdi:create_object(settings.name_font_settings);
-	totNameText = gdi:create_object(settings.totName_font_settings);
-	distText = gdi:create_object(settings.distance_font_settings);
+	-- Use FontManager for cleaner font creation
+    percentText = FontManager.create(settings.percent_font_settings);
+	nameText = FontManager.create(settings.name_font_settings);
+	totNameText = FontManager.create(settings.totName_font_settings);
+	distText = FontManager.create(settings.distance_font_settings);
+	allFonts = {percentText, nameText, totNameText, distText};
 	arrowTexture = 	LoadTexture("arrow");
 end
 
 targetbar.UpdateVisuals = function(settings)
-	-- Destroy old font objects
-	if (percentText ~= nil) then gdi:destroy_object(percentText); end
-	if (nameText ~= nil) then gdi:destroy_object(nameText); end
-	if (totNameText ~= nil) then gdi:destroy_object(totNameText); end
-	if (distText ~= nil) then gdi:destroy_object(distText); end
-
-	-- Recreate font objects with new settings
-    percentText = gdi:create_object(settings.percent_font_settings);
-	nameText = gdi:create_object(settings.name_font_settings);
-	totNameText = gdi:create_object(settings.totName_font_settings);
-	distText = gdi:create_object(settings.distance_font_settings);
+	-- Use FontManager for cleaner font recreation
+	percentText = FontManager.recreate(percentText, settings.percent_font_settings);
+	nameText = FontManager.recreate(nameText, settings.name_font_settings);
+	totNameText = FontManager.recreate(totNameText, settings.totName_font_settings);
+	distText = FontManager.recreate(distText, settings.distance_font_settings);
+	allFonts = {percentText, nameText, totNameText, distText};
 
 	-- Reset cached colors when fonts are recreated
 	lastNameTextColor = nil;
@@ -487,16 +478,17 @@ end
 
 targetbar.SetHidden = function(hidden)
 	if (hidden == true) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts, false);
 	end
 end
 
 targetbar.Cleanup = function()
-	-- Destroy all font objects on unload
-	if (percentText ~= nil) then gdi:destroy_object(percentText); percentText = nil; end
-	if (nameText ~= nil) then gdi:destroy_object(nameText); nameText = nil; end
-	if (totNameText ~= nil) then gdi:destroy_object(totNameText); totNameText = nil; end
-	if (distText ~= nil) then gdi:destroy_object(distText); distText = nil; end
+	-- Use FontManager for cleaner font destruction
+	percentText = FontManager.destroy(percentText);
+	nameText = FontManager.destroy(nameText);
+	totNameText = FontManager.destroy(totNameText);
+	distText = FontManager.destroy(distText);
+	allFonts = nil;
 end
 
 return targetbar;

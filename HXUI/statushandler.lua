@@ -84,10 +84,8 @@ local function load_status_icon_from_theme(theme, status_id)
 
         supports_alpha = ext == '.png';
         icon_path = ('%s\\assets\\status\\%s\\%d'):append(ext):fmt(addon.path, theme, status_id);
-        local handle = io.open(icon_path, 'r');
-        if (handle ~= nil) then
-            handle.close();
-        else
+        -- Use ashita.fs.exists() for faster file checking instead of io.open()
+        if not ashita.fs.exists(icon_path) then
             icon_path = nil;
         end
     end);

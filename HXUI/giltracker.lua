@@ -1,19 +1,17 @@
 require('common');
+require('helpers');
 local imgui = require('imgui');
 local gdi = require('gdifonts.include');
 local ffi = require("ffi");
 
 local gilTexture;
 local gilText;
+local allFonts; -- Table for batch visibility operations
 
 -- Cached color to avoid expensive set_font_color calls every frame
 local lastGilTextColor;
 
 local giltracker = {};
-
-local function UpdateTextVisibility(visible)
-	gilText:set_visible(visible);
-end
 
 --[[
 * event: d3d_present
@@ -25,12 +23,12 @@ giltracker.DrawWindow = function(settings)
     local playerEnt = GetPlayerEntity();
 
 	if (player == nil or playerEnt == nil) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts,false);
 		return;
 	end
 
     if (player.isZoning) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts,false);
         return;
 	end
 
@@ -39,11 +37,11 @@ giltracker.DrawWindow = function(settings)
 	if (inventory ~= nil) then
 		gilAmount = inventory:GetContainerItem(0, 0);
 		if (gilAmount == nil) then
-			UpdateTextVisibility(false);
+			SetFontsVisible(allFonts,false);
 			return;
 		end
 	else
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts,false);
 		return;
 	end
 
@@ -69,22 +67,22 @@ giltracker.DrawWindow = function(settings)
 			lastGilTextColor = gConfig.colorCustomization.gilTracker.textColor;
 		end
 
-		UpdateTextVisibility(true);
+		SetFontsVisible(allFonts,true);
     end
 	imgui.End();
 end
 
 giltracker.Initialize = function(settings)
-    gilText = gdi:create_object(settings.font_settings);
+	-- Use FontManager for cleaner font creation
+    gilText = FontManager.create(settings.font_settings);
+	allFonts = {gilText};
 	gilTexture = LoadTexture("gil");
 end
 
 giltracker.UpdateVisuals = function(settings)
-	-- Destroy old font object
-	if (gilText ~= nil) then gdi:destroy_object(gilText); end
-
-	-- Recreate font object with new settings
-    gilText = gdi:create_object(settings.font_settings);
+	-- Use FontManager for cleaner font recreation
+	gilText = FontManager.recreate(gilText, settings.font_settings);
+	allFonts = {gilText};
 
 	-- Reset cached color when font is recreated
 	lastGilTextColor = nil;
@@ -92,13 +90,14 @@ end
 
 giltracker.SetHidden = function(hidden)
 	if (hidden == true) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts, false);
 	end
 end
 
 giltracker.Cleanup = function()
-	-- Destroy all font objects on unload
-	if (gilText ~= nil) then gdi:destroy_object(gilText); gilText = nil; end
+	-- Use FontManager for cleaner font destruction
+	gilText = FontManager.destroy(gilText);
+	allFonts = nil;
 end
 
 return giltracker;

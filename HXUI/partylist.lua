@@ -40,6 +40,10 @@ local memberTextCount = partyMaxSize * 3;
 -- Cache last set colors to avoid expensive SetColor() calls every frame
 local memberTextColorCache = {};
 
+-- Cache converted border color to avoid redundant U32 conversion every frame
+local cachedBorderColorU32 = nil;
+local cachedBorderColorARGB = nil;
+
 -- Cache last used font sizes to avoid unnecessary font recreation
 local cachedFontSizes = {12, 12, 12};
 
@@ -336,8 +340,13 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
         end
 
         -- Draw border outline with rounded corners (convert ARGB to ImGui format for real-time updates)
+        -- Cache the U32 conversion to avoid redundant bit operations every frame
         local borderColorARGB = gConfig.colorCustomization.partyList.selectionBorderColor;
-        local borderColor = imgui.GetColorU32(ARGBToImGui(borderColorARGB));
+        if cachedBorderColorARGB ~= borderColorARGB then
+            cachedBorderColorARGB = borderColorARGB;
+            cachedBorderColorU32 = imgui.GetColorU32(ARGBToImGui(borderColorARGB));
+        end
+        local borderColor = cachedBorderColorU32;
         drawList:AddRect({selectionTL[1], selectionTL[2]}, {selectionBR[1], selectionBR[2]}, borderColor, 6, 15, 2); -- 6px radius, all corners, 2px thick
 
         partyTargeted = true;
@@ -873,18 +882,20 @@ partyList.Initialize = function(settings)
         distance_font_settings.font_height = math.max(fontSize, 6);
 
         memberText[i] = {};
-        memberText[i].name = gdi:create_object(name_font_settings);
-        memberText[i].hp = gdi:create_object(hp_font_settings);
-        memberText[i].mp = gdi:create_object(mp_font_settings);
-        memberText[i].tp = gdi:create_object(tp_font_settings);
-        memberText[i].distance = gdi:create_object(distance_font_settings);
+        -- Use FontManager for cleaner font creation
+        memberText[i].name = FontManager.create(name_font_settings);
+        memberText[i].hp = FontManager.create(hp_font_settings);
+        memberText[i].mp = FontManager.create(mp_font_settings);
+        memberText[i].tp = FontManager.create(tp_font_settings);
+        memberText[i].distance = FontManager.create(distance_font_settings);
     end
 
     -- Initialize title fonts for each party (3 parties)
     for i = 1, 3 do
         local title_font_settings = deep_copy_table(settings.title_font_settings);
         -- Font height is already set in the settings, no need to override
-        titleText[i] = gdi:create_object(title_font_settings);
+        -- Use FontManager for cleaner font creation
+        titleText[i] = FontManager.create(title_font_settings);
     end
 
     -- Initialize images
@@ -966,21 +977,14 @@ partyList.UpdateVisuals = function(settings)
         tp_font_settings.font_height = math.max(fontSize, 6);
         distance_font_settings.font_height = math.max(fontSize, 6);
 
-        -- Destroy old font objects
+        -- Use FontManager for cleaner font recreation
         if (memberText[i] ~= nil) then
-            if (memberText[i].name ~= nil) then gdi:destroy_object(memberText[i].name); end
-            if (memberText[i].hp ~= nil) then gdi:destroy_object(memberText[i].hp); end
-            if (memberText[i].mp ~= nil) then gdi:destroy_object(memberText[i].mp); end
-            if (memberText[i].tp ~= nil) then gdi:destroy_object(memberText[i].tp); end
-            if (memberText[i].distance ~= nil) then gdi:destroy_object(memberText[i].distance); end
+            memberText[i].name = FontManager.recreate(memberText[i].name, name_font_settings);
+            memberText[i].hp = FontManager.recreate(memberText[i].hp, hp_font_settings);
+            memberText[i].mp = FontManager.recreate(memberText[i].mp, mp_font_settings);
+            memberText[i].tp = FontManager.recreate(memberText[i].tp, tp_font_settings);
+            memberText[i].distance = FontManager.recreate(memberText[i].distance, distance_font_settings);
         end
-
-        -- Recreate font objects with new settings
-        memberText[i].name = gdi:create_object(name_font_settings);
-        memberText[i].hp = gdi:create_object(hp_font_settings);
-        memberText[i].mp = gdi:create_object(mp_font_settings);
-        memberText[i].tp = gdi:create_object(tp_font_settings);
-        memberText[i].distance = gdi:create_object(distance_font_settings);
 
         ::continue::
     end
@@ -1065,22 +1069,20 @@ partyList.HandleZonePacket = function(e)
 end
 
 partyList.Cleanup = function()
-	-- Destroy all member text font objects
+	-- Use FontManager for cleaner font destruction
 	for i = 0, memberTextCount - 1 do
 		if (memberText[i] ~= nil) then
-			if (memberText[i].name ~= nil) then gdi:destroy_object(memberText[i].name); end
-			if (memberText[i].hp ~= nil) then gdi:destroy_object(memberText[i].hp); end
-			if (memberText[i].mp ~= nil) then gdi:destroy_object(memberText[i].mp); end
-			if (memberText[i].tp ~= nil) then gdi:destroy_object(memberText[i].tp); end
-			if (memberText[i].distance ~= nil) then gdi:destroy_object(memberText[i].distance); end
+			memberText[i].name = FontManager.destroy(memberText[i].name);
+			memberText[i].hp = FontManager.destroy(memberText[i].hp);
+			memberText[i].mp = FontManager.destroy(memberText[i].mp);
+			memberText[i].tp = FontManager.destroy(memberText[i].tp);
+			memberText[i].distance = FontManager.destroy(memberText[i].distance);
 		end
 	end
 
 	-- Destroy title text font objects
 	for i = 1, 3 do
-		if (titleText[i] ~= nil) then
-			gdi:destroy_object(titleText[i]);
-		end
+		titleText[i] = FontManager.destroy(titleText[i]);
 	end
 
 	-- Clear cursor texture cache (textures are GC'd automatically via gc_safe_release)

@@ -8,6 +8,7 @@ local buffTable = require('bufftable');
 local hpText;
 local mpText;
 local tpText;
+local allFonts; -- Table for batch visibility operations
 local resetPosNextFrame = false;
 
 -- Cache last set colors to avoid expensive SetColor() calls every frame
@@ -25,12 +26,6 @@ if _HXUI_DEV_DEBUG_INTERPOLATION then
 	_HXUI_DEV_DEBUG_INTERPOLATION_NEXT_TIME = os.time() + _HXUI_DEV_DEBUG_INTERPOLATION_DELAY;
 end
 
-local function UpdateTextVisibility(visible)
-	hpText:set_visible(visible);
-	mpText:set_visible(visible);
-	tpText:set_visible(visible);
-end
-
 playerbar.DrawWindow = function(settings)
     -- Obtain the player entity..
     local party = GetPartySafe();
@@ -38,14 +33,14 @@ playerbar.DrawWindow = function(settings)
 	local playerEnt = GetPlayerEntity();
 
 	if (party == nil or player == nil or playerEnt == nil) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts, false);
 		return;
 	end
 
 	local currJob = player:GetMainJob();
 
     if (player.isZoning or currJob == 0) then
-		UpdateTextVisibility(false);	
+		SetFontsVisible(allFonts, false);
         return;
 	end
 	
@@ -289,21 +284,19 @@ end
 
 
 playerbar.Initialize = function(settings)
-    hpText = gdi:create_object(settings.font_settings);
-	mpText = gdi:create_object(settings.font_settings);
-	tpText = gdi:create_object(settings.font_settings);
+	-- Use FontManager for cleaner font creation
+    hpText = FontManager.create(settings.font_settings);
+	mpText = FontManager.create(settings.font_settings);
+	tpText = FontManager.create(settings.font_settings);
+	allFonts = {hpText, mpText, tpText};
 end
 
 playerbar.UpdateVisuals = function(settings)
-	-- Destroy old font objects
-	if (hpText ~= nil) then gdi:destroy_object(hpText); end
-	if (mpText ~= nil) then gdi:destroy_object(mpText); end
-	if (tpText ~= nil) then gdi:destroy_object(tpText); end
-
-	-- Recreate font objects with new settings
-    hpText = gdi:create_object(settings.font_settings);
-	mpText = gdi:create_object(settings.font_settings);
-	tpText = gdi:create_object(settings.font_settings);
+	-- Use FontManager for cleaner font recreation
+	hpText = FontManager.recreate(hpText, settings.font_settings);
+	mpText = FontManager.recreate(mpText, settings.font_settings);
+	tpText = FontManager.recreate(tpText, settings.font_settings);
+	allFonts = {hpText, mpText, tpText};
 
 	-- Reset cached colors when fonts are recreated
 	lastHpTextColor = nil;
@@ -313,15 +306,16 @@ end
 
 playerbar.SetHidden = function(hidden)
 	if (hidden == true) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts, false);
 	end
 end
 
 playerbar.Cleanup = function()
-	-- Destroy all font objects on unload
-	if (hpText ~= nil) then gdi:destroy_object(hpText); hpText = nil; end
-	if (mpText ~= nil) then gdi:destroy_object(mpText); mpText = nil; end
-	if (tpText ~= nil) then gdi:destroy_object(tpText); tpText = nil; end
+	-- Use FontManager for cleaner font destruction
+	hpText = FontManager.destroy(hpText);
+	mpText = FontManager.destroy(mpText);
+	tpText = FontManager.destroy(tpText);
+	allFonts = nil;
 end
 
 return playerbar;
