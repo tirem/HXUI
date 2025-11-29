@@ -171,7 +171,7 @@ T{
     expBarShowText = true,
     expBarShowPercent = true,
     expBarInlineMode = false,
-    expBarLimitPointsMode = true,
+    expBarLimitPointsMode = false,
 
 	gilTrackerScale = 1,
 	gilTrackerFontSize = 16,
