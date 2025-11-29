@@ -199,14 +199,14 @@ T{
     partyList2ScaleY = 0.7,
     partyList2FontSize = 16,
     partyList2JobIconScale = 0.8,
-    partyList2EntrySpacing = -20,
+    partyList2EntrySpacing = 6,
     partyList2TP = false,
 
     partyList3ScaleX = 0.7,
     partyList3ScaleY = 0.7,
     partyList3FontSize = 16,
     partyList3JobIconScale = 0.8,
-    partyList3EntrySpacing = -20,
+    partyList3EntrySpacing = 6,
     partyList3TP = false,
 
 	partyListTitleFontSize = 16,
@@ -617,9 +617,9 @@ T{
 		tpTextOffsetY = -3,
 
 		borderSize = 21,
-        bgPadding = 2,
-        bgPaddingY = 8,
-        bgOffset = 0,
+        bgPadding = 5,
+        bgPaddingY = 5,
+        bgOffset = 1,
 
 		cursorPaddingX1 = 5,
 		cursorPaddingX2 = 5,

@@ -757,29 +757,29 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
         backgroundPrim.bg.visible = backgroundPrim.bg.exists;
         backgroundPrim.bg.position_x = imguiPosX - settings.bgPadding;
         backgroundPrim.bg.position_y = imguiPosY - settings.bgPaddingY;
-        backgroundPrim.bg.width = math.ceil(bgWidth / gConfig.partyListBgScale);
-        backgroundPrim.bg.height = math.ceil(bgHeight / gConfig.partyListBgScale);
+        backgroundPrim.bg.width = bgWidth;
+        backgroundPrim.bg.height = bgHeight;
         backgroundPrim.bg.color = bgColor;
 
         backgroundPrim.br.visible = backgroundPrim.br.exists;
-        backgroundPrim.br.position_x = backgroundPrim.bg.position_x + bgWidth - math.floor((settings.borderSize * gConfig.partyListBgScale) - (settings.bgOffset * gConfig.partyListBgScale));
-        backgroundPrim.br.position_y = backgroundPrim.bg.position_y + bgHeight - math.floor((settings.borderSize * gConfig.partyListBgScale) - (settings.bgOffset * gConfig.partyListBgScale));
+        backgroundPrim.br.position_x = backgroundPrim.bg.position_x + bgWidth - settings.borderSize + settings.bgOffset;
+        backgroundPrim.br.position_y = backgroundPrim.bg.position_y + bgHeight - settings.borderSize + settings.bgOffset;
         backgroundPrim.br.width = settings.borderSize;
         backgroundPrim.br.height = settings.borderSize;
         backgroundPrim.br.color = borderColor;
 
         backgroundPrim.tr.visible = backgroundPrim.tr.exists;
         backgroundPrim.tr.position_x = backgroundPrim.br.position_x;
-        backgroundPrim.tr.position_y = backgroundPrim.bg.position_y - settings.bgOffset * gConfig.partyListBgScale;
-        backgroundPrim.tr.width = backgroundPrim.br.width;
-        backgroundPrim.tr.height = math.ceil((backgroundPrim.br.position_y - backgroundPrim.tr.position_y) / gConfig.partyListBgScale);
+        backgroundPrim.tr.position_y = backgroundPrim.bg.position_y - settings.bgOffset;
+        backgroundPrim.tr.width = settings.borderSize;
+        backgroundPrim.tr.height = backgroundPrim.br.position_y - backgroundPrim.tr.position_y;
         backgroundPrim.tr.color = borderColor;
 
         backgroundPrim.tl.visible = backgroundPrim.tl.exists;
-        backgroundPrim.tl.position_x = backgroundPrim.bg.position_x - settings.bgOffset * gConfig.partyListBgScale;
+        backgroundPrim.tl.position_x = backgroundPrim.bg.position_x - settings.bgOffset;
         backgroundPrim.tl.position_y = backgroundPrim.tr.position_y
-        backgroundPrim.tl.width = math.ceil((backgroundPrim.tr.position_x - backgroundPrim.tl.position_x) / gConfig.partyListBgScale);
-        backgroundPrim.tl.height = backgroundPrim.tr.height;
+        backgroundPrim.tl.width = backgroundPrim.tr.position_x - backgroundPrim.tl.position_x;
+        backgroundPrim.tl.height = settings.borderSize;
         backgroundPrim.tl.color = borderColor;
 
         backgroundPrim.bl.visible = backgroundPrim.bl.exists;
