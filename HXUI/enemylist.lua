@@ -161,10 +161,11 @@ enemylist.DrawWindow = function(settings)
 				-- Calculate entry dimensions
 				-- Row 1: Name text (uses name_font_settings.font_height)
 				-- Row 2: HP bar (full width, uses barHeight)
-				-- Row 3: Distance (left) and HP% (right) (uses info_font_settings.font_height)
+				-- Row 3: Distance (left) and HP% (right) (uses distance/percent_font_settings.font_height)
 				local nameHeight = settings.name_font_settings.font_height;
 				local barHeight = settings.barHeight;
-				local infoRowHeight = settings.info_font_settings.font_height;
+				-- Use the max height of distance and percent fonts for row spacing
+				local infoRowHeight = math.max(settings.distance_font_settings.font_height, settings.percent_font_settings.font_height);
 				local nameToBarGap = 10;  -- Vertical spacing between name and HP bar
 				local barToInfoGap = 5;  -- Vertical spacing between HP bar and info row
 
@@ -191,14 +192,20 @@ enemylist.DrawWindow = function(settings)
 				-- ===== BACKGROUND & BORDER RENDERING =====
 				-- We need to draw these BEFORE the ImGui content so they appear behind progress bars
 				-- but fonts render in a separate Ashita layer, so they may still overlap
-				local color = GetColorOfTargetRGBA(ent, k);
+
+				-- Get entity name color based on type and claim status (ARGB format)
+				local nameColor = GetEntityNameColor(ent, k, gConfig.colorCustomization.shared);
 
 				-- Draw border first if this is the selected target
 				local borderColor;
 				if (subTargetIndex ~= nil and k == subTargetIndex) then
-					borderColor = imgui.GetColorU32({0.5, 0.5, 1, 1}); -- Blue for subtarget
+					-- Subtarget border - use configured color
+					local rgba = ARGBToRGBA(gConfig.colorCustomization.enemyList.subtargetBorderColor);
+					borderColor = imgui.GetColorU32(rgba);
 				elseif (targetIndex ~= nil and k == targetIndex) then
-					borderColor = imgui.GetColorU32({1, 1, 1, 1}); -- White for target
+					-- Main target border - use configured color
+					local rgba = ARGBToRGBA(gConfig.colorCustomization.enemyList.targetBorderColor);
+					borderColor = imgui.GetColorU32(rgba);
 				end
 
 				if (borderColor) then
@@ -259,15 +266,9 @@ enemylist.DrawWindow = function(settings)
 				nameFont:set_text(displayName);
 
 				-- Only call set_font_color if the color has changed (expensive operation for GDI fonts)
-				local desiredColor = bit.bor(
-					bit.lshift(color[4] * 255, 24),
-					bit.lshift(color[3] * 255, 16),
-					bit.lshift(color[2] * 255, 8),
-					color[1] * 255
-				);
-				if (enemyNameColorCache[nameFontKey] ~= desiredColor) then
-					nameFont:set_font_color(desiredColor);
-					enemyNameColorCache[nameFontKey] = desiredColor;
+				if (enemyNameColorCache[nameFontKey] ~= nameColor) then
+					nameFont:set_font_color(nameColor);
+					enemyNameColorCache[nameFontKey] = nameColor;
 				end
 				nameFont:set_visible(true);
 
@@ -292,11 +293,12 @@ enemylist.DrawWindow = function(settings)
 						local distanceFontKey = 'distance_' .. k;
 						if (enemyDistanceFonts[distanceFontKey] == nil) then
 							-- Use FontManager for cleaner font creation
-							enemyDistanceFonts[distanceFontKey] = FontManager.create(settings.info_font_settings);
+							enemyDistanceFonts[distanceFontKey] = FontManager.create(settings.distance_font_settings);
 						end
 						local distanceFont = enemyDistanceFonts[distanceFontKey];
-						-- Dynamically set font height based on settings (avoids expensive font recreation)
-						distanceFont:set_font_height(settings.info_font_settings.font_height);
+						-- Dynamically set font height and color based on settings (avoids expensive font recreation)
+						distanceFont:set_font_height(settings.distance_font_settings.font_height);
+						distanceFont:set_font_color(settings.distance_font_settings.font_color);
 						distanceFont:set_position_x(entryStartX + padding);
 						distanceFont:set_position_y(row3Y);
 						distanceFont:set_text(distanceText);
@@ -308,17 +310,16 @@ enemylist.DrawWindow = function(settings)
 						local hpFontKey = 'hp_' .. k;
 						if (enemyHPFonts[hpFontKey] == nil) then
 							-- Use FontManager for cleaner font creation
-							enemyHPFonts[hpFontKey] = FontManager.create(settings.info_font_settings);
+							enemyHPFonts[hpFontKey] = FontManager.create(settings.percent_font_settings);
 						end
 						local hpFont = enemyHPFonts[hpFontKey];
-						-- Dynamically set font height based on settings (avoids expensive font recreation)
-						hpFont:set_font_height(settings.info_font_settings.font_height);
+						-- Dynamically set font height and color based on settings (avoids expensive font recreation)
+						hpFont:set_font_height(settings.percent_font_settings.font_height);
+						hpFont:set_font_color(settings.percent_font_settings.font_color);
 						hpFont:set_text(hpText);
 
-						-- Calculate text width for right-alignment
-						local hpTextWidth, hpTextHeight = hpFont:get_text_size();
-
-						hpFont:set_position_x(entryStartX + entryWidth - padding - hpTextWidth);
+						-- Right-align: set position to right edge, font alignment handles the rest
+						hpFont:set_position_x(entryStartX + entryWidth - padding);
 						hpFont:set_position_y(row3Y);
 						hpFont:set_visible(true);
 					end

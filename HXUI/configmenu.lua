@@ -222,7 +222,7 @@ end
 -- Section: Enemy List Settings
 local function DrawEnemyListSettings()
     if (imgui.CollapsingHeader("Enemy List")) then
-        imgui.BeginChild("EnemyListSettings", { 0, 180 }, true);
+        imgui.BeginChild("EnemyListSettings", { 0, 250 }, true);
 
         DrawCheckbox('Enabled', 'showEnemyList', CheckVisibility);
         DrawCheckbox('Show Distance', 'showEnemyDistance');
@@ -231,7 +231,9 @@ local function DrawEnemyListSettings()
 
         DrawSlider('Scale X', 'enemyListScaleX', 0.1, 3.0, '%.1f');
         DrawSlider('Scale Y', 'enemyListScaleY', 0.1, 3.0, '%.1f');
-        DrawSlider('Font Size', 'enemyListFontSize', 8, 36);
+        DrawSlider('Name Font Size', 'enemyListNameFontSize', 8, 36);
+        DrawSlider('Distance Font Size', 'enemyListDistanceFontSize', 8, 36);
+        DrawSlider('HP% Font Size', 'enemyListPercentFontSize', 8, 36);
         DrawSlider('Icon Scale', 'enemyListIconScale', 0.1, 3.0, '%.1f');
 
         imgui.EndChild();

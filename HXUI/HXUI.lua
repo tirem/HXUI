@@ -157,7 +157,9 @@ T{
 
 	enemyListScaleX = 1,
 	enemyListScaleY = 1,
-	enemyListFontSize = 16,
+	enemyListNameFontSize = 14,
+	enemyListDistanceFontSize = 12,
+	enemyListPercentFontSize = 12,
 	enemyListIconScale = 1,
 	showEnemyDistance = false,
 	showEnemyHPPText = true,
@@ -287,15 +289,9 @@ T{
 		-- Target Bar
 		targetBar = T{
 			hpGradient = T{ enabled = true, start = '#e26c6c', stop = '#fb9494' },
-			-- Target name colors by entity type
-			playerPartyTextColor = 0xFF00FFFF,     -- cyan - party/alliance members
-			playerOtherTextColor = 0xFFFFFFFF,     -- white - other players
-			npcTextColor = 0xFF66FF66,             -- green - NPCs
-			mobUnclaimedTextColor = 0xFFFFFF66,    -- yellow - unclaimed mobs
-			mobPartyClaimedTextColor = 0xFFFF6666, -- red - mobs claimed by party
-			mobOtherClaimedTextColor = 0xFFFF66FF, -- magenta - mobs claimed by others
 			distanceTextColor = 0xFFFFFFFF,
 			-- Note: HP percent text color is set dynamically based on HP amount
+			-- Note: Entity name colors are in shared section
 		},
 
 		-- Target of Target Bar
@@ -307,6 +303,11 @@ T{
 		-- Enemy List
 		enemyList = T{
 			hpGradient = T{ enabled = true, start = '#e16c6c', stop = '#fb9494' },
+			distanceTextColor = 0xFFFFFFFF,
+			percentTextColor = 0xFFFFFFFF,
+			targetBorderColor = 0xFFFFFFFF,      -- white - border for main target
+			subtargetBorderColor = 0xFF8080FF,   -- blue - border for subtarget
+			-- Note: Entity name colors are in shared section
 		},
 
 		-- Party List
@@ -364,6 +365,13 @@ T{
 		shared = T{
 			backgroundGradient = T{ enabled = true, start = '#01122b', stop = '#061c39' },
 			bookendGradient = T{ start = '#576C92', mid = '#B7C9FF', stop = '#576C92' },
+			-- Entity name colors (used by target bar, enemy list, etc.)
+			playerPartyTextColor = 0xFF00FFFF,     -- cyan - party/alliance members
+			playerOtherTextColor = 0xFFFFFFFF,     -- white - other players
+			npcTextColor = 0xFF66FF66,             -- green - NPCs
+			mobUnclaimedTextColor = 0xFFFFFF66,    -- yellow - unclaimed mobs
+			mobPartyClaimedTextColor = 0xFFFF6666, -- red - mobs claimed by party
+			mobOtherClaimedTextColor = 0xFFFF66FF, -- magenta - mobs claimed by others
 		},
 	},
 };
@@ -491,9 +499,19 @@ T{
 			outline_color = 0xFF000000,
 			outline_width = 2,
 		};
-		info_font_settings =
+		distance_font_settings =
 		T{
 			font_alignment = gdi.Alignment.Left,
+			font_family = 'Consolas',
+			font_height = 9,
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
+		};
+		percent_font_settings =
+		T{
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 9,
 			font_color = 0xFFFFFFFF,
@@ -887,9 +905,12 @@ function UpdateUserSettings()
 	gAdjustedSettings.enemyListSettings.name_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.enemyListSettings.name_font_settings.font_flags = fontWeightFlags;
 	gAdjustedSettings.enemyListSettings.name_font_settings.outline_width = us.fontOutlineWidth;
-	gAdjustedSettings.enemyListSettings.info_font_settings.font_family = us.fontFamily;
-	gAdjustedSettings.enemyListSettings.info_font_settings.font_flags = fontWeightFlags;
-	gAdjustedSettings.enemyListSettings.info_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.enemyListSettings.distance_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.enemyListSettings.distance_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.enemyListSettings.distance_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.enemyListSettings.percent_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.enemyListSettings.percent_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.enemyListSettings.percent_font_settings.outline_width = us.fontOutlineWidth;
 
 	-- Target Bar
 	gAdjustedSettings.targetBarSettings.barWidth = ds.targetBarSettings.barWidth * us.targetBarScaleX;
@@ -979,10 +1000,12 @@ function UpdateUserSettings()
 	-- Enemy List
 	gAdjustedSettings.enemyListSettings.barWidth = ds.enemyListSettings.barWidth * us.enemyListScaleX;
 	gAdjustedSettings.enemyListSettings.barHeight = ds.enemyListSettings.barHeight * us.enemyListScaleY;
-	gAdjustedSettings.enemyListSettings.textScale = ds.enemyListSettings.textScale * us.enemyListFontSize;
 	gAdjustedSettings.enemyListSettings.iconSize = ds.enemyListSettings.iconSize * us.enemyListIconScale;
-	gAdjustedSettings.enemyListSettings.name_font_settings.font_height = math.max(us.enemyListFontSize, 8);
-	gAdjustedSettings.enemyListSettings.info_font_settings.font_height = math.max(us.enemyListFontSize, 8);
+	gAdjustedSettings.enemyListSettings.name_font_settings.font_height = math.max(us.enemyListNameFontSize, 8);
+	gAdjustedSettings.enemyListSettings.distance_font_settings.font_height = math.max(us.enemyListDistanceFontSize, 8);
+	gAdjustedSettings.enemyListSettings.distance_font_settings.font_color = us.colorCustomization.enemyList.distanceTextColor;
+	gAdjustedSettings.enemyListSettings.percent_font_settings.font_height = math.max(us.enemyListPercentFontSize, 8);
+	gAdjustedSettings.enemyListSettings.percent_font_settings.font_color = us.colorCustomization.enemyList.percentTextColor;
 
 	-- Cast Bar
 	gAdjustedSettings.castBarSettings.barWidth = ds.castBarSettings.barWidth * us.castBarScaleX;

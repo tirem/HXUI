@@ -352,7 +352,8 @@ function MarkPartyCacheDirty()
 end
 
 -- Helper to convert ARGB (0xAARRGGBB) to RGBA table {R, G, B, A}
-local function ARGBToRGBA(argb)
+-- Exported for use by all modules
+function ARGBToRGBA(argb)
 	local a = bit.band(bit.rshift(argb, 24), 0xFF) / 255.0;
 	local r = bit.band(bit.rshift(argb, 16), 0xFF) / 255.0;
 	local g = bit.band(bit.rshift(argb, 8), 0xFF) / 255.0;
@@ -361,7 +362,8 @@ local function ARGBToRGBA(argb)
 end
 
 -- Helper to convert RGBA table {R, G, B, A} to ARGB (0xAARRGGBB)
-local function RGBAToARGB(rgba)
+-- Exported for use by all modules
+function RGBAToARGB(rgba)
 	return bit.bor(
 		bit.lshift(math.floor(rgba[4] * 255), 24), -- Alpha
 		bit.lshift(math.floor(rgba[1] * 255), 16), -- Red
@@ -370,13 +372,14 @@ local function RGBAToARGB(rgba)
 	);
 end
 
-function GetColorOfTargetRGBA(targetEntity, targetIndex)
-    -- Obtain the entity spawn flags..
-
+-- Generic function to get entity name color based on type and claim status
+-- Takes a colorConfig table (e.g., gConfig.colorCustomization.targetBar or .enemyList)
+-- Returns color in RGBA format
+function GetEntityNameColorRGBA(targetEntity, targetIndex, colorConfig)
 	-- Default to other player color
 	local color = {1,1,1,1};
-	if gConfig and gConfig.colorCustomization then
-		color = ARGBToRGBA(gConfig.colorCustomization.targetBar.playerOtherTextColor);
+	if colorConfig then
+		color = ARGBToRGBA(colorConfig.playerOtherTextColor);
 	end
 
 	-- Validate entity and index are not nil
@@ -387,44 +390,57 @@ function GetColorOfTargetRGBA(targetEntity, targetIndex)
 		return color;
 	end
 
-    local flag = targetEntity.SpawnFlags;
+	local flag = targetEntity.SpawnFlags;
 
-    -- Determine the entity type and apply the proper color
-    if (bit.band(flag, SPAWN_FLAG_PLAYER) == SPAWN_FLAG_PLAYER) then --players
+	-- Determine the entity type and apply the proper color
+	if (bit.band(flag, SPAWN_FLAG_PLAYER) == SPAWN_FLAG_PLAYER) then --players
 		-- Default: other player
-		color = ARGBToRGBA(gConfig.colorCustomization.targetBar.playerOtherTextColor);
+		color = ARGBToRGBA(colorConfig.playerOtherTextColor);
 		-- Check if party/alliance member using cache
 		if partyMemberIndicesDirty then
 			UpdatePartyCache();
 		end
 		if (partyMemberIndices[targetIndex]) then
-			color = ARGBToRGBA(gConfig.colorCustomization.targetBar.playerPartyTextColor);
+			color = ARGBToRGBA(colorConfig.playerPartyTextColor);
 		end
-    elseif (bit.band(flag, SPAWN_FLAG_NPC) == SPAWN_FLAG_NPC) then --npc
-        color = ARGBToRGBA(gConfig.colorCustomization.targetBar.npcTextColor);
-    else --mob
+	elseif (bit.band(flag, SPAWN_FLAG_NPC) == SPAWN_FLAG_NPC) then --npc
+		color = ARGBToRGBA(colorConfig.npcTextColor);
+	else --mob
 		local entMgr = AshitaCore:GetMemoryManager():GetEntity();
 		local claimStatus = entMgr:GetClaimStatus(targetIndex);
 		local claimId = bit.band(claimStatus, 0xFFFF);
---		local isClaimed = (bit.band(claimStatus, 0xFFFF0000) ~= 0);
 
 		if (claimId == 0) then
 			-- Unclaimed mob
-			color = ARGBToRGBA(gConfig.colorCustomization.targetBar.mobUnclaimedTextColor);
+			color = ARGBToRGBA(colorConfig.mobUnclaimedTextColor);
 		else
 			-- Claimed by someone
-			color = ARGBToRGBA(gConfig.colorCustomization.targetBar.mobOtherClaimedTextColor);
+			color = ARGBToRGBA(colorConfig.mobOtherClaimedTextColor);
 			-- Check if claimed by party member using cache
 			if partyMemberIndicesDirty then
 				UpdatePartyCache();
 			end
 			if (partyMemberServerIds[claimId]) then
 				-- Claimed by party member
-				color = ARGBToRGBA(gConfig.colorCustomization.targetBar.mobPartyClaimedTextColor);
+				color = ARGBToRGBA(colorConfig.mobPartyClaimedTextColor);
 			end
 		end
 	end
 	return color;
+end
+
+-- Returns ARGB format instead of RGBA
+function GetEntityNameColor(targetEntity, targetIndex, colorConfig)
+	local rgba = GetEntityNameColorRGBA(targetEntity, targetIndex, colorConfig);
+	return RGBAToARGB(rgba);
+end
+
+-- Wrapper for backwards compatibility - uses shared entity colors
+function GetColorOfTargetRGBA(targetEntity, targetIndex)
+	if gConfig and gConfig.colorCustomization and gConfig.colorCustomization.shared then
+		return GetEntityNameColorRGBA(targetEntity, targetIndex, gConfig.colorCustomization.shared);
+	end
+	return {1,1,1,1}; -- Default white RGBA
 end
 
 -- Wrapper function that returns ARGB format (for backwards compatibility)

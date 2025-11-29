@@ -170,7 +170,7 @@ colorcustom.DrawWindow = function()
 
         -- Global
         if (imgui.CollapsingHeader("Global")) then
-            imgui.BeginChild("GlobalColors", { 0, 300 }, true);
+            imgui.BeginChild("GlobalColors", { 0, 600 }, true);
 
             imgui.Text("Background Color:");
             imgui.Separator();
@@ -180,6 +180,16 @@ colorcustom.DrawWindow = function()
             imgui.Text("Bookend Gradient:");
             imgui.Separator();
             DrawThreeStepGradientPicker("Bookend", gConfig.colorCustomization.shared.bookendGradient, "3-step gradient for progress bar bookends (top -> middle -> bottom)");
+
+            imgui.Separator();
+            imgui.Text("Entity Name Colors (by type):");
+            imgui.Separator();
+            DrawTextColorPicker("Party/Alliance Player", gConfig.colorCustomization.shared, 'playerPartyTextColor', "Color for party/alliance member names");
+            DrawTextColorPicker("Other Player", gConfig.colorCustomization.shared, 'playerOtherTextColor', "Color for other player names");
+            DrawTextColorPicker("NPC", gConfig.colorCustomization.shared, 'npcTextColor', "Color for NPC names");
+            DrawTextColorPicker("Unclaimed Mob", gConfig.colorCustomization.shared, 'mobUnclaimedTextColor', "Color for unclaimed mob names");
+            DrawTextColorPicker("Party-Claimed Mob", gConfig.colorCustomization.shared, 'mobPartyClaimedTextColor', "Color for mobs claimed by your party");
+            DrawTextColorPicker("Other-Claimed Mob", gConfig.colorCustomization.shared, 'mobOtherClaimedTextColor', "Color for mobs claimed by others");
 
             imgui.EndChild();
         end
@@ -214,27 +224,17 @@ colorcustom.DrawWindow = function()
 
         -- Target Bar
         if (imgui.CollapsingHeader("Target Bar")) then
-            imgui.BeginChild("TargetBarColors", { 0, 500 }, true);
+            imgui.BeginChild("TargetBarColors", { 0, 200 }, true);
 
             imgui.Text("HP Bar Color:");
             imgui.Separator();
             DrawGradientPicker("Target HP Bar", gConfig.colorCustomization.targetBar.hpGradient, "Target HP bar color");
 
             imgui.Separator();
-            imgui.Text("Target Name Colors (by type):");
-            imgui.Separator();
-            DrawTextColorPicker("Party/Alliance Player", gConfig.colorCustomization.targetBar, 'playerPartyTextColor', "Color for party/alliance member names");
-            DrawTextColorPicker("Other Player", gConfig.colorCustomization.targetBar, 'playerOtherTextColor', "Color for other player names");
-            DrawTextColorPicker("NPC", gConfig.colorCustomization.targetBar, 'npcTextColor', "Color for NPC names");
-            DrawTextColorPicker("Unclaimed Mob", gConfig.colorCustomization.targetBar, 'mobUnclaimedTextColor', "Color for unclaimed mob names");
-            DrawTextColorPicker("Party-Claimed Mob", gConfig.colorCustomization.targetBar, 'mobPartyClaimedTextColor', "Color for mobs claimed by your party");
-            DrawTextColorPicker("Other-Claimed Mob", gConfig.colorCustomization.targetBar, 'mobOtherClaimedTextColor', "Color for mobs claimed by others");
-
-            imgui.Separator();
-            imgui.Text("Other Text Colors:");
+            imgui.Text("Text Colors:");
             imgui.Separator();
             DrawTextColorPicker("Distance Text", gConfig.colorCustomization.targetBar, 'distanceTextColor', "Color of distance text");
-            imgui.ShowHelp("HP Percent text color is set dynamically based on HP amount");
+            imgui.ShowHelp("Target name colors are in the Global section\nHP Percent text color is set dynamically based on HP amount");
 
             imgui.EndChild();
         end
@@ -257,12 +257,24 @@ colorcustom.DrawWindow = function()
 
         -- Enemy List
         if (imgui.CollapsingHeader("Enemy List")) then
-            imgui.BeginChild("EnemyListColors", { 0, 150 }, true);
+            imgui.BeginChild("EnemyListColors", { 0, 350 }, true);
 
             imgui.Text("HP Bar Color:");
             imgui.Separator();
             DrawGradientPicker("Enemy HP Bar", gConfig.colorCustomization.enemyList.hpGradient, "Enemy HP bar color");
-            imgui.ShowHelp('Note: Enemy name colors are dynamic based on claim status');
+
+            imgui.Separator();
+            imgui.Text("Text Colors:");
+            imgui.Separator();
+            DrawTextColorPicker("Distance Text", gConfig.colorCustomization.enemyList, 'distanceTextColor', "Color of distance text");
+            DrawTextColorPicker("HP% Text", gConfig.colorCustomization.enemyList, 'percentTextColor', "Color of HP percentage text");
+            imgui.ShowHelp("Enemy name colors are in the Global section");
+
+            imgui.Separator();
+            imgui.Text("Border Colors:");
+            imgui.Separator();
+            DrawTextColorPicker("Target Border", gConfig.colorCustomization.enemyList, 'targetBorderColor', "Border color for currently targeted enemy");
+            DrawTextColorPicker("Subtarget Border", gConfig.colorCustomization.enemyList, 'subtargetBorderColor', "Border color for subtargeted enemy");
 
             imgui.EndChild();
         end
