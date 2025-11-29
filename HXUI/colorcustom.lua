@@ -168,6 +168,22 @@ colorcustom.DrawWindow = function()
 
         imgui.BeginChild("Color Options", { 0, 0 }, true);
 
+        -- Global
+        if (imgui.CollapsingHeader("Global")) then
+            imgui.BeginChild("GlobalColors", { 0, 300 }, true);
+
+            imgui.Text("Background Color:");
+            imgui.Separator();
+            DrawGradientPicker("Bar Background", gConfig.colorCustomization.shared.backgroundGradient, "Background color for all progress bars");
+
+            imgui.Separator();
+            imgui.Text("Bookend Gradient:");
+            imgui.Separator();
+            DrawThreeStepGradientPicker("Bookend", gConfig.colorCustomization.shared.bookendGradient, "3-step gradient for progress bar bookends (top -> middle -> bottom)");
+
+            imgui.EndChild();
+        end
+
         -- Player Bar
         if (imgui.CollapsingHeader("Player Bar")) then
             imgui.BeginChild("PlayerBarColors", { 0, 600 }, true);
@@ -410,7 +426,7 @@ colorcustom.DrawWindow = function()
             imgui.Separator();
 
             local threshold1 = { gConfig.inventoryTrackerColorThreshold1 };
-            if (imgui.SliderInt('Warning Threshold', threshold1, 0, 30)) then
+            if (imgui.SliderInt('Warning Threshold', threshold1, 0, 80)) then
                 gConfig.inventoryTrackerColorThreshold1 = threshold1[1];
             end
             if (imgui.IsItemDeactivatedAfterEdit()) then
@@ -419,7 +435,7 @@ colorcustom.DrawWindow = function()
             imgui.ShowHelp('Inventory count at which dots turn to warning color');
 
             local threshold2 = { gConfig.inventoryTrackerColorThreshold2 };
-            if (imgui.SliderInt('Critical Threshold', threshold2, 0, 30)) then
+            if (imgui.SliderInt('Critical Threshold', threshold2, 0, 80)) then
                 gConfig.inventoryTrackerColorThreshold2 = threshold2[1];
             end
             if (imgui.IsItemDeactivatedAfterEdit()) then
@@ -443,22 +459,6 @@ colorcustom.DrawWindow = function()
             imgui.Separator();
             DrawTextColorPicker("Spell Text", gConfig.colorCustomization.castBar, 'spellTextColor', "Color of spell/ability name");
             DrawTextColorPicker("Percent Text", gConfig.colorCustomization.castBar, 'percentTextColor', "Color of cast percentage");
-
-            imgui.EndChild();
-        end
-
-        -- Global
-        if (imgui.CollapsingHeader("Global")) then
-            imgui.BeginChild("GlobalColors", { 0, 300 }, true);
-
-            imgui.Text("Background Color:");
-            imgui.Separator();
-            DrawGradientPicker("Bar Background", gConfig.colorCustomization.shared.backgroundGradient, "Background color for all progress bars");
-
-            imgui.Separator();
-            imgui.Text("Bookend Gradient:");
-            imgui.Separator();
-            DrawThreeStepGradientPicker("Bookend", gConfig.colorCustomization.shared.bookendGradient, "3-step gradient for progress bar bookends (top -> middle -> bottom)");
 
             imgui.EndChild();
         end
