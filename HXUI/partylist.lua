@@ -305,8 +305,8 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
 
         local selectionWidth = allBarsLengths + settings.cursorPaddingX1 + settings.cursorPaddingX2;
         local selectionHeight = entrySize + settings.cursorPaddingY1 + settings.cursorPaddingY2;
-        -- Anchor selection box to the topmost point: top of name/icon minus padding
-        local topOfMember = hpStartY - nameIconAreaHeight - settings.nameTextOffsetY;
+        -- Anchor selection box to the top of name text (excludes job icon)
+        local topOfMember = hpStartY - nameHeight - settings.nameTextOffsetY;
         local selectionTL = {hpStartX - settings.cursorPaddingX1, topOfMember - settings.cursorPaddingY1};
         local selectionBR = {selectionTL[1] + selectionWidth, selectionTL[2] + selectionHeight};
 
