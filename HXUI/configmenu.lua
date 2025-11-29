@@ -60,6 +60,45 @@ local function DrawSlider(label, configKey, min, max, format, callback)
     end
 end
 
+-- Helper function for party layout-specific checkbox (saves to current layout table)
+local function DrawPartyLayoutCheckbox(label, configKey, callback)
+    local currentLayout = (gConfig.partyListLayout == 1) and gConfig.partyListLayout2 or gConfig.partyListLayout1;
+    if (imgui.Checkbox(label, { currentLayout[configKey] })) then
+        currentLayout[configKey] = not currentLayout[configKey];
+        SaveSettingsOnly();
+        if callback then callback() end
+    end
+end
+
+-- Helper function for party layout-specific slider (saves to current layout table)
+local function DrawPartyLayoutSlider(label, configKey, min, max, format, callback)
+    local currentLayout = (gConfig.partyListLayout == 1) and gConfig.partyListLayout2 or gConfig.partyListLayout1;
+    local value = { currentLayout[configKey] };
+    local changed = false;
+
+    -- Use SliderFloat if format is specified, otherwise check if value is integer
+    if format ~= nil then
+        -- Format specified, use float slider
+        changed = imgui.SliderFloat(label, value, min, max, format);
+    elseif type(currentLayout[configKey]) == 'number' and math.floor(currentLayout[configKey]) == currentLayout[configKey] then
+        -- No format and value is integer, use int slider
+        changed = imgui.SliderInt(label, value, min, max);
+    else
+        -- No format but value is float, use float slider with default format
+        changed = imgui.SliderFloat(label, value, min, max, '%.2f');
+    end
+
+    if changed then
+        currentLayout[configKey] = value[1];
+        if callback then callback() end
+        UpdateUserSettings();
+    end
+
+    if (imgui.IsItemDeactivatedAfterEdit()) then
+        SaveSettingsToDisk();
+    end
+end
+
 -- Helper function for combo box selection
 local function DrawComboBox(label, currentValue, items, callback)
     local changed = false;
@@ -246,6 +285,30 @@ local function DrawPartyListSettings()
         imgui.BeginChild("PartyListSettings", { 0, 460 }, true);
 
         DrawCheckbox('Enabled', 'showPartyList', CheckVisibility);
+
+        -- Layout Selector
+        local layoutItems = { [0] = 'Layout 1 (Horizontal)', [1] = 'Layout 2 (Compact Vertical)' };
+        if imgui.BeginCombo('Layout', layoutItems[gConfig.partyListLayout]) then
+            for i = 0, 1 do
+                local is_selected = i == gConfig.partyListLayout;
+                if imgui.Selectable(layoutItems[i], is_selected) then
+                    if gConfig.partyListLayout ~= i then
+                        gConfig.partyListLayout = i;
+                        UpdateSettings();  -- Reload settings from new layout
+                        SaveSettingsOnly();
+                        if partyList ~= nil then
+                            partyList.UpdateVisuals(gAdjustedSettings.partyListSettings);  -- Recreate fonts
+                        end
+                    end
+                end
+                if is_selected then
+                    imgui.SetItemDefaultFocus();
+                end
+            end
+            imgui.EndCombo();
+        end
+        imgui.ShowHelp('Select between horizontal (Layout 1) and compact vertical (Layout 2) party list layouts. Each layout has independent settings.');
+
         DrawCheckbox('Preview Full Party (when config open)', 'partyListPreview');
         DrawCheckbox('Flash TP at 100%', 'partyListFlashTP');
         DrawCheckbox('Show Distance', 'showPartyListDistance');
@@ -307,13 +370,34 @@ local function DrawPartyListSettings()
             imgui.BeginChild('PartyListSettings.Party1', { 0, 230 }, true);
             imgui.Text('Party');
 
-            DrawCheckbox('Show TP', 'partyListTP');
-            DrawSlider('Min Rows', 'partyListMinRows', 1, 6);
-            DrawSlider('Scale X', 'partyListScaleX', 0.1, 3.0, '%.2f');
-            DrawSlider('Scale Y', 'partyListScaleY', 0.1, 3.0, '%.2f');
-            DrawSlider('Font Size', 'partyListFontSize', 8, 36);
-            DrawSlider('Job Icon Scale', 'partyListJobIconScale', 0.1, 3.0, '%.1f');
-            DrawSlider('Entry Spacing', 'partyListEntrySpacing', -4, 16);
+            DrawPartyLayoutCheckbox('Show TP', 'partyListTP');
+            DrawPartyLayoutSlider('Min Rows', 'partyListMinRows', 1, 6);
+
+            -- Layout 1: General Scale X and Y
+            if gConfig.partyListLayout == 0 then
+                DrawPartyLayoutSlider('Scale X', 'partyListScaleX', 0.1, 3.0, '%.2f');
+                DrawPartyLayoutSlider('Scale Y', 'partyListScaleY', 0.1, 3.0, '%.2f');
+            end
+
+            -- Layout 2: Individual HP and MP bar X and Y scales
+            if gConfig.partyListLayout == 1 then
+                DrawPartyLayoutSlider('HP Bar Scale X', 'hpBarScaleX', 0.1, 3.0, '%.2f');
+                DrawPartyLayoutSlider('MP Bar Scale X', 'mpBarScaleX', 0.1, 3.0, '%.2f');
+                DrawPartyLayoutSlider('HP Bar Scale Y', 'hpBarScaleY', 0.1, 3.0, '%.2f');
+                DrawPartyLayoutSlider('MP Bar Scale Y', 'mpBarScaleY', 0.1, 3.0, '%.2f');
+            end
+
+            -- Font Size: Layout 2 has separate controls, Layout 1 has single control
+            if gConfig.partyListLayout == 1 then
+                DrawPartyLayoutSlider('Name Font Size', 'partyListNameFontSize', 8, 36);
+                DrawPartyLayoutSlider('HP Font Size', 'partyListHpFontSize', 8, 36);
+                DrawPartyLayoutSlider('MP Font Size', 'partyListMpFontSize', 8, 36);
+                DrawPartyLayoutSlider('TP Font Size', 'partyListTpFontSize', 8, 36);
+            else
+                DrawPartyLayoutSlider('Font Size', 'partyListFontSize', 8, 36);
+            end
+            DrawPartyLayoutSlider('Job Icon Scale', 'partyListJobIconScale', 0.1, 3.0, '%.1f');
+            DrawPartyLayoutSlider('Entry Spacing', 'partyListEntrySpacing', -4, 16);
 
             imgui.EndChild();
         end
@@ -323,12 +407,30 @@ local function DrawPartyListSettings()
             imgui.BeginChild('PartyListSettings.Party2', { 0, 205 }, true);
             imgui.Text('Party B (Alliance)');
 
-            DrawCheckbox('Show TP', 'partyList2TP');
-            DrawSlider('Scale X', 'partyList2ScaleX', 0.1, 3.0, '%.2f');
-            DrawSlider('Scale Y', 'partyList2ScaleY', 0.1, 3.0, '%.2f');
-            DrawSlider('Font Size', 'partyList2FontSize', 8, 36);
-            DrawSlider('Job Icon Scale', 'partyList2JobIconScale', 0.1, 3.0, '%.1f');
-            DrawSlider('Entry Spacing', 'partyList2EntrySpacing', -4, 16);
+            DrawPartyLayoutCheckbox('Show TP', 'partyList2TP');
+            DrawPartyLayoutSlider('Scale X', 'partyList2ScaleX', 0.1, 3.0, '%.2f');
+            DrawPartyLayoutSlider('Scale Y', 'partyList2ScaleY', 0.1, 3.0, '%.2f');
+
+            -- Layout 2: Individual HP and MP bar X and Y scales
+            if gConfig.partyListLayout == 1 then
+                DrawPartyLayoutSlider('HP Bar Scale X', 'partyList2HpBarScaleX', 0.1, 3.0, '%.2f');
+                DrawPartyLayoutSlider('MP Bar Scale X', 'partyList2MpBarScaleX', 0.1, 3.0, '%.2f');
+                DrawPartyLayoutSlider('HP Bar Scale Y', 'partyList2HpBarScaleY', 0.1, 3.0, '%.2f');
+                DrawPartyLayoutSlider('MP Bar Scale Y', 'partyList2MpBarScaleY', 0.1, 3.0, '%.2f');
+            end
+
+            -- Font Size: Layout 2 has separate controls, Layout 1 has single control
+            if gConfig.partyListLayout == 1 then
+                DrawPartyLayoutSlider('Name Font Size', 'partyList2NameFontSize', 8, 36);
+                DrawPartyLayoutSlider('HP Font Size', 'partyList2HpFontSize', 8, 36);
+                DrawPartyLayoutSlider('MP Font Size', 'partyList2MpFontSize', 8, 36);
+                DrawPartyLayoutSlider('TP Font Size', 'partyList2TpFontSize', 8, 36);
+            else
+                DrawPartyLayoutSlider('Font Size', 'partyList2FontSize', 8, 36);
+            end
+
+            DrawPartyLayoutSlider('Job Icon Scale', 'partyList2JobIconScale', 0.1, 3.0, '%.1f');
+            DrawPartyLayoutSlider('Entry Spacing', 'partyList2EntrySpacing', -4, 16);
 
             imgui.EndChild();
         end
@@ -338,12 +440,30 @@ local function DrawPartyListSettings()
             imgui.BeginChild('PartyListSettings.Party3', { 0, 205 }, true);
             imgui.Text('Party C (Alliance)');
 
-            DrawCheckbox('Show TP', 'partyList3TP');
-            DrawSlider('Scale X', 'partyList3ScaleX', 0.1, 3.0, '%.2f');
-            DrawSlider('Scale Y', 'partyList3ScaleY', 0.1, 3.0, '%.2f');
-            DrawSlider('Font Size', 'partyList3FontSize', 8, 36);
-            DrawSlider('Job Icon Scale', 'partyList3JobIconScale', 0.1, 3.0, '%.1f');
-            DrawSlider('Entry Spacing', 'partyList3EntrySpacing', -4, 16);
+            DrawPartyLayoutCheckbox('Show TP', 'partyList3TP');
+            DrawPartyLayoutSlider('Scale X', 'partyList3ScaleX', 0.1, 3.0, '%.2f');
+            DrawPartyLayoutSlider('Scale Y', 'partyList3ScaleY', 0.1, 3.0, '%.2f');
+
+            -- Layout 2: Individual HP and MP bar X and Y scales
+            if gConfig.partyListLayout == 1 then
+                DrawPartyLayoutSlider('HP Bar Scale X', 'partyList3HpBarScaleX', 0.1, 3.0, '%.2f');
+                DrawPartyLayoutSlider('MP Bar Scale X', 'partyList3MpBarScaleX', 0.1, 3.0, '%.2f');
+                DrawPartyLayoutSlider('HP Bar Scale Y', 'partyList3HpBarScaleY', 0.1, 3.0, '%.2f');
+                DrawPartyLayoutSlider('MP Bar Scale Y', 'partyList3MpBarScaleY', 0.1, 3.0, '%.2f');
+            end
+
+            -- Font Size: Layout 2 has separate controls, Layout 1 has single control
+            if gConfig.partyListLayout == 1 then
+                DrawPartyLayoutSlider('Name Font Size', 'partyList3NameFontSize', 8, 36);
+                DrawPartyLayoutSlider('HP Font Size', 'partyList3HpFontSize', 8, 36);
+                DrawPartyLayoutSlider('MP Font Size', 'partyList3MpFontSize', 8, 36);
+                DrawPartyLayoutSlider('TP Font Size', 'partyList3TpFontSize', 8, 36);
+            else
+                DrawPartyLayoutSlider('Font Size', 'partyList3FontSize', 8, 36);
+            end
+
+            DrawPartyLayoutSlider('Job Icon Scale', 'partyList3JobIconScale', 0.1, 3.0, '%.1f');
+            DrawPartyLayoutSlider('Entry Spacing', 'partyList3EntrySpacing', -4, 16);
 
             imgui.EndChild();
         end

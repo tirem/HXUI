@@ -189,28 +189,11 @@ T{
     inventoryTrackerColorThreshold2 = 29,
     inventoryShowCount = true,
 
+	-- Party List Layout Selection (0 = Layout 1: Horizontal, 1 = Layout 2: Compact Vertical)
+	partyListLayout = 0,
+
+	-- Party List shared settings (apply to both layouts)
 	partyListDistanceHighlight = 0,
-	partyListScaleX = 1,
-	partyListScaleY = 1,
-    partyListFontSize = 16,
-    partyListJobIconScale = 1,
-    partyListEntrySpacing = 0,
-    partyListTP = true,
-
-    partyList2ScaleX = 0.7,
-    partyList2ScaleY = 0.7,
-    partyList2FontSize = 16,
-    partyList2JobIconScale = 0.8,
-    partyList2EntrySpacing = 6,
-    partyList2TP = false,
-
-    partyList3ScaleX = 0.7,
-    partyList3ScaleY = 0.7,
-    partyList3FontSize = 16,
-    partyList3JobIconScale = 0.8,
-    partyList3EntrySpacing = 6,
-    partyList3TP = false,
-
 	partyListTitleFontSize = 16,
 	partyListBuffScale = 1,
 	partyListStatusTheme = 0, -- 0: HorizonXI-L, 1: HorizonXI-R 2: XIV1.0, 3: XIV, 4: Disabled
@@ -225,12 +208,129 @@ T{
     partyListHideDuringEvents = true,
     partyListExpandHeight = false,
     partyListAlignBottom = false,
-    partyListMinRows = 1,
     partyListBgScale = 1.0,
     partyListBgColor = { 255, 255, 255, 255 },
     partyListBorderColor = { 255, 255, 255, 255 },
     partyListPreview = true,
     partyListAlliance = true,
+
+	-- Party List Layout 1 Settings (Horizontal)
+	partyListLayout1 = T{
+		-- Party 1 (Main) settings
+		partyListScaleX = 1,
+		partyListScaleY = 1,
+		partyListFontSize = 16,
+		partyListJobIconScale = 1,
+		partyListEntrySpacing = 0,
+		partyListTP = true,
+		partyListMinRows = 1,
+
+		-- Party 2 (Alliance B) settings
+		partyList2ScaleX = 0.7,
+		partyList2ScaleY = 0.7,
+		partyList2FontSize = 16,
+		partyList2JobIconScale = 0.8,
+		partyList2EntrySpacing = 6,
+		partyList2TP = false,
+
+		-- Party 3 (Alliance C) settings
+		partyList3ScaleX = 0.7,
+		partyList3ScaleY = 0.7,
+		partyList3FontSize = 16,
+		partyList3JobIconScale = 0.8,
+		partyList3EntrySpacing = 6,
+		partyList3TP = false,
+
+		-- Bar dimensions
+		hpBarWidth = 150,
+		mpBarWidth = 100,
+		tpBarWidth = 100,
+		barHeight = 20,
+		barSpacing = 8,
+		hpBarScaleX = 1,  -- HP bar X scale (Layout 1)
+		mpBarScaleX = 1,  -- MP bar X scale (Layout 1)
+		hpBarScaleY = 1,  -- HP bar Y scale (Layout 1)
+		mpBarScaleY = 1,  -- MP bar Y scale (Layout 1)
+
+		-- Text offsets
+		nameTextOffsetX = 1,
+		nameTextOffsetY = 0,
+		hpTextOffsetX = -2,
+		hpTextOffsetY = -1,
+		mpTextOffsetX = -2,
+		mpTextOffsetY = -1,
+		tpTextOffsetX = -2,
+		tpTextOffsetY = -1,
+	},
+
+	-- Party List Layout 2 Settings (Compact Vertical)
+	partyListLayout2 = T{
+		-- Party 1 (Main) settings
+		partyListScaleX = 1,
+		partyListScaleY = 1,
+		partyListFontSize = 12,
+		partyListNameFontSize = 12,
+		partyListHpFontSize = 12,
+		partyListMpFontSize = 12,
+		partyListTpFontSize = 12,
+		partyListJobIconScale = 1,
+		partyListEntrySpacing = 3,
+		partyListTP = true,
+		partyListMinRows = 1,
+
+		-- Party 2 (Alliance B) settings
+		partyList2ScaleX = 0.55,
+		partyList2ScaleY = 0.55,
+		partyList2FontSize = 10,
+		partyList2NameFontSize = 10,
+		partyList2HpFontSize = 10,
+		partyList2MpFontSize = 10,
+		partyList2TpFontSize = 10,
+		partyList2JobIconScale = 0.65,
+		partyList2EntrySpacing = 1,
+		partyList2TP = true,
+		partyList2HpBarScaleX = 0.9,
+		partyList2MpBarScaleX = 0.6,
+		partyList2HpBarScaleY = 1,
+		partyList2MpBarScaleY = 0.7,
+
+		-- Party 3 (Alliance C) settings
+		partyList3ScaleX = 0.55,
+		partyList3ScaleY = 0.55,
+		partyList3FontSize = 10,
+		partyList3JobIconScale = 0.65,
+		partyList3EntrySpacing = 1,
+		partyList3TP = true,
+		partyList3NameFontSize = 10,
+		partyList3HpFontSize = 10,
+		partyList3MpFontSize = 10,
+		partyList3TpFontSize = 10,
+		partyList3HpBarScaleX = 0.9,
+		partyList3MpBarScaleX = 0.6,
+		partyList3HpBarScaleY = 1,
+		partyList3MpBarScaleY = 0.7,
+
+		-- Bar dimensions (optimized for compact vertical layout)
+		hpBarWidth = 200,
+		mpBarWidth = 120,
+		tpBarWidth = 0,  -- No TP bar in Layout 2
+		barHeight = 20,
+		barSpacing = 8,  -- Space between TP text and MP bar
+		hpBarScaleX = 0.9,  -- HP bar X scale (Layout 2)
+		mpBarScaleX = 0.6,  -- MP bar X scale (Layout 2)
+		hpBarScaleY = 1,  -- HP bar Y scale (Layout 2)
+		mpBarScaleY = 0.7,  -- MP bar Y scale (Layout 2)
+
+		-- Text offsets (optimized for Layout 2)
+		nameTextOffsetX = 1,
+		nameTextOffsetY = 0,
+		hpTextOffsetX = -8,  -- 8px from right edge of HP bar
+		hpTextOffsetY = -1,
+		mpTextOffsetX = -4,  -- 4px from right edge of MP bar
+		mpTextOffsetY = -1,
+		tpTextOffsetX = 0,   -- TP text left-aligned below HP bar
+		tpTextOffsetY = 1,   -- 1px below HP bar
+	},
 
 	castBarScaleX = 1,
 	castBarScaleY = 1,
@@ -670,9 +770,9 @@ T{
 		};
 		mp_font_settings =
 		T{
-			font_alignment = gdi.Alignment.Right,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
-			font_height = 13,
+			font_height = 12,
 			font_color = 0xFFFFFFFF,
 			font_flags = gdi.FontFlags.None,
 			outline_color = 0xFF000000,
@@ -680,9 +780,9 @@ T{
 		};
 		tp_font_settings =
 		T{
-			font_alignment = gdi.Alignment.Right,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
-			font_height = 13,
+			font_height = 12,
 			font_color = 0xFFFFFFFF,
 			font_flags = gdi.FontFlags.None,
 			outline_color = 0xFF000000,
@@ -771,6 +871,86 @@ if gConfig.colorCustomization and gConfig.colorCustomization.shared then
 	end
 end
 
+-- Migrate party list layout settings (convert old settings to layout-specific format)
+if not gConfig.partyListLayout1 then
+	-- User has old settings format, migrate to Layout 1
+	gConfig.partyListLayout1 = T{
+		-- Migrate main party settings
+		partyListScaleX = gConfig.partyListScaleX or 1,
+		partyListScaleY = gConfig.partyListScaleY or 1,
+		partyListFontSize = gConfig.partyListFontSize or 16,
+		partyListJobIconScale = gConfig.partyListJobIconScale or 1,
+		partyListEntrySpacing = gConfig.partyListEntrySpacing or 0,
+		partyListTP = (gConfig.partyListTP ~= nil) and gConfig.partyListTP or true,
+		partyListMinRows = gConfig.partyListMinRows or 1,
+
+		-- Migrate alliance party 2 settings
+		partyList2ScaleX = gConfig.partyList2ScaleX or 0.7,
+		partyList2ScaleY = gConfig.partyList2ScaleY or 0.7,
+		partyList2FontSize = gConfig.partyList2FontSize or 16,
+		partyList2JobIconScale = gConfig.partyList2JobIconScale or 0.8,
+		partyList2EntrySpacing = gConfig.partyList2EntrySpacing or 6,
+		partyList2TP = (gConfig.partyList2TP ~= nil) and gConfig.partyList2TP or false,
+
+		-- Migrate alliance party 3 settings
+		partyList3ScaleX = gConfig.partyList3ScaleX or 0.7,
+		partyList3ScaleY = gConfig.partyList3ScaleY or 0.7,
+		partyList3FontSize = gConfig.partyList3FontSize or 16,
+		partyList3JobIconScale = gConfig.partyList3JobIconScale or 0.8,
+		partyList3EntrySpacing = gConfig.partyList3EntrySpacing or 6,
+		partyList3TP = (gConfig.partyList3TP ~= nil) and gConfig.partyList3TP or false,
+
+		-- Use default bar dimensions and text offsets from default_settings
+		hpBarWidth = 150,
+		mpBarWidth = 100,
+		tpBarWidth = 100,
+		barHeight = 20,
+		barSpacing = 8,
+
+		nameTextOffsetX = 1,
+		nameTextOffsetY = 0,
+		hpTextOffsetX = -2,
+		hpTextOffsetY = -1,
+		mpTextOffsetX = -2,
+		mpTextOffsetY = -1,
+		tpTextOffsetX = -2,
+		tpTextOffsetY = -1,
+	};
+
+	-- Remove old party-specific settings from top level (they're now in partyListLayout1)
+	gConfig.partyListScaleX = nil;
+	gConfig.partyListScaleY = nil;
+	gConfig.partyListFontSize = nil;
+	gConfig.partyListJobIconScale = nil;
+	gConfig.partyListEntrySpacing = nil;
+	gConfig.partyListTP = nil;
+	gConfig.partyListMinRows = nil;
+
+	gConfig.partyList2ScaleX = nil;
+	gConfig.partyList2ScaleY = nil;
+	gConfig.partyList2FontSize = nil;
+	gConfig.partyList2JobIconScale = nil;
+	gConfig.partyList2EntrySpacing = nil;
+	gConfig.partyList2TP = nil;
+
+	gConfig.partyList3ScaleX = nil;
+	gConfig.partyList3ScaleY = nil;
+	gConfig.partyList3FontSize = nil;
+	gConfig.partyList3JobIconScale = nil;
+	gConfig.partyList3EntrySpacing = nil;
+	gConfig.partyList3TP = nil;
+end
+
+-- Initialize Layout 2 if missing (use defaults from defaultUserSettings)
+if not gConfig.partyListLayout2 then
+	gConfig.partyListLayout2 = deep_copy_table(defaultUserSettings.partyListLayout2);
+end
+
+-- Ensure partyListLayout selector exists (default to Layout 1)
+if gConfig.partyListLayout == nil then
+	gConfig.partyListLayout = 0;
+end
+
 showConfig = { false };
 local pendingVisualUpdate = false;
 
@@ -781,6 +961,12 @@ function ResetSettings()
 	config.userSettings = gConfig; -- Update the config reference so settings.save() saves the new values
 	UpdateSettings();
 	settings.save(); -- Save the reset settings to disk
+end
+
+-- Helper function to save a party list layout-specific setting
+function SavePartyListLayoutSetting(key, value)
+	local currentLayout = (gConfig.partyListLayout == 1) and gConfig.partyListLayout2 or gConfig.partyListLayout1;
+	currentLayout[key] = value;
 end
 
 function CheckVisibility()
@@ -941,25 +1127,48 @@ function UpdateUserSettings()
 		right_justified = ds.targetBarSettings.totName_font_settings.right_justified,
 	};
 
-	-- Party List
+	-- Party List (load settings from current layout)
+	local currentLayout = (us.partyListLayout == 1) and us.partyListLayout2 or us.partyListLayout1;
+
     gAdjustedSettings.partyListSettings.iconSize = ds.partyListSettings.iconSize * us.partyListBuffScale;
     gAdjustedSettings.partyListSettings.expandHeight = us.partyListExpandHeight;
     gAdjustedSettings.partyListSettings.alignBottom = us.partyListAlignBottom;
-    gAdjustedSettings.partyListSettings.minRows = us.partyListMinRows;
+    gAdjustedSettings.partyListSettings.minRows = currentLayout.partyListMinRows or 1;
 
 	-- Apply font sizes for each party (stored as arrays indexed by party)
 	gAdjustedSettings.partyListSettings.fontSizes = {
-		us.partyListFontSize,   -- Party 1
-		us.partyList2FontSize,  -- Party 2
-		us.partyList3FontSize,  -- Party 3
+		currentLayout.partyListFontSize or 16,   -- Party 1
+		currentLayout.partyList2FontSize or 16,  -- Party 2
+		currentLayout.partyList3FontSize or 16,  -- Party 3
 	};
 	gAdjustedSettings.partyListSettings.title_font_settings.font_height = math.max(us.partyListTitleFontSize, 8);
 
 	gAdjustedSettings.partyListSettings.entrySpacing = {
-        ds.partyListSettings.entrySpacing + us.partyListEntrySpacing,
-        ds.partyListSettings.entrySpacing + us.partyList2EntrySpacing,
-        ds.partyListSettings.entrySpacing + us.partyList3EntrySpacing,
+        ds.partyListSettings.entrySpacing + (currentLayout.partyListEntrySpacing or 0),
+        ds.partyListSettings.entrySpacing + (currentLayout.partyList2EntrySpacing or 0),
+        ds.partyListSettings.entrySpacing + (currentLayout.partyList3EntrySpacing or 0),
     };
+
+	-- Apply layout-specific bar dimensions and text offsets
+	gAdjustedSettings.partyListSettings.hpBarWidth = currentLayout.hpBarWidth or 150;
+	gAdjustedSettings.partyListSettings.mpBarWidth = currentLayout.mpBarWidth or 100;
+	gAdjustedSettings.partyListSettings.tpBarWidth = currentLayout.tpBarWidth or 100;
+	gAdjustedSettings.partyListSettings.barHeight = currentLayout.barHeight or 20;
+	gAdjustedSettings.partyListSettings.barSpacing = currentLayout.barSpacing or 8;
+	gAdjustedSettings.partyListSettings.hpBarScaleX = currentLayout.hpBarScaleX or 1;
+	gAdjustedSettings.partyListSettings.mpBarScaleX = currentLayout.mpBarScaleX or 1;
+	gAdjustedSettings.partyListSettings.hpBarScaleY = currentLayout.hpBarScaleY or 1;
+	gAdjustedSettings.partyListSettings.mpBarScaleY = currentLayout.mpBarScaleY or 1;
+
+	gAdjustedSettings.partyListSettings.nameTextOffsetX = currentLayout.nameTextOffsetX or 1;
+	gAdjustedSettings.partyListSettings.nameTextOffsetY = currentLayout.nameTextOffsetY or 0;
+	gAdjustedSettings.partyListSettings.hpTextOffsetX = currentLayout.hpTextOffsetX or -2;
+	gAdjustedSettings.partyListSettings.hpTextOffsetY = currentLayout.hpTextOffsetY or -1;
+	gAdjustedSettings.partyListSettings.mpTextOffsetX = currentLayout.mpTextOffsetX or -2;
+	gAdjustedSettings.partyListSettings.mpTextOffsetY = currentLayout.mpTextOffsetY or -1;
+	gAdjustedSettings.partyListSettings.tpTextOffsetX = currentLayout.tpTextOffsetX or -2;
+	gAdjustedSettings.partyListSettings.tpTextOffsetY = currentLayout.tpTextOffsetY or -1;
+
 	-- Note: All party list text colors are set dynamically in partylist.DrawWindow every frame
 
 	-- Player Bar
