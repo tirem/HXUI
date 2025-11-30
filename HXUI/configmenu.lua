@@ -424,7 +424,6 @@ local function DrawPartyListSettings()
                 DrawPartyLayoutSlider('Name Font Size', 'partyList2NameFontSize', 8, 36);
                 DrawPartyLayoutSlider('HP Font Size', 'partyList2HpFontSize', 8, 36);
                 DrawPartyLayoutSlider('MP Font Size', 'partyList2MpFontSize', 8, 36);
-                DrawPartyLayoutSlider('TP Font Size', 'partyList2TpFontSize', 8, 36);
             else
                 DrawPartyLayoutSlider('Font Size', 'partyList2FontSize', 8, 36);
             end
@@ -457,7 +456,6 @@ local function DrawPartyListSettings()
                 DrawPartyLayoutSlider('Name Font Size', 'partyList3NameFontSize', 8, 36);
                 DrawPartyLayoutSlider('HP Font Size', 'partyList3HpFontSize', 8, 36);
                 DrawPartyLayoutSlider('MP Font Size', 'partyList3MpFontSize', 8, 36);
-                DrawPartyLayoutSlider('TP Font Size', 'partyList3TpFontSize', 8, 36);
             else
                 DrawPartyLayoutSlider('Font Size', 'partyList3FontSize', 8, 36);
             end

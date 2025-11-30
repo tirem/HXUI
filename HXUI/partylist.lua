@@ -110,14 +110,14 @@ local function getFontSizes(partyIndex)
                 name = currentLayout.partyList3NameFontSize or currentLayout.partyList3FontSize,
                 hp = currentLayout.partyList3HpFontSize or currentLayout.partyList3FontSize,
                 mp = currentLayout.partyList3MpFontSize or currentLayout.partyList3FontSize,
-                tp = currentLayout.partyList3TpFontSize or currentLayout.partyList3FontSize,
+                tp = currentLayout.partyListTpFontSize or currentLayout.partyListFontSize,  -- Use party 1 TP size for spacing
             }
         elseif (partyIndex == 2) then
             return {
                 name = currentLayout.partyList2NameFontSize or currentLayout.partyList2FontSize,
                 hp = currentLayout.partyList2HpFontSize or currentLayout.partyList2FontSize,
                 mp = currentLayout.partyList2MpFontSize or currentLayout.partyList2FontSize,
-                tp = currentLayout.partyList2TpFontSize or currentLayout.partyList2FontSize,
+                tp = currentLayout.partyListTpFontSize or currentLayout.partyListFontSize,  -- Use party 1 TP size for spacing
             }
         else
             return {
@@ -184,6 +184,7 @@ local function UpdateTextVisibilityByMember(memIdx, visible)
     memberText[memIdx].tp:set_visible(visible);
     memberText[memIdx].name:set_visible(visible);
     memberText[memIdx].distance:set_visible(visible);
+    memberText[memIdx].zone:set_visible(visible);
 end
 
 local function UpdateTextVisibility(visible, partyIndex)
@@ -394,13 +395,22 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     memberText[memIdx].tp:set_text(tostring(memInfo.tp));
     local tpTextWidth, tpHeight = memberText[memIdx].tp:get_text_size();
 
+    -- Calculate max TP text width for Layout 2 (to prevent MP bar shifting)
+    local maxTpTextWidth = tpTextWidth;
+    if layout == 1 then
+        memberText[memIdx].tp:set_text("3000");
+        maxTpTextWidth, _ = memberText[memIdx].tp:get_text_size();
+        memberText[memIdx].tp:set_text(tostring(memInfo.tp));
+    end
+
     -- Calculate allBarsLengths based on layout
     local allBarsLengths;
     if layout == 1 then
         -- Layout 2: Vertical stacking
         -- Calculate the full width needed including text for selection box
         local topRowWidth = hpBarWidth + 4 + hpTextWidth;
-        local bottomRowWidth = 4 + tpTextWidth + 4 + mpBarWidth + 4 + mpTextWidth;  -- 4px offset + TP text + gap + MP bar + gap + MP text
+        local tpSpaceWidth = 4 + maxTpTextWidth + 4;  -- 4px padding + max TP width + 4px gap
+        local bottomRowWidth = tpSpaceWidth + mpBarWidth + 4 + mpTextWidth;  -- TP space + MP bar + gap + MP text
         allBarsLengths = math.max(topRowWidth, bottomRowWidth) + 4;  -- +4px extra padding on right side
     else
         -- Layout 1: Horizontal layout
@@ -516,17 +526,44 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     -- Detect current layout
     local layout = gConfig.partyListLayout or 0;
 
-    -- Draw the HP bar
+    -- Draw the HP bar (or zone bar for out-of-zone members)
     if (memInfo.inzone) then
         -- Use individual HP bar height in Layout 2
         local currentHpBarHeight = (layout == 1) and hpBarHeight or barHeight;
         progressbar.ProgressBar({{memInfo.hpp, hpGradient}}, {hpBarWidth, currentHpBarHeight}, {borderConfig=borderConfig, decorate = gConfig.showPartyListBookends});
+        -- Hide zone text when in zone
+        memberText[memIdx].zone:set_visible(false);
     elseif (memInfo.zone == '' or memInfo.zone == nil) then
-        local currentHpBarHeight = (layout == 1) and hpBarHeight or barHeight;
-        imgui.Dummy({hpBarWidth, currentHpBarHeight});
+        -- Zone bar should match total vertical space: HP bar + gap + MP bar
+        local zoneBarHeight = (layout == 1) and (hpBarHeight + 1 + mpBarHeight) or barHeight;
+        imgui.Dummy({hpBarWidth, zoneBarHeight});
+        -- Hide zone text when no zone info
+        memberText[memIdx].zone:set_visible(false);
     else
-        local currentHpBarHeight = (layout == 1) and hpBarHeight or barHeight;
-        imgui.ProgressBar(0, {hpBarWidth, currentHpBarHeight}, encoding:ShiftJIS_To_UTF8(AshitaCore:GetResourceManager():GetString("zones.names", memInfo.zone), true));
+        -- Zone bar should match total vertical space: HP bar + gap + MP bar
+        local zoneBarHeight = (layout == 1) and (hpBarHeight + 1 + mpBarHeight) or barHeight;
+        -- Draw zone bar with outline only
+        local zoneBarStartX, zoneBarStartY = imgui.GetCursorScreenPos();
+        imgui.Dummy({hpBarWidth, zoneBarHeight});
+
+        -- Draw outline for zone bar
+        local drawList = imgui.GetWindowDrawList();
+        drawList:AddRect(
+            {zoneBarStartX, zoneBarStartY},
+            {zoneBarStartX + hpBarWidth, zoneBarStartY + zoneBarHeight},
+            imgui.GetColorU32({0.5, 0.5, 0.5, 1.0}),  -- Gray outline
+            0,
+            ImDrawCornerFlags_None,
+            1  -- 1px border thickness
+        );
+
+        -- Show zone text centered on the bar
+        local zoneName = encoding:ShiftJIS_To_UTF8(AshitaCore:GetResourceManager():GetString("zones.names", memInfo.zone), true);
+        memberText[memIdx].zone:set_text(zoneName);
+        local zoneTextWidth, zoneTextHeight = memberText[memIdx].zone:get_text_size();
+        memberText[memIdx].zone:set_position_x(zoneBarStartX + (hpBarWidth - zoneTextWidth) / 2);  -- Center horizontally
+        memberText[memIdx].zone:set_position_y(zoneBarStartY + (zoneBarHeight - zoneTextHeight) / 2);  -- Center vertically
+        memberText[memIdx].zone:set_visible(true);
     end
 
     -- Position HP text based on layout
@@ -601,30 +638,24 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
             local rowStartX, rowStartY = imgui.GetCursorScreenPos();
 
             -- === TP TEXT (LEFT OF MP BAR) ===
-            -- Prepare TP text
-            memberText[memIdx].tp:set_text(tostring(memInfo.tp));
+            -- Set TP text color
             local desiredTpColor = (memInfo.tp >= 1000) and gConfig.colorCustomization.partyList.tpFullTextColor or gConfig.colorCustomization.partyList.tpEmptyTextColor;
             if (memberTextColorCache[memIdx].tp ~= desiredTpColor) then
                 memberText[memIdx].tp:set_font_color(desiredTpColor);
                 memberTextColorCache[memIdx].tp = desiredTpColor;
             end
-            local tpTextWidth, _ = memberText[memIdx].tp:get_text_size();
 
             -- Position TP text at row start + 4px offset (LEFT of MP bar)
             memberText[memIdx].tp:set_position_x(rowStartX + 4);
             memberText[memIdx].tp:set_position_y(rowStartY);
 
-            -- Reserve space in ImGui layout for TP text
-            imgui.Dummy({tpTextWidth, tpHeight});
-
-            -- Add small gap between TP text and MP bar
-            imgui.SameLine();
-            imgui.Dummy({4, 0});  -- 4px horizontal gap
-
             -- === MP BAR ===
-            -- Position MP bar (comes after TP text and gap)
-            imgui.SameLine();
-            mpStartX, mpStartY = imgui.GetCursorScreenPos();
+            -- Position MP bar at a fixed offset based on max TP text width to prevent shifting
+            -- maxTpTextWidth was calculated earlier in the function
+            local mpBarStartX = rowStartX + 4 + maxTpTextWidth + 4;  -- 4px padding + max TP width + 4px gap
+            mpStartX = mpBarStartX;
+            mpStartY = rowStartY;
+            imgui.SetCursorScreenPos({mpStartX, mpStartY});
 
             -- Draw MP bar
             local mpGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'mpGradient') or {'#9abb5a', '#bfe07d'};
@@ -824,10 +855,12 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
 
     memberText[memIdx].hp:set_visible(memInfo.inzone);
     memberText[memIdx].mp:set_visible(memInfo.inzone);
-    -- In Layout 2, TP is always shown as text (no bar), so visibility is always true when in zone
+    -- In Layout 2, TP is shown for party 1 only (alliance parties don't have TP data)
     -- In Layout 1, TP visibility depends on showTP flag
+    local partyIndex = math.floor(memIdx / 6) + 1;
     if layout == 1 then
-        memberText[memIdx].tp:set_visible(memInfo.inzone);  -- Layout 2: always show TP text
+        -- Layout 2: show TP text only for party 1, hide for parties 2 and 3
+        memberText[memIdx].tp:set_visible(memInfo.inzone and partyIndex == 1);
     else
         memberText[memIdx].tp:set_visible(memInfo.inzone and showTP);  -- Layout 1: show if showTP is true
     end
@@ -837,8 +870,9 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     if layout == 1 and memInfo.inzone then
         -- Calculate the full width needed including text
         local topRowWidth = hpBarWidth + 4 + hpTextWidth;
-        local bottomRowWidth = 4 + tpTextWidth + 4 + mpBarWidth + 4 + mpTextWidth;  -- 4px offset + TP text + gap + MP bar + gap + MP text
-        local fullWidth = math.max(topRowWidth, bottomRowWidth) + 8;  -- +8px extra width for background
+        local tpSpaceWidth = 4 + maxTpTextWidth + 4;  -- 4px padding + max TP width + 4px gap
+        local bottomRowWidth = tpSpaceWidth + mpBarWidth + 4 + mpTextWidth;  -- TP space + MP bar + gap + MP text
+        local fullWidth = math.max(topRowWidth, bottomRowWidth);
         imgui.Dummy({fullWidth, 0});
     end
 
@@ -1105,12 +1139,14 @@ partyList.Initialize = function(settings)
         local mp_font_settings = deep_copy_table(settings.mp_font_settings);
         local tp_font_settings = deep_copy_table(settings.tp_font_settings);
         local distance_font_settings = deep_copy_table(settings.name_font_settings);
+        local zone_font_settings = deep_copy_table(settings.name_font_settings);
 
         name_font_settings.font_height = math.max(fontSizes.name, 6);
         hp_font_settings.font_height = math.max(fontSizes.hp, 6);
         mp_font_settings.font_height = math.max(fontSizes.mp, 6);
         tp_font_settings.font_height = math.max(fontSizes.tp, 6);
         distance_font_settings.font_height = math.max(fontSizes.name, 6);
+        zone_font_settings.font_height = 10;  -- Fixed 10px for zone text
 
         memberText[i] = {};
         -- Use FontManager for cleaner font creation
@@ -1119,6 +1155,7 @@ partyList.Initialize = function(settings)
         memberText[i].mp = FontManager.create(mp_font_settings);
         memberText[i].tp = FontManager.create(tp_font_settings);
         memberText[i].distance = FontManager.create(distance_font_settings);
+        memberText[i].zone = FontManager.create(zone_font_settings);
     end
 
     -- Initialize title fonts for each party (3 parties)
@@ -1201,12 +1238,14 @@ partyList.UpdateVisuals = function(settings)
         local mp_font_settings = deep_copy_table(settings.mp_font_settings);
         local tp_font_settings = deep_copy_table(settings.tp_font_settings);
         local distance_font_settings = deep_copy_table(settings.name_font_settings);
+        local zone_font_settings = deep_copy_table(settings.name_font_settings);
 
         name_font_settings.font_height = math.max(fontSizes.name, 6);
         hp_font_settings.font_height = math.max(fontSizes.hp, 6);
         mp_font_settings.font_height = math.max(fontSizes.mp, 6);
         tp_font_settings.font_height = math.max(fontSizes.tp, 6);
         distance_font_settings.font_height = math.max(fontSizes.name, 6);
+        zone_font_settings.font_height = 10;  -- Fixed 10px for zone text
 
         -- Use FontManager for cleaner font recreation
         if (memberText[i] ~= nil) then
@@ -1215,6 +1254,7 @@ partyList.UpdateVisuals = function(settings)
             memberText[i].mp = FontManager.recreate(memberText[i].mp, mp_font_settings);
             memberText[i].tp = FontManager.recreate(memberText[i].tp, tp_font_settings);
             memberText[i].distance = FontManager.recreate(memberText[i].distance, distance_font_settings);
+            memberText[i].zone = FontManager.recreate(memberText[i].zone, zone_font_settings);
         end
 
         ::continue::
@@ -1308,6 +1348,7 @@ partyList.Cleanup = function()
 			memberText[i].mp = FontManager.destroy(memberText[i].mp);
 			memberText[i].tp = FontManager.destroy(memberText[i].tp);
 			memberText[i].distance = FontManager.destroy(memberText[i].distance);
+			memberText[i].zone = FontManager.destroy(memberText[i].zone);
 		end
 	end
 
