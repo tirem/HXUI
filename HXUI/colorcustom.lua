@@ -224,11 +224,12 @@ colorcustom.DrawWindow = function()
 
         -- Target Bar
         if (imgui.CollapsingHeader("Target Bar")) then
-            imgui.BeginChild("TargetBarColors", { 0, 200 }, true);
+            imgui.BeginChild("TargetBarColors", { 0, 250 }, true);
 
-            imgui.Text("HP Bar Color:");
+            imgui.Text("Bar Colors:");
             imgui.Separator();
             DrawGradientPicker("Target HP Bar", gConfig.colorCustomization.targetBar.hpGradient, "Target HP bar color");
+            DrawGradientPicker("Cast Bar", gConfig.colorCustomization.targetBar.castBarGradient, "Enemy cast bar color");
 
             imgui.Separator();
             imgui.Text("Text Colors:");

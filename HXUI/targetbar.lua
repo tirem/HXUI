@@ -287,16 +287,42 @@ targetbar.DrawWindow = function(settings)
 			percentText:set_visible(false);
 		end
 
-		-- Draw enemy cast text if casting
+		-- Draw enemy cast bar and text if casting (or in config mode)
 		local castData = targetbar.enemyCasts[targetEntity.ServerId];
-		if (castData ~= nil and castData.spellName ~= nil) then
+		local inConfigMode = showConfig and showConfig[1];
+
+		-- Create test cast data for config mode
+		if (inConfigMode and castData == nil) then
+			castData = T{
+				spellName = "Fire III",
+				castTime = 5.0,  -- 5 second cast
+				startTime = os.clock() - ((os.clock() % 5.0)),  -- Loops every 5 seconds
+			};
+		end
+
+		if (castData ~= nil and castData.spellName ~= nil and castData.castTime ~= nil and castData.startTime ~= nil) then
+			-- Calculate cast progress
+			local elapsed = os.clock() - castData.startTime;
+			local progress = math.min(elapsed / castData.castTime, 1.0);
+
+			-- Draw cast bar under HP bar
+			local castBarY = startY + settings.barHeight + 2;
+			imgui.SetCursorScreenPos({startX, castBarY});
+
+			-- Cast bar settings
+			local castBarHeight = 8;
+			local castBarWidth = settings.barWidth;
+			local castGradient = GetCustomGradient(gConfig.colorCustomization.targetBar, 'castBarGradient') or {'#ffaa00', '#ffcc44'};
+
+			progressbar.ProgressBar({{progress, castGradient}}, {castBarWidth, castBarHeight}, {decorate = gConfig.showTargetBarBookends});
+
+			-- Draw cast text below the cast bar
 			castText:set_font_height(settings.cast_font_settings.font_height);
 			local castWidth, castHeight = castText:get_text_size();
-			-- Center the text under the HP bar
 			local centerX = startX + (settings.barWidth / 2);
 			castText:set_position_x(centerX);
-			castText:set_position_y(startY + settings.barHeight + 2);
-			castText:set_text(castData.spellName);
+			castText:set_position_y(castBarY + castBarHeight + 2);
+			castText:set_text(inConfigMode and "Fire III (Demo)" or castData.spellName);
 			-- Get custom cast text color
 			local castColor = GetColorSetting('targetBar', 'castTextColor', 0xFFFFAA00);
 			if (lastCastTextColor ~= castColor) then
@@ -545,9 +571,14 @@ targetbar.HandleActionPacket = function(actionPacket)
 			local spell = AshitaCore:GetResourceManager():GetSpellById(spellId);
 			if (spell ~= nil and spell.Name[1] ~= nil) then
 				local spellName = encoding:ShiftJIS_To_UTF8(spell.Name[1], true);
+				-- Cast time is in quarter seconds (e.g., 40 = 10 seconds)
+				local castTime = spell.CastTime / 4.0;
 				targetbar.enemyCasts[actionPacket.UserId] = T{
 					spellName = spellName,
-					timestamp = os.time()
+					spellId = spellId,
+					castTime = castTime,
+					startTime = os.clock(),  -- High precision timestamp
+					timestamp = os.time()    -- For cleanup
 				};
 			end
 		end

@@ -389,6 +389,7 @@ T{
 		-- Target Bar
 		targetBar = T{
 			hpGradient = T{ enabled = true, start = '#e26c6c', stop = '#fb9494' },
+			castBarGradient = T{ enabled = true, start = '#ffaa00', stop = '#ffcc44' },
 			distanceTextColor = 0xFFFFFFFF,
 			castTextColor = 0xFFFFAA00,  -- Orange color for enemy casting
 			-- Note: HP percent text color is set dynamically based on HP amount
