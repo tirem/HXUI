@@ -319,6 +319,17 @@ function draw_circle(center, radius, color, segments, fill, shadowConfig)
 	end
 end
 
+-- Get the appropriate draw list for UI rendering
+-- Returns WindowDrawList when config is open (so config stays on top)
+-- Returns ForegroundDrawList otherwise (so UI elements render on top of game)
+function GetUIDrawList()
+	if showConfig and showConfig[1] then
+		return imgui.GetWindowDrawList();
+	else
+		return imgui.GetForegroundDrawList();
+	end
+end
+
 -- Party member cache functions for performance optimization
 local function UpdatePartyCache()
 	local party = AshitaCore:GetMemoryManager():GetParty();

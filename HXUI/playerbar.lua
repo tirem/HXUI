@@ -209,6 +209,14 @@ playerbar.DrawWindow = function(settings)
 
 			local tpOverlayGradient = {'#0078CC', '#0078CC'};
 
+		local tpPulseConfig = nil;
+		if gConfig.tpBarFlashEnabled then
+			tpPulseConfig = {
+				'#2fa9ff', -- overlay pulse color
+				1 -- overlay pulse seconds
+			};
+		end
+
 			tpOverlay = {
 				{
 					1, -- overlay percent
@@ -216,10 +224,7 @@ playerbar.DrawWindow = function(settings)
 				},
 				math.ceil(settings.barHeight * 2/7), -- overlay height
 				1, -- overlay vertical padding
-				{
-					'#2fa9ff', -- overlay pulse color
-					1 -- overlay pulse seconds
-				}
+			tpPulseConfig
 			};
 		else
 			mainPercent = SelfTP / 1000;

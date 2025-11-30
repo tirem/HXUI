@@ -263,8 +263,8 @@ targetbar.DrawWindow = function(settings)
 			local lockX = startX + bookendWidth + textPadding;
 			local lockY = startY - settings.topTextYOffset - lockIconSize;
 
-			-- Draw using foreground draw list (doesn't affect ImGui cursor)
-			local draw_list = imgui.GetForegroundDrawList();
+			-- Draw using UI draw list (doesn't affect ImGui cursor)
+			local draw_list = GetUIDrawList();
 			draw_list:AddImage(
 				tonumber(ffi.cast("uint32_t", lockTexture.image)),
 				{lockX, lockY},

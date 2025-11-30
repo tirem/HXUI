@@ -109,7 +109,6 @@ local user_settings =
 T{
 	patchNotesVer = -1,
 
-	noBookendRounding = 4,
 	lockPositions = false,
     tooltipScale = 1.0,
     hideDuringEvents = true,
@@ -369,7 +368,12 @@ T{
 		[22] = 0.02, -- RUN
 	},
 
-	healthBarFlashEnabled = true,
+	-- Bar Settings (global progress bar configuration)
+	showBookends = true,            -- Global bookend visibility (overrides individual bookend settings)
+	healthBarFlashEnabled = true,   -- Flash effect when taking damage
+	tpBarFlashEnabled = true,       -- Flash effect when TP reaches 100%
+	noBookendRounding = 4,          -- Bar roundness for bars without bookends (0-10)
+	barBorderThickness = 2,         -- Border thickness for all progress bars (1-5)
 
 	-- Color customization settings
 	colorCustomization = T{

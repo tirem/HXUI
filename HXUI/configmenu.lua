@@ -152,10 +152,6 @@ local function DrawGeneralSettings()
         end);
         imgui.ShowHelp('The folder to pull job icons from. [HXUI\\assets\\jobs]');
 
-        DrawCheckbox('Show Health Bar Flash Effects', 'healthBarFlashEnabled');
-        DrawSlider('Basic Bar Roundness', 'noBookendRounding', 0, 10);
-        imgui.ShowHelp('For bars with no bookends, how round they should be.');
-
         DrawSlider('Tooltip Scale', 'tooltipScale', 0.1, 3.0, '%.2f');
         imgui.ShowHelp('Scales the size of the tooltip. Note that text may appear blured if scaled too large.');
 
@@ -192,6 +188,30 @@ local function DrawFontSettings()
             DeferredUpdateVisuals(); -- Tell all modules to recreate fonts with new outline width
         end);
         imgui.ShowHelp('The thickness of the text outline/stroke for all text in HXUI.');
+
+        imgui.EndChild();
+    end
+end
+
+-- Section: Bar Settings
+local function DrawBarSettings()
+    if (imgui.CollapsingHeader("Bar Settings")) then
+        imgui.BeginChild("BarSettings", { 0, 200 }, true);
+
+        DrawCheckbox('Show Bookends', 'showBookends');
+        imgui.ShowHelp('Global setting to show or hide bookends on all progress bars.');
+
+        DrawCheckbox('Health Bar Flash Effects', 'healthBarFlashEnabled');
+        imgui.ShowHelp('Flash effect when taking damage on health bars.');
+
+        DrawCheckbox('TP Bar Flash Effects', 'tpBarFlashEnabled');
+        imgui.ShowHelp('Flash effect when TP reaches 100% or higher.');
+
+        DrawSlider('Bar Roundness', 'noBookendRounding', 0, 10);
+        imgui.ShowHelp('Corner roundness for bars without bookends (0 = square corners, 10 = very rounded).');
+
+        DrawSlider('Bar Border Thickness', 'barBorderThickness', 1, 5);
+        imgui.ShowHelp('Thickness of the border around all progress bars.');
 
         imgui.EndChild();
     end
@@ -682,6 +702,7 @@ config.DrawWindow = function(us)
         -- Draw all configuration sections
         DrawGeneralSettings();
         DrawFontSettings();
+        DrawBarSettings();
         DrawPlayerBarSettings();
         DrawTargetBarSettings();
         DrawEnemyListSettings();

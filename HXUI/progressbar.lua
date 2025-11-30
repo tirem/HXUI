@@ -276,6 +276,11 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 		options.decorate = true;
 	end
 
+	-- Apply global showBookends setting (master switch)
+	if gConfig and gConfig.showBookends == false then
+		options.decorate = false;
+	end
+
 	-- Get position from options or cursor
 	local positionStartX, positionStartY;
 	if options.absolutePosition then
@@ -456,7 +461,7 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 	local bgR, bgG, bgB = hex2rgba(bgColor);
 	local bgColorU32 = imgui.GetColorU32({bgR / 255, bgG / 255, bgB / 255, 1.0});
 
-	local draw_list = imgui.GetForegroundDrawList();
+	local draw_list = GetUIDrawList();
 
 	-- Draw enhanced border if specified (middle and outer layers)
 	if options.enhancedBorder then
@@ -464,7 +469,7 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 		local accentColorU32 = imgui.GetColorU32(ARGBToImGui(accentColor));
 
 		-- Border thickness values
-		local innerBorderThickness = 2;
+		local innerBorderThickness = gConfig.barBorderThickness or 2;
 		local middleBorderThickness = 2;
 		local outerBorderThickness = 1;
 
@@ -494,8 +499,8 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 		);
 	end
 
-	-- Draw default inner background border (2px) - always drawn for all bars
-	local innerBorderThickness = 2;
+	-- Draw default inner background border - always drawn for all bars
+	local innerBorderThickness = gConfig.barBorderThickness or 2;
 	local innerOffset = innerBorderThickness / 2;
 	draw_list:AddRect(
 		{positionStartX - innerOffset, positionStartY - innerOffset},

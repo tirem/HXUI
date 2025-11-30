@@ -789,8 +789,8 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
                     tintColor = IM_COL32_WHITE;
                 end
 
-                -- Draw using foreground draw list
-                local draw_list = imgui.GetForegroundDrawList();
+                -- Draw using UI draw list
+                local draw_list = GetUIDrawList();
                 draw_list:AddImage(
                     cursorImage,
                     {cursorX, cursorY},
@@ -1107,8 +1107,8 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
             local titlePosX = imguiPosX + math.floor((bgWidth / 2) - (titleWidth / 2));
             local titlePosY = imguiPosY - titleHeight + 12;  -- 2px gap
 
-            -- Draw using foreground draw list
-            local draw_list = imgui.GetForegroundDrawList();
+            -- Draw using UI draw list
+            local draw_list = GetUIDrawList();
             draw_list:AddImage(
                 titleImage,
                 {titlePosX, titlePosY},
