@@ -1,16 +1,17 @@
 require('common');
+require('helpers');
 local imgui = require('imgui');
-local fonts = require('fonts');
+local gdi = require('gdifonts.include');
 local ffi = require("ffi");
 
 local gilTexture;
 local gilText;
+local allFonts; -- Table for batch visibility operations
+
+-- Cached color to avoid expensive set_font_color calls every frame
+local lastGilTextColor;
 
 local giltracker = {};
-
-local function UpdateTextVisibility(visible)
-	gilText:SetVisible(visible);
-end
 
 --[[
 * event: d3d_present
@@ -18,29 +19,29 @@ end
 --]]
 giltracker.DrawWindow = function(settings)
     -- Obtain the player entity..
-    local player = AshitaCore:GetMemoryManager():GetPlayer();
+    local player = GetPlayerSafe();
     local playerEnt = GetPlayerEntity();
 
 	if (player == nil or playerEnt == nil) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts,false);
 		return;
 	end
 
     if (player.isZoning) then
-		UpdateTextVisibility(false);	
+		SetFontsVisible(allFonts,false);
         return;
 	end
-	
+
 	local gilAmount
-	local inventory = AshitaCore:GetMemoryManager():GetInventory();
+	local inventory = GetInventorySafe();
 	if (inventory ~= nil) then
 		gilAmount = inventory:GetContainerItem(0, 0);
 		if (gilAmount == nil) then
-			UpdateTextVisibility(false);
+			SetFontsVisible(allFonts,false);
 			return;
 		end
 	else
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts,false);
 		return;
 	end
 
@@ -53,30 +54,62 @@ giltracker.DrawWindow = function(settings)
 		local cursorX, cursorY  = imgui.GetCursorScreenPos();
 		imgui.Image(tonumber(ffi.cast("uint32_t", gilTexture.image)), { settings.iconScale, settings.iconScale });
 
-		gilText:SetText(FormatInt(gilAmount.Count));
-        local posOffsetX = settings.font_settings.right_justified and settings.offsetX or settings.offsetX + settings.iconScale;
-		gilText:SetPositionX(cursorX + posOffsetX);
-		gilText:SetPositionY(cursorY + (settings.iconScale/2) + settings.offsetY);
+		-- Dynamically set font height based on settings (avoids expensive font recreation)
+		gilText:set_font_height(settings.font_settings.font_height);
 
-		UpdateTextVisibility(true);
+		gilText:set_text(FormatInt(gilAmount.Count));
+
+		-- Clean positioning logic:
+		-- rightAlign = true: text positioned to the RIGHT of the icon (left-aligned text)
+		-- rightAlign = false: text positioned to the LEFT of the icon (right-aligned text)
+		local textPadding = 5; -- Standard spacing between icon and text
+		if (settings.rightAlign) then
+			-- Text on RIGHT side of icon
+			gilText:set_position_x(cursorX + settings.iconScale + textPadding);
+		else
+			-- Text on LEFT side of icon
+			gilText:set_position_x(cursorX - textPadding);
+		end
+		-- Vertically center the text with the icon (offset upward to account for font baseline)
+		gilText:set_position_y(cursorY + (settings.iconScale / 2) - (settings.font_settings.font_height / 2));
+
+		-- Only call set_font_color if the color has changed (expensive operation for GDI fonts)
+		if (lastGilTextColor ~= gConfig.colorCustomization.gilTracker.textColor) then
+			gilText:set_font_color(gConfig.colorCustomization.gilTracker.textColor);
+			lastGilTextColor = gConfig.colorCustomization.gilTracker.textColor;
+		end
+
+		SetFontsVisible(allFonts,true);
     end
 	imgui.End();
 end
 
 giltracker.Initialize = function(settings)
-    gilText = fonts.new(settings.font_settings);
+	-- Use FontManager for cleaner font creation
+    gilText = FontManager.create(settings.font_settings);
+	allFonts = {gilText};
 	gilTexture = LoadTexture("gil");
 end
 
-giltracker.UpdateFonts = function(settings)
-    gilText:SetFontHeight(settings.font_settings.font_height);
-    gilText:SetRightJustified(settings.font_settings.right_justified);
+giltracker.UpdateVisuals = function(settings)
+	-- Use FontManager for cleaner font recreation
+	gilText = FontManager.recreate(gilText, settings.font_settings);
+	allFonts = {gilText};
+
+	-- Reset cached color when font is recreated
+	lastGilTextColor = nil;
 end
 
 giltracker.SetHidden = function(hidden)
 	if (hidden == true) then
-		UpdateTextVisibility(false);
+		SetFontsVisible(allFonts, false);
 	end
+end
+
+giltracker.Cleanup = function()
+	-- Use FontManager for cleaner font destruction
+	gilText = FontManager.destroy(gilText);
+	allFonts = nil;
 end
 
 return giltracker;

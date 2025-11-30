@@ -24,7 +24,7 @@
 
 addon.name      = 'HXUI';
 addon.author    = 'Team HXUI';
-addon.version   = '1.3.8';
+addon.version   = '1.4.0 - BETA';
 addon.desc      = 'Multiple UI elements with manager';
 addon.link      = 'https://github.com/tirem/HXUI'
 
@@ -39,10 +39,16 @@ local inventoryTracker = require('inventorytracker');
 local partyList = require('partylist');
 local castBar = require('castbar');
 local configMenu = require('configmenu');
+local colorCustom = require('colorcustom');
 local debuffHandler = require('debuffhandler');
+local actionTracker = require('actiontracker');
 local patchNotes = require('patchNotes');
 local statusHandler = require('statushandler');
 local gdi = require('gdifonts.include');
+
+-- Render flags constants
+local RENDER_FLAG_VISIBLE = 0x200;  -- Entity is visible and rendered
+local RENDER_FLAG_HIDDEN = 0x4000;  -- Entity is hidden (cutscene, menu, etc.)
 
 -- =================
 -- = HXUI DEV ONLY =
@@ -99,11 +105,10 @@ end
 -- = /HXUI DEV ONLY =
 -- ==================
 
-local user_settings = 
+local user_settings =
 T{
 	patchNotesVer = -1,
 
-	noBookendRounding = 4,
 	lockPositions = false,
     tooltipScale = 1.0,
     hideDuringEvents = true,
@@ -119,87 +124,86 @@ T{
 
 	statusIconTheme = 'XIView';
 	jobIconTheme = 'FFXI',
+	fontFamily = 'Tahoma',
+	fontWeight = 'Bold', -- Options: 'Normal', 'Bold'
+	fontOutlineWidth = 2, -- Global outline width for all text (range: 0-5)
 
 	showPartyListWhenSolo = false,
 	maxEnemyListEntries = 8,
+	showEnemyListTargets = false,
 
 	playerBarScaleX = 1,
 	playerBarScaleY = 1,
-	playerBarFontOffset = 0,
+	playerBarFontSize = 16,
 	showPlayerBarBookends = true,
 	alwaysShowMpBar = true,
     playerBarHideDuringEvents = true,
 
 	targetBarScaleX = 1,
 	targetBarScaleY = 1,
-	targetBarFontOffset = 0,
+	targetBarNameFontSize = 16,
+	targetBarDistanceFontSize = 16,
+	targetBarPercentFontSize = 16,
+	targetBarCastFontSize = 16,
 	targetBarIconScale = 1,
-	targetBarIconFontOffset = 0,
+	targetBarIconFontSize = 16,
+	targetBarBuffsOffsetY = 4,
+	targetBarCastBarOffsetY = 6,
+	targetBarCastBarScaleX = 0.4,
+	targetBarCastBarScaleY = 1,
 	showTargetDistance = true,
 	showTargetBarBookends = true,
+	showTargetBarLockOnBorder = true,
+	showTargetBarCastBar = true,
 	showEnemyId = false;
 	alwaysShowHealthPercent = false,
     targetBarHideDuringEvents = true,
 	splitTargetOfTarget = false,
 	totBarScaleX = 1,
 	totBarScaleY = 1,
-	totBarFontOffset = 0,
+	totBarFontSize = 16,
 
 	enemyListScaleX = 1,
 	enemyListScaleY = 1,
-	enemyListFontScale = 1,
+	enemyListNameFontSize = 14,
+	enemyListDistanceFontSize = 12,
+	enemyListPercentFontSize = 12,
 	enemyListIconScale = 1,
 	showEnemyDistance = false,
 	showEnemyHPPText = true,
 	showEnemyListBookends = true,
 
-    expBarTextScaleX = 1,
 	expBarScaleX = 1,
 	expBarScaleY = 1,
 	showExpBarBookends = true,
-	expBarFontOffset = 0,
+	expBarFontSize = 16,
     expBarShowText = true,
     expBarShowPercent = true,
     expBarInlineMode = false,
-    expBarLimitPointsMode = true,
+    expBarLimitPointsMode = false,
 
 	gilTrackerScale = 1,
-	gilTrackerFontOffset = 0,
-    gilTrackerPosOffset = { 0, -7 },
+	gilTrackerFontSize = 16,
     gilTrackerRightAlign = true,
 
 	inventoryTrackerScale = 1,
-	inventoryTrackerFontOffset = 0,
+	inventoryTrackerFontSize = 16,
     inventoryTrackerOpacity = 1.0,
     inventoryTrackerColumnCount = 5,
     inventoryTrackerRowCount = 6,
+    inventoryTrackerColorThreshold1 = 15,
+    inventoryTrackerColorThreshold2 = 29,
     inventoryShowCount = true,
 
+	-- Party List Layout Selection (0 = Layout 1: Horizontal, 1 = Layout 2: Compact Vertical)
+	partyListLayout = 0,
+
+	-- Party List shared settings (apply to both layouts)
 	partyListDistanceHighlight = 0,
-	partyListScaleX = 1,
-	partyListScaleY = 1,
-    partyListFontOffset = 0,
-    partyListJobIconScale = 1,
-    partyListEntrySpacing = 0,
-    partyListTP = true,
-
-    partyList2ScaleX = 0.7,
-    partyList2ScaleY = 0.7,
-    partyList2FontOffset = -2,
-    partyList2JobIconScale = 0.8,
-    partyList2EntrySpacing = -20,
-    partyList2TP = false,
-
-    partyList3ScaleX = 0.7,
-    partyList3ScaleY = 0.7,
-    partyList3FontOffset = -2,
-    partyList3JobIconScale = 0.8,
-    partyList3EntrySpacing = -20,
-    partyList3TP = false,
-
+	partyListTitleFontSize = 16,
 	partyListBuffScale = 1,
 	partyListStatusTheme = 0, -- 0: HorizonXI-L, 1: HorizonXI-R 2: XIV1.0, 3: XIV, 4: Disabled
-	partyListTheme = 0, 
+	partyListTheme = 0,
 	partyListFlashTP = false,
 	showPartyListBookends = true,
     showPartyListTitle = true,
@@ -210,17 +214,132 @@ T{
     partyListHideDuringEvents = true,
     partyListExpandHeight = false,
     partyListAlignBottom = false,
-    partyListMinRows = 1,
-    partyListBgScale = 1.8,
+    partyListBgScale = 1.0,
     partyListBgColor = { 255, 255, 255, 255 },
     partyListBorderColor = { 255, 255, 255, 255 },
     partyListPreview = true,
     partyListAlliance = true,
 
+	-- Party List Layout 1 Settings (Horizontal)
+	partyListLayout1 = T{
+		-- Party 1 (Main) settings
+		partyListScaleX = 1,
+		partyListScaleY = 1,
+		partyListFontSize = 16,
+		partyListJobIconScale = 1,
+		partyListEntrySpacing = 0,
+		partyListTP = true,
+		partyListMinRows = 1,
+
+		-- Party 2 (Alliance B) settings
+		partyList2ScaleX = 0.7,
+		partyList2ScaleY = 0.7,
+		partyList2FontSize = 16,
+		partyList2JobIconScale = 0.8,
+		partyList2EntrySpacing = 6,
+		partyList2TP = false,
+
+		-- Party 3 (Alliance C) settings
+		partyList3ScaleX = 0.7,
+		partyList3ScaleY = 0.7,
+		partyList3FontSize = 16,
+		partyList3JobIconScale = 0.8,
+		partyList3EntrySpacing = 6,
+		partyList3TP = false,
+
+		-- Bar dimensions
+		hpBarWidth = 150,
+		mpBarWidth = 100,
+		tpBarWidth = 100,
+		barHeight = 20,
+		barSpacing = 8,
+		hpBarScaleX = 1,  -- HP bar X scale (Layout 1)
+		mpBarScaleX = 1,  -- MP bar X scale (Layout 1)
+		hpBarScaleY = 1,  -- HP bar Y scale (Layout 1)
+		mpBarScaleY = 1,  -- MP bar Y scale (Layout 1)
+
+		-- Text offsets
+		nameTextOffsetX = 1,
+		nameTextOffsetY = 0,
+		hpTextOffsetX = -2,
+		hpTextOffsetY = -1,
+		mpTextOffsetX = -2,
+		mpTextOffsetY = -1,
+		tpTextOffsetX = -2,
+		tpTextOffsetY = -1,
+	},
+
+	-- Party List Layout 2 Settings (Compact Vertical)
+	partyListLayout2 = T{
+		-- Party 1 (Main) settings
+		partyListScaleX = 1,
+		partyListScaleY = 1,
+		partyListFontSize = 12,
+		partyListNameFontSize = 12,
+		partyListHpFontSize = 12,
+		partyListMpFontSize = 12,
+		partyListTpFontSize = 12,
+		partyListJobIconScale = 1,
+		partyListEntrySpacing = 3,
+		partyListTP = true,
+		partyListMinRows = 1,
+
+		-- Party 2 (Alliance B) settings
+		partyList2ScaleX = 0.55,
+		partyList2ScaleY = 0.55,
+		partyList2FontSize = 10,
+		partyList2NameFontSize = 10,
+		partyList2HpFontSize = 10,
+		partyList2MpFontSize = 10,
+		partyList2JobIconScale = 0.65,
+		partyList2EntrySpacing = 1,
+		partyList2TP = true,
+		partyList2HpBarScaleX = 0.9,
+		partyList2MpBarScaleX = 0.6,
+		partyList2HpBarScaleY = 1,
+		partyList2MpBarScaleY = 0.7,
+
+		-- Party 3 (Alliance C) settings
+		partyList3ScaleX = 0.55,
+		partyList3ScaleY = 0.55,
+		partyList3FontSize = 10,
+		partyList3JobIconScale = 0.65,
+		partyList3EntrySpacing = 1,
+		partyList3TP = true,
+		partyList3NameFontSize = 10,
+		partyList3HpFontSize = 10,
+		partyList3MpFontSize = 10,
+		partyList3HpBarScaleX = 0.9,
+		partyList3MpBarScaleX = 0.6,
+		partyList3HpBarScaleY = 1,
+		partyList3MpBarScaleY = 0.7,
+
+		-- Bar dimensions (optimized for compact vertical layout)
+		hpBarWidth = 200,
+		mpBarWidth = 120,
+		tpBarWidth = 0,  -- No TP bar in Layout 2
+		barHeight = 20,
+		barSpacing = 8,  -- Space between TP text and MP bar
+		hpBarScaleX = 0.9,  -- HP bar X scale (Layout 2)
+		mpBarScaleX = 0.6,  -- MP bar X scale (Layout 2)
+		hpBarScaleY = 1,  -- HP bar Y scale (Layout 2)
+		mpBarScaleY = 0.7,  -- MP bar Y scale (Layout 2)
+
+		-- Text offsets (optimized for Layout 2)
+		nameTextOffsetX = 1,
+		nameTextOffsetY = 0,
+		hpTextOffsetX = -8,  -- 8px from right edge of HP bar
+		hpTextOffsetY = -1,
+		mpTextOffsetX = -4,  -- 4px from right edge of MP bar
+		mpTextOffsetY = -1,
+		tpTextOffsetX = 0,   -- TP text left-aligned below HP bar
+		tpTextOffsetY = 1,   -- 1px below HP bar
+	},
+
 	castBarScaleX = 1,
 	castBarScaleY = 1,
 	showCastBarBookends = true,
-	castBarFontOffset = 0,
+	castBarFontSize = 16,
 	castBarFastCastEnabled = false,
 	castBarFastCastRDMSJ = 0.17,
 	castBarFastCastWHMCureSpeed = 0.15,
@@ -250,10 +369,126 @@ T{
 		[22] = 0.02, -- RUN
 	},
 
-	healthBarFlashEnabled = true,
+	-- Bar Settings (global progress bar configuration)
+	showBookends = true,            -- Global bookend visibility (overrides individual bookend settings)
+	healthBarFlashEnabled = true,   -- Flash effect when taking damage
+	tpBarFlashEnabled = true,       -- Flash effect when TP reaches 100%
+	noBookendRounding = 4,          -- Bar roundness for bars without bookends (0-10)
+	barBorderThickness = 1,         -- Border thickness for all progress bars (1-5)
+
+	-- Color customization settings
+	colorCustomization = T{
+		-- Player Bar
+		playerBar = T{
+			hpGradient = T{
+				enabled = true,
+				low = T{ start = '#ec3232', stop = '#f16161' },      -- 0-25%
+				medLow = T{ start = '#ee9c06', stop = '#ecb44e' },   -- 25-50%
+				medHigh = T{ start = '#ffff0c', stop = '#ffff97' },  -- 50-75%
+				high = T{ start = '#e26c6c', stop = '#fa9c9c' },     -- 75-100%
+			},
+			mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
+			tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' },
+			hpTextColor = 0xFFFFFFFF,
+			mpTextColor = 0xFFdef2db,
+			tpEmptyTextColor = 0xFF9acce8,  -- TP < 1000
+			tpFullTextColor = 0xFF2fa9ff,   -- TP >= 1000
+		},
+
+		-- Target Bar
+		targetBar = T{
+			hpGradient = T{ enabled = true, start = '#e26c6c', stop = '#fb9494' },
+			castBarGradient = T{ enabled = true, start = '#ffaa00', stop = '#ffcc44' },
+			distanceTextColor = 0xFFFFFFFF,
+			castTextColor = 0xFFFFAA00,  -- Orange color for enemy casting
+			-- Note: HP percent text color is set dynamically based on HP amount
+			-- Note: Entity name colors are in shared section
+		},
+
+		-- Target of Target Bar
+		totBar = T{
+			hpGradient = T{ enabled = true, start = '#e16c6c', stop = '#fb9494' },
+			nameTextColor = 0xFFFFFFFF,
+		},
+
+		-- Enemy List
+		enemyList = T{
+			hpGradient = T{ enabled = true, start = '#e16c6c', stop = '#fb9494' },
+			distanceTextColor = 0xFFFFFFFF,
+			percentTextColor = 0xFFFFFFFF,
+			targetBorderColor = 0xFFFFFFFF,      -- white - border for main target
+			subtargetBorderColor = 0xFF8080FF,   -- blue - border for subtarget
+			-- Note: Entity name colors are in shared section
+		},
+
+		-- Party List
+		partyList = T{
+			hpGradient = T{
+				enabled = true,
+				low = T{ start = '#ec3232', stop = '#f16161' },
+				medLow = T{ start = '#ee9c06', stop = '#ecb44e' },
+				medHigh = T{ start = '#ffff0c', stop = '#ffff97' },
+				high = T{ start = '#e26c6c', stop = '#fa9c9c' },
+			},
+			mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
+			tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' },
+			castBarGradient = T{ enabled = true, start = '#ffaa00', stop = '#ffcc44' },  -- Party member cast bar
+			nameTextColor = 0xFFFFFFFF,
+			hpTextColor = 0xFFFFFFFF,
+			mpTextColor = 0xFFFFFFFF,
+			tpEmptyTextColor = 0xFF9acce8,  -- TP < 1000
+			tpFullTextColor = 0xFF2fa9ff,   -- TP >= 1000
+			bgColor = 0xFFFFFFFF,           -- Background color
+			borderColor = 0xFFFFFFFF,       -- Border color
+			selectionGradient = T{ enabled = true, start = '#4da5d9', stop = '#78c0ed' },  -- Selection box gradient
+			selectionBorderColor = 0xFF78C0ED,  -- Selection box border
+		},
+
+		-- Exp Bar
+		expBar = T{
+			barGradient = T{ enabled = true, start = '#c39040', stop = '#e9c466' },
+			jobTextColor = 0xFFFFFFFF,
+			expTextColor = 0xFFFFFFFF,
+			percentTextColor = 0xFFFFFF00,
+		},
+
+		-- Gil Tracker
+		gilTracker = T{
+			textColor = 0xFFFFFFFF,
+		},
+
+		-- Inventory Tracker
+		inventoryTracker = T{
+			textColor = 0xFFFFFFFF,
+			emptySlotColor = T{ r = 0, g = 0.07, b = 0.17, a = 1 },
+			usedSlotColor = T{ r = 0.37, g = 0.7, b = 0.88, a = 1 },        -- Normal (white/blue)
+			usedSlotColorThreshold1 = T{ r = 1.0, g = 1.0, b = 0, a = 1 },  -- Warning (yellow)
+			usedSlotColorThreshold2 = T{ r = 1.0, g = 0, b = 0, a = 1 },    -- Critical (red)
+		},
+
+		-- Cast Bar
+		castBar = T{
+			barGradient = T{ enabled = true, start = '#3798ce', stop = '#78c5ee' },
+			spellTextColor = 0xFFFFFFFF,
+			percentTextColor = 0xFFFFFFFF,
+		},
+
+		-- Global/Shared
+		shared = T{
+			backgroundGradient = T{ enabled = true, start = '#01122b', stop = '#061c39' },
+			bookendGradient = T{ start = '#576C92', mid = '#B7C9FF', stop = '#576C92' },
+			-- Entity name colors (used by target bar, enemy list, etc.)
+			playerPartyTextColor = 0xFF00FFFF,     -- cyan - party/alliance members
+			playerOtherTextColor = 0xFFFFFFFF,     -- white - other players
+			npcTextColor = 0xFF66FF66,             -- green - NPCs
+			mobUnclaimedTextColor = 0xFFFFFF66,    -- yellow - unclaimed mobs
+			mobPartyClaimedTextColor = 0xFFFF6666, -- red - mobs claimed by party
+			mobOtherClaimedTextColor = 0xFFFF66FF, -- magenta - mobs claimed by others
+		},
+	},
 };
 
-local user_settings_container = 
+local user_settings_container =
 T{
 	userSettings = user_settings;
 };
@@ -286,106 +521,93 @@ T{
 		iconSize = 22,
 		arrowSize = 30,
 		maxIconColumns = 12,
-		topTextYOffset = 0,
+		topTextYOffset = 6,
 		topTextXOffset = 5,
-		bottomTextYOffset = -3,
+		bottomTextYOffset = 0,
 		bottomTextXOffset = 15,
-		name_font_settings = 
+		-- Buff/Debuff positioning
+		buffsOffsetY = 4,
+		-- Cast bar positioning and scaling
+		castBarOffsetY = 6,
+		castBarOffsetX = 12,
+		castBarWidth = 500,  -- Base width (will be adjusted by scale and inset)
+		name_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
 			font_height = 13,
-			color = 0xFFFFFFFF,
-			bold = true,
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = false;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		totName_font_settings = 
+		totName_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
 			font_height = 12,
-			color = 0xFFFFFFFF,
-			bold = true,
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = false;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		distance_font_settings = 
+		distance_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 11,
-			color = 0xFFFFFFFF,
-			bold = true,
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		percent_font_settings = 
+		percent_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 11,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = true;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
+		};
+		cast_font_settings =
+		T{
+			font_alignment = gdi.Alignment.Center,
+			font_family = 'Consolas',
+			font_height = 12,
+			font_color = 0xFFFFAA00,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 	};
 
 	-- settings for the playerbar
 	playerBarSettings =
 	T{
-		hitInterpolationMaxTime = 0.5,
-		hitDelayLength = 0.5,
+		-- Damage interpolation
+		hitInterpolationDecayPercentPerSecond = 150,
+		hitDelayDuration = 0.5,
+		hitFlashDuration = 0.4,
 		barWidth = 500,
 		barSpacing = 10,
 		barHeight = 20,
-		textYOffset = -3,
-		font_settings = 
+		textYOffset = -1,
+		font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 15,
-			color = 0xFFFFFFFF,
-			bold = true,
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 	};
 
 	-- settings for enemy list
-	enemyListSettings = 
+	enemyListSettings =
 	T{
 		barWidth = 125;
 		barHeight = 10;
@@ -397,91 +619,107 @@ T{
 		iconSize = 18;
 		debuffOffsetX = -10;
 		debuffOffsetY = 0;
+		name_font_settings =
+		T{
+			font_alignment = gdi.Alignment.Left,
+			font_family = 'Consolas',
+			font_height = 11,
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
+		};
+		distance_font_settings =
+		T{
+			font_alignment = gdi.Alignment.Left,
+			font_family = 'Consolas',
+			font_height = 9,
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
+		};
+		percent_font_settings =
+		T{
+			font_alignment = gdi.Alignment.Right,
+			font_family = 'Consolas',
+			font_height = 9,
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
+		};
+		prim_data = {
+			texture_offset_x= 0.0,
+			texture_offset_y= 0.0,
+			border_visible  = false,
+			border_flags    = FontBorderFlags.None,
+			border_sizes    = '0,0,0,0',
+			visible         = false,
+			position_x      = 0,
+			position_y      = 0,
+			can_focus       = true,
+			locked          = false,
+			lockedz         = false,
+			scale_x         = 1.0,
+			scale_y         = 1.0,
+			width           = 0.0,
+			height          = 0.0,
+			color           = 0xFFFFFFFF,
+		};
 	};
 
 	-- settings for the exp bar
 	expBarSettings =
 	T{
 		barWidth = 550;
-        textWidth = 550;
 		barHeight = 12;
-		textOffsetY = 5;
+		textOffsetY = 4;
 		percentOffsetX = -5;
-		job_font_settings = 
+		job_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
 			font_height = 11,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = false;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		exp_font_settings = 
+		exp_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 11,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		percent_font_settings = 
+		percent_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 8,
-			color = 0xFFFFFF00,
-			bold = false,
-			italic = true;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFF00,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 	};
 
 	-- settings for gil tracker
-	gilTrackerSettings = 
+	gilTrackerSettings =
 	T{
 		iconScale = 30;
-		offsetX = -5;
-		offsetY = -7;
-		font_settings = 
+		font_settings =
 		T{
-			visible = true,
-			locked = true,
 			font_family = 'Consolas',
 			font_height = 13,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 	};
 
@@ -493,27 +731,24 @@ T{
 		dotSpacing = 1;
 		groupSpacing = 8;
 		textOffsetY = -3;
-		font_settings = 
+		font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 13,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 	};
 
-	partyListSettings = 
+	partyListSettings =
 	T{
+		-- Damage interpolation
+		hitInterpolationDecayPercentPerSecond = 150,
+		hitDelayDuration = 0.5,
+		hitFlashDuration = 0.4,
 		hpBarWidth = 150,
 		tpBarWidth = 100,
 		mpBarWidth = 100,
@@ -523,20 +758,21 @@ T{
 		nameTextOffsetX = 1,
 		nameTextOffsetY = 0,
 		hpTextOffsetX = -2,
-		hpTextOffsetY = -3,
+		hpTextOffsetY = -1,
 		mpTextOffsetX = -2,
-		mpTextOffsetY = -3,
+		mpTextOffsetY = -1,
 		tpTextOffsetX = -2,
-		tpTextOffsetY = -3,
+		tpTextOffsetY = -1,
 
 		borderSize = 21,
-        bgPadding = 5,
+        bgPadding = 4,
+        bgPaddingY = 10,
         bgOffset = 1,
 
-		cursorPaddingX1 = 5,
-		cursorPaddingX2 = 5,
-		cursorPaddingY1 = 4,
-		cursorPaddingY2 = 4,
+		cursorPaddingX1 = 8,
+		cursorPaddingX2 = 8,
+		cursorPaddingY1 = 7,
+		cursorPaddingY2 = 10,
 		dotRadius = 3,
 
 		arrowSize = 1;
@@ -552,73 +788,55 @@ T{
         alignBottom = false,
         minRows = 1,
 
-		hp_font_settings = 
+		hp_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Right,
 			font_family = 'Consolas',
 			font_height = 13,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		mp_font_settings = 
+		mp_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
-			font_height = 13,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_height = 12,
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		tp_font_settings = 
+		tp_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
-			font_height = 13,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = true;
+			font_height = 12,
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
-		name_font_settings = 
+		name_font_settings =
 		T{
-			visible = true,
-			locked = true,
+			font_alignment = gdi.Alignment.Left,
 			font_family = 'Consolas',
 			font_height = 13,
-			color = 0xFFFFFFFF,
-			bold = true,
-			italic = false;
-			color_outline = 0xFF000000,
-			draw_flags = 0x10,
-			background = 
-			T{
-				visible = false,
-			},
-			right_justified = false;
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
+		};
+		title_font_settings =
+		T{
+			font_alignment = gdi.Alignment.None,
+			font_family = 'Consolas',
+			font_height = 14,
+			font_color = 0xFFC5CFDC,
+			font_flags = gdi.FontFlags.Italic,
+			outline_color = 0xFF000000,
+			outline_width = 2,
 		};
 		prim_data = {
 			texture_offset_x= 0.0,
@@ -652,7 +870,7 @@ T{
 			font_family = 'Consolas',
 			font_height = 15,
 			font_color = 0xFFFFFFFF,
-			font_flags = gdi.FontFlags.Italic,
+			font_flags = gdi.FontFlags.None,
 			outline_color = 0xFF000000,
             outline_width = 2,
 		};
@@ -662,7 +880,7 @@ T{
 			font_family = 'Consolas',
 			font_height = 15,
 			font_color = 0xFFFFFFFF,
-			font_flags = gdi.FontFlags.Italic,
+			font_flags = gdi.FontFlags.None,
 			outline_color = 0xFF000000,
             outline_width = 2,
 		};
@@ -670,21 +888,118 @@ T{
 };
 
 gAdjustedSettings = deep_copy_table(default_settings);
-local defaultUserSettings = deep_copy_table(user_settings);
+defaultUserSettings = deep_copy_table(user_settings);
 
 local config = settings.load(user_settings_container);
 gConfig = config.userSettings;
 
+-- Migrate existing users to new settings (add missing fields from defaults)
+if gConfig.colorCustomization and gConfig.colorCustomization.shared then
+	-- Add bookend gradient if missing
+	if not gConfig.colorCustomization.shared.bookendGradient then
+		gConfig.colorCustomization.shared.bookendGradient = deep_copy_table(defaultUserSettings.colorCustomization.shared.bookendGradient);
+	end
+end
+
+-- Migrate party list layout settings (convert old settings to layout-specific format)
+if not gConfig.partyListLayout1 then
+	-- User has old settings format, migrate to Layout 1
+	gConfig.partyListLayout1 = T{
+		-- Migrate main party settings
+		partyListScaleX = gConfig.partyListScaleX or 1,
+		partyListScaleY = gConfig.partyListScaleY or 1,
+		partyListFontSize = gConfig.partyListFontSize or 16,
+		partyListJobIconScale = gConfig.partyListJobIconScale or 1,
+		partyListEntrySpacing = gConfig.partyListEntrySpacing or 0,
+		partyListTP = (gConfig.partyListTP ~= nil) and gConfig.partyListTP or true,
+		partyListMinRows = gConfig.partyListMinRows or 1,
+
+		-- Migrate alliance party 2 settings
+		partyList2ScaleX = gConfig.partyList2ScaleX or 0.7,
+		partyList2ScaleY = gConfig.partyList2ScaleY or 0.7,
+		partyList2FontSize = gConfig.partyList2FontSize or 16,
+		partyList2JobIconScale = gConfig.partyList2JobIconScale or 0.8,
+		partyList2EntrySpacing = gConfig.partyList2EntrySpacing or 6,
+		partyList2TP = (gConfig.partyList2TP ~= nil) and gConfig.partyList2TP or false,
+
+		-- Migrate alliance party 3 settings
+		partyList3ScaleX = gConfig.partyList3ScaleX or 0.7,
+		partyList3ScaleY = gConfig.partyList3ScaleY or 0.7,
+		partyList3FontSize = gConfig.partyList3FontSize or 16,
+		partyList3JobIconScale = gConfig.partyList3JobIconScale or 0.8,
+		partyList3EntrySpacing = gConfig.partyList3EntrySpacing or 6,
+		partyList3TP = (gConfig.partyList3TP ~= nil) and gConfig.partyList3TP or false,
+
+		-- Use default bar dimensions and text offsets from default_settings
+		hpBarWidth = 150,
+		mpBarWidth = 100,
+		tpBarWidth = 100,
+		barHeight = 20,
+		barSpacing = 8,
+
+		nameTextOffsetX = 1,
+		nameTextOffsetY = 0,
+		hpTextOffsetX = -2,
+		hpTextOffsetY = -1,
+		mpTextOffsetX = -2,
+		mpTextOffsetY = -1,
+		tpTextOffsetX = -2,
+		tpTextOffsetY = -1,
+	};
+
+	-- Remove old party-specific settings from top level (they're now in partyListLayout1)
+	gConfig.partyListScaleX = nil;
+	gConfig.partyListScaleY = nil;
+	gConfig.partyListFontSize = nil;
+	gConfig.partyListJobIconScale = nil;
+	gConfig.partyListEntrySpacing = nil;
+	gConfig.partyListTP = nil;
+	gConfig.partyListMinRows = nil;
+
+	gConfig.partyList2ScaleX = nil;
+	gConfig.partyList2ScaleY = nil;
+	gConfig.partyList2FontSize = nil;
+	gConfig.partyList2JobIconScale = nil;
+	gConfig.partyList2EntrySpacing = nil;
+	gConfig.partyList2TP = nil;
+
+	gConfig.partyList3ScaleX = nil;
+	gConfig.partyList3ScaleY = nil;
+	gConfig.partyList3FontSize = nil;
+	gConfig.partyList3JobIconScale = nil;
+	gConfig.partyList3EntrySpacing = nil;
+	gConfig.partyList3TP = nil;
+end
+
+-- Initialize Layout 2 if missing (use defaults from defaultUserSettings)
+if not gConfig.partyListLayout2 then
+	gConfig.partyListLayout2 = deep_copy_table(defaultUserSettings.partyListLayout2);
+end
+
+-- Ensure partyListLayout selector exists (default to Layout 1)
+if gConfig.partyListLayout == nil then
+	gConfig.partyListLayout = 0;
+end
+
 showConfig = { false };
+local pendingVisualUpdate = false;
 
 function ResetSettings()
 	local patchNotesVer = gConfig.patchNotesVer;
 	gConfig = deep_copy_table(defaultUserSettings);
 	gConfig.patchNotesVer = patchNotesVer;
+	config.userSettings = gConfig; -- Update the config reference so settings.save() saves the new values
 	UpdateSettings();
+	settings.save(); -- Save the reset settings to disk
 end
 
-local function CheckVisibility()
+-- Helper function to save a party list layout-specific setting
+function SavePartyListLayoutSetting(key, value)
+	local currentLayout = (gConfig.partyListLayout == 1) and gConfig.partyListLayout2 or gConfig.partyListLayout1;
+	currentLayout[key] = value;
+end
+
+function CheckVisibility()
 	if (gConfig.showPlayerBar == false) then
 		playerBar.SetHidden(true);
 	end
@@ -719,30 +1034,123 @@ local function ForceHide()
 	castBar.SetHidden(true);
 end
 
-local function UpdateFonts()
-	playerBar.UpdateFonts(gAdjustedSettings.playerBarSettings);
-	targetBar.UpdateFonts(gAdjustedSettings.targetBarSettings);
-	expBar.UpdateFonts(gAdjustedSettings.expBarSettings);
-	gilTracker.UpdateFonts(gAdjustedSettings.gilTrackerSettings);
-	inventoryTracker.UpdateFonts(gAdjustedSettings.inventoryTrackerSettings);
-	partyList.UpdateFonts(gAdjustedSettings.partyListSettings);
-	castBar.UpdateFonts(gAdjustedSettings.castBarSettings);
+local function UpdateVisuals()
+	playerBar.UpdateVisuals(gAdjustedSettings.playerBarSettings);
+	targetBar.UpdateVisuals(gAdjustedSettings.targetBarSettings);
+	expBar.UpdateVisuals(gAdjustedSettings.expBarSettings);
+	gilTracker.UpdateVisuals(gAdjustedSettings.gilTrackerSettings);
+	inventoryTracker.UpdateVisuals(gAdjustedSettings.inventoryTrackerSettings);
+	partyList.UpdateVisuals(gAdjustedSettings.partyListSettings);
+	castBar.UpdateVisuals(gAdjustedSettings.castBarSettings);
+	enemyList.UpdateVisuals(gAdjustedSettings.enemyListSettings);
 end
 
-local function UpdateUserSettings()
+function UpdateUserSettings()
     local ds = default_settings;
 	local us = gConfig;
+
+	-- Apply global font family, weight, and outline width to all font settings
+	local fontWeightFlags = GetFontWeightFlags(us.fontWeight);
+
+	-- Target Bar
+	gAdjustedSettings.targetBarSettings.name_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.targetBarSettings.name_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.targetBarSettings.name_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.targetBarSettings.totName_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.targetBarSettings.totName_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.targetBarSettings.totName_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.targetBarSettings.distance_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.targetBarSettings.distance_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.targetBarSettings.distance_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.targetBarSettings.percent_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.targetBarSettings.percent_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.targetBarSettings.percent_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.targetBarSettings.cast_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.targetBarSettings.cast_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.targetBarSettings.cast_font_settings.outline_width = us.fontOutlineWidth;
+
+	-- Player Bar
+	gAdjustedSettings.playerBarSettings.font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.playerBarSettings.font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.playerBarSettings.font_settings.outline_width = us.fontOutlineWidth;
+
+	-- Exp Bar
+	gAdjustedSettings.expBarSettings.job_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.expBarSettings.job_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.expBarSettings.job_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.expBarSettings.exp_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.expBarSettings.exp_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.expBarSettings.exp_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.expBarSettings.percent_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.expBarSettings.percent_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.expBarSettings.percent_font_settings.outline_width = us.fontOutlineWidth;
+
+	-- Gil Tracker
+	gAdjustedSettings.gilTrackerSettings.font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.gilTrackerSettings.font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.gilTrackerSettings.font_settings.outline_width = us.fontOutlineWidth;
+
+	-- Inventory Tracker
+	gAdjustedSettings.inventoryTrackerSettings.font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.inventoryTrackerSettings.font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.inventoryTrackerSettings.font_settings.outline_width = us.fontOutlineWidth;
+
+	-- Party List
+	gAdjustedSettings.partyListSettings.hp_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.partyListSettings.hp_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.partyListSettings.hp_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.partyListSettings.mp_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.partyListSettings.mp_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.partyListSettings.mp_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.partyListSettings.tp_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.partyListSettings.tp_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.partyListSettings.tp_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.partyListSettings.name_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.partyListSettings.name_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.partyListSettings.name_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.partyListSettings.title_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.partyListSettings.title_font_settings.font_flags = bit.bor(fontWeightFlags, gdi.FontFlags.Italic);
+	gAdjustedSettings.partyListSettings.title_font_settings.outline_width = us.fontOutlineWidth;
+
+	-- Cast Bar
+	gAdjustedSettings.castBarSettings.spell_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.castBarSettings.spell_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.castBarSettings.spell_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.castBarSettings.percent_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.castBarSettings.percent_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.castBarSettings.percent_font_settings.outline_width = us.fontOutlineWidth;
+
+	-- Enemy List
+	gAdjustedSettings.enemyListSettings.name_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.enemyListSettings.name_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.enemyListSettings.name_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.enemyListSettings.distance_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.enemyListSettings.distance_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.enemyListSettings.distance_font_settings.outline_width = us.fontOutlineWidth;
+	gAdjustedSettings.enemyListSettings.percent_font_settings.font_family = us.fontFamily;
+	gAdjustedSettings.enemyListSettings.percent_font_settings.font_flags = fontWeightFlags;
+	gAdjustedSettings.enemyListSettings.percent_font_settings.outline_width = us.fontOutlineWidth;
 
 	-- Target Bar
 	gAdjustedSettings.targetBarSettings.barWidth = ds.targetBarSettings.barWidth * us.targetBarScaleX;
 	gAdjustedSettings.targetBarSettings.barHeight = ds.targetBarSettings.barHeight * us.targetBarScaleY;
 	gAdjustedSettings.targetBarSettings.totBarHeight = ds.targetBarSettings.totBarHeight * us.targetBarScaleY;
-	gAdjustedSettings.targetBarSettings.name_font_settings.font_height = math.max(ds.targetBarSettings.name_font_settings.font_height + us.targetBarFontOffset, 1);
-    gAdjustedSettings.targetBarSettings.totName_font_settings.font_height = math.max(ds.targetBarSettings.totName_font_settings.font_height + us.targetBarFontOffset, 1);
-	gAdjustedSettings.targetBarSettings.distance_font_settings.font_height = math.max(ds.targetBarSettings.distance_font_settings.font_height + us.targetBarFontOffset, 1);
-    gAdjustedSettings.targetBarSettings.percent_font_settings.font_height = math.max(ds.targetBarSettings.percent_font_settings.font_height + us.targetBarFontOffset, 1);
+	gAdjustedSettings.targetBarSettings.name_font_settings.font_height = math.max(us.targetBarNameFontSize, 8);
+	-- Note: name_font_settings.color is set dynamically by GetColorOfTarget() based on entity type
+    gAdjustedSettings.targetBarSettings.totName_font_settings.font_height = math.max(us.targetBarNameFontSize, 8);
+	gAdjustedSettings.targetBarSettings.distance_font_settings.font_height = math.max(us.targetBarDistanceFontSize, 8);
+    gAdjustedSettings.targetBarSettings.percent_font_settings.font_height = math.max(us.targetBarPercentFontSize, 8);
+	gAdjustedSettings.targetBarSettings.cast_font_settings.font_height = math.max(us.targetBarCastFontSize, 8);
+	-- Note: percent_font_settings.color is set dynamically in targetbar.DrawWindow based on HP amount
 	gAdjustedSettings.targetBarSettings.iconSize = ds.targetBarSettings.iconSize * us.targetBarIconScale;
 	gAdjustedSettings.targetBarSettings.arrowSize = ds.targetBarSettings.arrowSize * us.targetBarScaleY;
+	-- Buff/Debuff positioning
+	gAdjustedSettings.targetBarSettings.buffsOffsetY = us.targetBarBuffsOffsetY;
+	-- Cast bar positioning and scaling (use adjusted barWidth, not default)
+	gAdjustedSettings.targetBarSettings.castBarOffsetY = us.targetBarCastBarOffsetY;
+	gAdjustedSettings.targetBarSettings.castBarOffsetX = ds.targetBarSettings.castBarOffsetX; -- Fixed offset from default settings
+	gAdjustedSettings.targetBarSettings.castBarWidth = (gAdjustedSettings.targetBarSettings.barWidth - (ds.targetBarSettings.castBarOffsetX * 2)) * us.targetBarCastBarScaleX;
+	gAdjustedSettings.targetBarSettings.castBarHeight = 8 * us.targetBarCastBarScaleY;
 
 	-- Target of Target Bar (separate scaling when split is enabled)
 	gAdjustedSettings.targetBarSettings.totBarWidth = (ds.targetBarSettings.barWidth / 3) * us.totBarScaleX;
@@ -750,9 +1158,9 @@ local function UpdateUserSettings()
 	gAdjustedSettings.targetBarSettings.totName_font_settings_split = {
 		visible = ds.targetBarSettings.totName_font_settings.visible,
 		locked = ds.targetBarSettings.totName_font_settings.locked,
-		font_family = ds.targetBarSettings.totName_font_settings.font_family,
-		font_height = math.max(ds.targetBarSettings.totName_font_settings.font_height + us.totBarFontOffset, 1),
-		color = ds.targetBarSettings.totName_font_settings.color,
+		font_family = us.fontFamily,
+		font_height = math.max(us.totBarFontSize, 8),
+		color = us.colorCustomization.totBar.nameTextColor,
 		bold = ds.targetBarSettings.totName_font_settings.bold,
 		color_outline = ds.targetBarSettings.totName_font_settings.color_outline,
 		draw_flags = ds.targetBarSettings.totName_font_settings.draw_flags,
@@ -760,82 +1168,175 @@ local function UpdateUserSettings()
 		right_justified = ds.targetBarSettings.totName_font_settings.right_justified,
 	};
 
-	-- Party List
-    gAdjustedSettings.partyListSettings.iconSize = ds.partyListSettings.iconSize * us.partyListBuffScale;
+	-- Party List (load settings from current layout)
+	local currentLayout = (us.partyListLayout == 1) and us.partyListLayout2 or us.partyListLayout1;
+
+    gAdjustedSettings.partyListSettings.baseIconSize = ds.partyListSettings.iconSize;  -- Base icon size for job icons
+    gAdjustedSettings.partyListSettings.iconSize = ds.partyListSettings.iconSize * us.partyListBuffScale;  -- Scaled icon size for status icons
     gAdjustedSettings.partyListSettings.expandHeight = us.partyListExpandHeight;
     gAdjustedSettings.partyListSettings.alignBottom = us.partyListAlignBottom;
-    gAdjustedSettings.partyListSettings.minRows = us.partyListMinRows;
+    gAdjustedSettings.partyListSettings.minRows = currentLayout.partyListMinRows or 1;
 
-    -- gAdjustedSettings.partyListSettings.hpBarWidth = ds.partyListSettings.hpBarWidth * us.partyListScaleX;
-    -- gAdjustedSettings.partyListSettings.barHeight = ds.partyListSettings.barHeight * us.partyListScaleY;
-    -- gAdjustedSettings.partyListSettings.tpBarWidth = ds.partyListSettings.tpBarWidth * us.partyListScaleX;
-	-- gAdjustedSettings.partyListSettings.mpBarWidth = ds.partyListSettings.mpBarWidth * us.partyListScaleX;
-	-- gAdjustedSettings.partyListSettings.barSpacing = ds.partyListSettings.barSpacing * us.partyListScaleX;
-    -- gAdjustedSettings.partyListSettings.hp_font_settings.font_height = math.max(ds.partyListSettings.hp_font_settings.font_height + us.partyListFontOffset, 1);
-    -- gAdjustedSettings.partyListSettings.mp_font_settings.font_height = math.max(ds.partyListSettings.mp_font_settings.font_height + us.partyListFontOffset, 1);
-	-- gAdjustedSettings.partyListSettings.tp_font_settings.font_height = math.max(ds.partyListSettings.tp_font_settings.font_height + us.partyListFontOffset, 1);
-    -- gAdjustedSettings.partyListSettings.name_font_settings.font_height = math.max(ds.partyListSettings.name_font_settings.font_height + us.partyListFontOffset, 1);
+	-- Apply font sizes for each party (stored as arrays indexed by party)
+	gAdjustedSettings.partyListSettings.fontSizes = {
+		currentLayout.partyListFontSize or 16,   -- Party 1
+		currentLayout.partyList2FontSize or 16,  -- Party 2
+		currentLayout.partyList3FontSize or 16,  -- Party 3
+	};
+	gAdjustedSettings.partyListSettings.title_font_settings.font_height = math.max(us.partyListTitleFontSize, 8);
+
 	gAdjustedSettings.partyListSettings.entrySpacing = {
-        ds.partyListSettings.entrySpacing + us.partyListEntrySpacing,
-        ds.partyListSettings.entrySpacing + us.partyList2EntrySpacing,
-        ds.partyListSettings.entrySpacing + us.partyList3EntrySpacing,
+        ds.partyListSettings.entrySpacing + (currentLayout.partyListEntrySpacing or 0),
+        ds.partyListSettings.entrySpacing + (currentLayout.partyList2EntrySpacing or 0),
+        ds.partyListSettings.entrySpacing + (currentLayout.partyList3EntrySpacing or 0),
     };
+
+	-- Apply layout-specific bar dimensions and text offsets
+	gAdjustedSettings.partyListSettings.hpBarWidth = currentLayout.hpBarWidth or 150;
+	gAdjustedSettings.partyListSettings.mpBarWidth = currentLayout.mpBarWidth or 100;
+	gAdjustedSettings.partyListSettings.tpBarWidth = currentLayout.tpBarWidth or 100;
+	gAdjustedSettings.partyListSettings.barHeight = currentLayout.barHeight or 20;
+	gAdjustedSettings.partyListSettings.barSpacing = currentLayout.barSpacing or 8;
+	gAdjustedSettings.partyListSettings.hpBarScaleX = currentLayout.hpBarScaleX or 1;
+	gAdjustedSettings.partyListSettings.mpBarScaleX = currentLayout.mpBarScaleX or 1;
+	gAdjustedSettings.partyListSettings.hpBarScaleY = currentLayout.hpBarScaleY or 1;
+	gAdjustedSettings.partyListSettings.mpBarScaleY = currentLayout.mpBarScaleY or 1;
+
+	gAdjustedSettings.partyListSettings.nameTextOffsetX = currentLayout.nameTextOffsetX or 1;
+	gAdjustedSettings.partyListSettings.nameTextOffsetY = currentLayout.nameTextOffsetY or 0;
+	gAdjustedSettings.partyListSettings.hpTextOffsetX = currentLayout.hpTextOffsetX or -2;
+	gAdjustedSettings.partyListSettings.hpTextOffsetY = currentLayout.hpTextOffsetY or -1;
+	gAdjustedSettings.partyListSettings.mpTextOffsetX = currentLayout.mpTextOffsetX or -2;
+	gAdjustedSettings.partyListSettings.mpTextOffsetY = currentLayout.mpTextOffsetY or -1;
+	gAdjustedSettings.partyListSettings.tpTextOffsetX = currentLayout.tpTextOffsetX or -2;
+	gAdjustedSettings.partyListSettings.tpTextOffsetY = currentLayout.tpTextOffsetY or -1;
+
+	-- Note: All party list text colors are set dynamically in partylist.DrawWindow every frame
 
 	-- Player Bar
 	gAdjustedSettings.playerBarSettings.barWidth = ds.playerBarSettings.barWidth * us.playerBarScaleX;
 	gAdjustedSettings.playerBarSettings.barSpacing = ds.playerBarSettings.barSpacing * us.playerBarScaleX;
 	gAdjustedSettings.playerBarSettings.barHeight = ds.playerBarSettings.barHeight * us.playerBarScaleY;
-	gAdjustedSettings.playerBarSettings.font_settings.font_height = math.max(ds.playerBarSettings.font_settings.font_height + us.playerBarFontOffset, 1);
+	gAdjustedSettings.playerBarSettings.font_settings.font_height = math.max(us.playerBarFontSize, 8);
+	-- Note: HP, MP, TP text colors are set dynamically in playerbar.DrawWindow
 
 	-- Exp Bar
-    gAdjustedSettings.expBarSettings.textWidth = ds.expBarSettings.textWidth * us.expBarTextScaleX;
 	gAdjustedSettings.expBarSettings.barWidth = ds.expBarSettings.barWidth * us.expBarScaleX;
 	gAdjustedSettings.expBarSettings.barHeight = ds.expBarSettings.barHeight * us.expBarScaleY;
-	gAdjustedSettings.expBarSettings.job_font_settings.font_height = math.max(ds.expBarSettings.job_font_settings.font_height + us.expBarFontOffset, 1);
-	gAdjustedSettings.expBarSettings.exp_font_settings.font_height = math.max(ds.expBarSettings.exp_font_settings.font_height + us.expBarFontOffset, 1);
-	gAdjustedSettings.expBarSettings.percent_font_settings.font_height = math.max(ds.expBarSettings.percent_font_settings.font_height + us.expBarFontOffset, 1);
+	gAdjustedSettings.expBarSettings.job_font_settings.font_height = math.max(us.expBarFontSize, 8);
+	gAdjustedSettings.expBarSettings.exp_font_settings.font_height = math.max(us.expBarFontSize, 8);
+	gAdjustedSettings.expBarSettings.percent_font_settings.font_height = math.max(us.expBarFontSize, 8);
 
 	-- Gil Tracker
 	gAdjustedSettings.gilTrackerSettings.iconScale = ds.gilTrackerSettings.iconScale * us.gilTrackerScale;
-	gAdjustedSettings.gilTrackerSettings.font_settings.font_height = math.max(ds.gilTrackerSettings.font_settings.font_height + us.gilTrackerFontOffset, 1);
-    gAdjustedSettings.gilTrackerSettings.font_settings.right_justified = us.gilTrackerRightAlign;
-    if (us.gilTrackerRightAlign) then
-        gAdjustedSettings.gilTrackerSettings.offsetX = ds.gilTrackerSettings.offsetX + us.gilTrackerPosOffset[1];
-    else
-        gAdjustedSettings.gilTrackerSettings.offsetX = (ds.gilTrackerSettings.offsetX + us.gilTrackerPosOffset[1]) * -1;
-    end
-    gAdjustedSettings.gilTrackerSettings.offsetY = us.gilTrackerPosOffset[2];
+	gAdjustedSettings.gilTrackerSettings.font_settings.font_height = math.max(us.gilTrackerFontSize, 8);
+	-- Set font alignment based on text position (right align = text on right = left-aligned font)
+	gAdjustedSettings.gilTrackerSettings.font_settings.font_alignment = us.gilTrackerRightAlign and gdi.Alignment.Left or gdi.Alignment.Right;
+	-- Pass through the alignment setting
+	gAdjustedSettings.gilTrackerSettings.rightAlign = us.gilTrackerRightAlign;
 	
 	-- Inventory Tracker
 	gAdjustedSettings.inventoryTrackerSettings.dotRadius = ds.inventoryTrackerSettings.dotRadius * us.inventoryTrackerScale;
 	gAdjustedSettings.inventoryTrackerSettings.dotSpacing = ds.inventoryTrackerSettings.dotSpacing * us.inventoryTrackerScale;
 	gAdjustedSettings.inventoryTrackerSettings.groupSpacing = ds.inventoryTrackerSettings.groupSpacing * us.inventoryTrackerScale;
-	gAdjustedSettings.inventoryTrackerSettings.font_settings.font_height = math.max(ds.inventoryTrackerSettings.font_settings.font_height + us.inventoryTrackerFontOffset, 1);
+	gAdjustedSettings.inventoryTrackerSettings.font_settings.font_height = math.max(us.inventoryTrackerFontSize, 8);
     gAdjustedSettings.inventoryTrackerSettings.columnCount = us.inventoryTrackerColumnCount;
     gAdjustedSettings.inventoryTrackerSettings.rowCount = us.inventoryTrackerRowCount;
-    gAdjustedSettings.inventoryTrackerSettings.opacity = us.inventoryTrackerOpacity;
     gAdjustedSettings.inventoryTrackerSettings.showText = us.inventoryShowCount;
 
 	-- Enemy List
 	gAdjustedSettings.enemyListSettings.barWidth = ds.enemyListSettings.barWidth * us.enemyListScaleX;
 	gAdjustedSettings.enemyListSettings.barHeight = ds.enemyListSettings.barHeight * us.enemyListScaleY;
-	gAdjustedSettings.enemyListSettings.textScale = ds.enemyListSettings.textScale * us.enemyListFontScale;
 	gAdjustedSettings.enemyListSettings.iconSize = ds.enemyListSettings.iconSize * us.enemyListIconScale;
+	gAdjustedSettings.enemyListSettings.name_font_settings.font_height = math.max(us.enemyListNameFontSize, 8);
+	gAdjustedSettings.enemyListSettings.distance_font_settings.font_height = math.max(us.enemyListDistanceFontSize, 8);
+	gAdjustedSettings.enemyListSettings.distance_font_settings.font_color = us.colorCustomization.enemyList.distanceTextColor;
+	gAdjustedSettings.enemyListSettings.percent_font_settings.font_height = math.max(us.enemyListPercentFontSize, 8);
+	gAdjustedSettings.enemyListSettings.percent_font_settings.font_color = us.colorCustomization.enemyList.percentTextColor;
 
 	-- Cast Bar
 	gAdjustedSettings.castBarSettings.barWidth = ds.castBarSettings.barWidth * us.castBarScaleX;
 	gAdjustedSettings.castBarSettings.barHeight = ds.castBarSettings.barHeight * us.castBarScaleY;
-	gAdjustedSettings.castBarSettings.spell_font_settings.font_height = math.max(ds.castBarSettings.spell_font_settings.font_height + us.castBarFontOffset, 1);
-	gAdjustedSettings.castBarSettings.percent_font_settings.font_height = math.max(ds.castBarSettings.percent_font_settings.font_height + us.castBarFontOffset, 1);
+	gAdjustedSettings.castBarSettings.spell_font_settings.font_height = math.max(us.castBarFontSize, 8);
+	gAdjustedSettings.castBarSettings.spell_font_settings.font_color = us.colorCustomization.castBar.spellTextColor;
+	gAdjustedSettings.castBarSettings.percent_font_settings.font_height = math.max(us.castBarFontSize, 8);
+	gAdjustedSettings.castBarSettings.percent_font_settings.font_color = us.colorCustomization.castBar.percentTextColor;
 end
 
-function UpdateSettings()
-    -- Save the current settings..
+-- Just save settings to disk (no updates)
+function SaveSettingsToDisk()
+    -- Ensure colorCustomization exists with defaults for existing users
+    if gConfig.colorCustomization == nil then
+        gConfig.colorCustomization = deep_copy_table(defaultUserSettings.colorCustomization);
+    end
+    settings.save();
+end
+
+-- Lightweight settings save that doesn't recreate fonts (for color changes, etc.)
+function SaveSettingsOnly()
+    -- Ensure colorCustomization exists with defaults for existing users
+    if gConfig.colorCustomization == nil then
+        gConfig.colorCustomization = deep_copy_table(defaultUserSettings.colorCustomization);
+    end
+
+    -- Save the current settings to disk
     settings.save();
 
+    -- Update adjusted settings (scales, offsets, etc.)
+    UpdateUserSettings();
+end
+
+-- Module-specific visual asset updates (only update visuals for one module)
+function UpdatePlayerBarVisuals()
+	SaveSettingsOnly();
+	playerBar.UpdateVisuals(gAdjustedSettings.playerBarSettings);
+end
+
+function UpdateTargetBarVisuals()
+	SaveSettingsOnly();
+	targetBar.UpdateVisuals(gAdjustedSettings.targetBarSettings);
+end
+
+function UpdatePartyListVisuals()
+	SaveSettingsOnly();
+	partyList.UpdateVisuals(gAdjustedSettings.partyListSettings);
+end
+
+function UpdateEnemyListVisuals()
+	SaveSettingsOnly();
+	enemyList.UpdateVisuals(gAdjustedSettings.enemyListSettings);
+end
+
+function UpdateExpBarVisuals()
+	SaveSettingsOnly();
+	expBar.UpdateVisuals(gAdjustedSettings.expBarSettings);
+end
+
+function UpdateGilTrackerVisuals()
 	UpdateUserSettings();
+	gilTracker.UpdateVisuals(gAdjustedSettings.gilTrackerSettings);
+end
+
+function UpdateInventoryTrackerVisuals()
+	SaveSettingsOnly();
+	inventoryTracker.UpdateVisuals(gAdjustedSettings.inventoryTrackerSettings);
+end
+
+function UpdateCastBarVisuals()
+	SaveSettingsOnly();
+	castBar.UpdateVisuals(gAdjustedSettings.castBarSettings);
+end
+
+-- Full settings update including visual asset recreation (fonts, textures, etc.)
+function UpdateSettings()
+    SaveSettingsOnly();
 	CheckVisibility();
-	UpdateFonts();
+	UpdateVisuals();
+end;
+
+function DeferredUpdateVisuals()
+	-- This schedules a visual asset update to happen outside the render loop
+	pendingVisualUpdate = true;
 end;
 
 settings.register('settings', 'settings_update', function (s)
@@ -852,7 +1353,7 @@ local playerIndex = AshitaCore:GetMemoryManager():GetParty():GetMemberTargetInde
 if playerIndex ~= 0 then
     local entity = AshitaCore:GetMemoryManager():GetEntity();
     local flags = entity:GetRenderFlags0(playerIndex);
-    if (bit.band(flags, 0x200) == 0x200) and (bit.band(flags, 0x4000) == 0) then
+    if (bit.band(flags, RENDER_FLAG_VISIBLE) == RENDER_FLAG_VISIBLE) and (bit.band(flags, RENDER_FLAG_HIDDEN) == 0) then
         bLoggedIn = true;
 	end
 end
@@ -932,6 +1433,14 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 		return;
 	end
 
+	-- Process any pending visual asset updates (fonts, textures, etc.) outside the render loop
+	if pendingVisualUpdate then
+		pendingVisualUpdate = false;
+		statusHandler.clear_cache();  -- Clear texture cache before reloading
+		UpdateUserSettings();
+		UpdateVisuals();
+	end
+
     local eventSystemActive = GetEventSystemActive();
 
 	if (GetHidden() == false) then
@@ -967,6 +1476,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 		end
 
 		configMenu.DrawWindow();
+		colorCustom.DrawWindow();
 
 		if (gConfig.patchNotesVer < gAdjustedSettings.currentPatchVer) then
 			patchNotes.DrawWindow();
@@ -1001,13 +1511,54 @@ ashita.events.register('load', 'load_cb', function ()
 	inventoryTracker.Initialize(gAdjustedSettings.inventoryTrackerSettings);
 	partyList.Initialize(gAdjustedSettings.partyListSettings);
 	castBar.Initialize(gAdjustedSettings.castBarSettings);
+	enemyList.Initialize(gAdjustedSettings.enemyListSettings);
 
 	-- Mark initialization as complete to allow rendering
 	bInitialized = true;
 end);
 
 ashita.events.register('unload', 'unload_cb', function ()
-    gdi:destroy_interface()
+    -- Unregister all events
+    ashita.events.unregister('d3d_present', 'present_cb');
+    ashita.events.unregister('packet_in', 'packet_in_cb');
+    ashita.events.unregister('command', 'command_cb');
+
+    -- Cleanup module caches
+    statusHandler.clear_cache();
+
+    -- Cleanup debuff font cache if function exists
+    if ClearDebuffFontCache then
+        ClearDebuffFontCache();
+    end
+
+    -- Cleanup module font objects and primitives
+    if playerBar and playerBar.Cleanup then
+        playerBar.Cleanup();
+    end
+    if targetBar and targetBar.Cleanup then
+        targetBar.Cleanup();
+    end
+    if partyList and partyList.Cleanup then
+        partyList.Cleanup();
+    end
+    if enemyList and enemyList.Cleanup then
+        enemyList.Cleanup();
+    end
+    if castBar and castBar.Cleanup then
+        castBar.Cleanup();
+    end
+    if expBar and expBar.Cleanup then
+        expBar.Cleanup();
+    end
+    if gilTracker and gilTracker.Cleanup then
+        gilTracker.Cleanup();
+    end
+    if inventoryTracker and inventoryTracker.Cleanup then
+        inventoryTracker.Cleanup();
+    end
+
+    -- Cleanup GDI interface last
+    gdi:destroy_interface();
 end);
 
 ashita.events.register('command', 'command_cb', function (e)
@@ -1029,6 +1580,12 @@ ashita.events.register('command', 'command_cb', function (e)
             CheckVisibility();
             return;
         end
+
+        -- Toggle the color customization window
+        if (#command_args == 2 and command_args[2]:any('colors', 'colour', 'color')) then
+            gShowColorCustom[1] = not gShowColorCustom[1];
+            return;
+        end
 	end
 
 end);
@@ -1039,17 +1596,26 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
 
 	if (e.id == 0x0028) then
 		local actionPacket = ParseActionPacket(e);
-		
+
 		if actionPacket then
 			if (gConfig.showEnemyList) then
 				enemyList.HandleActionPacket(actionPacket);
 			end
-	
+
 			if (gConfig.showCastBar) then
 				castBar.HandleActionPacket(actionPacket);
 			end
 
+			if (gConfig.showTargetBar) then
+				targetBar.HandleActionPacket(actionPacket);
+			end
+
+			if (gConfig.showPartyList) then
+				partyList.HandleActionPacket(actionPacket);
+			end
+
 			debuffHandler.HandleActionPacket(actionPacket);
+			actionTracker.HandleActionPacket(actionPacket);
 		end
 	elseif (e.id == 0x00E) then
 		local mobUpdatePacket = ParseMobUpdatePacket(e);
@@ -1060,6 +1626,8 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
 		enemyList.HandleZonePacket(e);
 		partyList.HandleZonePacket(e);
 		debuffHandler.HandleZonePacket(e);
+		actionTracker.HandleZonePacket();
+		MarkPartyCacheDirty(); -- Invalidate party cache on zone
 		bLoggedIn = true;
 	elseif (e.id == 0x0029) then
 		local messagePacket = ParseMessagePacket(e.data);
@@ -1070,5 +1638,8 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
 		bLoggedIn = false;
 	elseif (e.id == 0x076) then
 		statusHandler.ReadPartyBuffsFromPacket(e);
+	elseif (e.id == 0x0DD) then
+		-- Party member update packet - invalidate party cache
+		MarkPartyCacheDirty();
 	end
 end);

@@ -22,20 +22,69 @@ local progressbar = {
 	gradientTextures = {}
 };
 
+-- Helper function to extract RGBA from hex string (supports #RRGGBB or #RRGGBBAA)
+local function hex2rgba(hex)
+	local hex = hex:gsub("#", "");
+	local r = tonumber("0x"..hex:sub(1,2));
+	local g = tonumber("0x"..hex:sub(3,4));
+	local b = tonumber("0x"..hex:sub(5,6));
+	local a = 255;
+	if #hex == 8 then
+		a = tonumber("0x"..hex:sub(7,8));
+	end
+	return r, g, b, a;
+end
+
 function MakeGradientBitmap(startColor, endColor)
 	local height = 100;
 
 	local image = bitmap:new(1, height);
 
-	startColor = table.pack(hex2rgb(startColor));
-	endColor = table.pack(hex2rgb(endColor));
+	local sr, sg, sb, sa = hex2rgba(startColor);
+	local er, eg, eb, ea = hex2rgba(endColor);
 
 	for pixel = 1, height  do
-		local red = startColor[1] + (endColor[1] - startColor[1]) * (pixel / height);
-		local green = startColor[2] + (endColor[2] - startColor[2]) * (pixel / height);
-		local blue = startColor[3] + (endColor[3] - startColor[3]) * (pixel / height);
+		local red = sr + (er - sr) * (pixel / height);
+		local green = sg + (eg - sg) * (pixel / height);
+		local blue = sb + (eb - sb) * (pixel / height);
+		local alpha = sa + (ea - sa) * (pixel / height);
 
-		image:setPixelColor(1, (height - pixel) + 1, {red, green, blue, 255});
+		image:setPixelColor(1, (height - pixel) + 1, {red, green, blue, alpha});
+	end
+
+	return image;
+end
+
+function MakeThreeStepGradientBitmap(startColor, midColor, endColor)
+	local height = 100;
+
+	local image = bitmap:new(1, height);
+
+	local sr, sg, sb, sa = hex2rgba(startColor);
+	local mr, mg, mb, ma = hex2rgba(midColor);
+	local er, eg, eb, ea = hex2rgba(endColor);
+
+	for pixel = 1, height do
+		local red, green, blue, alpha;
+		local progress = pixel / height;
+
+		if progress <= 0.5 then
+			-- First half: interpolate from start to mid
+			local t = progress * 2; -- 0 to 1
+			red = sr + (mr - sr) * t;
+			green = sg + (mg - sg) * t;
+			blue = sb + (mb - sb) * t;
+			alpha = sa + (ma - sa) * t;
+		else
+			-- Second half: interpolate from mid to end
+			local t = (progress - 0.5) * 2; -- 0 to 1
+			red = mr + (er - mr) * t;
+			green = mg + (eg - mg) * t;
+			blue = mb + (eb - mb) * t;
+			alpha = ma + (ea - ma) * t;
+		end
+
+		image:setPixelColor(1, (height - pixel) + 1, {red, green, blue, alpha});
 	end
 
 	return image;
@@ -45,7 +94,7 @@ function GetGradient(startColor, endColor)
 	local texture;
 
 	for i, existingTexture in ipairs(progressbar.gradientTextures) do
-		if (existingTexture.startColor == startColor and existingTexture.endColor == endColor) then
+		if (existingTexture.startColor == startColor and existingTexture.endColor == endColor and existingTexture.midColor == nil) then
 			texture = existingTexture;
 			break;
 		end
@@ -65,12 +114,49 @@ function GetGradient(startColor, endColor)
     texture = {
     	startColor = startColor,
     	endColor = endColor,
+    	midColor = nil,
     	texture = ffi.new('IDirect3DTexture8*', texture_ptr[0])
     }
 
     d3d.gc_safe_release(texture.texture);
 
     table.insert(progressbar.gradientTextures, texture);
+	end
+
+	return tonumber(ffi.cast("uint32_t", texture.texture));
+end
+
+function GetThreeStepGradient(startColor, midColor, endColor)
+	local texture;
+
+	for i, existingTexture in ipairs(progressbar.gradientTextures) do
+		if (existingTexture.startColor == startColor and existingTexture.midColor == midColor and existingTexture.endColor == endColor) then
+			texture = existingTexture;
+			break;
+		end
+	end
+
+	if not texture then
+		local image = MakeThreeStepGradientBitmap(startColor, midColor, endColor);
+
+		local texture_ptr = ffi.new('IDirect3DTexture8*[1]');
+
+		local res = ffi.C.D3DXCreateTextureFromFileInMemory(d3d8dev, image:binary(), #image:binary(), texture_ptr);
+
+		if (res ~= ffi.C.S_OK) then
+			error(('%08X (%s)'):fmt(res, d3d.get_error(res)));
+		end
+
+		texture = {
+			startColor = startColor,
+			midColor = midColor,
+			endColor = endColor,
+			texture = ffi.new('IDirect3DTexture8*', texture_ptr[0])
+		}
+
+		d3d.gc_safe_release(texture.texture);
+
+		table.insert(progressbar.gradientTextures, texture);
 	end
 
 	return tonumber(ffi.cast("uint32_t", texture.texture));
@@ -103,15 +189,81 @@ progressbar.DrawColoredBar = function(startPosition, endPosition, color, roundin
 end
 
 progressbar.DrawBookends = function(positionStartX, positionStartY, width, height)
-	local bookendTexture = GetBookendTexture();
-	
 	local bookendWidth = height / 2;
-	
-	-- Draw the left bookend
-	imgui.GetWindowDrawList():AddImage(bookendTexture, {positionStartX, positionStartY}, {positionStartX + bookendWidth, positionStartY + height}, {0, 0}, {1, 1}, IM_COL32_WHITE);
-	
-	-- Draw the right bookend
-	imgui.GetWindowDrawList():AddImage(bookendTexture, {positionStartX + width - bookendWidth, positionStartY}, {positionStartX + width, positionStartY + height}, {1, 1}, {0, 0}, IM_COL32_WHITE);
+	local radius = height / 2;
+	local draw_list = imgui.GetWindowDrawList();
+	local outlineThickness = 1;
+
+	-- Get bookend gradient colors (default: dark blue gradient)
+	local gradientStart = '#1a2a4a';
+	local gradientMid = '#2d4a7c';
+	local gradientEnd = '#1a2a4a';
+
+	-- Get outline color (default: match background)
+	local outlineColor = progressbar.backgroundGradientStartColor;
+
+	-- Apply custom colors if available from global config
+	if gConfig and gConfig.colorCustomization and gConfig.colorCustomization.shared then
+		if gConfig.colorCustomization.shared.bookendGradient then
+			local bookendSettings = gConfig.colorCustomization.shared.bookendGradient;
+			gradientStart = bookendSettings.start or gradientStart;
+			gradientMid = bookendSettings.mid or gradientMid;
+			gradientEnd = bookendSettings.stop or gradientEnd;
+		end
+
+		if gConfig.colorCustomization.shared.backgroundGradient then
+			outlineColor = gConfig.colorCustomization.shared.backgroundGradient.start;
+		end
+	end
+
+	-- Get the 3-step gradient texture
+	local gradientTexture = GetThreeStepGradient(gradientStart, gradientMid, gradientEnd);
+
+	-- Prepare outline color
+	local outlineR, outlineG, outlineB, outlineA = hex2rgba(outlineColor);
+	local outlineColorU32 = imgui.GetColorU32({outlineR / 255, outlineG / 255, outlineB / 255, outlineA / 255});
+
+	-- Draw left bookend (rounded rectangle on left side)
+	draw_list:AddImageRounded(
+		gradientTexture,
+		{positionStartX, positionStartY},
+		{positionStartX + bookendWidth, positionStartY + height},
+		{0, 0}, {1, 1},
+		IM_COL32_WHITE,
+		radius,
+		ImDrawCornerFlags_Left
+	);
+
+	-- Draw left bookend outline
+	draw_list:AddRect(
+		{positionStartX, positionStartY},
+		{positionStartX + bookendWidth, positionStartY + height},
+		outlineColorU32,
+		radius,
+		ImDrawCornerFlags_Left,
+		outlineThickness
+	);
+
+	-- Draw right bookend (rounded rectangle on right side)
+	draw_list:AddImageRounded(
+		gradientTexture,
+		{positionStartX + width - bookendWidth, positionStartY},
+		{positionStartX + width, positionStartY + height},
+		{0, 0}, {1, 1},
+		IM_COL32_WHITE,
+		radius,
+		ImDrawCornerFlags_Right
+	);
+
+	-- Draw right bookend outline
+	draw_list:AddRect(
+		{positionStartX + width - bookendWidth, positionStartY},
+		{positionStartX + width, positionStartY + height},
+		outlineColorU32,
+		radius,
+		ImDrawCornerFlags_Right,
+		outlineThickness
+	);
 end
 
 progressbar.ProgressBar  = function(percentList, dimensions, options)
@@ -123,8 +275,20 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 	if options.decorate == nil then
 		options.decorate = true;
 	end
-	
-	local positionStartX, positionStartY = imgui.GetCursorScreenPos();
+
+	-- Apply global showBookends setting (master switch)
+	if gConfig and gConfig.showBookends == false then
+		options.decorate = false;
+	end
+
+	-- Get position from options or cursor
+	local positionStartX, positionStartY;
+	if options.absolutePosition then
+		positionStartX = options.absolutePosition[1];
+		positionStartY = options.absolutePosition[2];
+	else
+		positionStartX, positionStartY = imgui.GetCursorScreenPos();
+	end
 	
 	local width = dimensions[1];
 	local height = dimensions[2];
@@ -153,6 +317,14 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 	-- Draw the background
 	local bgGradientStart = progressbar.backgroundGradientStartColor;
 	local bgGradientEnd = progressbar.backgroundGradientEndColor;
+
+	-- Apply custom background gradient if available
+	if gConfig and gConfig.colorCustomization and gConfig.colorCustomization.shared.backgroundGradient then
+		local bgSettings = gConfig.colorCustomization.shared.backgroundGradient;
+		bgGradientStart = bgSettings.start;
+		-- If gradient disabled, use same color for both (static color)
+		bgGradientEnd = bgSettings.enabled and bgSettings.stop or bgSettings.start;
+	end
 
 	if options.backgroundGradientOverride then
 		bgGradientStart = options.backgroundGradientOverride[1];
@@ -275,8 +447,75 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 		rounding = options.decorate and height/2 or gConfig.noBookendRounding;
 		imgui.GetWindowDrawList():AddRect({positionStartX - (borderWidth / 2), positionStartY - (borderWidth / 2)}, {positionStartX + width + (borderWidth / 2), positionStartY + height + (borderWidth / 2)}, imgui.GetColorU32({borderColorRed / 255, borderColorGreen / 255, borderColorBlue / 255, 1}), rounding, ImDrawCornerFlags_All, borderWidth);
 	end
-	
-	imgui.Dummy({width, height});
+
+	-- Draw default border and optional enhanced border
+	-- All progress bars get a 2px background-colored border by default
+	-- Enhanced border adds a middle colored layer and outer background layer (for lock-on, etc.)
+	local baseRounding = options.decorate and (height / 2) or (gConfig.noBookendRounding or 0);
+
+	-- Get background color from global config
+	local bgColor = progressbar.backgroundGradientStartColor;
+	if gConfig and gConfig.colorCustomization and gConfig.colorCustomization.shared and gConfig.colorCustomization.shared.backgroundGradient then
+		bgColor = gConfig.colorCustomization.shared.backgroundGradient.start;
+	end
+	local bgR, bgG, bgB, bgA = hex2rgba(bgColor);
+	local bgColorU32 = imgui.GetColorU32({bgR / 255, bgG / 255, bgB / 255, bgA / 255});
+
+	local draw_list = GetUIDrawList();
+
+	-- Draw enhanced border if specified (middle and outer layers)
+	if options.enhancedBorder then
+		local accentColor = options.enhancedBorder; -- ARGB color
+		local accentColorU32 = imgui.GetColorU32(ARGBToImGui(accentColor));
+
+		-- Border thickness values
+		local innerBorderThickness = gConfig.barBorderThickness or 2;
+		local middleBorderThickness = 2;
+		local outerBorderThickness = 1;
+
+		-- Calculate offsets
+		local innerOffset = innerBorderThickness / 2;
+		local middleOffset = innerOffset + innerBorderThickness;
+		local outerOffset = middleOffset + middleBorderThickness / 2;
+
+		-- Draw outermost background border (1px)
+		draw_list:AddRect(
+			{positionStartX - outerOffset, positionStartY - outerOffset},
+			{positionStartX + width + outerOffset, positionStartY + height + outerOffset},
+			bgColorU32,
+			baseRounding + outerOffset,
+			15, -- all corners
+			outerBorderThickness
+		);
+
+		-- Draw middle accent color border (2px)
+		draw_list:AddRect(
+			{positionStartX - middleOffset, positionStartY - middleOffset},
+			{positionStartX + width + middleOffset, positionStartY + height + middleOffset},
+			accentColorU32,
+			baseRounding + middleOffset,
+			15, -- all corners
+			middleBorderThickness
+		);
+	end
+
+	-- Draw default inner background border - always drawn for all bars
+	local innerBorderThickness = gConfig.barBorderThickness or 2;
+	local innerOffset = innerBorderThickness / 2;
+	draw_list:AddRect(
+		{positionStartX - innerOffset, positionStartY - innerOffset},
+		{positionStartX + width + innerOffset, positionStartY + height + innerOffset},
+		bgColorU32,
+		baseRounding + innerOffset,
+		15, -- all corners
+		innerBorderThickness
+	);
+
+	-- Only call Dummy if we're using cursor positioning (affects layout)
+	-- Skip Dummy when using absolute positioning (doesn't affect layout)
+	if not options.absolutePosition then
+		imgui.Dummy({width, height});
+	end
 end
 
 return progressbar;

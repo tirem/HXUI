@@ -7,40 +7,309 @@ local C         = ffi.C;
 local d3d8dev   = d3d.get_device();
 local statusHandler = require('statushandler');
 local buffTable = require('bufftable');
+local gdi = require('gdifonts.include');
 
 debuffTable = T{};
 
-local debuff_font_settings = T{
-	visible = true,
-	locked = true,
-	font_family = 'Consolas',
-	font_height = 8,
-	color = 0xFFFFFFFF,
-	bold = true,
-	italic = false;
-	color_outline = 0xFF000000,
-	draw_flags = 0x10,
-	background = 
-	T{
-		visible = false,
-	},
-	right_justified = false;
+-- ========================================
+-- Font Weight Helper
+-- ========================================
+-- Converts fontWeight string setting to GDI font flags
+function GetFontWeightFlags(fontWeight)
+	if fontWeight == 'Bold' then
+		return gdi.FontFlags.Bold;
+	else
+		return gdi.FontFlags.None;
+	end
+end
+
+-- ========================================
+-- Entity Spawn and Render Flag Constants
+-- ========================================
+-- Exported for use in other modules
+SPAWN_FLAG_PLAYER = 0x0001;  -- Entity is a player character
+SPAWN_FLAG_NPC = 0x0002;     -- Entity is an NPC
+RENDER_FLAG_VISIBLE = 0x200;  -- Entity is visible and rendered
+RENDER_FLAG_HIDDEN = 0x4000;  -- Entity is hidden (cutscene, menu, etc.)
+
+-- ========================================
+-- FontManager Helper
+-- ========================================
+-- Provides a centralized API for font lifecycle management
+-- Eliminates code duplication across modules
+FontManager = {
+    -- Create a single font object
+    create = function(settings)
+        return gdi:create_object(settings);
+    end,
+
+    -- Destroy a font object safely
+    destroy = function(fontObj)
+        if fontObj ~= nil then
+            gdi:destroy_object(fontObj);
+        end
+        return nil;
+    end,
+
+    -- Recreate a font with new settings
+    recreate = function(fontObj, settings)
+        if fontObj ~= nil then
+            gdi:destroy_object(fontObj);
+        end
+        return gdi:create_object(settings);
+    end,
+
+    -- Batch create multiple fonts from settings table
+    createBatch = function(fontSettingsTable)
+        local fonts = {};
+        for key, settings in pairs(fontSettingsTable) do
+            fonts[key] = gdi:create_object(settings);
+        end
+        return fonts;
+    end,
+
+    -- Batch destroy multiple fonts
+    destroyBatch = function(fontsTable)
+        for key, fontObj in pairs(fontsTable) do
+            if fontObj ~= nil then
+                gdi:destroy_object(fontObj);
+            end
+        end
+    end
 };
 
-function draw_rect(top_left, bot_right, color, radius, fill)
+-- ========================================
+-- ColorCachedFont Wrapper
+-- ========================================
+-- Wraps a GDI font with automatic color caching for performance
+-- Eliminates redundant set_font_color calls
+ColorCachedFont = {
+    new = function(fontObj)
+        return {
+            font = fontObj,
+            lastColor = nil,
+
+            -- Set color with automatic caching
+            setColor = function(self, color)
+                if self.lastColor ~= color then
+                    self.font:set_font_color(color);
+                    self.lastColor = color;
+                end
+            end,
+
+            -- Proxy methods to underlying font
+            set_text = function(self, text) self.font:set_text(text); end,
+            set_visible = function(self, visible) self.font:set_visible(visible); end,
+            set_position_x = function(self, x) self.font:set_position_x(x); end,
+            set_position_y = function(self, y) self.font:set_position_y(y); end,
+            set_font_height = function(self, height) self.font:set_font_height(height); end,
+            get_text_size = function(self) return self.font:get_text_size(); end,
+        }
+    end
+};
+
+-- ========================================
+-- Font Visibility Helper
+-- ========================================
+-- Set visibility for multiple fonts at once
+function SetFontsVisible(fontTable, visible)
+    for _, fontObj in pairs(fontTable) do
+        if fontObj ~= nil then
+            -- Support both regular GDI fonts and ColorCachedFont wrappers
+            if fontObj.set_visible then
+                fontObj:set_visible(visible);
+            elseif fontObj.font and fontObj.font.set_visible then
+                fontObj.font:set_visible(visible);
+            end
+        end
+    end
+end
+
+-- ========================================
+-- Settings Accessor Helpers
+-- ========================================
+-- Safe accessor for color settings with fallback
+function GetColorSetting(module, setting, defaultValue)
+    if gConfig and gConfig.colorCustomization and gConfig.colorCustomization[module] then
+        return gConfig.colorCustomization[module][setting] or defaultValue;
+    end
+    return defaultValue;
+end
+
+-- Safe accessor for gradient settings with fallback
+-- Returns {startColor, endColor} if gradient is enabled
+-- Returns {startColor, startColor} if gradient is disabled (static color)
+-- Returns defaultGradient if setting not found
+function GetGradientSetting(module, setting, defaultGradient)
+    if gConfig and gConfig.colorCustomization and gConfig.colorCustomization[module] then
+        local gradient = gConfig.colorCustomization[module][setting];
+        if gradient and gradient.enabled then
+            return {gradient.start, gradient.stop};
+        elseif gradient then
+            return {gradient.start, gradient.start};  -- Static color
+        end
+    end
+    return defaultGradient;
+end
+
+-- Party member cache for performance optimization
+-- Caches party member target indices and server IDs to avoid O(n) lookups every frame
+local partyMemberIndices = {};
+local partyMemberServerIds = {};
+local partyMemberIndicesDirty = true;
+
+-- ========================================
+-- Safe Memory Access Functions
+-- ========================================
+-- These functions provide consistent error handling when accessing game objects
+
+-- Safe accessor for memory manager
+local function GetMemoryManager()
+    if AshitaCore == nil then return nil end
+    return AshitaCore:GetMemoryManager();
+end
+
+-- Safe accessor for player object
+function GetPlayerSafe()
+    local memMgr = GetMemoryManager();
+    if memMgr == nil then return nil end
+    return memMgr:GetPlayer();
+end
+
+-- Safe accessor for party object
+function GetPartySafe()
+    local memMgr = GetMemoryManager();
+    if memMgr == nil then return nil end
+    return memMgr:GetParty();
+end
+
+-- Safe accessor for entity object
+function GetEntitySafe()
+    local memMgr = GetMemoryManager();
+    if memMgr == nil then return nil end
+    return memMgr:GetEntity();
+end
+
+-- Safe accessor for target object
+function GetTargetSafe()
+    local memMgr = GetMemoryManager();
+    if memMgr == nil then return nil end
+    return memMgr:GetTarget();
+end
+
+-- Safe accessor for inventory object
+function GetInventorySafe()
+    local memMgr = GetMemoryManager();
+    if memMgr == nil then return nil end
+    return memMgr:GetInventory();
+end
+
+-- Safe accessor for castbar object
+function GetCastBarSafe()
+    local memMgr = GetMemoryManager();
+    if memMgr == nil then return nil end
+    return memMgr:GetCastBar();
+end
+
+-- Safe accessor for recast object
+function GetRecastSafe()
+    local memMgr = GetMemoryManager();
+    if memMgr == nil then return nil end
+    return memMgr:GetRecast();
+end
+
+local debuff_font_settings = T{
+	font_alignment = gdi.Alignment.Center,
+	font_family = 'Consolas',
+	font_height = 14,
+	font_color = 0xFFFFFFFF,
+	font_flags = gdi.FontFlags.Bold,
+	outline_color = 0xFF000000,
+	outline_width = 2,
+};
+
+-- ========================================
+-- Drawing Primitive Helpers
+-- ========================================
+-- Internal implementation for rectangle drawing
+-- Eliminates code duplication between draw_rect and draw_rect_background
+local function draw_rect_impl(top_left, bot_right, color, radius, fill, shadowConfig, drawList)
+    -- Draw shadow first if configured
+    if shadowConfig then
+        local shadowOffsetX = shadowConfig.offsetX or 2;
+        local shadowOffsetY = shadowConfig.offsetY or 2;
+        local shadowColor = shadowConfig.color or 0x80000000;
+
+        -- Apply alpha override if specified
+        if shadowConfig.alpha then
+            local baseColor = bit.band(shadowColor, 0x00FFFFFF);
+            local alpha = math.floor(math.clamp(shadowConfig.alpha, 0, 1) * 255);
+            shadowColor = bit.bor(baseColor, bit.lshift(alpha, 24));
+        end
+
+        local shadow_top_left = {top_left[1] + shadowOffsetX, top_left[2] + shadowOffsetY};
+        local shadow_bot_right = {bot_right[1] + shadowOffsetX, bot_right[2] + shadowOffsetY};
+        local shadowColorU32 = imgui.GetColorU32(shadowColor);
+        local shadowDimensions = {
+            { shadow_top_left[1], shadow_top_left[2] },
+            { shadow_bot_right[1], shadow_bot_right[2] }
+        };
+
+        if (fill == true) then
+            drawList:AddRectFilled(shadowDimensions[1], shadowDimensions[2], shadowColorU32, radius, ImDrawCornerFlags_All);
+        else
+            drawList:AddRect(shadowDimensions[1], shadowDimensions[2], shadowColorU32, radius, ImDrawCornerFlags_All, 1);
+        end
+    end
+
+    -- Draw main rectangle
     local color = imgui.GetColorU32(color);
     local dimensions = {
         { top_left[1], top_left[2] },
         { bot_right[1], bot_right[2] }
     };
 	if (fill == true) then
-   		imgui.GetWindowDrawList():AddRectFilled(dimensions[1], dimensions[2], color, radius, ImDrawCornerFlags_All);
+   		drawList:AddRectFilled(dimensions[1], dimensions[2], color, radius, ImDrawCornerFlags_All);
 	else
-		imgui.GetWindowDrawList():AddRect(dimensions[1], dimensions[2], color, radius, ImDrawCornerFlags_All, 1);
+		drawList:AddRect(dimensions[1], dimensions[2], color, radius, ImDrawCornerFlags_All, 1);
 	end
 end
 
-function draw_circle(center, radius, color, segments, fill)
+-- Public API: Draw rectangle using window draw list
+function draw_rect(top_left, bot_right, color, radius, fill, shadowConfig)
+    draw_rect_impl(top_left, bot_right, color, radius, fill, shadowConfig, imgui.GetWindowDrawList());
+end
+
+-- Public API: Draw rectangle using background draw list
+function draw_rect_background(top_left, bot_right, color, radius, fill, shadowConfig)
+    draw_rect_impl(top_left, bot_right, color, radius, fill, shadowConfig, imgui.GetBackgroundDrawList());
+end
+
+function draw_circle(center, radius, color, segments, fill, shadowConfig)
+    -- Draw shadow first if configured
+    if shadowConfig then
+        local shadowOffsetX = shadowConfig.offsetX or 2;
+        local shadowOffsetY = shadowConfig.offsetY or 2;
+        local shadowColor = shadowConfig.color or 0x80000000;
+
+        -- Apply alpha override if specified
+        if shadowConfig.alpha then
+            local baseColor = bit.band(shadowColor, 0x00FFFFFF);
+            local alpha = math.floor(math.clamp(shadowConfig.alpha, 0, 1) * 255);
+            shadowColor = bit.bor(baseColor, bit.lshift(alpha, 24));
+        end
+
+        local shadow_center = {center[1] + shadowOffsetX, center[2] + shadowOffsetY};
+        local shadowColorU32 = imgui.GetColorU32(shadowColor);
+
+        if (fill == true) then
+            imgui.GetWindowDrawList():AddCircleFilled(shadow_center, radius, shadowColorU32, segments);
+        else
+            imgui.GetWindowDrawList():AddCircle(shadow_center, radius, shadowColorU32, segments, 1);
+        end
+    end
+
+    -- Draw main circle
     local color = imgui.GetColorU32(color);
 
 	if (fill == true) then
@@ -50,96 +319,145 @@ function draw_circle(center, radius, color, segments, fill)
 	end
 end
 
-function GetColorOfTarget(targetEntity, targetIndex)
-    -- Obtain the entity spawn flags..
+-- Get the appropriate draw list for UI rendering
+-- Returns WindowDrawList when config is open (so config stays on top)
+-- Returns ForegroundDrawList otherwise (so UI elements render on top of game)
+function GetUIDrawList()
+	if showConfig and showConfig[1] then
+		return imgui.GetWindowDrawList();
+	else
+		return imgui.GetForegroundDrawList();
+	end
+end
 
-	local color = 0xFFFFFFFF;
+-- Party member cache functions for performance optimization
+local function UpdatePartyCache()
+	local party = AshitaCore:GetMemoryManager():GetParty();
+	if party == nil then
+		partyMemberIndices = {};
+		partyMemberServerIds = {};
+		partyMemberIndicesDirty = false;
+		return;
+	end
+
+	partyMemberIndices = {};
+	partyMemberServerIds = {};
+	for i = 0, 17 do
+		if (party:GetMemberIsActive(i) == 1) then
+			local idx = party:GetMemberTargetIndex(i);
+			local serverId = party:GetMemberServerId(i);
+			if idx ~= 0 then
+				partyMemberIndices[idx] = true;
+			end
+			if serverId ~= 0 then
+				partyMemberServerIds[serverId] = true;
+			end
+		end
+	end
+	partyMemberIndicesDirty = false;
+end
+
+-- Mark party cache as dirty (to be called when party changes)
+function MarkPartyCacheDirty()
+	partyMemberIndicesDirty = true;
+end
+
+-- Helper to convert ARGB (0xAARRGGBB) to RGBA table {R, G, B, A}
+-- Exported for use by all modules
+function ARGBToRGBA(argb)
+	local a = bit.band(bit.rshift(argb, 24), 0xFF) / 255.0;
+	local r = bit.band(bit.rshift(argb, 16), 0xFF) / 255.0;
+	local g = bit.band(bit.rshift(argb, 8), 0xFF) / 255.0;
+	local b = bit.band(argb, 0xFF) / 255.0;
+	return {r, g, b, a};
+end
+
+-- Helper to convert RGBA table {R, G, B, A} to ARGB (0xAARRGGBB)
+-- Exported for use by all modules
+function RGBAToARGB(rgba)
+	return bit.bor(
+		bit.lshift(math.floor(rgba[4] * 255), 24), -- Alpha
+		bit.lshift(math.floor(rgba[1] * 255), 16), -- Red
+		bit.lshift(math.floor(rgba[2] * 255), 8),  -- Green
+		math.floor(rgba[3] * 255)                   -- Blue
+	);
+end
+
+-- Generic function to get entity name color based on type and claim status
+-- Takes a colorConfig table (e.g., gConfig.colorCustomization.targetBar or .enemyList)
+-- Returns color in RGBA format
+function GetEntityNameColorRGBA(targetEntity, targetIndex, colorConfig)
+	-- Default to other player color
+	local color = {1,1,1,1};
+	if colorConfig then
+		color = ARGBToRGBA(colorConfig.playerOtherTextColor);
+	end
+
+	-- Validate entity and index are not nil
+	if (targetEntity == nil) then
+		return color; -- Default white RGBA
+	end
 	if (targetIndex == nil) then
 		return color;
 	end
-    local flag = targetEntity.SpawnFlags;
 
-    -- Determine the entity type and apply the proper color
-    if (bit.band(flag, 0x0001) == 0x0001) then --players
-		local party = AshitaCore:GetMemoryManager():GetParty();
-		for i = 0, 17 do
-			if (party:GetMemberIsActive(i) == 1) then
-				if (party:GetMemberTargetIndex(i) == targetIndex) then
-					color = 0xFF00FFFF;
-					break;
-				end
-			end
+	local flag = targetEntity.SpawnFlags;
+
+	-- Determine the entity type and apply the proper color
+	if (bit.band(flag, SPAWN_FLAG_PLAYER) == SPAWN_FLAG_PLAYER) then --players
+		-- Default: other player
+		color = ARGBToRGBA(colorConfig.playerOtherTextColor);
+		-- Check if party/alliance member using cache
+		if partyMemberIndicesDirty then
+			UpdatePartyCache();
 		end
-    elseif (bit.band(flag, 0x0002) == 0x0002) then --npc
-        color = 0xFF66FF66;
-    else --mob
+		if (partyMemberIndices[targetIndex]) then
+			color = ARGBToRGBA(colorConfig.playerPartyTextColor);
+		end
+	elseif (bit.band(flag, SPAWN_FLAG_NPC) == SPAWN_FLAG_NPC) then --npc
+		color = ARGBToRGBA(colorConfig.npcTextColor);
+	else --mob
 		local entMgr = AshitaCore:GetMemoryManager():GetEntity();
 		local claimStatus = entMgr:GetClaimStatus(targetIndex);
 		local claimId = bit.band(claimStatus, 0xFFFF);
---		local isClaimed = (bit.band(claimStatus, 0xFFFF0000) ~= 0);
 
 		if (claimId == 0) then
-			color = 0xFFFFFF66;
+			-- Unclaimed mob
+			color = ARGBToRGBA(colorConfig.mobUnclaimedTextColor);
 		else
-			color = 0xFFFF66FF;
-			local party = AshitaCore:GetMemoryManager():GetParty();
-			for i = 0, 17 do
-				if (party:GetMemberIsActive(i) == 1) then
-					if (party:GetMemberServerId(i) == claimId) then
-						color = 0xFFFF6666;
-						break;
-					end;
-				end
+			-- Claimed by someone
+			color = ARGBToRGBA(colorConfig.mobOtherClaimedTextColor);
+			-- Check if claimed by party member using cache
+			if partyMemberIndicesDirty then
+				UpdatePartyCache();
+			end
+			if (partyMemberServerIds[claimId]) then
+				-- Claimed by party member
+				color = ARGBToRGBA(colorConfig.mobPartyClaimedTextColor);
 			end
 		end
 	end
 	return color;
 end
 
+-- Returns ARGB format instead of RGBA
+function GetEntityNameColor(targetEntity, targetIndex, colorConfig)
+	local rgba = GetEntityNameColorRGBA(targetEntity, targetIndex, colorConfig);
+	return RGBAToARGB(rgba);
+end
+
+-- Wrapper for backwards compatibility - uses shared entity colors
 function GetColorOfTargetRGBA(targetEntity, targetIndex)
-    -- Obtain the entity spawn flags..
-
-	local color = {1,1,1,1};
-	if (targetIndex == nil) then
-		return color;
+	if gConfig and gConfig.colorCustomization and gConfig.colorCustomization.shared then
+		return GetEntityNameColorRGBA(targetEntity, targetIndex, gConfig.colorCustomization.shared);
 	end
-    local flag = targetEntity.SpawnFlags;
+	return {1,1,1,1}; -- Default white RGBA
+end
 
-    -- Determine the entity type and apply the proper color
-    if (bit.band(flag, 0x0001) == 0x0001) then --players
-		local party = AshitaCore:GetMemoryManager():GetParty();
-		for i = 0, 17 do
-			if (party:GetMemberIsActive(i) == 1) then
-				if (party:GetMemberTargetIndex(i) == targetIndex) then
-					color = {0,1,1,1};
-					break;
-				end
-			end
-		end
-    elseif (bit.band(flag, 0x0002) == 0x0002) then --npc
-        color = {.4,1,.4,1};
-    else --mob
-		local entMgr = AshitaCore:GetMemoryManager():GetEntity();
-		local claimStatus = entMgr:GetClaimStatus(targetIndex);
-		local claimId = bit.band(claimStatus, 0xFFFF);
---		local isClaimed = (bit.band(claimStatus, 0xFFFF0000) ~= 0);
-
-		if (claimId == 0) then
-			color = {1,1,.4,1};
-		else
-			color = {1,.4,1,1};
-			local party = AshitaCore:GetMemoryManager():GetParty();
-			for i = 0, 17 do
-				if (party:GetMemberIsActive(i) == 1) then
-					if (party:GetMemberServerId(i) == claimId) then
-						color = {1,.4,.4,1};
-						break;
-					end;
-				end
-			end
-		end
-	end
-	return color;
+-- Wrapper function that returns ARGB format (for backwards compatibility)
+function GetColorOfTarget(targetEntity, targetIndex)
+	local rgba = GetColorOfTargetRGBA(targetEntity, targetIndex);
+	return RGBAToARGB(rgba);
 end
 
 function GetIsMob(targetEntity)
@@ -150,7 +468,7 @@ function GetIsMob(targetEntity)
     local flag = targetEntity.SpawnFlags;
     -- Determine the entity type
 	local isMob;
-    if (bit.band(flag, 0x0001) == 0x0001 or bit.band(flag, 0x0002) == 0x0002) then --players and npcs
+    if (bit.band(flag, SPAWN_FLAG_PLAYER) == SPAWN_FLAG_PLAYER or bit.band(flag, SPAWN_FLAG_NPC) == SPAWN_FLAG_NPC) then --players and npcs
         isMob = false;
     else --mob
 		isMob = true;
@@ -203,7 +521,7 @@ function FormatInt(number)
 	return minus .. int:reverse():gsub("^,", "") .. fraction
 end
 
-local function GetIndexFromId(id)
+function GetIndexFromId(id)
     local entMgr = AshitaCore:GetMemoryManager():GetEntity();
     
     --Shortcut for monsters/static npcs..
@@ -398,34 +716,40 @@ function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg, xOffs
                     imgui.SameLine();
                     imgui.SetCursorScreenPos({resetX, resetY});
                 end
+                -- Capture position BEFORE drawing icon to get accurate position
+                local iconPosX, iconPosY = imgui.GetCursorScreenPos();
                 imgui.Image(icon, { iconSize, iconSize }, { 0, 0 }, { 1, 1 });
                 local textObjName = "debuffText" .. tostring(i)
                 if buffTimes ~= nil then
-                    local startX, startY = imgui.GetCursorScreenPos();
-                    local textPosX = startX + (i-1)*iconSize + iconSize/2 + i - 1
-                    local textPosY = startY
+                    -- Calculate center of the icon for text positioning
+                    local textPosX = iconPosX + iconSize / 2
+                    local textPosY = iconPosY + iconSize  -- Move text below the icon
 					
                     local textObj = debuffTable[textObjName]
+                    -- Use passed settings if available, otherwise use default
+                    local font_base = settings or debuff_font_settings;
                     if (textObj == nil) then
-                        textObj = fonts.new(debuff_font_settings)
+                        local font_settings = T{
+                            font_alignment = font_base.font_alignment,
+                            font_family = gConfig.fontFamily,
+                            font_height = font_base.font_height,
+                            font_color = font_base.font_color,
+                            font_flags = font_base.font_flags,
+                            outline_color = font_base.outline_color,
+                            outline_width = font_base.outline_width,
+                        };
+                        textObj = gdi:create_object(font_settings)
                         debuffTable[textObjName] = textObj
                     end
-                    textObj:SetFontHeight(debuff_font_settings.font_height + gConfig.targetBarIconFontOffset)
-                    textObj:SetText('')
+                    local scaledFontHeight = math.floor(font_base.font_height * gConfig.targetBarIconScale);
+                    textObj:set_font_height(scaledFontHeight)
+                    textObj:set_text('')
                     if buffTimes[i] ~= nil then
-                        local timeString = tostring(buffTimes[i])
-                        if (string.len(timeString) == 2) then
-                            textObj:SetPositionX(textPosX + 2.5 - gConfig.targetBarIconFontOffset)
-                            textObj:SetPositionY(textPosY)
-                        elseif (string.len(timeString) == 1) then
-                            textObj:SetPositionX(textPosX + 5 - gConfig.targetBarIconFontOffset)
-                            textObj:SetPositionY(textPosY)
-                        else
-                            textObj:SetPositionX(textPosX - gConfig.targetBarIconFontOffset)
-                            textObj:SetPositionY(textPosY)
-                        end
-                        textObj:SetText(tostring(buffTimes[i]))
-                        textObj:SetVisible(true);
+                        -- Text is center-aligned, so just use the calculated center position
+                        textObj:set_position_x(textPosX)
+                        textObj:set_position_y(textPosY)
+                        textObj:set_text(tostring(buffTimes[i]))
+                        textObj:set_visible(true);
                     end
                 end
                 if (imgui.IsItemHovered()) then
@@ -490,6 +814,23 @@ function GetTargets()
     return mainTarget, secondaryTarget;
 end
 
+function GetIsTargetLockedOn()
+    local playerTarget = AshitaCore:GetMemoryManager():GetTarget();
+    if (playerTarget == nil) then
+        return false;
+    end
+
+    -- Check if the target window is locked on using GetLockedOnFlags
+    if (playerTarget.GetLockedOnFlags ~= nil) then
+        local flags = playerTarget:GetLockedOnFlags();
+        -- If flags is non-zero, target is locked on
+        return flags ~= 0;
+    end
+
+    -- Fallback: method not available
+    return false;
+end
+
 function GetJobStr(jobIdx)
     if (jobIdx == nil or jobIdx == 0 or jobIdx == -1) then
         return '';
@@ -518,7 +859,7 @@ end
 function GetHpColors(hpPercent)
     local hpNameColor;
     local hpGradient;
-    if (hpPercent < .25) then 
+    if (hpPercent < .25) then
         hpNameColor = 0xFFFF0000;
         hpGradient = {"#ec3232", "#f16161"};
     elseif (hpPercent < .50) then;
@@ -534,3 +875,158 @@ function GetHpColors(hpPercent)
 
     return hpNameColor, hpGradient;
 end
+
+-- =====================================
+-- = Color Conversion Utility Functions =
+-- =====================================
+
+-- Convert ARGB integer (0xAARRGGBB) to ImGui RGBA float table {r, g, b, a}
+function ARGBToImGui(argb)
+    local a = bit.rshift(bit.band(argb, 0xFF000000), 24) / 255;
+    local r = bit.rshift(bit.band(argb, 0x00FF0000), 16) / 255;
+    local g = bit.rshift(bit.band(argb, 0x0000FF00), 8) / 255;
+    local b = bit.band(argb, 0x000000FF) / 255;
+    return {r, g, b, a};
+end
+
+-- Convert ImGui RGBA float table to ARGB integer
+function ImGuiToARGB(rgba)
+    local a = math.floor(rgba[4] * 255);
+    local r = math.floor(rgba[1] * 255);
+    local g = math.floor(rgba[2] * 255);
+    local b = math.floor(rgba[3] * 255);
+    return bit.bor(
+        bit.lshift(a, 24),
+        bit.lshift(r, 16),
+        bit.lshift(g, 8),
+        b
+    );
+end
+
+-- Convert hex string (#RRGGBB or #RRGGBBAA) to ImGui RGBA float table
+function HexToImGui(hex)
+    hex = hex:gsub("#", "");
+    local r = tonumber(hex:sub(1,2), 16) / 255;
+    local g = tonumber(hex:sub(3,4), 16) / 255;
+    local b = tonumber(hex:sub(5,6), 16) / 255;
+    local a = 1.0;
+    if #hex == 8 then
+        a = tonumber(hex:sub(7,8), 16) / 255;
+    end
+    return {r, g, b, a};
+end
+
+-- Convert ImGui RGBA float table to hex string
+function ImGuiToHex(rgba)
+    local r = math.floor(rgba[1] * 255);
+    local g = math.floor(rgba[2] * 255);
+    local b = math.floor(rgba[3] * 255);
+    if rgba[4] and rgba[4] < 1.0 then
+        local a = math.floor(rgba[4] * 255);
+        return string.format("#%02x%02x%02x%02x", r, g, b, a);
+    end
+    return string.format("#%02x%02x%02x", r, g, b);
+end
+
+-- Convert hex string to ARGB integer (for text colors)
+function HexToARGB(hexString, alpha)
+    hexString = hexString:gsub("#", "");
+    local r = tonumber(hexString:sub(1,2), 16);
+    local g = tonumber(hexString:sub(3,4), 16);
+    local b = tonumber(hexString:sub(5,6), 16);
+    local a = alpha or 0xFF;
+    return bit.bor(
+        bit.lshift(a, 24),
+        bit.lshift(r, 16),
+        bit.lshift(g, 8),
+        b
+    );
+end
+
+-- ======================================
+-- = Custom Color Accessor Functions =
+-- ======================================
+
+-- Get HP gradient based on HP percent and custom colors
+function GetCustomHpColors(hppPercent, moduleColorSettings)
+    local hpNameColor, hpGradient;
+
+    if not gConfig or not gConfig.colorCustomization or not moduleColorSettings then
+        -- Fallback to original GetHpColors logic
+        return GetHpColors(hppPercent);
+    end
+
+    local hpSettings = moduleColorSettings.hpGradient;
+
+    if not hpSettings then
+        return GetHpColors(hppPercent);
+    end
+
+    if hppPercent < 0.25 then
+        hpGradient = {hpSettings.low.start, hpSettings.low.stop};
+    elseif hppPercent < 0.5 then
+        hpGradient = {hpSettings.medLow.start, hpSettings.medLow.stop};
+    elseif hppPercent < 0.75 then
+        hpGradient = {hpSettings.medHigh.start, hpSettings.medHigh.stop};
+    else
+        hpGradient = {hpSettings.high.start, hpSettings.high.stop};
+    end
+
+    -- Convert first gradient color to ARGB for text
+    hpNameColor = HexToARGB(hpGradient[1], 0xFF);
+
+    return hpNameColor, hpGradient;
+end
+
+-- Get gradient colors from settings with fallback to defaults
+function GetCustomGradient(moduleSettings, gradientName)
+    if not gConfig or not gConfig.colorCustomization or not moduleSettings then
+        return nil; -- Fallback to hardcoded
+    end
+
+    local gradient = moduleSettings[gradientName];
+    if not gradient then
+        return nil;
+    end
+
+    if gradient.enabled then
+        return {gradient.start, gradient.stop};
+    else
+        -- Static color (both same)
+        return {gradient.start, gradient.start};
+    end
+end
+
+function ClearDebuffFontCache()
+    -- Destroy all gdi font objects before clearing
+    for key, textObj in pairs(debuffTable) do
+        if textObj ~= nil then
+            gdi:destroy_object(textObj);
+        end
+    end
+    debuffTable = T{};
+end
+
+-- ========================================
+-- Drop Shadow Utility Functions
+-- ========================================
+
+--[[
+    NOTE: gdifonts has NATIVE outline/shadow support built-in!
+
+    Use the font settings properties to configure shadows:
+        - outline_color: ARGB color for the outline/shadow (e.g., 0xFF000000 for black)
+        - outline_width: Width in pixels (e.g., 2 for a nice shadow effect)
+
+    Example:
+        local font_settings = T{
+            font_family = 'Arial',
+            font_height = 12,
+            font_color = 0xFFFFFFFF,
+            outline_color = 0xFF000000,  -- Black shadow
+            outline_width = 2,            -- 2px shadow
+        };
+        myFont = gdi:create_object(font_settings);
+
+    The old ApplyFontShadow() function is deprecated and not needed with gdifonts.
+]]--

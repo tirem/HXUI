@@ -1,6 +1,8 @@
 require('common');
+local ffi = require('ffi');
+local d3d8 = require('d3d8');
 local imgui = require('imgui');
-local fonts = require('fonts');
+local gdi = require('gdifonts.include');
 local primitives = require('primitives');
 local statusHandler = require('statushandler');
 local buffTable = require('bufftable');
@@ -25,62 +27,181 @@ partyWindowPrim[3] = {
     background = {},
 }
 
-local selectionPrim;
-local arrowPrim;
+local cursorTextures = T{}; -- Cache for cursor textures (like jobIcons)
+local currentCursorName = nil; -- Track which cursor is loaded
 local partyTargeted;
 local partySubTargeted;
 local memberText = {};
+local partyTitlesTexture = nil; -- Texture atlas for party titles (Solo, Party, Party B, Party C)
 local partyMaxSize = 6;
 local memberTextCount = partyMaxSize * 3;
+
+-- Reference text heights for baseline alignment (prevents text jumping)
+-- Stored per font size since different text types may have different sizes
+local referenceTextHeights = {};
+
+-- UV coordinates for partylist titles atlas (4 titles stacked vertically)
+local titleUVs = {
+    solo = {0, 0, 1, 0.25},      -- Solo (top 25% of texture)
+    party = {0, 0.25, 1, 0.5},    -- Party (second 25%)
+    partyB = {0, 0.5, 1, 0.75},   -- Party B (third 25%)
+    partyC = {0, 0.75, 1, 1.0},   -- Party C (bottom 25%)
+}
+
+
+-- Cache last set colors to avoid expensive SetColor() calls every frame
+local memberTextColorCache = {};
+
+-- HP interpolation tracking for each party member (indexed by absolute member index 0-17)
+local memberInterpolation = {};
+
+-- Cache converted border color to avoid redundant U32 conversion every frame
+local cachedBorderColorU32 = nil;
+local cachedBorderColorARGB = nil;
+
+-- Cache last used font sizes to avoid unnecessary font recreation
+local cachedFontSizes = {12, 12, 12};
+
+-- Cache last used font family, flags, and outline width to detect changes
+local cachedFontFamily = '';
+local cachedFontFlags = 0;
+local cachedOutlineWidth = 2;
 
 local borderConfig = {1, '#243e58'};
 
 local bgImageKeys = { 'bg', 'tl', 'tr', 'br', 'bl' };
-local bgTitleAtlasItemCount = 4;
-local bgTitleItemHeight;
 local loadedBg = nil;
 
-local partyList = {};
+local partyList = {
+	partyCasts = {} -- Track party member casting: [serverId] = {spellName, castTime, startTime, timestamp}
+};
 
 
 local function getScale(partyIndex)
+    -- Read from current layout
+    local currentLayout = (gConfig.partyListLayout == 1) and gConfig.partyListLayout2 or gConfig.partyListLayout1;
+
     if (partyIndex == 3) then
         return {
-            x = gConfig.partyList3ScaleX,
-            y = gConfig.partyList3ScaleY,
-            icon = gConfig.partyList3JobIconScale,
+            x = currentLayout.partyList3ScaleX,
+            y = currentLayout.partyList3ScaleY,
+            icon = currentLayout.partyList3JobIconScale,
         }
     elseif (partyIndex == 2) then
         return {
-            x = gConfig.partyList2ScaleX,
-            y = gConfig.partyList2ScaleY,
-            icon = gConfig.partyList2JobIconScale,
+            x = currentLayout.partyList2ScaleX,
+            y = currentLayout.partyList2ScaleY,
+            icon = currentLayout.partyList2JobIconScale,
         }
     else
         return {
-            x = gConfig.partyListScaleX,
-            y = gConfig.partyListScaleY,
-            icon = gConfig.partyListJobIconScale,
+            x = currentLayout.partyListScaleX,
+            y = currentLayout.partyListScaleY,
+            icon = currentLayout.partyListJobIconScale,
         }
     end
 end
 
 local function showPartyTP(partyIndex)
+    -- Read from current layout
+    local currentLayout = (gConfig.partyListLayout == 1) and gConfig.partyListLayout2 or gConfig.partyListLayout1;
+
     if (partyIndex == 3) then
-        return gConfig.partyList3TP
+        return currentLayout.partyList3TP
     elseif (partyIndex == 2) then
-        return gConfig.partyList2TP
+        return currentLayout.partyList2TP
     else
-        return gConfig.partyListTP
+        return currentLayout.partyListTP
+    end
+end
+
+local function getFontSizes(partyIndex)
+    -- Read from current layout
+    local currentLayout = (gConfig.partyListLayout == 1) and gConfig.partyListLayout2 or gConfig.partyListLayout1;
+    local layout = gConfig.partyListLayout or 0;
+
+    -- Layout 2 has separate font sizes for name, HP, MP, TP
+    if layout == 1 then
+        if (partyIndex == 3) then
+            return {
+                name = currentLayout.partyList3NameFontSize or currentLayout.partyList3FontSize,
+                hp = currentLayout.partyList3HpFontSize or currentLayout.partyList3FontSize,
+                mp = currentLayout.partyList3MpFontSize or currentLayout.partyList3FontSize,
+                tp = currentLayout.partyListTpFontSize or currentLayout.partyListFontSize,  -- Use party 1 TP size for spacing
+            }
+        elseif (partyIndex == 2) then
+            return {
+                name = currentLayout.partyList2NameFontSize or currentLayout.partyList2FontSize,
+                hp = currentLayout.partyList2HpFontSize or currentLayout.partyList2FontSize,
+                mp = currentLayout.partyList2MpFontSize or currentLayout.partyList2FontSize,
+                tp = currentLayout.partyListTpFontSize or currentLayout.partyListFontSize,  -- Use party 1 TP size for spacing
+            }
+        else
+            return {
+                name = currentLayout.partyListNameFontSize or currentLayout.partyListFontSize,
+                hp = currentLayout.partyListHpFontSize or currentLayout.partyListFontSize,
+                mp = currentLayout.partyListMpFontSize or currentLayout.partyListFontSize,
+                tp = currentLayout.partyListTpFontSize or currentLayout.partyListFontSize,
+            }
+        end
+    else
+        -- Layout 0 (horizontal) uses single font size for all text
+        local fontSizeKey = (partyIndex == 3) and 'partyList3FontSize'
+                            or (partyIndex == 2) and 'partyList2FontSize'
+                            or 'partyListFontSize';
+        local fontSize = currentLayout[fontSizeKey];
+        return {
+            name = fontSize,
+            hp = fontSize,
+            mp = fontSize,
+            tp = fontSize,
+        }
+    end
+end
+
+local function getBarScales(partyIndex)
+    -- Read from current layout
+    local currentLayout = (gConfig.partyListLayout == 1) and gConfig.partyListLayout2 or gConfig.partyListLayout1;
+    local layout = gConfig.partyListLayout or 0;
+
+    -- Layout 2 has party-specific bar scales
+    if layout == 1 then
+        if (partyIndex == 3) then
+            return {
+                hpBarScaleX = currentLayout.partyList3HpBarScaleX or currentLayout.hpBarScaleX,
+                mpBarScaleX = currentLayout.partyList3MpBarScaleX or currentLayout.mpBarScaleX,
+                hpBarScaleY = currentLayout.partyList3HpBarScaleY or currentLayout.hpBarScaleY,
+                mpBarScaleY = currentLayout.partyList3MpBarScaleY or currentLayout.mpBarScaleY,
+            }
+        elseif (partyIndex == 2) then
+            return {
+                hpBarScaleX = currentLayout.partyList2HpBarScaleX or currentLayout.hpBarScaleX,
+                mpBarScaleX = currentLayout.partyList2MpBarScaleX or currentLayout.mpBarScaleX,
+                hpBarScaleY = currentLayout.partyList2HpBarScaleY or currentLayout.hpBarScaleY,
+                mpBarScaleY = currentLayout.partyList2MpBarScaleY or currentLayout.mpBarScaleY,
+            }
+        else
+            return {
+                hpBarScaleX = currentLayout.hpBarScaleX,
+                mpBarScaleX = currentLayout.mpBarScaleX,
+                hpBarScaleY = currentLayout.hpBarScaleY,
+                mpBarScaleY = currentLayout.mpBarScaleY,
+            }
+        end
+    else
+        -- Layout 1 doesn't use bar scales (uses scale.x and scale.y directly)
+        return nil;
     end
 end
 
 local function UpdateTextVisibilityByMember(memIdx, visible)
 
-    memberText[memIdx].hp:SetVisible(visible);
-    memberText[memIdx].mp:SetVisible(visible);
-    memberText[memIdx].tp:SetVisible(visible);
-    memberText[memIdx].name:SetVisible(visible);
+    memberText[memIdx].hp:set_visible(visible);
+    memberText[memIdx].mp:set_visible(visible);
+    memberText[memIdx].tp:set_visible(visible);
+    memberText[memIdx].name:set_visible(visible);
+    memberText[memIdx].distance:set_visible(visible);
+    memberText[memIdx].zone:set_visible(visible);
 end
 
 local function UpdateTextVisibility(visible, partyIndex)
@@ -98,7 +219,7 @@ local function UpdateTextVisibility(visible, partyIndex)
 
     for i = 1, 3 do
         if (partyIndex == nil or i == partyIndex) then
-            partyWindowPrim[i].bgTitle.visible = visible and gConfig.showPartyListTitle;
+            -- Title is now rendered via ImGui image, no visibility management needed
             local backgroundPrim = partyWindowPrim[i].background;
             for _, k in ipairs(bgImageKeys) do
                 backgroundPrim[k].visible = visible and backgroundPrim[k].exists;
@@ -132,13 +253,13 @@ local function GetMemberInformation(memIdx)
         return memInfo
     end
 
-    local party = AshitaCore:GetMemoryManager():GetParty();
-    local player = AshitaCore:GetMemoryManager():GetPlayer();
+    local party = GetPartySafe();
+    local player = GetPlayerSafe();
     if (player == nil or party == nil or party:GetMemberIsActive(memIdx) == 0) then
         return nil;
     end
 
-    local playerTarget = AshitaCore:GetMemoryManager():GetTarget();
+    local playerTarget = GetTargetSafe();
 
     local partyIndex = math.ceil((memIdx + 1) / partyMaxSize);
     local partyLeaderId = nil
@@ -206,7 +327,7 @@ local function GetMemberInformation(memIdx)
     return memberInfo;
 end
 
-local function DrawMember(memIdx, settings)
+local function DrawMember(memIdx, settings, isLastVisibleMember)
 
     local memInfo = GetMemberInformation(memIdx);
     if (memInfo == nil) then
@@ -237,31 +358,190 @@ local function DrawMember(memIdx, settings)
     local showTP = showPartyTP(partyIndex);
 
     local subTargetActive = GetSubTargetActive();
-    local nameSize = SIZE.new();
-    local hpSize = SIZE.new();
-    memberText[memIdx].name:GetTextSize(nameSize);
-    memberText[memIdx].hp:GetTextSize(hpSize);
 
     -- Get the hp color for bars and text
-    local hpNameColor, hpGradient = GetHpColors(memInfo.hpp);
+    local hpNameColor, hpGradient = GetCustomHpColors(memInfo.hpp, gConfig.colorCustomization.partyList);
 
-    local bgGradientOverride = {'#000813', '#000813'};
+    -- Detect current layout early for dimension calculations
+    local layout = gConfig.partyListLayout or 0;
 
-    local hpBarWidth = settings.hpBarWidth * scale.x;
-    local mpBarWidth = settings.mpBarWidth * scale.x;
-    local tpBarWidth = settings.tpBarWidth * scale.x;
-    local barHeight = settings.barHeight * scale.y;
+    -- Get party-specific bar scales for Layout 2
+    local barScales = getBarScales(partyIndex);
 
-    local allBarsLengths = hpBarWidth + mpBarWidth + imgui.GetStyle().FramePadding.x + imgui.GetStyle().ItemSpacing.x;
-    if (showTP) then
-        allBarsLengths = allBarsLengths + tpBarWidth + imgui.GetStyle().FramePadding.x + imgui.GetStyle().ItemSpacing.x;
+    -- Apply bar scales - Layout 2 uses individual HP/MP scales, Layout 1 uses uniform scales
+    local hpBarWidth, mpBarWidth, tpBarWidth, hpBarHeight, mpBarHeight;
+    if layout == 1 and barScales then
+        -- Layout 2: Use party-specific HP and MP bar X/Y scales
+        hpBarWidth = settings.hpBarWidth * scale.x * barScales.hpBarScaleX;
+        mpBarWidth = settings.mpBarWidth * scale.x * barScales.mpBarScaleX;
+        hpBarHeight = settings.barHeight * scale.y * barScales.hpBarScaleY;
+        mpBarHeight = settings.barHeight * scale.y * barScales.mpBarScaleY;
+        tpBarWidth = settings.tpBarWidth * scale.x;  -- No TP bar in Layout 2
+    else
+        -- Layout 1: Use uniform scale.x and scale.y for all bars
+        hpBarWidth = settings.hpBarWidth * scale.x;
+        mpBarWidth = settings.mpBarWidth * scale.x;
+        tpBarWidth = settings.tpBarWidth * scale.x;
+        hpBarHeight = settings.barHeight * scale.y;
+        mpBarHeight = settings.barHeight * scale.y;
     end
+    local barHeight = settings.barHeight * scale.y;
 
     local hpStartX, hpStartY = imgui.GetCursorScreenPos();
 
-    -- Draw the job icon before we draw anything else
+    -- PRE-CALCULATE dimensions needed for selection box BEFORE drawing anything
+    local partyIndex = math.ceil((memIdx + 1) / partyMaxSize);
+    local fontSizes = getFontSizes(partyIndex);
+
+    -- Set ALL font heights FIRST to ensure accurate text measurements
+    memberText[memIdx].hp:set_font_height(fontSizes.hp);
+    memberText[memIdx].mp:set_font_height(fontSizes.mp);
+    memberText[memIdx].name:set_font_height(fontSizes.name);
+    memberText[memIdx].tp:set_font_height(fontSizes.tp);
+    memberText[memIdx].distance:set_font_height(fontSizes.name);
+
+    -- Helper function to get or calculate reference height for a given font size
+    -- Uses different reference strings for numeric vs text content
+    local function getReferenceHeight(fontSize, fontObj, isNumeric)
+        local cacheKey = isNumeric and fontSize or (fontSize .. "_text");
+        if not referenceTextHeights[cacheKey] then
+            local originalText = fontObj.settings.text;
+            -- Use digits for numeric content, letters for text content
+            local refString = isNumeric and "0123456789" or "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+            fontObj:set_text(refString);
+            local _, refHeight = fontObj:get_text_size();
+            referenceTextHeights[cacheKey] = refHeight;
+            fontObj:set_text(originalText or '');
+        end
+        return referenceTextHeights[cacheKey];
+    end
+
+    -- Get reference heights for each font size used
+    local hpRefHeight = getReferenceHeight(fontSizes.hp, memberText[memIdx].hp, true);
+    local mpRefHeight = getReferenceHeight(fontSizes.mp, memberText[memIdx].mp, true);
+    local tpRefHeight = getReferenceHeight(fontSizes.tp, memberText[memIdx].tp, true);
+    local nameRefHeight = getReferenceHeight(fontSizes.name, memberText[memIdx].name, false);
+
+    -- Calculate text sizes
+    memberText[memIdx].name:set_text(tostring(memInfo.name));
+    local nameWidth, nameHeight = memberText[memIdx].name:get_text_size();
+    memberText[memIdx].hp:set_text(tostring(memInfo.hp));
+    local hpTextWidth, hpHeight = memberText[memIdx].hp:get_text_size();
+    memberText[memIdx].mp:set_text(tostring(memInfo.mp));
+    local mpTextWidth, mpHeight = memberText[memIdx].mp:get_text_size();
+    memberText[memIdx].tp:set_text(tostring(memInfo.tp));
+    local tpTextWidth, tpHeight = memberText[memIdx].tp:get_text_size();
+
+    -- Calculate max TP text width for Layout 2 (to prevent MP bar shifting)
+    local maxTpTextWidth = tpTextWidth;
+    if layout == 1 then
+        memberText[memIdx].tp:set_text("3000");
+        maxTpTextWidth, _ = memberText[memIdx].tp:get_text_size();
+        memberText[memIdx].tp:set_text(tostring(memInfo.tp));
+    end
+
+    -- Calculate allBarsLengths based on layout
+    local allBarsLengths;
+    if layout == 1 then
+        -- Layout 2: Vertical stacking
+        -- Row 1: HP bar only (HP text is positioned absolutely, right-aligned to bar)
+        local row1Width = hpBarWidth;
+        -- Row 2: TP text + MP bar + MP text (with spacing)
+        local row2Width = 4 + maxTpTextWidth + 4 + mpBarWidth + 4 + mpTextWidth;
+        -- Use the larger of the two rows
+        allBarsLengths = math.max(row1Width, row2Width);
+    else
+        -- Layout 1: Horizontal layout
+        allBarsLengths = hpBarWidth + mpBarWidth + imgui.GetStyle().FramePadding.x + imgui.GetStyle().ItemSpacing.x;
+        if (showTP) then
+            allBarsLengths = allBarsLengths + tpBarWidth + imgui.GetStyle().FramePadding.x + imgui.GetStyle().ItemSpacing.x;
+        end
+    end
+
+    -- Calculate layout dimensions
+    -- Use reference heights for consistent layout (prevents shifting when text content changes)
+    local jobIconSize = settings.baseIconSize * 1.1 * scale.icon;  -- Use baseIconSize (not affected by status icon scale)
+    local offsetSize = nameRefHeight > settings.baseIconSize and nameRefHeight or settings.baseIconSize;
+
+    -- Calculate the actual topmost point of the member (where name/icon are drawn)
+    local nameIconAreaHeight = math.max(jobIconSize, nameRefHeight);
+
+    -- Calculate entrySize based on layout
+    -- Use reference heights (not actual heights) to prevent layout shifting when text changes
+    local entrySize;
+    if layout == 1 then
+        -- Layout 2: Vertical layout
+        -- Entry includes: name text row + HP bar + 1px gap + MP bar
+        entrySize = nameRefHeight + settings.nameTextOffsetY + hpBarHeight + 1 + mpBarHeight;
+    else
+        -- Layout 1: Horizontal layout
+        -- entrySize includes the full member entry: name text + bars + hp text (plus offsets between them)
+        entrySize = nameRefHeight + settings.nameTextOffsetY + hpBarHeight + settings.hpTextOffsetY + hpRefHeight;
+    end
+
+    -- DRAW SELECTION BOX using GetBackgroundDrawList (renders behind everything with rounded corners)
+    if (memInfo.targeted == true) then
+        local drawList = imgui.GetBackgroundDrawList();
+
+        local selectionWidth = allBarsLengths + settings.cursorPaddingX1 + settings.cursorPaddingX2;
+        local selectionHeight = entrySize + settings.cursorPaddingY1 + settings.cursorPaddingY2;
+        -- Anchor selection box to the top of name text (excludes job icon) - use reference height for consistency
+        local topOfMember = hpStartY - nameRefHeight - settings.nameTextOffsetY;
+        local selectionTL = {hpStartX - settings.cursorPaddingX1, topOfMember - settings.cursorPaddingY1};
+        local selectionBR = {selectionTL[1] + selectionWidth, selectionTL[2] + selectionHeight};
+
+        -- Get selection gradient colors from config using helper
+        local selectionGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'selectionGradient') or {'#4da5d9', '#78c0ed'};
+        local startColor = HexToImGui(selectionGradient[1]);
+        local endColor = HexToImGui(selectionGradient[2]);
+
+        -- Draw gradient effect with multiple rectangles (top to bottom fade)
+        local gradientSteps = 8;
+        local stepHeight = selectionHeight / gradientSteps;
+        for i = 1, gradientSteps do
+            -- Calculate interpolation factor (0 at top, 1 at bottom)
+            local t = (i - 1) / (gradientSteps - 1);
+
+            -- Interpolate between start and end colors (RGBA float table)
+            local r = startColor[1] + (endColor[1] - startColor[1]) * t;
+            local g = startColor[2] + (endColor[2] - startColor[2]) * t;
+            local b = startColor[3] + (endColor[3] - startColor[3]) * t;
+
+            -- Fade alpha from more opaque at top to more transparent at bottom
+            local alpha = 0.35 - t * 0.25; -- 0.35 to 0.10
+
+            local stepColor = imgui.GetColorU32({r, g, b, alpha});
+
+            local stepTL_y = selectionTL[2] + (i - 1) * stepHeight;
+            local stepBR_y = stepTL_y + stepHeight;
+
+            -- AddRectFilled with rounded corners (params: min{x,y}, max{x,y}, color, rounding, flags)
+            if i == 1 then
+                drawList:AddRectFilled({selectionTL[1], stepTL_y}, {selectionBR[1], stepBR_y}, stepColor, 6, 3); -- 6px radius, top corners only
+            elseif i == gradientSteps then
+                drawList:AddRectFilled({selectionTL[1], stepTL_y}, {selectionBR[1], stepBR_y}, stepColor, 6, 12); -- 6px radius, bottom corners only
+            else
+                drawList:AddRectFilled({selectionTL[1], stepTL_y}, {selectionBR[1], stepBR_y}, stepColor, 0);
+            end
+        end
+
+        -- Draw border outline with rounded corners (convert ARGB to ImGui format for real-time updates)
+        -- Cache the U32 conversion to avoid redundant bit operations every frame
+        local borderColorARGB = gConfig.colorCustomization.partyList.selectionBorderColor;
+        if cachedBorderColorARGB ~= borderColorARGB then
+            cachedBorderColorARGB = borderColorARGB;
+            cachedBorderColorU32 = imgui.GetColorU32(ARGBToImGui(borderColorARGB));
+        end
+        local borderColor = cachedBorderColorU32;
+        drawList:AddRect({selectionTL[1], selectionTL[2]}, {selectionBR[1], selectionBR[2]}, borderColor, 6, 15, 2); -- 6px radius, all corners, 2px thick
+
+        partyTargeted = true;
+    end
+
+    -- NOW draw all member content (will appear on top of selection box)
+
+    -- Draw the job icon
     local namePosX = hpStartX;
-    local jobIconSize = settings.iconSize * 1.1 * scale.icon;
     local offsetStartY = hpStartY - jobIconSize - settings.nameTextOffsetY;
     imgui.SetCursorScreenPos({namePosX, offsetStartY});
     local jobIcon = statusHandler.GetJobIcon(memInfo.job);
@@ -271,19 +551,285 @@ local function DrawMember(memIdx, settings)
     end
     imgui.SetCursorScreenPos({hpStartX, hpStartY});
 
-    -- Update the hp text
-    memberText[memIdx].hp:SetColor(hpNameColor);
-    memberText[memIdx].hp:SetPositionX(hpStartX + hpBarWidth + settings.hpTextOffsetX);
-    memberText[memIdx].hp:SetPositionY(hpStartY + barHeight + settings.hpTextOffsetY);
-    memberText[memIdx].hp:SetText(tostring(memInfo.hp));
+    -- Update the hp text (text already set earlier for measurement)
+    if not memberTextColorCache[memIdx] then memberTextColorCache[memIdx] = {}; end
+    if (memberTextColorCache[memIdx].hp ~= gConfig.colorCustomization.partyList.hpTextColor) then
+        memberText[memIdx].hp:set_font_color(gConfig.colorCustomization.partyList.hpTextColor);
+        memberTextColorCache[memIdx].hp = gConfig.colorCustomization.partyList.hpTextColor;
+    end
 
-    -- Draw the HP bar
+    -- Detect current layout
+    local layout = gConfig.partyListLayout or 0;
+
+    -- HP Interpolation logic (damage visualization)
+    local currentTime = os.clock();
+    local hppPercent = memInfo.hpp * 100; -- Convert to 0-100 range
+
+    -- Initialize interpolation for this member if not set
+    if not memberInterpolation[memIdx] then
+        memberInterpolation[memIdx] = {
+            currentHpp = hppPercent,
+            interpolationDamagePercent = 0,
+            interpolationHealPercent = 0
+        };
+    end
+
+    -- If the member takes damage
+    if hppPercent < memberInterpolation[memIdx].currentHpp then
+        local previousInterpolationDamagePercent = memberInterpolation[memIdx].interpolationDamagePercent;
+
+        local damageAmount = memberInterpolation[memIdx].currentHpp - hppPercent;
+
+        memberInterpolation[memIdx].interpolationDamagePercent = memberInterpolation[memIdx].interpolationDamagePercent + damageAmount;
+
+        if previousInterpolationDamagePercent > 0 and memberInterpolation[memIdx].lastHitAmount and damageAmount > memberInterpolation[memIdx].lastHitAmount then
+            memberInterpolation[memIdx].lastHitTime = currentTime;
+            memberInterpolation[memIdx].lastHitAmount = damageAmount;
+        elseif previousInterpolationDamagePercent == 0 then
+            memberInterpolation[memIdx].lastHitTime = currentTime;
+            memberInterpolation[memIdx].lastHitAmount = damageAmount;
+        end
+
+        if not memberInterpolation[memIdx].lastHitTime or currentTime > memberInterpolation[memIdx].lastHitTime + (settings.hitFlashDuration * 0.25) then
+            memberInterpolation[memIdx].lastHitTime = currentTime;
+            memberInterpolation[memIdx].lastHitAmount = damageAmount;
+        end
+
+        -- If we previously were interpolating with an empty bar, reset the hit delay effect
+        if previousInterpolationDamagePercent == 0 then
+            memberInterpolation[memIdx].hitDelayStartTime = currentTime;
+        end
+
+        -- Clear healing interpolation when taking damage
+        memberInterpolation[memIdx].interpolationHealPercent = 0;
+        memberInterpolation[memIdx].healDelayStartTime = nil;
+    elseif hppPercent > memberInterpolation[memIdx].currentHpp then
+        -- If the member heals
+        local previousInterpolationHealPercent = memberInterpolation[memIdx].interpolationHealPercent;
+
+        local healAmount = hppPercent - memberInterpolation[memIdx].currentHpp;
+
+        memberInterpolation[memIdx].interpolationHealPercent = memberInterpolation[memIdx].interpolationHealPercent + healAmount;
+
+        if previousInterpolationHealPercent > 0 and memberInterpolation[memIdx].lastHealAmount and healAmount > memberInterpolation[memIdx].lastHealAmount then
+            memberInterpolation[memIdx].lastHealTime = currentTime;
+            memberInterpolation[memIdx].lastHealAmount = healAmount;
+        elseif previousInterpolationHealPercent == 0 then
+            memberInterpolation[memIdx].lastHealTime = currentTime;
+            memberInterpolation[memIdx].lastHealAmount = healAmount;
+        end
+
+        if not memberInterpolation[memIdx].lastHealTime or currentTime > memberInterpolation[memIdx].lastHealTime + (settings.hitFlashDuration * 0.25) then
+            memberInterpolation[memIdx].lastHealTime = currentTime;
+            memberInterpolation[memIdx].lastHealAmount = healAmount;
+        end
+
+        -- If we previously were interpolating with an empty bar, reset the heal delay effect
+        if previousInterpolationHealPercent == 0 then
+            memberInterpolation[memIdx].healDelayStartTime = currentTime;
+        end
+
+        -- Clear damage interpolation when healing
+        memberInterpolation[memIdx].interpolationDamagePercent = 0;
+        memberInterpolation[memIdx].hitDelayStartTime = nil;
+    end
+
+    memberInterpolation[memIdx].currentHpp = hppPercent;
+
+    -- Reduce the damage HP amount to display based on the time passed since last frame
+    if memberInterpolation[memIdx].interpolationDamagePercent > 0 and memberInterpolation[memIdx].hitDelayStartTime and currentTime > memberInterpolation[memIdx].hitDelayStartTime + settings.hitDelayDuration then
+        if memberInterpolation[memIdx].lastFrameTime then
+            local deltaTime = currentTime - memberInterpolation[memIdx].lastFrameTime;
+
+            local animSpeed = 0.1 + (0.9 * (memberInterpolation[memIdx].interpolationDamagePercent / 100));
+
+            memberInterpolation[memIdx].interpolationDamagePercent = memberInterpolation[memIdx].interpolationDamagePercent - (settings.hitInterpolationDecayPercentPerSecond * deltaTime * animSpeed);
+
+            -- Clamp our percent to 0
+            memberInterpolation[memIdx].interpolationDamagePercent = math.max(0, memberInterpolation[memIdx].interpolationDamagePercent);
+        end
+    end
+
+    -- Reduce the healing HP amount to display based on the time passed since last frame
+    if memberInterpolation[memIdx].interpolationHealPercent > 0 and memberInterpolation[memIdx].healDelayStartTime and currentTime > memberInterpolation[memIdx].healDelayStartTime + settings.hitDelayDuration then
+        if memberInterpolation[memIdx].lastFrameTime then
+            local deltaTime = currentTime - memberInterpolation[memIdx].lastFrameTime;
+
+            local animSpeed = 0.1 + (0.9 * (memberInterpolation[memIdx].interpolationHealPercent / 100));
+
+            memberInterpolation[memIdx].interpolationHealPercent = memberInterpolation[memIdx].interpolationHealPercent - (settings.hitInterpolationDecayPercentPerSecond * deltaTime * animSpeed);
+
+            -- Clamp our percent to 0
+            memberInterpolation[memIdx].interpolationHealPercent = math.max(0, memberInterpolation[memIdx].interpolationHealPercent);
+        end
+    end
+
+    -- Calculate damage flash overlay alpha
+    local interpolationOverlayAlpha = 0;
+    if gConfig.healthBarFlashEnabled then
+        if memberInterpolation[memIdx].lastHitTime and currentTime < memberInterpolation[memIdx].lastHitTime + settings.hitFlashDuration then
+            local hitFlashTime = currentTime - memberInterpolation[memIdx].lastHitTime;
+            local hitFlashTimePercent = hitFlashTime / settings.hitFlashDuration;
+
+            local maxAlphaHitPercent = 20;
+            local maxAlpha = math.min(memberInterpolation[memIdx].lastHitAmount, maxAlphaHitPercent) / maxAlphaHitPercent;
+
+            maxAlpha = math.max(maxAlpha * 0.6, 0.4);
+
+            interpolationOverlayAlpha = math.pow(1 - hitFlashTimePercent, 2) * maxAlpha;
+        end
+    end
+
+    -- Calculate healing flash overlay alpha
+    local healInterpolationOverlayAlpha = 0;
+    if gConfig.healthBarFlashEnabled then
+        if memberInterpolation[memIdx].lastHealTime and currentTime < memberInterpolation[memIdx].lastHealTime + settings.hitFlashDuration then
+            local healFlashTime = currentTime - memberInterpolation[memIdx].lastHealTime;
+            local healFlashTimePercent = healFlashTime / settings.hitFlashDuration;
+
+            local maxAlphaHealPercent = 20;
+            local maxAlpha = math.min(memberInterpolation[memIdx].lastHealAmount, maxAlphaHealPercent) / maxAlphaHealPercent;
+
+            maxAlpha = math.max(maxAlpha * 0.6, 0.4);
+
+            healInterpolationOverlayAlpha = math.pow(1 - healFlashTimePercent, 2) * maxAlpha;
+        end
+    end
+
+    memberInterpolation[memIdx].lastFrameTime = currentTime;
+
+    -- Build HP bar data with interpolation
+    -- Calculate base HP for display (subtract healing to show old HP during heal animation)
+    local baseHpp = memInfo.hpp;
+    if memberInterpolation[memIdx].interpolationHealPercent and memberInterpolation[memIdx].interpolationHealPercent > 0 then
+        -- Convert from 0-1 range to 0-100, subtract heal, clamp, convert back
+        local hppInPercent = memInfo.hpp * 100;
+        hppInPercent = hppInPercent - memberInterpolation[memIdx].interpolationHealPercent;
+        hppInPercent = math.max(0, hppInPercent);
+        baseHpp = hppInPercent / 100;
+    end
+
+    local hpPercentData = {{baseHpp, hpGradient}};
+
+    -- Add interpolation bar for damage taken
+    if memberInterpolation[memIdx].interpolationDamagePercent and memberInterpolation[memIdx].interpolationDamagePercent > 0 then
+        local interpolationOverlay;
+
+        if gConfig.healthBarFlashEnabled and interpolationOverlayAlpha > 0 then
+            interpolationOverlay = {
+                '#ffacae', -- overlay color
+                interpolationOverlayAlpha -- overlay alpha
+            };
+        end
+
+        table.insert(
+            hpPercentData,
+            {
+                memberInterpolation[memIdx].interpolationDamagePercent / 100, -- interpolation percent
+                {'#cf3437', '#c54d4d'}, -- interpolation gradient (red)
+                interpolationOverlay
+            }
+        );
+    end
+
+    -- Add interpolation bar for healing received
+    if memberInterpolation[memIdx].interpolationHealPercent and memberInterpolation[memIdx].interpolationHealPercent > 0 then
+        local healInterpolationOverlay;
+
+        if gConfig.healthBarFlashEnabled and healInterpolationOverlayAlpha > 0 then
+            healInterpolationOverlay = {
+                '#c8ffc8', -- overlay color (light green)
+                healInterpolationOverlayAlpha -- overlay alpha
+            };
+        end
+
+        table.insert(
+            hpPercentData,
+            {
+                memberInterpolation[memIdx].interpolationHealPercent / 100, -- interpolation percent
+                {'#4ade80', '#86efac'}, -- interpolation gradient (green)
+                healInterpolationOverlay
+            }
+        );
+    end
+
+    -- Draw the HP bar (or zone bar for out-of-zone members)
     if (memInfo.inzone) then
-        progressbar.ProgressBar({{memInfo.hpp, hpGradient}}, {hpBarWidth, barHeight}, {borderConfig=borderConfig, backgroundGradientOverride=bgGradientOverride, decorate = gConfig.showPartyListBookends});
+        -- Use individual HP bar height in Layout 2
+        local currentHpBarHeight = (layout == 1) and hpBarHeight or barHeight;
+        progressbar.ProgressBar(hpPercentData, {hpBarWidth, currentHpBarHeight}, {borderConfig=borderConfig, decorate = gConfig.showPartyListBookends});
+        -- Hide zone text when in zone
+        memberText[memIdx].zone:set_visible(false);
     elseif (memInfo.zone == '' or memInfo.zone == nil) then
-        imgui.Dummy({allBarsLengths, barHeight});
+        -- Calculate zone bar dimensions based on layout
+        local zoneBarWidth, zoneBarHeight;
+        if layout == 1 then
+            -- Layout 2 (vertical): zone bar width is just HP bar width, height spans HP bar + gap + MP bar
+            zoneBarWidth = hpBarWidth;
+            zoneBarHeight = hpBarHeight + 1 + mpBarHeight;
+        else
+            -- Layout 1 (horizontal): zone bar width spans HP + MP + TP bars, height is single bar height
+            zoneBarWidth = hpBarWidth + mpBarWidth;
+            if showTP then
+                zoneBarWidth = zoneBarWidth + tpBarWidth;
+            end
+            zoneBarHeight = barHeight;
+        end
+        imgui.Dummy({zoneBarWidth, zoneBarHeight});
+        -- Hide zone text when no zone info
+        memberText[memIdx].zone:set_visible(false);
     else
-        imgui.ProgressBar(0, {allBarsLengths, barHeight}, encoding:ShiftJIS_To_UTF8(AshitaCore:GetResourceManager():GetString("zones.names", memInfo.zone), true));
+        -- Calculate zone bar dimensions based on layout
+        local zoneBarWidth, zoneBarHeight;
+        if layout == 1 then
+            -- Layout 2 (vertical): zone bar width is just HP bar width, height spans HP bar + gap + MP bar
+            zoneBarWidth = hpBarWidth;
+            zoneBarHeight = hpBarHeight + 1 + mpBarHeight;
+        else
+            -- Layout 1 (horizontal): zone bar width spans HP + MP + TP bars, height is single bar height
+            zoneBarWidth = hpBarWidth + mpBarWidth;
+            if showTP then
+                zoneBarWidth = zoneBarWidth + tpBarWidth;
+            end
+            zoneBarHeight = barHeight;
+        end
+
+        -- Draw zone bar with outline only
+        local zoneBarStartX, zoneBarStartY = imgui.GetCursorScreenPos();
+        imgui.Dummy({zoneBarWidth, zoneBarHeight});
+
+        -- Draw outline for zone bar
+        local drawList = imgui.GetWindowDrawList();
+        drawList:AddRect(
+            {zoneBarStartX, zoneBarStartY},
+            {zoneBarStartX + zoneBarWidth, zoneBarStartY + zoneBarHeight},
+            imgui.GetColorU32({0.5, 0.5, 0.5, 1.0}),  -- Gray outline
+            0,
+            ImDrawCornerFlags_None,
+            1  -- 1px border thickness
+        );
+
+        -- Show zone text centered on the bar
+        local zoneName = encoding:ShiftJIS_To_UTF8(AshitaCore:GetResourceManager():GetString("zones.names", memInfo.zone), true);
+        memberText[memIdx].zone:set_text(zoneName);
+        local zoneTextWidth, zoneTextHeight = memberText[memIdx].zone:get_text_size();
+        memberText[memIdx].zone:set_position_x(zoneBarStartX + (zoneBarWidth - zoneTextWidth) / 2);  -- Center horizontally
+        memberText[memIdx].zone:set_position_y(zoneBarStartY + (zoneBarHeight - zoneTextHeight) / 2);  -- Center vertically
+        memberText[memIdx].zone:set_visible(true);
+    end
+
+    -- Position HP text based on layout
+    -- Calculate baseline offset to keep text baseline consistent
+    local hpBaselineOffset = hpRefHeight - hpHeight;
+    local nameBaselineOffset = nameRefHeight - nameHeight;
+    if layout == 1 then
+        -- Layout 2: HP text on same row as name, right-aligned to bar
+        memberText[memIdx].hp:set_position_x(hpStartX + hpBarWidth + 4);  -- 4px to the right of bar
+        memberText[memIdx].hp:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + hpBaselineOffset);  -- Same row as name
+    else
+        -- Layout 1: HP text below bar with standard offset
+        memberText[memIdx].hp:set_position_x(hpStartX + hpBarWidth + settings.hpTextOffsetX);
+        memberText[memIdx].hp:set_position_y(hpStartY + barHeight + settings.hpTextOffsetY + hpBaselineOffset);
     end
 
     -- Draw the leader icon
@@ -291,116 +837,243 @@ local function DrawMember(memIdx, settings)
         draw_circle({hpStartX + settings.dotRadius/2, hpStartY + settings.dotRadius/2}, settings.dotRadius, {1, 1, .5, 1}, settings.dotRadius * 3, true);
     end
 
-    -- Update the name text
-    local distanceText = ''
-    local highlightDistance = false
-    if (gConfig.showPartyListDistance) then
-        if (memInfo.inzone and memInfo.index) then
-            local entity = AshitaCore:GetMemoryManager():GetEntity()
+    local desiredNameColor = gConfig.colorCustomization.partyList.nameTextColor;
+    -- Only call set_color if the color has changed
+    if (memberTextColorCache[memIdx].name ~= desiredNameColor) then
+        memberText[memIdx].name:set_font_color(desiredNameColor);
+        memberTextColorCache[memIdx].name = desiredNameColor;
+    end
+    memberText[memIdx].name:set_position_x(namePosX);
+    memberText[memIdx].name:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + nameBaselineOffset);
+
+    -- Check if member is casting and show cast bar if so
+    local castData = nil;
+    local isCasting = false;
+    if (memInfo.inzone and memInfo.serverid ~= nil) then
+        castData = partyList.partyCasts[memInfo.serverid];
+        if (castData ~= nil and castData.spellName ~= nil and castData.castTime ~= nil and castData.startTime ~= nil) then
+            isCasting = true;
+
+            -- Replace name text with spell name
+            memberText[memIdx].name:set_text(castData.spellName);
+            local spellNameWidth, _ = memberText[memIdx].name:get_text_size();
+
+            -- Calculate cast progress
+            local elapsed = os.clock() - castData.startTime;
+            local progress = math.min(elapsed / castData.castTime, 1.0);
+
+            -- Draw cast bar to the right of spell name
+            local castBarWidth = hpBarWidth * 0.6; -- 60% of HP bar width
+            local castBarHeight = nameRefHeight * 0.8; -- 80% of reference name height for consistent sizing
+            local castBarX = namePosX + spellNameWidth + 4; -- 4px spacing after spell name
+            local castBarY = hpStartY - nameRefHeight - settings.nameTextOffsetY + (nameRefHeight - castBarHeight) / 2; -- Vertically center with text area
+
+            -- Get cast bar gradient from config
+            local castGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'castBarGradient') or {'#ffaa00', '#ffcc44'};
+
+            -- Draw cast bar with absolute positioning
+            progressbar.ProgressBar(
+                {{progress, castGradient}},
+                {castBarWidth, castBarHeight},
+                {
+                    decorate = false,
+                    absolutePosition = {castBarX, castBarY}
+                }
+            );
+        end
+    end
+
+    -- Update the distance text (separate from name) - hide when casting
+    local showDistance = false;
+    local highlightDistance = false;
+    if (not isCasting) then
+        -- Restore original name text when not casting
+        memberText[memIdx].name:set_text(tostring(memInfo.name));
+    end
+    if (not isCasting and gConfig.showPartyListDistance and memInfo.inzone and memInfo.index) then
+        local entity = GetEntitySafe()
+        if entity ~= nil then
             local distance = math.sqrt(entity:GetDistance(memInfo.index))
             if (distance > 0 and distance <= 50) then
-                local percentText  = ('%.1f'):fmt(distance);
-                distanceText = ' - ' .. percentText
+                local distanceText = ('%.1f'):fmt(distance);
+                memberText[memIdx].distance:set_text(' - ' .. distanceText);
+
+                local distancePosX = namePosX + nameWidth;
+                memberText[memIdx].distance:set_position_x(distancePosX);
+                memberText[memIdx].distance:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + nameBaselineOffset);
+
+                showDistance = true;
 
                 if (gConfig.partyListDistanceHighlight > 0 and distance <= gConfig.partyListDistanceHighlight) then
-                    highlightDistance = true
+                    highlightDistance = true;
                 end
             end
         end
     end
 
-    if (highlightDistance) then
-        memberText[memIdx].name:SetColor(0xFF00FFFF);
-    else
-        memberText[memIdx].name:SetColor(0xFFFFFFFF);
+    -- Update distance visibility and color
+    memberText[memIdx].distance:set_visible(showDistance);
+    if showDistance then
+        local desiredDistanceColor = highlightDistance and 0xFF00FFFF or gConfig.colorCustomization.partyList.nameTextColor;
+        if (memberTextColorCache[memIdx].distance ~= desiredDistanceColor) then
+            memberText[memIdx].distance:set_font_color(desiredDistanceColor);
+            memberTextColorCache[memIdx].distance = desiredDistanceColor;
+        end
     end
-    memberText[memIdx].name:SetPositionX(namePosX);
-    memberText[memIdx].name:SetPositionY(hpStartY - nameSize.cy - settings.nameTextOffsetY);
-    memberText[memIdx].name:SetText(tostring(memInfo.name) .. distanceText);
 
-    local nameSize = SIZE.new();
-    memberText[memIdx].name:GetTextSize(nameSize);
-    local offsetSize = nameSize.cy > settings.iconSize and nameSize.cy or settings.iconSize;
+    -- Variables for MP bar positioning (used by status icons later)
+    local mpStartX, mpStartY;
 
     if (memInfo.inzone) then
-        imgui.SameLine();
+        if layout == 1 then
+            -- ========== LAYOUT 2: Compact Vertical ==========
+            -- Add 1px gap below HP bar
+            imgui.Dummy({0, 1});
 
-        -- Draw the MP bar
-        local mpStartX, mpStartY;
-        imgui.SetCursorPosX(imgui.GetCursorPosX());
-        mpStartX, mpStartY = imgui.GetCursorScreenPos();
-        progressbar.ProgressBar({{memInfo.mpp, {'#9abb5a', '#bfe07d'}}}, {mpBarWidth, barHeight}, {borderConfig=borderConfig, backgroundGradientOverride=bgGradientOverride, decorate = gConfig.showPartyListBookends});
+            -- Store the row start position
+            local rowStartX, rowStartY = imgui.GetCursorScreenPos();
 
-        -- Update the mp text
-        memberText[memIdx].mp:SetColor(gAdjustedSettings.mpColor);
-        memberText[memIdx].mp:SetPositionX(mpStartX + mpBarWidth + settings.mpTextOffsetX);
-        memberText[memIdx].mp:SetPositionY(mpStartY + barHeight + settings.mpTextOffsetY);
-        memberText[memIdx].mp:SetText(tostring(memInfo.mp));
+            -- === TP TEXT (LEFT OF MP BAR) ===
+            -- Set TP text color
+            local desiredTpColor = (memInfo.tp >= 1000) and gConfig.colorCustomization.partyList.tpFullTextColor or gConfig.colorCustomization.partyList.tpEmptyTextColor;
+            if (memberTextColorCache[memIdx].tp ~= desiredTpColor) then
+                memberText[memIdx].tp:set_font_color(desiredTpColor);
+                memberTextColorCache[memIdx].tp = desiredTpColor;
+            end
 
-        -- Draw the TP bar
-        if (showTP) then
+            -- Position TP text at row start + 4px offset (LEFT of MP bar)
+            -- Calculate baseline offset to keep text baseline consistent
+            local tpBaselineOffset = tpRefHeight - tpHeight;
+            memberText[memIdx].tp:set_position_x(rowStartX + 4);
+            memberText[memIdx].tp:set_position_y(rowStartY + tpBaselineOffset);
+
+            -- === MP BAR ===
+            -- Position MP bar at a fixed offset based on max TP text width to prevent shifting
+            -- maxTpTextWidth was calculated earlier in the function
+            local mpBarStartX = rowStartX + 4 + maxTpTextWidth + 4;  -- 4px padding + max TP width + 4px gap
+            mpStartX = mpBarStartX;
+            mpStartY = rowStartY;
+            imgui.SetCursorScreenPos({mpStartX, mpStartY});
+
+            -- Draw MP bar
+            local mpGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'mpGradient') or {'#9abb5a', '#bfe07d'};
+            progressbar.ProgressBar({{memInfo.mpp, mpGradient}}, {mpBarWidth, mpBarHeight}, {borderConfig=borderConfig, decorate = gConfig.showPartyListBookends});
+
+            -- === MP TEXT (RIGHT OF MP BAR) ===
+            -- Prepare MP text
+            if (memberTextColorCache[memIdx].mp ~= gConfig.colorCustomization.partyList.mpTextColor) then
+                memberText[memIdx].mp:set_font_color(gConfig.colorCustomization.partyList.mpTextColor);
+                memberTextColorCache[memIdx].mp = gConfig.colorCustomization.partyList.mpTextColor;
+            end
+            memberText[memIdx].mp:set_text(tostring(memInfo.mp));
+
+            -- Position MP text (RIGHT of MP bar, vertically centered with bar)
+            -- Use reference height for centering to prevent layout shifting, then apply baseline offset
+            local mpBaselineOffset = mpRefHeight - mpHeight;
+            memberText[memIdx].mp:set_position_x(mpStartX + mpBarWidth + 4);  -- 4px spacing after MP bar
+            memberText[memIdx].mp:set_position_y(mpStartY + (mpBarHeight - mpRefHeight) / 2 + mpBaselineOffset);
+
+        else
+            -- ========== LAYOUT 1: Horizontal ==========
             imgui.SameLine();
-            local tpStartX, tpStartY;
+
+            -- Draw the MP bar
             imgui.SetCursorPosX(imgui.GetCursorPosX());
-            tpStartX, tpStartY = imgui.GetCursorScreenPos();
+            mpStartX, mpStartY = imgui.GetCursorScreenPos();
+            local mpGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'mpGradient') or {'#9abb5a', '#bfe07d'};
+            progressbar.ProgressBar({{memInfo.mpp, mpGradient}}, {mpBarWidth, mpBarHeight}, {borderConfig=borderConfig, decorate = gConfig.showPartyListBookends});
 
-            local tpGradient = {'#3898ce', '#78c4ee'};
-            local tpOverlayGradient = {'#0078CC', '#0078CC'};
-            local mainPercent;
-            local tpOverlay;
-            
-            if (memInfo.tp >= 1000) then
-                mainPercent = (memInfo.tp - 1000) / 2000;
-                if (gConfig.partyListFlashTP) then
-                    tpOverlay = {{1, tpOverlayGradient}, math.ceil(barHeight * 5/7), 0, { '#3ECE00', 1 }};
+            -- Update the mp text
+            -- Only call set_color if the color has changed
+            if (memberTextColorCache[memIdx].mp ~= gConfig.colorCustomization.partyList.mpTextColor) then
+                memberText[memIdx].mp:set_font_color(gConfig.colorCustomization.partyList.mpTextColor);
+                memberTextColorCache[memIdx].mp = gConfig.colorCustomization.partyList.mpTextColor;
+            end
+            memberText[memIdx].mp:set_text(tostring(memInfo.mp));
+            -- MP font is left-aligned, so position RIGHT edge by subtracting text width
+            -- Calculate baseline offset to keep text baseline consistent
+            local mpBaselineOffset = mpRefHeight - mpHeight;
+            memberText[memIdx].mp:set_position_x(mpStartX + mpBarWidth - mpTextWidth);
+            memberText[memIdx].mp:set_position_y(mpStartY + mpBarHeight + settings.mpTextOffsetY + mpBaselineOffset);
+
+            -- Draw the TP bar
+            if (showTP) then
+                imgui.SameLine();
+                local tpStartX, tpStartY;
+                imgui.SetCursorPosX(imgui.GetCursorPosX());
+                tpStartX, tpStartY = imgui.GetCursorScreenPos();
+
+                local tpGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'tpGradient') or {'#3898ce', '#78c4ee'};
+                local tpOverlayGradient = {'#0078CC', '#0078CC'};
+                local mainPercent;
+                local tpOverlay;
+
+                if (memInfo.tp >= 1000) then
+                    mainPercent = (memInfo.tp - 1000) / 2000;
+                    if (gConfig.partyListFlashTP) then
+                        tpOverlay = {{1, tpOverlayGradient}, math.ceil(barHeight * 5/7), 0, { '#3ECE00', 1 }};
+                    else
+                        tpOverlay = {{1, tpOverlayGradient}, math.ceil(barHeight * 2/7), 1};
+                    end
                 else
-                    tpOverlay = {{1, tpOverlayGradient}, math.ceil(barHeight * 2/7), 1};
+                    mainPercent = memInfo.tp / 1000;
                 end
-            else
-                mainPercent = memInfo.tp / 1000;
-            end
-            
-            progressbar.ProgressBar({{mainPercent, tpGradient}}, {tpBarWidth, barHeight}, {overlayBar=tpOverlay, borderConfig=borderConfig, backgroundGradientOverride=bgGradientOverride, decorate = gConfig.showPartyListBookends});
 
-            -- Update the tp text
-            if (memInfo.tp >= 1000) then
-                memberText[memIdx].tp:SetColor(gAdjustedSettings.tpFullColor);
-            else
-                memberText[memIdx].tp:SetColor(gAdjustedSettings.tpEmptyColor);
+                progressbar.ProgressBar({{mainPercent, tpGradient}}, {tpBarWidth, barHeight}, {overlayBar=tpOverlay, borderConfig=borderConfig, decorate = gConfig.showPartyListBookends});
+
+                -- Update the tp text
+                local desiredTpColor = (memInfo.tp >= 1000) and gConfig.colorCustomization.partyList.tpFullTextColor or gConfig.colorCustomization.partyList.tpEmptyTextColor;
+                -- Only call set_color if the color has changed
+                if (memberTextColorCache[memIdx].tp ~= desiredTpColor) then
+                    memberText[memIdx].tp:set_font_color(desiredTpColor);
+                    memberTextColorCache[memIdx].tp = desiredTpColor;
+                end
+                memberText[memIdx].tp:set_text(tostring(memInfo.tp));
+                -- TP font is left-aligned, so position RIGHT edge by subtracting text width
+                -- Calculate baseline offset to keep text baseline consistent
+                local tpBaselineOffset = tpRefHeight - tpHeight;
+                memberText[memIdx].tp:set_position_x(tpStartX + tpBarWidth - tpTextWidth);
+                memberText[memIdx].tp:set_position_y(tpStartY + barHeight + settings.tpTextOffsetY + tpBaselineOffset);
             end
-            memberText[memIdx].tp:SetPositionX(tpStartX + tpBarWidth + settings.tpTextOffsetX);
-            memberText[memIdx].tp:SetPositionY(tpStartY + barHeight + settings.tpTextOffsetY);
-            memberText[memIdx].tp:SetText(tostring(memInfo.tp));
         end
 
-        -- Draw targeted
-        local entrySize = hpSize.cy + offsetSize + settings.hpTextOffsetY + barHeight + settings.cursorPaddingY1 + settings.cursorPaddingY2;
-        if (memInfo.targeted == true) then
-            selectionPrim.visible = true;
-            selectionPrim.position_x = hpStartX - settings.cursorPaddingX1;
-            selectionPrim.position_y = hpStartY - offsetSize - settings.cursorPaddingY1;
-            selectionPrim.scale_x = (allBarsLengths + settings.cursorPaddingX1 + settings.cursorPaddingX2) / 346;
-            selectionPrim.scale_y = entrySize / 108;
-            partyTargeted = true;
-        end
-
-        -- Draw subtargeted
+        -- Draw cursor using ImGui (like job icons)
         if ((memInfo.targeted == true and not subTargetActive) or memInfo.subTargeted) then
-            arrowPrim.visible = true;
-            local newArrowX =  memberText[memIdx].name:GetPositionX() - arrowPrim:GetWidth();
-            if (jobIcon ~= nil) then
-                newArrowX = newArrowX - jobIconSize;
+            local cursorTexture = cursorTextures[gConfig.partyListCursor];
+            if (cursorTexture ~= nil) then
+                local cursorImage = tonumber(ffi.cast("uint32_t", cursorTexture.image));
+
+                -- Calculate cursor size based on settings.arrowSize
+                local cursorWidth = cursorTexture.width * settings.arrowSize;
+                local cursorHeight = cursorTexture.height * settings.arrowSize;
+
+                -- Calculate position (left of name text, centered vertically)
+                local cursorX = memberText[memIdx].name.settings.position_x - cursorWidth;
+                if (jobIcon ~= nil) then
+                    cursorX = cursorX - jobIconSize;
+                end
+                local cursorY = (hpStartY - offsetSize - settings.cursorPaddingY1) + (entrySize/2) - cursorHeight/2;
+
+                -- Determine tint color
+                local tintColor;
+                if (subTargetActive) then
+                    tintColor = imgui.GetColorU32(settings.subtargetArrowTint);
+                else
+                    tintColor = IM_COL32_WHITE;
+                end
+
+                -- Draw using UI draw list
+                local draw_list = GetUIDrawList();
+                draw_list:AddImage(
+                    cursorImage,
+                    {cursorX, cursorY},
+                    {cursorX + cursorWidth, cursorY + cursorHeight},
+                    {0, 0}, {1, 1},
+                    tintColor
+                );
+
+                partySubTargeted = true;
             end
-            arrowPrim.position_x = newArrowX;
-            arrowPrim.position_y = (hpStartY - offsetSize - settings.cursorPaddingY1) + (entrySize/2) - arrowPrim:GetHeight()/2;
-            arrowPrim.scale_x = settings.arrowSize;
-            arrowPrim.scale_y = settings.arrowSize;
-            if (subTargetActive) then
-                arrowPrim.color = settings.subtargetArrowTint;
-            else
-                arrowPrim.color = 0xFFFFFFFF;
-            end
-            partySubTargeted = true;
         end
 
         -- Draw the different party list buff / debuff themes
@@ -465,7 +1138,7 @@ local function DrawMember(memIdx, settings)
                 imgui.SetCursorScreenPos({resetX, resetY});
             elseif (gConfig.partyListStatusTheme == 3) then
                 if (buffWindowX[memIdx] ~= nil) then
-                    imgui.SetNextWindowPos({hpStartX - buffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name:GetPositionY() - settings.iconSize/2});
+                    imgui.SetNextWindowPos({hpStartX - buffWindowX[memIdx] - settings.buffOffset , memberText[memIdx].name.settings.position_y - settings.iconSize/2});
                 end
                 if (imgui.Begin('PlayerBuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
                     imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 3});
@@ -484,27 +1157,53 @@ local function DrawMember(memIdx, settings)
         draw_circle({hpStartX + settings.dotRadius/2, hpStartY + barHeight}, settings.dotRadius, {.5, .5, 1, 1}, settings.dotRadius * 3, true);
     end
 
-    memberText[memIdx].hp:SetVisible(memInfo.inzone);
-    memberText[memIdx].mp:SetVisible(memInfo.inzone);
-    memberText[memIdx].tp:SetVisible(memInfo.inzone and showTP);
+    memberText[memIdx].hp:set_visible(memInfo.inzone);
+    memberText[memIdx].mp:set_visible(memInfo.inzone);
+    -- In Layout 2, TP is shown for party 1 only (alliance parties don't have TP data)
+    -- In Layout 1, TP visibility depends on showTP flag
+    local partyIndex = math.floor(memIdx / 6) + 1;
+    if layout == 1 then
+        -- Layout 2: show TP text only for party 1, hide for parties 2 and 3
+        memberText[memIdx].tp:set_visible(memInfo.inzone and partyIndex == 1);
+    else
+        memberText[memIdx].tp:set_visible(memInfo.inzone and showTP);  -- Layout 1: show if showTP is true
+    end
 
-    --if (memInfo.inzone) then
-        imgui.Dummy({0, settings.entrySpacing[partyIndex] + hpSize.cy + settings.hpTextOffsetY + settings.nameTextOffsetY});
-    --else
-    --    imgui.Dummy({0, settings.entrySpacing[partyIndex] + settings.nameTextOffsetY});
-    --end
+    -- Reserve space in ImGui layout for the text/bars (which use absolute positioning)
+    -- For Layout 2, reserve horizontal space based on the larger of the two rows
+    if layout == 1 and memInfo.inzone then
+        -- Row 1: HP bar only
+        local row1Width = hpBarWidth;
+        -- Row 2: TP text + MP bar + MP text (with spacing)
+        local row2Width = 4 + maxTpTextWidth + 4 + mpBarWidth + 4 + mpTextWidth;
+        -- Use the larger of the two rows
+        local fullWidth = math.max(row1Width, row2Width);
+        imgui.Dummy({fullWidth, 0});
+    end
 
-    local lastPlayerIndex = (partyIndex * 6) - 1;
-    if (memIdx + 1 <= lastPlayerIndex) then
-        imgui.Dummy({0, offsetSize});
+    local bottomSpacing;
+    if layout == 1 then
+        -- Layout 2: TP text and MP bar are on same row (last row)
+        -- Reserve space for whichever is taller (use reference height for consistent layout)
+        bottomSpacing = math.max(tpRefHeight, mpBarHeight);
+    else
+        -- Layout 1: HP text is below the horizontal bars (use reference height for consistent layout)
+        bottomSpacing = settings.hpTextOffsetY + hpRefHeight;
+    end
+    imgui.Dummy({0, bottomSpacing});
+
+    -- Add spacing between members: fixed base spacing + user-customizable entrySpacing (if not last visible member)
+    if (not isLastVisibleMember) then
+        local BASE_MEMBER_SPACING = 6; -- Fixed 6px spacing between members
+        imgui.Dummy({0, BASE_MEMBER_SPACING + settings.entrySpacing[partyIndex]});
     end
 end
 
 partyList.DrawWindow = function(settings)
 
     -- Obtain the player entity..
-    local party = AshitaCore:GetMemoryManager():GetParty();
-    local player = AshitaCore:GetMemoryManager():GetPlayer();
+    local party = GetPartySafe();
+    local player = GetPlayerSafe();
 
 	if (party == nil or player == nil or player.isZoning or player:GetMainJob() == 0) then
 		UpdateTextVisibility(false);
@@ -526,8 +1225,7 @@ partyList.DrawWindow = function(settings)
         UpdateTextVisibility(false, 3);
     end
 
-    selectionPrim.visible = partyTargeted;
-    arrowPrim.visible = partySubTargeted;
+    -- Cursor is now drawn directly in DrawMember using ImGui, no visibility flag needed
 end
 
 partyList.DrawPartyWindow = function(settings, party, partyIndex)
@@ -558,18 +1256,16 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
         return;
     end
 
-    local bgTitlePrim = partyWindowPrim[partyIndex].bgTitle;
     local backgroundPrim = partyWindowPrim[partyIndex].background;
 
-    -- Graphic has multiple titles
-    -- 0 = Solo
-    -- bgTitleItemHeight = Party
-    -- bgTitleItemHeight*2 = Party B
-    -- bgTitleItemHeight*3 = Party C
+    -- Determine which title texture to use based on party index and member count
+    local titleUV;
     if (partyIndex == 1) then
-        bgTitlePrim.texture_offset_y = partyMemberCount == 1 and 0 or bgTitleItemHeight;
+        titleUV = partyMemberCount == 1 and titleUVs.solo or titleUVs.party;
+    elseif (partyIndex == 2) then
+        titleUV = titleUVs.partyB;
     else
-        bgTitlePrim.texture_offset_y = bgTitleItemHeight * partyIndex
+        titleUV = titleUVs.partyC;
     end
 
     local imguiPosX, imguiPosY;
@@ -593,17 +1289,37 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
     if (imgui.Begin(windowName, true, windowFlags)) then
         imguiPosX, imguiPosY = imgui.GetWindowPos();
 
-        local nameSize = SIZE.new();
-        memberText[(partyIndex - 1) * 6].name:GetTextSize(nameSize);
-        local offsetSize = nameSize.cy > iconSize and nameSize.cy or iconSize;
+        -- Get reference height for name text to ensure consistent layout
+        local fontSizes = getFontSizes(partyIndex);
+        local nameCacheKey = fontSizes.name .. "_text";
+        if not referenceTextHeights[nameCacheKey] then
+            local nameFont = memberText[(partyIndex - 1) * 6].name;
+            local originalText = nameFont.settings.text;
+            nameFont:set_text("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+            local _, refHeight = nameFont:get_text_size();
+            referenceTextHeights[nameCacheKey] = refHeight;
+            nameFont:set_text(originalText or '');
+        end
+        local nameRefHeight = referenceTextHeights[nameCacheKey];
+        local offsetSize = nameRefHeight > iconSize and nameRefHeight or iconSize;
         imgui.Dummy({0, settings.nameTextOffsetY + offsetSize});
 
         UpdateTextVisibility(true, partyIndex);
 
+        -- Calculate which is the last member that will be drawn
+        local lastVisibleMemberIdx = firstPlayerIndex;
         for i = firstPlayerIndex, lastPlayerIndex do
             local relIndex = i - firstPlayerIndex
             if ((partyIndex == 1 and settings.expandHeight) or relIndex < partyMemberCount or relIndex < settings.minRows) then
-                DrawMember(i, settings);
+                lastVisibleMemberIdx = i;
+            end
+        end
+
+        -- Draw all members
+        for i = firstPlayerIndex, lastPlayerIndex do
+            local relIndex = i - firstPlayerIndex
+            if ((partyIndex == 1 and settings.expandHeight) or relIndex < partyMemberCount or relIndex < settings.minRows) then
+                DrawMember(i, settings, i == lastVisibleMemberIdx);
             else
                 UpdateTextVisibilityByMember(i, false);
             end
@@ -617,44 +1333,73 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
 
     -- if (fullMenuWidth[partyIndex] ~= nil and fullMenuHeight[partyIndex] ~= nil) then
         local bgWidth = fullMenuWidth[partyIndex] + (settings.bgPadding * 2);
-        local bgHeight = fullMenuHeight[partyIndex];
-        if (partyIndex > 1) then
-            bgHeight = bgHeight + (settings.bgPadding * 2)
-        end
+        local bgHeight = fullMenuHeight[partyIndex] + (settings.bgPaddingY * 2);
+
+        -- Apply colors from colorCustomization every frame (for real-time updates)
+        local bgColor = gConfig.colorCustomization.partyList.bgColor;
+        local borderColor = gConfig.colorCustomization.partyList.borderColor;
 
         backgroundPrim.bg.visible = backgroundPrim.bg.exists;
         backgroundPrim.bg.position_x = imguiPosX - settings.bgPadding;
-        backgroundPrim.bg.position_y = imguiPosY - settings.bgPadding;
-        backgroundPrim.bg.width = math.ceil(bgWidth / gConfig.partyListBgScale);
-        backgroundPrim.bg.height = math.ceil(bgHeight / gConfig.partyListBgScale);
+        backgroundPrim.bg.position_y = imguiPosY - settings.bgPaddingY;
+        backgroundPrim.bg.width = bgWidth / gConfig.partyListBgScale;
+        backgroundPrim.bg.height = bgHeight / gConfig.partyListBgScale;
+        backgroundPrim.bg.color = bgColor;
 
         backgroundPrim.br.visible = backgroundPrim.br.exists;
-        backgroundPrim.br.position_x = backgroundPrim.bg.position_x + bgWidth - math.floor((settings.borderSize * gConfig.partyListBgScale) - (settings.bgOffset * gConfig.partyListBgScale));
-        backgroundPrim.br.position_y = backgroundPrim.bg.position_y + bgHeight - math.floor((settings.borderSize * gConfig.partyListBgScale) - (settings.bgOffset * gConfig.partyListBgScale));
+        backgroundPrim.br.position_x = backgroundPrim.bg.position_x + bgWidth - settings.borderSize + settings.bgOffset;
+        backgroundPrim.br.position_y = backgroundPrim.bg.position_y + bgHeight - settings.borderSize + settings.bgOffset;
         backgroundPrim.br.width = settings.borderSize;
         backgroundPrim.br.height = settings.borderSize;
+        backgroundPrim.br.color = borderColor;
 
         backgroundPrim.tr.visible = backgroundPrim.tr.exists;
         backgroundPrim.tr.position_x = backgroundPrim.br.position_x;
-        backgroundPrim.tr.position_y = backgroundPrim.bg.position_y - settings.bgOffset * gConfig.partyListBgScale;
-        backgroundPrim.tr.width = backgroundPrim.br.width;
-        backgroundPrim.tr.height = math.ceil((backgroundPrim.br.position_y - backgroundPrim.tr.position_y) / gConfig.partyListBgScale);
+        backgroundPrim.tr.position_y = backgroundPrim.bg.position_y - settings.bgOffset;
+        backgroundPrim.tr.width = settings.borderSize;
+        backgroundPrim.tr.height = backgroundPrim.br.position_y - backgroundPrim.tr.position_y;
+        backgroundPrim.tr.color = borderColor;
 
         backgroundPrim.tl.visible = backgroundPrim.tl.exists;
-        backgroundPrim.tl.position_x = backgroundPrim.bg.position_x - settings.bgOffset * gConfig.partyListBgScale;
-        backgroundPrim.tl.position_y = backgroundPrim.tr.position_y
-        backgroundPrim.tl.width = math.ceil((backgroundPrim.tr.position_x - backgroundPrim.tl.position_x) / gConfig.partyListBgScale);
-        backgroundPrim.tl.height = backgroundPrim.tr.height;
+        backgroundPrim.tl.position_x = backgroundPrim.bg.position_x - settings.bgOffset;
+        backgroundPrim.tl.position_y = backgroundPrim.bg.position_y - settings.bgOffset;
+        backgroundPrim.tl.width = backgroundPrim.tr.position_x - backgroundPrim.tl.position_x;
+        backgroundPrim.tl.height = backgroundPrim.br.position_y - backgroundPrim.tl.position_y;
+        backgroundPrim.tl.color = borderColor;
 
         backgroundPrim.bl.visible = backgroundPrim.bl.exists;
         backgroundPrim.bl.position_x = backgroundPrim.tl.position_x;
-        backgroundPrim.bl.position_y = backgroundPrim.br.position_y;
-        backgroundPrim.bl.width = backgroundPrim.tl.width;
-        backgroundPrim.bl.height = backgroundPrim.br.height;
+        backgroundPrim.bl.position_y = backgroundPrim.bg.position_y + bgHeight - settings.borderSize + settings.bgOffset;
+        backgroundPrim.bl.width = backgroundPrim.br.position_x - backgroundPrim.bl.position_x;
+        backgroundPrim.bl.height = settings.borderSize;
+        backgroundPrim.bl.color = borderColor;
 
-        bgTitlePrim.visible = gConfig.showPartyListTitle;
-        bgTitlePrim.position_x = imguiPosX + math.floor((bgWidth / 2) - (bgTitlePrim.width * bgTitlePrim.scale_x / 2));
-        bgTitlePrim.position_y = imguiPosY - math.floor((bgTitlePrim.height * bgTitlePrim.scale_y / 2) + (2 / bgTitlePrim.scale_y));
+        -- Draw title image centered above the window
+        if (gConfig.showPartyListTitle and partyTitlesTexture ~= nil) then
+            local titleImage = tonumber(ffi.cast("uint32_t", partyTitlesTexture.image));
+
+            -- Calculate title dimensions from texture
+            -- Each title is 1/4 of the total texture height (4 titles stacked vertically)
+            local titleWidth = partyTitlesTexture.width;
+            local titleHeight = partyTitlesTexture.height / 4;
+
+            titleWidth = titleWidth * .8;
+            titleHeight = titleHeight * .8;
+
+            -- Center the title above the window
+            local titlePosX = imguiPosX + math.floor((bgWidth / 2) - (titleWidth / 2));
+            local titlePosY = imguiPosY - titleHeight + 6;
+            
+            -- Draw using foreground draw list (always use screen coordinates)
+            local draw_list = imgui.GetForegroundDrawList();
+            draw_list:AddImage(
+                titleImage,
+                {titlePosX, titlePosY},
+                {titlePosX + titleWidth, titlePosY + titleHeight},
+                {titleUV[1], titleUV[2]}, {titleUV[3], titleUV[4]},
+                IM_COL32_WHITE
+            );
+        end
     -- end
 
 	imgui.End();
@@ -700,32 +1445,63 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
 end
 
 partyList.Initialize = function(settings)
-    -- Initialize all our font objects we need
-    local name_font_settings = deep_copy_table(settings.name_font_settings);
-    local hp_font_settings = deep_copy_table(settings.hp_font_settings);
-    local mp_font_settings = deep_copy_table(settings.mp_font_settings);
-    local tp_font_settings = deep_copy_table(settings.tp_font_settings);
+    -- Cache the initial font sizes
+    cachedFontSizes = {
+		settings.fontSizes[1],
+		settings.fontSizes[2],
+		settings.fontSizes[3],
+	};
 
+	-- Cache the initial font family, flags, and outline width
+	cachedFontFamily = settings.name_font_settings.font_family or '';
+	cachedFontFlags = settings.name_font_settings.font_flags or 0;
+	cachedOutlineWidth = settings.name_font_settings.outline_width or 2;
+
+    -- Initialize all our font objects we need
     for i = 0, memberTextCount-1 do
         local partyIndex = math.ceil((i + 1) / partyMaxSize);
+		local fontSizes = getFontSizes(partyIndex);
 
-        local partyListFontOffset = gConfig.partyListFontOffset;
-        if (partyIndex == 2) then
-            partyListFontOffset = gConfig.partyList2FontOffset;
-        elseif (partyIndex == 3) then
-            partyListFontOffset = gConfig.partyList3FontOffset;
-        end
+        local name_font_settings = deep_copy_table(settings.name_font_settings);
+        local hp_font_settings = deep_copy_table(settings.hp_font_settings);
+        local mp_font_settings = deep_copy_table(settings.mp_font_settings);
+        local tp_font_settings = deep_copy_table(settings.tp_font_settings);
+        local distance_font_settings = deep_copy_table(settings.name_font_settings);
+        local zone_font_settings = deep_copy_table(settings.name_font_settings);
 
-        name_font_settings.font_height = math.max(settings.name_font_settings.font_height + partyListFontOffset, 1);
-        hp_font_settings.font_height = math.max(settings.hp_font_settings.font_height + partyListFontOffset, 1);
-        mp_font_settings.font_height = math.max(settings.mp_font_settings.font_height + partyListFontOffset, 1);
-        tp_font_settings.font_height = math.max(settings.tp_font_settings.font_height + partyListFontOffset, 1);
+        name_font_settings.font_height = math.max(fontSizes.name, 6);
+        hp_font_settings.font_height = math.max(fontSizes.hp, 6);
+        mp_font_settings.font_height = math.max(fontSizes.mp, 6);
+        tp_font_settings.font_height = math.max(fontSizes.tp, 6);
+        distance_font_settings.font_height = math.max(fontSizes.name, 6);
+        zone_font_settings.font_height = 10;  -- Fixed 10px for zone text
 
         memberText[i] = {};
-        memberText[i].name = fonts.new(name_font_settings);
-        memberText[i].hp = fonts.new(hp_font_settings);
-        memberText[i].mp = fonts.new(mp_font_settings);
-        memberText[i].tp = fonts.new(tp_font_settings);
+        -- Use FontManager for cleaner font creation
+        memberText[i].name = FontManager.create(name_font_settings);
+        memberText[i].hp = FontManager.create(hp_font_settings);
+        memberText[i].mp = FontManager.create(mp_font_settings);
+        memberText[i].tp = FontManager.create(tp_font_settings);
+        memberText[i].distance = FontManager.create(distance_font_settings);
+        memberText[i].zone = FontManager.create(zone_font_settings);
+    end
+
+    -- Load party titles texture atlas
+    partyTitlesTexture = LoadTexture('PartyList-Titles');
+    if (partyTitlesTexture ~= nil) then
+        -- Query actual texture dimensions using d3d8 library's interface
+        local texture_ptr = ffi.cast('IDirect3DTexture8*', partyTitlesTexture.image);
+        local res, desc = texture_ptr:GetLevelDesc(0);
+
+        if (desc ~= nil) then
+            partyTitlesTexture.width = desc.Width;
+            partyTitlesTexture.height = desc.Height;
+        else
+            -- Fallback to reasonable default if query fails
+            partyTitlesTexture.width = 64;
+            partyTitlesTexture.height = 64;
+            print('[HXUI] Warning: Failed to query party titles texture dimensions, using default 64x64');
+        end
     end
 
     -- Initialize images
@@ -742,71 +1518,110 @@ partyList.Initialize = function(settings)
         end
 
         partyWindowPrim[i].background = backgroundPrim;
-
-        local bgTitlePrim = primitives.new(settings.prim_data);
-        bgTitlePrim.color = 0xFFC5CFDC;
-        bgTitlePrim.texture = string.format('%s/assets/PartyList-Titles.png', addon.path);
-        bgTitlePrim.visible = false;
-        bgTitlePrim.can_focus = false;
-        bgTitleItemHeight = bgTitlePrim.height / bgTitleAtlasItemCount;
-        bgTitlePrim.height = bgTitleItemHeight;
-
-        partyWindowPrim[i].bgTitle = bgTitlePrim;
     end
 
-    selectionPrim = primitives.new(settings.prim_data);
-    selectionPrim.color = 0xFFFFFFFF;
-    selectionPrim.texture = string.format('%s/assets/Selector.png', addon.path);
-    selectionPrim.visible = false;
-    selectionPrim.can_focus = false;
-
-    arrowPrim = primitives.new(settings.prim_data);
-    arrowPrim.color = 0xFFFFFFFF;
-    arrowPrim.visible = false;
-    arrowPrim.can_focus = false;
-
-    partyList.UpdateFonts(settings);
+    -- Load cursor textures (handled in UpdateVisuals)
+    partyList.UpdateVisuals(settings);
 end
 
-partyList.UpdateFonts = function(settings)
-    -- Update fonts
+partyList.UpdateVisuals = function(settings)
+    -- Check if font family, flags (weight), or outline width changed - if so, recreate ALL fonts
+    local fontFamilyChanged = false;
+    local fontFlagsChanged = false;
+    local outlineWidthChanged = false;
+
+    if settings.name_font_settings.font_family ~= cachedFontFamily then
+        fontFamilyChanged = true;
+        cachedFontFamily = settings.name_font_settings.font_family;
+    end
+
+    if settings.name_font_settings.font_flags ~= cachedFontFlags then
+        fontFlagsChanged = true;
+        cachedFontFlags = settings.name_font_settings.font_flags;
+    end
+
+    if settings.name_font_settings.outline_width ~= cachedOutlineWidth then
+        outlineWidthChanged = true;
+        cachedOutlineWidth = settings.name_font_settings.outline_width;
+    end
+
+    -- Check which party font sizes changed
+    local sizesChanged = {false, false, false};
+    for partyIndex = 1, 3 do
+        if settings.fontSizes[partyIndex] ~= cachedFontSizes[partyIndex] then
+            sizesChanged[partyIndex] = true;
+            cachedFontSizes[partyIndex] = settings.fontSizes[partyIndex];
+        end
+    end
+
+    -- If font family, weight, or outline width changed, mark all parties as needing recreation
+    if fontFamilyChanged or fontFlagsChanged or outlineWidthChanged then
+        sizesChanged = {true, true, true};
+    end
+
+    -- Only recreate fonts for members of parties whose size changed
     for i = 0, memberTextCount-1 do
         local partyIndex = math.ceil((i + 1) / partyMaxSize);
 
-        local partyListFontOffset = gConfig.partyListFontOffset;
-        if (partyIndex == 2) then
-            partyListFontOffset = gConfig.partyList2FontOffset;
-        elseif (partyIndex == 3) then
-            partyListFontOffset = gConfig.partyList3FontOffset;
+        -- Skip if this party's size didn't change
+        if not sizesChanged[partyIndex] then
+            goto continue
         end
 
-        local name_font_settings_font_height = math.max(settings.name_font_settings.font_height + partyListFontOffset, 1);
-        local hp_font_settings_font_height = math.max(settings.hp_font_settings.font_height + partyListFontOffset, 1);
-        local mp_font_settings_font_height = math.max(settings.mp_font_settings.font_height + partyListFontOffset, 1);
-        local tp_font_settings_font_height = math.max(settings.tp_font_settings.font_height + partyListFontOffset, 1);
+		local fontSizes = getFontSizes(partyIndex);
 
-        memberText[i].name:SetFontHeight(name_font_settings_font_height);
-        memberText[i].hp:SetFontHeight(hp_font_settings_font_height);
-        memberText[i].mp:SetFontHeight(mp_font_settings_font_height);
-        memberText[i].tp:SetFontHeight(tp_font_settings_font_height);
+        -- Create font settings with proper height
+        local name_font_settings = deep_copy_table(settings.name_font_settings);
+        local hp_font_settings = deep_copy_table(settings.hp_font_settings);
+        local mp_font_settings = deep_copy_table(settings.mp_font_settings);
+        local tp_font_settings = deep_copy_table(settings.tp_font_settings);
+        local distance_font_settings = deep_copy_table(settings.name_font_settings);
+        local zone_font_settings = deep_copy_table(settings.name_font_settings);
+
+        name_font_settings.font_height = math.max(fontSizes.name, 6);
+        hp_font_settings.font_height = math.max(fontSizes.hp, 6);
+        mp_font_settings.font_height = math.max(fontSizes.mp, 6);
+        tp_font_settings.font_height = math.max(fontSizes.tp, 6);
+        distance_font_settings.font_height = math.max(fontSizes.name, 6);
+        zone_font_settings.font_height = 10;  -- Fixed 10px for zone text
+
+        -- Use FontManager for cleaner font recreation
+        if (memberText[i] ~= nil) then
+            memberText[i].name = FontManager.recreate(memberText[i].name, name_font_settings);
+            memberText[i].hp = FontManager.recreate(memberText[i].hp, hp_font_settings);
+            memberText[i].mp = FontManager.recreate(memberText[i].mp, mp_font_settings);
+            memberText[i].tp = FontManager.recreate(memberText[i].tp, tp_font_settings);
+            memberText[i].distance = FontManager.recreate(memberText[i].distance, distance_font_settings);
+            memberText[i].zone = FontManager.recreate(memberText[i].zone, zone_font_settings);
+        end
+
+        ::continue::
+    end
+
+    -- Reset reference heights so they get recalculated with new font
+    if fontFamilyChanged or fontFlagsChanged or outlineWidthChanged or sizesChanged[1] or sizesChanged[2] or sizesChanged[3] then
+        referenceTextHeights = {};
+    end
+
+    -- Reset cached colors for parties that changed
+    for partyIndex = 1, 3 do
+        if sizesChanged[partyIndex] then
+            for i = (partyIndex - 1) * partyMaxSize, (partyIndex * partyMaxSize) - 1 do
+                memberTextColorCache[i] = nil;
+            end
+        end
     end
 
     -- Update images
     local bgChanged = gConfig.partyListBackgroundName ~= loadedBg;
     loadedBg = gConfig.partyListBackgroundName;
 
-    local bgColor = tonumber(string.format('%02x%02x%02x%02x', gConfig.partyListBgColor[4], gConfig.partyListBgColor[1], gConfig.partyListBgColor[2], gConfig.partyListBgColor[3]), 16);
-    local borderColor = tonumber(string.format('%02x%02x%02x%02x', gConfig.partyListBorderColor[4], gConfig.partyListBorderColor[1], gConfig.partyListBorderColor[2], gConfig.partyListBorderColor[3]), 16);
-
     for i = 1, 3 do
-        partyWindowPrim[i].bgTitle.scale_x = gConfig.partyListBgScale / 2.30;
-        partyWindowPrim[i].bgTitle.scale_y = gConfig.partyListBgScale / 2.30;
-
         local backgroundPrim = partyWindowPrim[i].background;
 
         for _, k in ipairs(bgImageKeys) do
             local file_name = string.format('%s-%s.png', gConfig.partyListBackgroundName, k);
-            backgroundPrim[k].color = k == 'bg' and bgColor or borderColor;
+            -- Note: colors are now applied every frame in DrawPartyWindow for real-time updates
             if (bgChanged) then
                 -- Keep width/height to prevent flicker when switching to new texture
                 local width, height = backgroundPrim[k].width, backgroundPrim[k].height;
@@ -816,24 +1631,153 @@ partyList.UpdateFonts = function(settings)
 
                 backgroundPrim[k].exists = ashita.fs.exists(filepath);
             end
-            backgroundPrim[k].scale_x = gConfig.partyListBgScale;
-            backgroundPrim[k].scale_y = gConfig.partyListBgScale;
+            -- Only scale the main background, not the borders
+            if k == 'bg' then
+                backgroundPrim[k].scale_x = gConfig.partyListBgScale;
+                backgroundPrim[k].scale_y = gConfig.partyListBgScale;
+            else
+                backgroundPrim[k].scale_x = 1.0;
+                backgroundPrim[k].scale_y = 1.0;
+            end
         end
     end
 
-    arrowPrim.texture = string.format('%s/assets/cursors/%s', addon.path, gConfig.partyListCursor);
+    -- Load cursor texture (like job icons)
+    if (gConfig.partyListCursor ~= currentCursorName) then
+        -- Cursor changed, clear cache and load new texture
+        cursorTextures = T{};
+        currentCursorName = gConfig.partyListCursor;
+
+        if (gConfig.partyListCursor ~= nil and gConfig.partyListCursor ~= '') then
+            local cursorTexture = LoadTexture(string.format('cursors/%s', gConfig.partyListCursor:gsub('%.png$', '')));
+            if (cursorTexture ~= nil) then
+                -- Query actual texture dimensions using d3d8 library's interface
+                local texture_ptr = ffi.cast('IDirect3DTexture8*', cursorTexture.image);
+                local res, desc = texture_ptr:GetLevelDesc(0);
+
+                if (desc ~= nil) then
+                    cursorTexture.width = desc.Width;
+                    cursorTexture.height = desc.Height;
+                else
+                    -- Fallback to reasonable default if query fails
+                    cursorTexture.width = 32;
+                    cursorTexture.height = 32;
+                    print(string.format('[HXUI] Warning: Failed to query cursor texture dimensions for %s, using default 32x32', gConfig.partyListCursor));
+                end
+
+                cursorTextures[gConfig.partyListCursor] = cursorTexture;
+            end
+        end
+    end
 end
 
 partyList.SetHidden = function(hidden)
 	if (hidden == true) then
         UpdateTextVisibility(false);
-        selectionPrim.visible = false;
-        arrowPrim.visible = false;
+        -- Cursor is now drawn directly in DrawMember, no visibility flag needed
 	end
 end
 
 partyList.HandleZonePacket = function(e)
     statusHandler.clear_cache();
+    -- Clear all party casts when zoning
+    partyList.partyCasts = {};
+end
+
+partyList.Cleanup = function()
+	-- Use FontManager for cleaner font destruction
+	for i = 0, memberTextCount - 1 do
+		if (memberText[i] ~= nil) then
+			memberText[i].name = FontManager.destroy(memberText[i].name);
+			memberText[i].hp = FontManager.destroy(memberText[i].hp);
+			memberText[i].mp = FontManager.destroy(memberText[i].mp);
+			memberText[i].tp = FontManager.destroy(memberText[i].tp);
+			memberText[i].distance = FontManager.destroy(memberText[i].distance);
+			memberText[i].zone = FontManager.destroy(memberText[i].zone);
+		end
+	end
+
+	-- Clear party titles texture (GC'd automatically via gc_safe_release)
+	partyTitlesTexture = nil;
+
+	-- Clear cursor texture cache (textures are GC'd automatically via gc_safe_release)
+	cursorTextures = T{};
+	currentCursorName = nil;
+
+	-- Destroy party window primitives
+	for i = 1, 3 do
+		if (partyWindowPrim[i] ~= nil) then
+			if (partyWindowPrim[i].background ~= nil) then
+				for _, k in ipairs(bgImageKeys) do
+					if (partyWindowPrim[i].background[k] ~= nil) then
+						partyWindowPrim[i].background[k]:destroy();
+					end
+				end
+			end
+		end
+	end
+
+	-- Clear tables
+	memberText = {};
+	partyWindowPrim = {{background = {}}, {background = {}}, {background = {}}};
+end
+
+partyList.HandleActionPacket = function(actionPacket)
+	if (actionPacket == nil or actionPacket.UserId == nil) then
+		return;
+	end
+
+	-- Type 8 = Magic (Start) - Party member begins casting
+	if (actionPacket.Type == 8) then
+		-- Get the spell ID from the action
+		if (actionPacket.Targets and #actionPacket.Targets > 0 and
+		    actionPacket.Targets[1].Actions and #actionPacket.Targets[1].Actions > 0) then
+			local spellId = actionPacket.Targets[1].Actions[1].Param;
+			local existingCast = partyList.partyCasts[actionPacket.UserId];
+
+			-- According to XiPackets: interrupted casts send ANOTHER Type 8 with "sp" prefix (vs "ca" for normal start)
+			-- If we already have an active cast for THE SAME spell, this is likely the interruption packet
+			if (existingCast ~= nil and existingCast.spellId == spellId) then
+				-- Second Type 8 for same spell = interruption signal, clear the cast
+				partyList.partyCasts[actionPacket.UserId] = nil;
+				return; -- Don't create new cast data
+			end
+
+			-- If we have a cast for a DIFFERENT spell, clear it (new cast started)
+			if (existingCast ~= nil and existingCast.spellId ~= spellId) then
+				partyList.partyCasts[actionPacket.UserId] = nil;
+			end
+
+			-- Create new cast data (first Type 8 for this spell)
+			local spell = AshitaCore:GetResourceManager():GetSpellById(spellId);
+			if (spell ~= nil and spell.Name[1] ~= nil) then
+				local spellName = encoding:ShiftJIS_To_UTF8(spell.Name[1], true);
+				-- Cast time is in quarter seconds (e.g., 40 = 10 seconds)
+				local castTime = spell.CastTime / 4.0;
+
+				partyList.partyCasts[actionPacket.UserId] = T{
+					spellName = spellName,
+					spellId = spellId,
+					castTime = castTime,
+					startTime = os.clock(),  -- High precision timestamp
+					timestamp = os.time()    -- For cleanup
+				};
+			end
+		end
+	-- Type 4 = Magic (Finish) - Cast completed
+	-- Type 11 = Monster Skill (Finish) - Some abilities
+	elseif (actionPacket.Type == 4 or actionPacket.Type == 11) then
+		-- Clear the cast for this party member
+		partyList.partyCasts[actionPacket.UserId] = nil;
+	end
+
+	-- Cleanup stale casts (older than 30 seconds)
+	local now = os.time();
+	for serverId, data in pairs(partyList.partyCasts) do
+		if (data.timestamp + 30 < now) then
+			partyList.partyCasts[serverId] = nil;
+		end
+	end
 end
 
 return partyList;
