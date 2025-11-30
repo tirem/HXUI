@@ -48,6 +48,9 @@ local titleUVs = {
 -- Cache last set colors to avoid expensive SetColor() calls every frame
 local memberTextColorCache = {};
 
+-- HP interpolation tracking for each party member (indexed by absolute member index 0-17)
+local memberInterpolation = {};
+
 -- Cache converted border color to avoid redundant U32 conversion every frame
 local cachedBorderColorU32 = nil;
 local cachedBorderColorARGB = nil;
@@ -532,11 +535,203 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     -- Detect current layout
     local layout = gConfig.partyListLayout or 0;
 
+    -- HP Interpolation logic (damage visualization)
+    local currentTime = os.clock();
+    local hppPercent = memInfo.hpp * 100; -- Convert to 0-100 range
+
+    -- Initialize interpolation for this member if not set
+    if not memberInterpolation[memIdx] then
+        memberInterpolation[memIdx] = {
+            currentHpp = hppPercent,
+            interpolationDamagePercent = 0,
+            interpolationHealPercent = 0
+        };
+    end
+
+    -- If the member takes damage
+    if hppPercent < memberInterpolation[memIdx].currentHpp then
+        local previousInterpolationDamagePercent = memberInterpolation[memIdx].interpolationDamagePercent;
+
+        local damageAmount = memberInterpolation[memIdx].currentHpp - hppPercent;
+
+        memberInterpolation[memIdx].interpolationDamagePercent = memberInterpolation[memIdx].interpolationDamagePercent + damageAmount;
+
+        if previousInterpolationDamagePercent > 0 and memberInterpolation[memIdx].lastHitAmount and damageAmount > memberInterpolation[memIdx].lastHitAmount then
+            memberInterpolation[memIdx].lastHitTime = currentTime;
+            memberInterpolation[memIdx].lastHitAmount = damageAmount;
+        elseif previousInterpolationDamagePercent == 0 then
+            memberInterpolation[memIdx].lastHitTime = currentTime;
+            memberInterpolation[memIdx].lastHitAmount = damageAmount;
+        end
+
+        if not memberInterpolation[memIdx].lastHitTime or currentTime > memberInterpolation[memIdx].lastHitTime + (settings.hitFlashDuration * 0.25) then
+            memberInterpolation[memIdx].lastHitTime = currentTime;
+            memberInterpolation[memIdx].lastHitAmount = damageAmount;
+        end
+
+        -- If we previously were interpolating with an empty bar, reset the hit delay effect
+        if previousInterpolationDamagePercent == 0 then
+            memberInterpolation[memIdx].hitDelayStartTime = currentTime;
+        end
+
+        -- Clear healing interpolation when taking damage
+        memberInterpolation[memIdx].interpolationHealPercent = 0;
+        memberInterpolation[memIdx].healDelayStartTime = nil;
+    elseif hppPercent > memberInterpolation[memIdx].currentHpp then
+        -- If the member heals
+        local previousInterpolationHealPercent = memberInterpolation[memIdx].interpolationHealPercent;
+
+        local healAmount = hppPercent - memberInterpolation[memIdx].currentHpp;
+
+        memberInterpolation[memIdx].interpolationHealPercent = memberInterpolation[memIdx].interpolationHealPercent + healAmount;
+
+        if previousInterpolationHealPercent > 0 and memberInterpolation[memIdx].lastHealAmount and healAmount > memberInterpolation[memIdx].lastHealAmount then
+            memberInterpolation[memIdx].lastHealTime = currentTime;
+            memberInterpolation[memIdx].lastHealAmount = healAmount;
+        elseif previousInterpolationHealPercent == 0 then
+            memberInterpolation[memIdx].lastHealTime = currentTime;
+            memberInterpolation[memIdx].lastHealAmount = healAmount;
+        end
+
+        if not memberInterpolation[memIdx].lastHealTime or currentTime > memberInterpolation[memIdx].lastHealTime + (settings.hitFlashDuration * 0.25) then
+            memberInterpolation[memIdx].lastHealTime = currentTime;
+            memberInterpolation[memIdx].lastHealAmount = healAmount;
+        end
+
+        -- If we previously were interpolating with an empty bar, reset the heal delay effect
+        if previousInterpolationHealPercent == 0 then
+            memberInterpolation[memIdx].healDelayStartTime = currentTime;
+        end
+
+        -- Clear damage interpolation when healing
+        memberInterpolation[memIdx].interpolationDamagePercent = 0;
+        memberInterpolation[memIdx].hitDelayStartTime = nil;
+    end
+
+    memberInterpolation[memIdx].currentHpp = hppPercent;
+
+    -- Reduce the damage HP amount to display based on the time passed since last frame
+    if memberInterpolation[memIdx].interpolationDamagePercent > 0 and memberInterpolation[memIdx].hitDelayStartTime and currentTime > memberInterpolation[memIdx].hitDelayStartTime + settings.hitDelayDuration then
+        if memberInterpolation[memIdx].lastFrameTime then
+            local deltaTime = currentTime - memberInterpolation[memIdx].lastFrameTime;
+
+            local animSpeed = 0.1 + (0.9 * (memberInterpolation[memIdx].interpolationDamagePercent / 100));
+
+            memberInterpolation[memIdx].interpolationDamagePercent = memberInterpolation[memIdx].interpolationDamagePercent - (settings.hitInterpolationDecayPercentPerSecond * deltaTime * animSpeed);
+
+            -- Clamp our percent to 0
+            memberInterpolation[memIdx].interpolationDamagePercent = math.max(0, memberInterpolation[memIdx].interpolationDamagePercent);
+        end
+    end
+
+    -- Reduce the healing HP amount to display based on the time passed since last frame
+    if memberInterpolation[memIdx].interpolationHealPercent > 0 and memberInterpolation[memIdx].healDelayStartTime and currentTime > memberInterpolation[memIdx].healDelayStartTime + settings.hitDelayDuration then
+        if memberInterpolation[memIdx].lastFrameTime then
+            local deltaTime = currentTime - memberInterpolation[memIdx].lastFrameTime;
+
+            local animSpeed = 0.1 + (0.9 * (memberInterpolation[memIdx].interpolationHealPercent / 100));
+
+            memberInterpolation[memIdx].interpolationHealPercent = memberInterpolation[memIdx].interpolationHealPercent - (settings.hitInterpolationDecayPercentPerSecond * deltaTime * animSpeed);
+
+            -- Clamp our percent to 0
+            memberInterpolation[memIdx].interpolationHealPercent = math.max(0, memberInterpolation[memIdx].interpolationHealPercent);
+        end
+    end
+
+    -- Calculate damage flash overlay alpha
+    local interpolationOverlayAlpha = 0;
+    if gConfig.healthBarFlashEnabled then
+        if memberInterpolation[memIdx].lastHitTime and currentTime < memberInterpolation[memIdx].lastHitTime + settings.hitFlashDuration then
+            local hitFlashTime = currentTime - memberInterpolation[memIdx].lastHitTime;
+            local hitFlashTimePercent = hitFlashTime / settings.hitFlashDuration;
+
+            local maxAlphaHitPercent = 20;
+            local maxAlpha = math.min(memberInterpolation[memIdx].lastHitAmount, maxAlphaHitPercent) / maxAlphaHitPercent;
+
+            maxAlpha = math.max(maxAlpha * 0.6, 0.4);
+
+            interpolationOverlayAlpha = math.pow(1 - hitFlashTimePercent, 2) * maxAlpha;
+        end
+    end
+
+    -- Calculate healing flash overlay alpha
+    local healInterpolationOverlayAlpha = 0;
+    if gConfig.healthBarFlashEnabled then
+        if memberInterpolation[memIdx].lastHealTime and currentTime < memberInterpolation[memIdx].lastHealTime + settings.hitFlashDuration then
+            local healFlashTime = currentTime - memberInterpolation[memIdx].lastHealTime;
+            local healFlashTimePercent = healFlashTime / settings.hitFlashDuration;
+
+            local maxAlphaHealPercent = 20;
+            local maxAlpha = math.min(memberInterpolation[memIdx].lastHealAmount, maxAlphaHealPercent) / maxAlphaHealPercent;
+
+            maxAlpha = math.max(maxAlpha * 0.6, 0.4);
+
+            healInterpolationOverlayAlpha = math.pow(1 - healFlashTimePercent, 2) * maxAlpha;
+        end
+    end
+
+    memberInterpolation[memIdx].lastFrameTime = currentTime;
+
+    -- Build HP bar data with interpolation
+    -- Calculate base HP for display (subtract healing to show old HP during heal animation)
+    local baseHpp = memInfo.hpp;
+    if memberInterpolation[memIdx].interpolationHealPercent and memberInterpolation[memIdx].interpolationHealPercent > 0 then
+        -- Convert from 0-1 range to 0-100, subtract heal, clamp, convert back
+        local hppInPercent = memInfo.hpp * 100;
+        hppInPercent = hppInPercent - memberInterpolation[memIdx].interpolationHealPercent;
+        hppInPercent = math.max(0, hppInPercent);
+        baseHpp = hppInPercent / 100;
+    end
+
+    local hpPercentData = {{baseHpp, hpGradient}};
+
+    -- Add interpolation bar for damage taken
+    if memberInterpolation[memIdx].interpolationDamagePercent and memberInterpolation[memIdx].interpolationDamagePercent > 0 then
+        local interpolationOverlay;
+
+        if gConfig.healthBarFlashEnabled and interpolationOverlayAlpha > 0 then
+            interpolationOverlay = {
+                '#ffacae', -- overlay color
+                interpolationOverlayAlpha -- overlay alpha
+            };
+        end
+
+        table.insert(
+            hpPercentData,
+            {
+                memberInterpolation[memIdx].interpolationDamagePercent / 100, -- interpolation percent
+                {'#cf3437', '#c54d4d'}, -- interpolation gradient (red)
+                interpolationOverlay
+            }
+        );
+    end
+
+    -- Add interpolation bar for healing received
+    if memberInterpolation[memIdx].interpolationHealPercent and memberInterpolation[memIdx].interpolationHealPercent > 0 then
+        local healInterpolationOverlay;
+
+        if gConfig.healthBarFlashEnabled and healInterpolationOverlayAlpha > 0 then
+            healInterpolationOverlay = {
+                '#c8ffc8', -- overlay color (light green)
+                healInterpolationOverlayAlpha -- overlay alpha
+            };
+        end
+
+        table.insert(
+            hpPercentData,
+            {
+                memberInterpolation[memIdx].interpolationHealPercent / 100, -- interpolation percent
+                {'#4ade80', '#86efac'}, -- interpolation gradient (green)
+                healInterpolationOverlay
+            }
+        );
+    end
+
     -- Draw the HP bar (or zone bar for out-of-zone members)
     if (memInfo.inzone) then
         -- Use individual HP bar height in Layout 2
         local currentHpBarHeight = (layout == 1) and hpBarHeight or barHeight;
-        progressbar.ProgressBar({{memInfo.hpp, hpGradient}}, {hpBarWidth, currentHpBarHeight}, {borderConfig=borderConfig, decorate = gConfig.showPartyListBookends});
+        progressbar.ProgressBar(hpPercentData, {hpBarWidth, currentHpBarHeight}, {borderConfig=borderConfig, decorate = gConfig.showPartyListBookends});
         -- Hide zone text when in zone
         memberText[memIdx].zone:set_visible(false);
     elseif (memInfo.zone == '' or memInfo.zone == nil) then

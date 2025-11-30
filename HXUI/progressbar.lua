@@ -458,8 +458,8 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 	if gConfig and gConfig.colorCustomization and gConfig.colorCustomization.shared and gConfig.colorCustomization.shared.backgroundGradient then
 		bgColor = gConfig.colorCustomization.shared.backgroundGradient.start;
 	end
-	local bgR, bgG, bgB = hex2rgba(bgColor);
-	local bgColorU32 = imgui.GetColorU32({bgR / 255, bgG / 255, bgB / 255, 1.0});
+	local bgR, bgG, bgB, bgA = hex2rgba(bgColor);
+	local bgColorU32 = imgui.GetColorU32({bgR / 255, bgG / 255, bgB / 255, bgA / 255});
 
 	local draw_list = GetUIDrawList();
 

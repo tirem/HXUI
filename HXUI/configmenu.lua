@@ -278,6 +278,10 @@ local function DrawTargetBarSettings()
             imgui.ShowHelp('Vertical scale multiplier for cast bar height.');
         end
 
+        imgui.Text('Buffs/Debuffs Position:');
+        DrawSlider('Buffs Offset Y', 'targetBarBuffsOffsetY', -20, 50, '%.0f');
+        imgui.ShowHelp('Vertical offset for buffs/debuffs below the HP bar (in pixels).');
+
         DrawSlider('Icon Scale', 'targetBarIconScale', 0.1, 3.0, '%.1f');
         DrawSlider('Icon Font Size', 'targetBarIconFontSize', 8, 36);
 

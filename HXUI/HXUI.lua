@@ -147,8 +147,9 @@ T{
 	targetBarCastFontSize = 16,
 	targetBarIconScale = 1,
 	targetBarIconFontSize = 16,
-	targetBarCastBarOffsetY = 10,
-	targetBarCastBarScaleX = 1,
+	targetBarBuffsOffsetY = 4,
+	targetBarCastBarOffsetY = 6,
+	targetBarCastBarScaleX = 0.4,
 	targetBarCastBarScaleY = 1,
 	showTargetDistance = true,
 	showTargetBarBookends = true,
@@ -373,7 +374,7 @@ T{
 	healthBarFlashEnabled = true,   -- Flash effect when taking damage
 	tpBarFlashEnabled = true,       -- Flash effect when TP reaches 100%
 	noBookendRounding = 4,          -- Bar roundness for bars without bookends (0-10)
-	barBorderThickness = 2,         -- Border thickness for all progress bars (1-5)
+	barBorderThickness = 1,         -- Border thickness for all progress bars (1-5)
 
 	-- Color customization settings
 	colorCustomization = T{
@@ -523,8 +524,10 @@ T{
 		topTextXOffset = 5,
 		bottomTextYOffset = 0,
 		bottomTextXOffset = 15,
+		-- Buff/Debuff positioning
+		buffsOffsetY = 4,
 		-- Cast bar positioning and scaling
-		castBarOffsetY = 10,
+		castBarOffsetY = 6,
 		castBarOffsetX = 12,
 		castBarWidth = 500,  -- Base width (will be adjusted by scale and inset)
 		name_font_settings =
@@ -582,8 +585,10 @@ T{
 	-- settings for the playerbar
 	playerBarSettings =
 	T{
-		hitInterpolationMaxTime = 0.5,
-		hitDelayLength = 0.5,
+		-- Damage interpolation
+		hitInterpolationDecayPercentPerSecond = 150,
+		hitDelayDuration = 0.5,
+		hitFlashDuration = 0.4,
 		barWidth = 500,
 		barSpacing = 10,
 		barHeight = 20,
@@ -737,8 +742,12 @@ T{
 		};
 	};
 
-	partyListSettings = 
+	partyListSettings =
 	T{
+		-- Damage interpolation
+		hitInterpolationDecayPercentPerSecond = 150,
+		hitDelayDuration = 0.5,
+		hitFlashDuration = 0.4,
 		hpBarWidth = 150,
 		tpBarWidth = 100,
 		mpBarWidth = 100,
@@ -1134,6 +1143,8 @@ function UpdateUserSettings()
 	-- Note: percent_font_settings.color is set dynamically in targetbar.DrawWindow based on HP amount
 	gAdjustedSettings.targetBarSettings.iconSize = ds.targetBarSettings.iconSize * us.targetBarIconScale;
 	gAdjustedSettings.targetBarSettings.arrowSize = ds.targetBarSettings.arrowSize * us.targetBarScaleY;
+	-- Buff/Debuff positioning
+	gAdjustedSettings.targetBarSettings.buffsOffsetY = us.targetBarBuffsOffsetY;
 	-- Cast bar positioning and scaling (use adjusted barWidth, not default)
 	gAdjustedSettings.targetBarSettings.castBarOffsetY = us.targetBarCastBarOffsetY;
 	gAdjustedSettings.targetBarSettings.castBarOffsetX = ds.targetBarSettings.castBarOffsetX; -- Fixed offset from default settings

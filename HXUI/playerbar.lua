@@ -16,7 +16,9 @@ local lastHpTextColor;
 local lastMpTextColor;
 local lastTpTextColor;
 
-local playerbar = {};
+local playerbar = {
+	interpolation = {}
+};
 
 local _HXUI_DEV_DEBUG_INTERPOLATION = false;
 local _HXUI_DEV_DEBUG_INTERPOLATION_DELAY, _HXUI_DEV_DEBUG_INTERPOLATION_NEXT_TIME;
@@ -58,58 +60,136 @@ playerbar.DrawWindow = function(settings)
 
 	local currentTime = os.clock();
 
-    if playerbar.previousHPP then
-    	if SelfHPPercent < playerbar.currentHPP then
-    		playerbar.previousHPP = playerbar.currentHPP;
-    		playerbar.currentHPP = SelfHPPercent;
-    		playerbar.lastHitTime = currentTime;
-    	end
-    else
-    	playerbar.currentHPP = SelfHPPercent;
-    	playerbar.previousHPP = SelfHPPercent;
-    end
-
-    if _HXUI_DEV_DEBUG_INTERPOLATION then
-	    if os.time() > _HXUI_DEV_DEBUG_INTERPOLATION_NEXT_TIME then
-	    	playerbar.previousHPP = 75;
-	    	playerbar.currentHPP = 50;
-			playerbar.lastHitTime = currentTime;
-
-			_HXUI_DEV_DEBUG_INTERPOLATION_NEXT_TIME = os.time() + 2;
-	    end
+	-- Initialize interpolation if not set
+	if not playerbar.interpolation.currentHpp then
+		playerbar.interpolation.currentHpp = SelfHPPercent;
+		playerbar.interpolation.interpolationDamagePercent = 0;
+		playerbar.interpolation.interpolationHealPercent = 0;
 	end
 
-    local interpolationPercent;
-    local interpolationOverlayAlpha = 0;
+	-- If the player takes damage
+	if SelfHPPercent < playerbar.interpolation.currentHpp then
+		local previousInterpolationDamagePercent = playerbar.interpolation.interpolationDamagePercent;
 
-    if playerbar.currentHPP < playerbar.previousHPP then
-    	local hppDelta = playerbar.previousHPP - playerbar.currentHPP;
+		local damageAmount = playerbar.interpolation.currentHpp - SelfHPPercent;
 
-    	if currentTime > playerbar.lastHitTime + settings.hitDelayLength then
-    		-- local interpolationTimeTotal = settings.hitInterpolationMaxTime * (hppDelta / 100);
-    		local interpolationTimeTotal = settings.hitInterpolationMaxTime;
-    		local interpolationTimeElapsed = currentTime - playerbar.lastHitTime - settings.hitDelayLength;
+		playerbar.interpolation.interpolationDamagePercent = playerbar.interpolation.interpolationDamagePercent + damageAmount;
 
-    		if interpolationTimeElapsed <= interpolationTimeTotal then
-    			local interpolationTimeElapsedPercent = easeOutPercent(interpolationTimeElapsed / interpolationTimeTotal);
+		if previousInterpolationDamagePercent > 0 and playerbar.interpolation.lastHitAmount and damageAmount > playerbar.interpolation.lastHitAmount then
+			playerbar.interpolation.lastHitTime = currentTime;
+			playerbar.interpolation.lastHitAmount = damageAmount;
+		elseif previousInterpolationDamagePercent == 0 then
+			playerbar.interpolation.lastHitTime = currentTime;
+			playerbar.interpolation.lastHitAmount = damageAmount;
+		end
 
-    			interpolationPercent = hppDelta * (1 - interpolationTimeElapsedPercent);
-    		end
-    	elseif currentTime - playerbar.lastHitTime <= settings.hitDelayLength then
-    		interpolationPercent = hppDelta;
+		if not playerbar.interpolation.lastHitTime or currentTime > playerbar.interpolation.lastHitTime + (settings.hitFlashDuration * 0.25) then
+			playerbar.interpolation.lastHitTime = currentTime;
+			playerbar.interpolation.lastHitAmount = damageAmount;
+		end
 
-			if gConfig.healthBarFlashEnabled then
-				local hitDelayTime = currentTime - playerbar.lastHitTime;
-				local hitDelayHalfDuration = settings.hitDelayLength / 2;
+		-- If we previously were interpolating with an empty bar, reset the hit delay effect
+		if previousInterpolationDamagePercent == 0 then
+			playerbar.interpolation.hitDelayStartTime = currentTime;
+		end
 
-				if hitDelayTime > hitDelayHalfDuration then
-					interpolationOverlayAlpha = 1 - ((hitDelayTime - hitDelayHalfDuration) / hitDelayHalfDuration);
-				else
-					interpolationOverlayAlpha = hitDelayTime / hitDelayHalfDuration;
-				end
-			end
-    	end
-    end
+		-- Clear healing interpolation when taking damage
+		playerbar.interpolation.interpolationHealPercent = 0;
+		playerbar.interpolation.healDelayStartTime = nil;
+	elseif SelfHPPercent > playerbar.interpolation.currentHpp then
+		-- If the player heals
+		local previousInterpolationHealPercent = playerbar.interpolation.interpolationHealPercent;
+
+		local healAmount = SelfHPPercent - playerbar.interpolation.currentHpp;
+
+		playerbar.interpolation.interpolationHealPercent = playerbar.interpolation.interpolationHealPercent + healAmount;
+
+		if previousInterpolationHealPercent > 0 and playerbar.interpolation.lastHealAmount and healAmount > playerbar.interpolation.lastHealAmount then
+			playerbar.interpolation.lastHealTime = currentTime;
+			playerbar.interpolation.lastHealAmount = healAmount;
+		elseif previousInterpolationHealPercent == 0 then
+			playerbar.interpolation.lastHealTime = currentTime;
+			playerbar.interpolation.lastHealAmount = healAmount;
+		end
+
+		if not playerbar.interpolation.lastHealTime or currentTime > playerbar.interpolation.lastHealTime + (settings.hitFlashDuration * 0.25) then
+			playerbar.interpolation.lastHealTime = currentTime;
+			playerbar.interpolation.lastHealAmount = healAmount;
+		end
+
+		-- If we previously were interpolating with an empty bar, reset the heal delay effect
+		if previousInterpolationHealPercent == 0 then
+			playerbar.interpolation.healDelayStartTime = currentTime;
+		end
+
+		-- Clear damage interpolation when healing
+		playerbar.interpolation.interpolationDamagePercent = 0;
+		playerbar.interpolation.hitDelayStartTime = nil;
+	end
+
+	playerbar.interpolation.currentHpp = SelfHPPercent;
+
+	-- Reduce the damage HP amount to display based on the time passed since last frame
+	if playerbar.interpolation.interpolationDamagePercent > 0 and playerbar.interpolation.hitDelayStartTime and currentTime > playerbar.interpolation.hitDelayStartTime + settings.hitDelayDuration then
+		if playerbar.interpolation.lastFrameTime then
+			local deltaTime = currentTime - playerbar.interpolation.lastFrameTime;
+
+			local animSpeed = 0.1 + (0.9 * (playerbar.interpolation.interpolationDamagePercent / 100));
+
+			playerbar.interpolation.interpolationDamagePercent = playerbar.interpolation.interpolationDamagePercent - (settings.hitInterpolationDecayPercentPerSecond * deltaTime * animSpeed);
+
+			-- Clamp our percent to 0
+			playerbar.interpolation.interpolationDamagePercent = math.max(0, playerbar.interpolation.interpolationDamagePercent);
+		end
+	end
+
+	-- Reduce the healing HP amount to display based on the time passed since last frame
+	if playerbar.interpolation.interpolationHealPercent > 0 and playerbar.interpolation.healDelayStartTime and currentTime > playerbar.interpolation.healDelayStartTime + settings.hitDelayDuration then
+		if playerbar.interpolation.lastFrameTime then
+			local deltaTime = currentTime - playerbar.interpolation.lastFrameTime;
+
+			local animSpeed = 0.1 + (0.9 * (playerbar.interpolation.interpolationHealPercent / 100));
+
+			playerbar.interpolation.interpolationHealPercent = playerbar.interpolation.interpolationHealPercent - (settings.hitInterpolationDecayPercentPerSecond * deltaTime * animSpeed);
+
+			-- Clamp our percent to 0
+			playerbar.interpolation.interpolationHealPercent = math.max(0, playerbar.interpolation.interpolationHealPercent);
+		end
+	end
+
+	-- Calculate damage flash overlay alpha
+	local interpolationOverlayAlpha = 0;
+	if gConfig.healthBarFlashEnabled then
+		if playerbar.interpolation.lastHitTime and currentTime < playerbar.interpolation.lastHitTime + settings.hitFlashDuration then
+			local hitFlashTime = currentTime - playerbar.interpolation.lastHitTime;
+			local hitFlashTimePercent = hitFlashTime / settings.hitFlashDuration;
+
+			local maxAlphaHitPercent = 20;
+			local maxAlpha = math.min(playerbar.interpolation.lastHitAmount, maxAlphaHitPercent) / maxAlphaHitPercent;
+
+			maxAlpha = math.max(maxAlpha * 0.6, 0.4);
+
+			interpolationOverlayAlpha = math.pow(1 - hitFlashTimePercent, 2) * maxAlpha;
+		end
+	end
+
+	-- Calculate healing flash overlay alpha
+	local healInterpolationOverlayAlpha = 0;
+	if gConfig.healthBarFlashEnabled then
+		if playerbar.interpolation.lastHealTime and currentTime < playerbar.interpolation.lastHealTime + settings.hitFlashDuration then
+			local healFlashTime = currentTime - playerbar.interpolation.lastHealTime;
+			local healFlashTimePercent = healFlashTime / settings.hitFlashDuration;
+
+			local maxAlphaHealPercent = 20;
+			local maxAlpha = math.min(playerbar.interpolation.lastHealAmount, maxAlphaHealPercent) / maxAlphaHealPercent;
+
+			maxAlpha = math.max(maxAlpha * 0.6, 0.4);
+
+			healInterpolationOverlayAlpha = math.pow(1 - healFlashTimePercent, 2) * maxAlpha;
+		end
+	end
+
+	playerbar.interpolation.lastFrameTime = currentTime;
 
 	-- Draw the player window
 	if (resetPosNextFrame) then
@@ -138,16 +218,20 @@ playerbar.DrawWindow = function(settings)
 		local bookendWidth = gConfig.showPlayerBarBookends and (settings.barHeight / 2) or 0;
 		local textPadding = 8;
 
-		local hpPercentData = {{SelfHPPercent / 100, hpGradient}};
-
-		if _HXUI_DEV_DEBUG_INTERPOLATION then
-			hpPercentData[1][1] = 0.5;
+		-- Calculate base HP for display (subtract healing to show old HP during heal animation)
+		local baseHpPercent = SelfHPPercent;
+		if playerbar.interpolation.interpolationHealPercent and playerbar.interpolation.interpolationHealPercent > 0 then
+			baseHpPercent = SelfHPPercent - playerbar.interpolation.interpolationHealPercent;
+			baseHpPercent = math.max(0, baseHpPercent); -- Clamp to 0
 		end
 
-		if interpolationPercent then
+		local hpPercentData = {{baseHpPercent / 100, hpGradient}};
+
+		-- Add interpolation bar for damage taken
+		if playerbar.interpolation.interpolationDamagePercent and playerbar.interpolation.interpolationDamagePercent > 0 then
 			local interpolationOverlay;
 
-			if gConfig.healthBarFlashEnabled then
+			if gConfig.healthBarFlashEnabled and interpolationOverlayAlpha > 0 then
 				interpolationOverlay = {
 					'#ffacae', -- overlay color,
 					interpolationOverlayAlpha -- overlay alpha
@@ -157,9 +241,30 @@ playerbar.DrawWindow = function(settings)
 			table.insert(
 				hpPercentData,
 				{
-					interpolationPercent / 100, -- interpolation percent
-					{'#cf3437', '#c54d4d'}, -- interpolation gradient
+					playerbar.interpolation.interpolationDamagePercent / 100, -- interpolation percent
+					{'#cf3437', '#c54d4d'}, -- interpolation gradient (red)
 					interpolationOverlay
+				}
+			);
+		end
+
+		-- Add interpolation bar for healing received
+		if playerbar.interpolation.interpolationHealPercent and playerbar.interpolation.interpolationHealPercent > 0 then
+			local healInterpolationOverlay;
+
+			if gConfig.healthBarFlashEnabled and healInterpolationOverlayAlpha > 0 then
+				healInterpolationOverlay = {
+					'#c8ffc8', -- overlay color (light green),
+					healInterpolationOverlayAlpha -- overlay alpha
+				};
+			end
+
+			table.insert(
+				hpPercentData,
+				{
+					playerbar.interpolation.interpolationHealPercent / 100, -- interpolation percent
+					{'#4ade80', '#86efac'}, -- interpolation gradient (green)
+					healInterpolationOverlay
 				}
 			);
 		end
