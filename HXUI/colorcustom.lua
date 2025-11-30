@@ -421,7 +421,7 @@ colorcustom.DrawWindow = function()
                 gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.b,
                 gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.a
             };
-            if (imgui.ColorEdit4('Used Slot (Full)', usedSlotThreshold2, bit.bor(ImGuiColorEditFlags_AlphaBar, ImGuiColorEditFlags_NoInputs))) then
+            if (imgui.ColorEdit4('Used Slot (Critical)', usedSlotThreshold2, bit.bor(ImGuiColorEditFlags_AlphaBar, ImGuiColorEditFlags_NoInputs))) then
                 gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.r = usedSlotThreshold2[1];
                 gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.g = usedSlotThreshold2[2];
                 gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.b = usedSlotThreshold2[3];
