@@ -79,14 +79,14 @@ expbar.DrawWindow = function(settings)
     local actualTextWidth = 0;
     if inlineMode then
         -- Pre-calculate text sizes to determine actual width needed
-        local mainJobString = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', player:GetMainJob());
-        local subJobString = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', player:GetSubJob());
-        local jobString = mainJobString .. ' ' .. player:GetMainJobLevel() .. ' / ' .. subJobString .. ' ' .. player:GetSubJobLevel();
-        jobText:set_text(jobString);
-        local jobWidth = jobText:get_text_size();
-        actualTextWidth = actualTextWidth + jobWidth;
-
         if gConfig.expBarShowText then
+            local mainJobString = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', player:GetMainJob());
+            local subJobString = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', player:GetSubJob());
+            local jobString = mainJobString .. ' ' .. player:GetMainJobLevel() .. ' / ' .. subJobString .. ' ' .. player:GetSubJobLevel();
+            jobText:set_text(jobString);
+            local jobWidth = jobText:get_text_size();
+            actualTextWidth = actualTextWidth + jobWidth;
+
             -- Calculate exp text width
             local separator = ' - ';
             local expTestString;
@@ -108,15 +108,18 @@ expbar.DrawWindow = function(settings)
 
         if gConfig.expBarShowPercent then
             local expPercentString = ('%.f'):fmt(progressBarProgress * 100);
-            local percentSeparator = '  -  ';
+            -- Only add separator if text is also shown
+            local percentSeparator = gConfig.expBarShowText and ' - ' or '';
             local percentString = percentSeparator .. expPercentString .. '%';
             percentText:set_text(percentString);
             local percentWidth = percentText:get_text_size();
             actualTextWidth = actualTextWidth + percentWidth;
         end
 
-        -- Add spacing between text and bar
-        actualTextWidth = actualTextWidth + 16;
+        -- Add spacing between text and bar (only if there's text to space from)
+        if actualTextWidth > 0 then
+            actualTextWidth = actualTextWidth + 16;
+        end
     end
 
     -- Let ImGui auto-size the window based on content (Dummy call in progressbar)
@@ -238,7 +241,8 @@ expbar.DrawWindow = function(settings)
         -- Percent Text
         if gConfig.expBarShowPercent then
             local expPercentString = ('%.f'):fmt(progressBarProgress * 100);
-            local percentSeparator = inlineMode and ' - ' or '';
+            -- Only add separator if inline mode AND text is also shown
+            local percentSeparator = (inlineMode and gConfig.expBarShowText) and ' - ' or '';
             local percentString = percentSeparator .. expPercentString .. '%';
             percentText:set_text(percentString);
             local percentTextWidth, percentTextHeight = percentText:get_text_size();

@@ -299,6 +299,11 @@ colorcustom.DrawWindow = function()
             DrawGradientPicker("Party TP Bar", gConfig.colorCustomization.partyList.tpGradient, "Party member TP bar color");
 
             imgui.Separator();
+            imgui.Text("Cast Bar Colors:");
+            imgui.Separator();
+            DrawGradientPicker("Party Cast Bar", gConfig.colorCustomization.partyList.castBarGradient, "Party member cast bar color (appears when casting)");
+
+            imgui.Separator();
             imgui.Text("Text Colors:");
             imgui.Separator();
             DrawTextColorPicker("Name Text", gConfig.colorCustomization.partyList, 'nameTextColor', "Color of party member name");

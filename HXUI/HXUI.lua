@@ -203,7 +203,7 @@ T{
 	partyListTitleFontSize = 16,
 	partyListBuffScale = 1,
 	partyListStatusTheme = 0, -- 0: HorizonXI-L, 1: HorizonXI-R 2: XIV1.0, 3: XIV, 4: Disabled
-	partyListTheme = 0, 
+	partyListTheme = 0,
 	partyListFlashTP = false,
 	showPartyListBookends = true,
     showPartyListTitle = true,
@@ -432,6 +432,7 @@ T{
 			},
 			mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
 			tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' },
+			castBarGradient = T{ enabled = true, start = '#ffaa00', stop = '#ffcc44' },  -- Party member cast bar
 			nameTextColor = 0xFFFFFFFF,
 			hpTextColor = 0xFFFFFFFF,
 			mpTextColor = 0xFFFFFFFF,
