@@ -1294,16 +1294,15 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
             local titleWidth = partyTitlesTexture.width;
             local titleHeight = partyTitlesTexture.height / 4;
 
-            -- Apply scale factor (1.5x to make it more visible)
-            titleWidth = titleWidth * 1;
-            titleHeight = titleHeight * 1;
+            titleWidth = titleWidth * .8;
+            titleHeight = titleHeight * .8;
 
             -- Center the title above the window
             local titlePosX = imguiPosX + math.floor((bgWidth / 2) - (titleWidth / 2));
-            local titlePosY = imguiPosY - titleHeight + 12;  -- 2px gap
-
-            -- Draw using UI draw list
-            local draw_list = GetUIDrawList();
+            local titlePosY = imguiPosY - titleHeight + 6;
+            
+            -- Draw using foreground draw list (always use screen coordinates)
+            local draw_list = imgui.GetForegroundDrawList();
             draw_list:AddImage(
                 titleImage,
                 {titlePosX, titlePosY},
