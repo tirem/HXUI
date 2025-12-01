@@ -246,8 +246,8 @@ local function DrawTargetBarSettings()
         DrawCheckbox('Show Bookends', 'showTargetBarBookends');
         DrawCheckbox('Show Lock On', 'showTargetBarLockOnBorder');
         imgui.ShowHelp('Display the lock icon and colored border when locked on to a target.');
-        DrawCheckbox('Show Cast Bar', 'showTargetBarCastBar');
-        imgui.ShowHelp('Display the enemy cast bar under the HP bar when the target is casting.');
+        -- DrawCheckbox('Show Cast Bar', 'showTargetBarCastBar'); -- DISABLED: Enemy cast bars
+        -- imgui.ShowHelp('Display the enemy cast bar under the HP bar when the target is casting.'); -- DISABLED: Enemy cast bars
         DrawCheckbox('Hide During Events', 'targetBarHideDuringEvents');
         DrawCheckbox('Show Enemy Id', 'showEnemyId');
         imgui.ShowHelp('Display the internal ID of the monster next to its name.');
@@ -264,6 +264,7 @@ local function DrawTargetBarSettings()
         DrawSlider('Distance Font Size', 'targetBarDistanceFontSize', 8, 36);
         DrawSlider('HP% Font Size', 'targetBarPercentFontSize', 8, 36);
 
+        --[[ DISABLED: Enemy cast bars
         -- Cast bar settings (only show if cast bar is enabled)
         if (gConfig.showTargetBarCastBar) then
             DrawSlider('Cast Font Size', 'targetBarCastFontSize', 8, 36);
@@ -277,6 +278,7 @@ local function DrawTargetBarSettings()
             DrawSlider('Cast Bar Scale Y', 'targetBarCastBarScaleY', 0.1, 3.0, '%.1f');
             imgui.ShowHelp('Vertical scale multiplier for cast bar height.');
         end
+        --]] -- END DISABLED: Enemy cast bars
 
         imgui.Text('Buffs/Debuffs Position:');
         DrawSlider('Buffs Offset Y', 'targetBarBuffsOffsetY', -20, 50, '%.0f');

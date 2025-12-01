@@ -144,17 +144,17 @@ T{
 	targetBarNameFontSize = 12,
 	targetBarDistanceFontSize = 12,
 	targetBarPercentFontSize = 12,
-	targetBarCastFontSize = 12,
+	-- targetBarCastFontSize = 12, -- DISABLED: Enemy cast bars
 	targetBarIconScale = 1,
 	targetBarIconFontSize = 10,
 	targetBarBuffsOffsetY = 4,
-	targetBarCastBarOffsetY = 6,
-	targetBarCastBarScaleX = 0.4,
-	targetBarCastBarScaleY = 1,
+	-- targetBarCastBarOffsetY = 6, -- DISABLED: Enemy cast bars
+	-- targetBarCastBarScaleX = 0.4, -- DISABLED: Enemy cast bars
+	-- targetBarCastBarScaleY = 1, -- DISABLED: Enemy cast bars
 	showTargetDistance = true,
 	showTargetBarBookends = true,
 	showTargetBarLockOnBorder = true,
-	showTargetBarCastBar = true,
+	-- showTargetBarCastBar = true, -- DISABLED: Enemy cast bars
 	showEnemyId = false;
 	alwaysShowHealthPercent = false,
     targetBarHideDuringEvents = true,
@@ -404,9 +404,9 @@ T{
 		-- Target Bar
 		targetBar = T{
 			hpGradient = T{ enabled = true, start = '#e26c6c', stop = '#fb9494' },
-			castBarGradient = T{ enabled = true, start = '#ffaa00', stop = '#ffcc44' },
+			-- castBarGradient = T{ enabled = true, start = '#ffaa00', stop = '#ffcc44' }, -- DISABLED: Enemy cast bars
 			distanceTextColor = 0xFFFFFFFF,
-			castTextColor = 0xFFFFAA00,  -- Orange color for enemy casting
+			-- castTextColor = 0xFFFFAA00,  -- Orange color for enemy casting -- DISABLED: Enemy cast bars
 			-- Note: HP percent text color is set dynamically based on HP amount
 			-- Note: Entity name colors are in shared section
 		},
@@ -579,6 +579,7 @@ T{
 			outline_color = 0xFF000000,
 			outline_width = 2,
 		};
+		--[[ DISABLED: Enemy cast bars
 		cast_font_settings =
 		T{
 			font_alignment = gdi.Alignment.Center,
@@ -589,6 +590,7 @@ T{
 			outline_color = 0xFF000000,
 			outline_width = 2,
 		};
+		--]] -- END DISABLED: Enemy cast bars
 	};
 
 	-- settings for the playerbar
@@ -1073,9 +1075,9 @@ function UpdateUserSettings()
 	gAdjustedSettings.targetBarSettings.percent_font_settings.font_family = us.fontFamily;
 	gAdjustedSettings.targetBarSettings.percent_font_settings.font_flags = fontWeightFlags;
 	gAdjustedSettings.targetBarSettings.percent_font_settings.outline_width = us.fontOutlineWidth;
-	gAdjustedSettings.targetBarSettings.cast_font_settings.font_family = us.fontFamily;
-	gAdjustedSettings.targetBarSettings.cast_font_settings.font_flags = fontWeightFlags;
-	gAdjustedSettings.targetBarSettings.cast_font_settings.outline_width = us.fontOutlineWidth;
+	-- gAdjustedSettings.targetBarSettings.cast_font_settings.font_family = us.fontFamily; -- DISABLED: Enemy cast bars
+	-- gAdjustedSettings.targetBarSettings.cast_font_settings.font_flags = fontWeightFlags; -- DISABLED: Enemy cast bars
+	-- gAdjustedSettings.targetBarSettings.cast_font_settings.outline_width = us.fontOutlineWidth; -- DISABLED: Enemy cast bars
 
 	-- Player Bar
 	gAdjustedSettings.playerBarSettings.font_settings.font_family = us.fontFamily;
@@ -1148,17 +1150,19 @@ function UpdateUserSettings()
     gAdjustedSettings.targetBarSettings.totName_font_settings.font_height = math.max(us.targetBarNameFontSize, 8);
 	gAdjustedSettings.targetBarSettings.distance_font_settings.font_height = math.max(us.targetBarDistanceFontSize, 8);
     gAdjustedSettings.targetBarSettings.percent_font_settings.font_height = math.max(us.targetBarPercentFontSize, 8);
-	gAdjustedSettings.targetBarSettings.cast_font_settings.font_height = math.max(us.targetBarCastFontSize, 8);
+	-- gAdjustedSettings.targetBarSettings.cast_font_settings.font_height = math.max(us.targetBarCastFontSize, 8); -- DISABLED: Enemy cast bars
 	-- Note: percent_font_settings.color is set dynamically in targetbar.DrawWindow based on HP amount
 	gAdjustedSettings.targetBarSettings.iconSize = ds.targetBarSettings.iconSize * us.targetBarIconScale;
 	gAdjustedSettings.targetBarSettings.arrowSize = ds.targetBarSettings.arrowSize * us.targetBarScaleY;
 	-- Buff/Debuff positioning
 	gAdjustedSettings.targetBarSettings.buffsOffsetY = us.targetBarBuffsOffsetY;
+	--[[ DISABLED: Enemy cast bars
 	-- Cast bar positioning and scaling (use adjusted barWidth, not default)
 	gAdjustedSettings.targetBarSettings.castBarOffsetY = us.targetBarCastBarOffsetY;
 	gAdjustedSettings.targetBarSettings.castBarOffsetX = ds.targetBarSettings.castBarOffsetX; -- Fixed offset from default settings
 	gAdjustedSettings.targetBarSettings.castBarWidth = (gAdjustedSettings.targetBarSettings.barWidth - (ds.targetBarSettings.castBarOffsetX * 2)) * us.targetBarCastBarScaleX;
 	gAdjustedSettings.targetBarSettings.castBarHeight = 8 * us.targetBarCastBarScaleY;
+	--]] -- END DISABLED: Enemy cast bars
 
 	-- Target of Target Bar (separate scaling when split is enabled)
 	gAdjustedSettings.targetBarSettings.totBarWidth = (ds.targetBarSettings.barWidth / 3) * us.totBarScaleX;
@@ -1614,9 +1618,11 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
 				castBar.HandleActionPacket(actionPacket);
 			end
 
+			--[[ DISABLED: Enemy cast bars
 			if (gConfig.showTargetBar) then
 				targetBar.HandleActionPacket(actionPacket);
 			end
+			--]] -- END DISABLED: Enemy cast bars
 
 			if (gConfig.showPartyList) then
 				partyList.HandleActionPacket(actionPacket);
