@@ -357,6 +357,8 @@ local function DrawPartyListSettings()
         DrawCheckbox('Preview Full Party (when config open)', 'partyListPreview');
         DrawCheckbox('Flash TP at 100%', 'partyListFlashTP');
         DrawCheckbox('Show Distance', 'showPartyListDistance');
+        DrawCheckbox('Show Job/Subjob', 'showPartyListJob');
+        imgui.ShowHelp('Display job and subjob info on the right side of the name row (Layout 1 only).');
 
         DrawSlider('Distance Highlighting', 'partyListDistanceHighlight', 0.0, 50.0, '%.1f');
 

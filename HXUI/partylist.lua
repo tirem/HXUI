@@ -932,7 +932,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
 
     -- Job/Subjob text (Layout 1 only, far right of name line)
     local showJobText = false;
-    if layout == 0 and memInfo.inzone and memInfo.job ~= '' and memInfo.job ~= nil and memInfo.job > 0 then
+    if gConfig.showPartyListJob and layout == 0 and memInfo.inzone and memInfo.job ~= '' and memInfo.job ~= nil and memInfo.job > 0 then
         -- Build job string (e.g., "WAR99/NIN49")
         local mainJobAbbr = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', memInfo.job) or '';
         local jobStr = mainJobAbbr .. tostring(memInfo.level);

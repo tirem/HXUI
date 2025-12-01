@@ -549,8 +549,10 @@ targetbar.DrawWindow = function(settings)
 				local totBookendWidth = gConfig.showTargetBarBookends and (settings.totBarHeight / 2) or 0;
 				local totTextPadding = 8;
 
+				-- Get interpolated HP data for ToT bar using shared helper
 				local totGradient = GetCustomGradient(gConfig.colorCustomization.totBar, 'hpGradient') or {'#e16c6c', '#fb9494'};
-				progressbar.ProgressBar({{totEntity.HPPercent / 100, totGradient}}, {settings.barWidth / 3, settings.totBarHeight}, {decorate = gConfig.showTargetBarBookends});
+				local totHpPercentData = HpInterpolation.update('tot', totEntity.HPPercent, totIndex, settings, currentTime, totGradient);
+				progressbar.ProgressBar(totHpPercentData, {settings.barWidth / 3, settings.totBarHeight}, {decorate = gConfig.showTargetBarBookends});
 
 				-- Dynamically set font height for ToT text
 				totNameText:set_font_height(settings.totName_font_settings.font_height);
@@ -641,9 +643,10 @@ targetbar.DrawWindow = function(settings)
 				local totBookendWidthSplit = gConfig.showTargetBarBookends and (settings.totBarHeightSplit / 2) or 0;
 				local totTextPaddingSplit = 8;
 
-				-- Use adjusted ToT settings for split bar
+				-- Get interpolated HP data for split ToT bar using shared helper
 				local totGradientSplit = GetCustomGradient(gConfig.colorCustomization.totBar, 'hpGradient') or {'#e16c6c', '#fb9494'};
-				progressbar.ProgressBar({{totEntity.HPPercent / 100, totGradientSplit}}, {settings.totBarWidth, settings.totBarHeightSplit}, {decorate = gConfig.showTargetBarBookends});
+				local totHpPercentDataSplit = HpInterpolation.update('tot', totEntity.HPPercent, totIndex, settings, currentTime, totGradientSplit);
+				progressbar.ProgressBar(totHpPercentDataSplit, {settings.totBarWidth, settings.totBarHeightSplit}, {decorate = gConfig.showTargetBarBookends});
 
 				-- Set font height for split ToT bar
 				totNameText:set_font_height(settings.totName_font_settings_split.font_height);

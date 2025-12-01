@@ -208,6 +208,7 @@ T{
 	showPartyListBookends = true,
     showPartyListTitle = true,
 	showPartyListDistance = false,
+	showPartyListJob = true,
 	partyListCursor = 'GreyArrow.png',
 	partyListBackgroundName = 'Window1',
 
