@@ -429,7 +429,7 @@ targetbar.DrawWindow = function(settings)
 			};
 		end
 
-		if (gConfig.showTargetBarCastBar and (not HorizonLimitedMode) and castData ~= nil and castData.spellName ~= nil and castData.castTime ~= nil and castData.startTime ~= nil) then
+		if (gConfig.showTargetBarCastBar and (not HXUILimitedMode) and castData ~= nil and castData.spellName ~= nil and castData.castTime ~= nil and castData.startTime ~= nil) then
 			-- Calculate cast progress
 			local elapsed = os.clock() - castData.startTime;
 			local progress = math.min(elapsed / castData.castTime, 1.0);

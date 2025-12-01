@@ -59,7 +59,7 @@ local _HXUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS = 1;
 local _HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME;
 local _HXUI_DEV_HOT_RELOAD_FILES = {};
 -- Global switch to hard-disable functionaliy that is limited on HX servers
-HXUILimitedMode = true;
+HXUILimitedMode = false;
 
 function string:split(sep)
    local sep, fields = sep or ":", {}
