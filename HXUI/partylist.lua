@@ -337,8 +337,11 @@ local function GetMemberInformation(memIdx)
             local t1, t2 = GetTargets();
             local sActive = GetSubTargetActive();
             local thisIdx = party:GetMemberTargetIndex(memIdx);
+            local stPartyIdx = GetStPartyIndex();
             memberInfo.targeted = (t1 == thisIdx and not sActive) or (t2 == thisIdx and sActive);
-            memberInfo.subTargeted = (t1 == thisIdx and sActive);
+            -- Check both target index matching AND direct STPC party index matching
+            -- The latter handles the case when a party member is already selected
+            memberInfo.subTargeted = (t1 == thisIdx and sActive) or (stPartyIdx ~= nil and stPartyIdx == memIdx);
         else
             memberInfo.targeted = false;
             memberInfo.subTargeted = false;
@@ -1277,9 +1280,9 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
 
     local bottomSpacing;
     if layout == 1 then
-        -- Layout 2: TP text and MP bar are on same row (last row)
-        -- Reserve space for whichever is taller (use reference height for consistent layout)
-        bottomSpacing = math.max(tpRefHeight, mpBarHeight);
+        -- Layout 2: TP text and MP bar are on same row (text is beside bar, not below)
+        -- Only reserve space if TP text extends below the MP bar bottom
+        bottomSpacing = math.max(0, tpRefHeight - mpBarHeight);
     else
         -- Layout 1: HP text is below the horizontal bars (use reference height for consistent layout)
         bottomSpacing = settings.hpTextOffsetY + hpRefHeight;

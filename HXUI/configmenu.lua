@@ -355,13 +355,16 @@ local function DrawPartyListSettings()
         imgui.ShowHelp('Select between horizontal (Layout 1) and compact vertical (Layout 2) party list layouts. Each layout has independent settings.');
 
         DrawCheckbox('Preview Full Party (when config open)', 'partyListPreview');
-        DrawCheckbox('Flash TP at 100%', 'partyListFlashTP');
+        if gConfig.partyListLayout ~= 2 then
+            DrawCheckbox('Flash TP at 100%', 'partyListFlashTP');
+        end
         DrawCheckbox('Show Distance', 'showPartyListDistance');
+        if gConfig.showPartyListDistance then
+            DrawSlider('Distance Highlighting', 'partyListDistanceHighlight', 0.0, 50.0, '%.1f');
+        end
         DrawCheckbox('Show Job Icons', 'showPartyJobIcon');
         DrawCheckbox('Show Job/Subjob', 'showPartyListJob');
         imgui.ShowHelp('Display job and subjob info on the right side of the name row (Layout 1 only).');
-
-        DrawSlider('Distance Highlighting', 'partyListDistanceHighlight', 0.0, 50.0, '%.1f');
 
         DrawCheckbox('Show Bookends', 'showPartyListBookends');
         DrawCheckbox('Show When Solo', 'showPartyListWhenSolo');
