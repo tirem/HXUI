@@ -202,6 +202,7 @@ local function UpdateTextVisibilityByMember(memIdx, visible)
     memberText[memIdx].name:set_visible(visible);
     memberText[memIdx].distance:set_visible(visible);
     memberText[memIdx].zone:set_visible(visible);
+    memberText[memIdx].job:set_visible(visible);
 end
 
 local function UpdateTextVisibility(visible, partyIndex)
@@ -241,6 +242,8 @@ local function GetMemberInformation(memIdx)
         memInfo.tp = 1500;
         memInfo.job = memIdx + 1;
         memInfo.level = 99;
+        memInfo.subjob = ((memIdx + 3) % 22) + 1;  -- Vary subjobs for preview
+        memInfo.subjoblevel = 49;
         memInfo.targeted = memIdx == 4;
         memInfo.serverid = 0;
         memInfo.buffs = nil;
@@ -287,6 +290,8 @@ local function GetMemberInformation(memIdx)
         memberInfo.tp = party:GetMemberTP(memIdx);
         memberInfo.job = party:GetMemberMainJob(memIdx);
         memberInfo.level = party:GetMemberMainJobLevel(memIdx);
+        memberInfo.subjob = party:GetMemberSubJob(memIdx);
+        memberInfo.subjoblevel = party:GetMemberSubJobLevel(memIdx);
         memberInfo.serverid = party:GetMemberServerId(memIdx);
         memberInfo.index = party:GetMemberTargetIndex(memIdx);
         if (playerTarget ~= nil) then
@@ -316,6 +321,8 @@ local function GetMemberInformation(memIdx)
         memberInfo.tp = 0;
         memberInfo.job = '';
         memberInfo.level = '';
+        memberInfo.subjob = '';
+        memberInfo.subjoblevel = '';
         memberInfo.targeted = false;
         memberInfo.serverid = 0;
         memberInfo.buffs = nil;
@@ -342,6 +349,8 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
         memInfo.tp = 0;
         memInfo.job = '';
         memInfo.level = '';
+        memInfo.subjob = '';
+        memInfo.subjoblevel = '';
         memInfo.targeted = false;
         memInfo.serverid = 0;
         memInfo.buffs = nil;
@@ -921,6 +930,38 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
         end
     end
 
+    -- Job/Subjob text (Layout 1 only, far right of name line)
+    local showJobText = false;
+    if layout == 0 and memInfo.inzone and memInfo.job ~= '' and memInfo.job ~= nil and memInfo.job > 0 then
+        -- Build job string (e.g., "WAR99/NIN49")
+        local mainJobAbbr = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', memInfo.job) or '';
+        local jobStr = mainJobAbbr .. tostring(memInfo.level);
+
+        if memInfo.subjob ~= nil and memInfo.subjob ~= '' and memInfo.subjob > 0 then
+            local subJobAbbr = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', memInfo.subjob) or '';
+            jobStr = jobStr .. '/' .. subJobAbbr .. tostring(memInfo.subjoblevel);
+        end
+
+        memberText[memIdx].job:set_text(jobStr);
+        memberText[memIdx].job:set_font_height(fontSizes.name);
+        local jobTextWidth, jobTextHeight = memberText[memIdx].job:get_text_size();
+
+        -- Position at far right of name row (right-aligned to allBarsLengths)
+        local jobPosX = hpStartX + allBarsLengths - jobTextWidth;
+        memberText[memIdx].job:set_position_x(jobPosX);
+        memberText[memIdx].job:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + nameBaselineOffset);
+
+        -- Set color (same as name text color)
+        local desiredJobColor = gConfig.colorCustomization.partyList.nameTextColor;
+        if (memberTextColorCache[memIdx].job ~= desiredJobColor) then
+            memberText[memIdx].job:set_font_color(desiredJobColor);
+            memberTextColorCache[memIdx].job = desiredJobColor;
+        end
+
+        showJobText = true;
+    end
+    memberText[memIdx].job:set_visible(showJobText);
+
     -- Variables for MP bar positioning (used by status icons later)
     local mpStartX, mpStartY;
 
@@ -1484,6 +1525,7 @@ partyList.Initialize = function(settings)
         memberText[i].tp = FontManager.create(tp_font_settings);
         memberText[i].distance = FontManager.create(distance_font_settings);
         memberText[i].zone = FontManager.create(zone_font_settings);
+        memberText[i].job = FontManager.create(name_font_settings);
     end
 
     -- Load party titles texture atlas
@@ -1593,6 +1635,7 @@ partyList.UpdateVisuals = function(settings)
             memberText[i].tp = FontManager.recreate(memberText[i].tp, tp_font_settings);
             memberText[i].distance = FontManager.recreate(memberText[i].distance, distance_font_settings);
             memberText[i].zone = FontManager.recreate(memberText[i].zone, zone_font_settings);
+            memberText[i].job = FontManager.recreate(memberText[i].job, name_font_settings);
         end
 
         ::continue::
@@ -1694,6 +1737,7 @@ partyList.Cleanup = function()
 			memberText[i].tp = FontManager.destroy(memberText[i].tp);
 			memberText[i].distance = FontManager.destroy(memberText[i].distance);
 			memberText[i].zone = FontManager.destroy(memberText[i].zone);
+			memberText[i].job = FontManager.destroy(memberText[i].job);
 		end
 	end
 
