@@ -20,18 +20,18 @@ local percentText;
 local nameText;
 local totNameText;
 local distText;
--- local castText; -- DISABLED: Enemy cast bars
+local castText;
 local allFonts; -- Table for batch visibility operations
 local targetbar = {
 	interpolation = {},
-	-- enemyCasts = {} -- Track enemy casting: [serverId] = {spellName, timestamp} -- DISABLED: Enemy cast bars
+	enemyCasts = {} -- Track enemy casting: [serverId] = {spellName, timestamp}
 };
 
 -- Cache last set colors to avoid expensive SetColor() calls every frame
 local lastNameTextColor;
 local lastPercentTextColor;
 local lastTotNameTextColor;
--- local lastCastTextColor; -- DISABLED: Enemy cast bars
+local lastCastTextColor;
 
 local _HXUI_DEV_DEBUG_INTERPOLATION = false;
 local _HXUI_DEV_DEBUG_INTERPOLATION_DELAY = 1;
@@ -416,7 +416,6 @@ targetbar.DrawWindow = function(settings)
 		-- Hide the separate percentText since we're combining them
 		percentText:set_visible(false);
 
-		--[[ DISABLED: Enemy cast bars
 		-- Draw enemy cast bar and text if casting (or in config mode) and if enabled
 		local castData = targetbar.enemyCasts[targetEntity.ServerId];
 		local inConfigMode = showConfig and showConfig[1];
@@ -472,7 +471,6 @@ targetbar.DrawWindow = function(settings)
 		else
 			castText:set_visible(false);
 		end
-		--]] -- END DISABLED: Enemy cast bars
 
 		-- Draw buffs and debuffs
 		imgui.SameLine();
@@ -578,15 +576,13 @@ targetbar.DrawWindow = function(settings)
 			totNameText:set_visible(false);
 		end
 
-		--[[ DISABLED: Enemy cast bars
 		-- Reserve space for cast bar at bottom of window to prevent clipping
 		-- Calculate total height needed: offset Y + bar height + text spacing + text height
-		if (gConfig.showTargetBarCastBar and (not HorizonLimitedMode) and castData ~= nil and castData.spellName ~= nil) then
+		if (gConfig.showTargetBarCastBar and (not HXUILimitedMode) and castData ~= nil and castData.spellName ~= nil) then
 			local castTextHeight = settings.cast_font_settings.font_height;
 			local totalCastBarSpace = settings.castBarOffsetY + settings.castBarHeight + 2 + castTextHeight;
 			imgui.Dummy({0, totalCastBarSpace});
 		end
-		--]] -- END DISABLED: Enemy cast bars
     end
 	local winPosX, winPosY = imgui.GetWindowPos();
     imgui.End();
@@ -680,8 +676,8 @@ targetbar.Initialize = function(settings)
 	nameText = FontManager.create(settings.name_font_settings);
 	totNameText = FontManager.create(settings.totName_font_settings);
 	distText = FontManager.create(settings.distance_font_settings);
-	-- castText = FontManager.create(settings.cast_font_settings); -- DISABLED: Enemy cast bars
-	allFonts = {percentText, nameText, totNameText, distText}; -- Removed castText - DISABLED: Enemy cast bars
+	castText = FontManager.create(settings.cast_font_settings);
+	allFonts = {percentText, nameText, totNameText, distText, castText};
 	arrowTexture = LoadTexture("arrow");
 	lockTexture = LoadTexture("lock");
 end
@@ -692,14 +688,14 @@ targetbar.UpdateVisuals = function(settings)
 	nameText = FontManager.recreate(nameText, settings.name_font_settings);
 	totNameText = FontManager.recreate(totNameText, settings.totName_font_settings);
 	distText = FontManager.recreate(distText, settings.distance_font_settings);
-	-- castText = FontManager.recreate(castText, settings.cast_font_settings); -- DISABLED: Enemy cast bars
-	allFonts = {percentText, nameText, totNameText, distText}; -- Removed castText - DISABLED: Enemy cast bars
+	castText = FontManager.recreate(castText, settings.cast_font_settings);
+	allFonts = {percentText, nameText, totNameText, distText, castText};
 
 	-- Reset cached colors when fonts are recreated
 	lastNameTextColor = nil;
 	lastPercentTextColor = nil;
 	lastTotNameTextColor = nil;
-	-- lastCastTextColor = nil; -- DISABLED: Enemy cast bars
+	lastCastTextColor = nil;
 end
 
 targetbar.SetHidden = function(hidden)
@@ -714,11 +710,10 @@ targetbar.Cleanup = function()
 	nameText = FontManager.destroy(nameText);
 	totNameText = FontManager.destroy(totNameText);
 	distText = FontManager.destroy(distText);
-	-- castText = FontManager.destroy(castText); -- DISABLED: Enemy cast bars
+	castText = FontManager.destroy(castText);
 	allFonts = nil;
 end
 
---[[ DISABLED: Enemy cast bars
 targetbar.HandleActionPacket = function(actionPacket)
 	if (actionPacket == nil or actionPacket.UserId == nil) then
 		return;
@@ -779,6 +774,5 @@ targetbar.HandleActionPacket = function(actionPacket)
 		end
 	end
 end
---]] -- END DISABLED: Enemy cast bars
 
 return targetbar;

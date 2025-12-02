@@ -266,7 +266,6 @@ local function DrawTargetBarSettings()
         DrawSlider('Distance Font Size', 'targetBarDistanceFontSize', 8, 36);
         DrawSlider('HP% Font Size', 'targetBarPercentFontSize', 8, 36);
 
-        --[[ DISABLED: Enemy cast bars
         -- Cast bar settings (only show if cast bar is enabled)
         if (gConfig.showTargetBarCastBar and (not HXUILimitedMode)) then
             DrawSlider('Cast Font Size', 'targetBarCastFontSize', 8, 36);
@@ -280,7 +279,6 @@ local function DrawTargetBarSettings()
             DrawSlider('Cast Bar Scale Y', 'targetBarCastBarScaleY', 0.1, 3.0, '%.1f');
             imgui.ShowHelp('Vertical scale multiplier for cast bar height.');
         end
-        --]] -- END DISABLED: Enemy cast bars
 
         imgui.Text('Buffs/Debuffs Position:');
         DrawSlider('Buffs Offset Y', 'targetBarBuffsOffsetY', -20, 50, '%.0f');
@@ -316,6 +314,10 @@ local function DrawEnemyListSettings()
         DrawCheckbox('Show Enemy Targets', 'showEnemyListTargets');
         imgui.ShowHelp('Shows who each enemy is targeting based on their last action.');
         DrawCheckbox('Show Bookends', 'showEnemyListBookends');
+        if (not HXUILimitedMode) then
+            DrawCheckbox('Click to Target', 'enableEnemyListClickTarget');
+            imgui.ShowHelp('Click on an enemy entry to target it. Requires /shorthand to be enabled.');
+        end
 
         DrawSlider('Scale X', 'enemyListScaleX', 0.1, 3.0, '%.1f');
         DrawSlider('Scale Y', 'enemyListScaleY', 0.1, 3.0, '%.1f');
