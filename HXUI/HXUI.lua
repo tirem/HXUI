@@ -58,6 +58,8 @@ local _HXUI_DEV_HOT_RELOADING_ENABLED = false;
 local _HXUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS = 1;
 local _HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME;
 local _HXUI_DEV_HOT_RELOAD_FILES = {};
+-- Global switch to hard-disable functionaliy that is limited on HX servers
+HXUILimitedMode = true;
 
 function string:split(sep)
    local sep, fields = sep or ":", {}
@@ -131,6 +133,7 @@ T{
 	showPartyListWhenSolo = false,
 	maxEnemyListEntries = 8,
 	showEnemyListTargets = false,
+	enableEnemyListClickTarget = true,
 
 	playerBarScaleX = 1,
 	playerBarScaleY = 1,
@@ -1474,7 +1477,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 		if (gConfig.showInventoryTracker) then
 			inventoryTracker.DrawWindow(gAdjustedSettings.inventoryTrackerSettings);
 		end
-        if (not gConfig.showPartyList or (gConfig.partyListHideDuringEvents and eventSystemActive)) then
+		if (not gConfig.showPartyList or (gConfig.partyListHideDuringEvents and eventSystemActive)) then
             partyList.SetHidden(true);
         else
 			partyList.DrawWindow(gAdjustedSettings.partyListSettings);
@@ -1614,7 +1617,7 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
 				castBar.HandleActionPacket(actionPacket);
 			end
 
-			if (gConfig.showTargetBar) then
+			if (gConfig.showTargetBar and gConfig.showTargetBarCastBar and (not HXUILimitedMode)) then
 				targetBar.HandleActionPacket(actionPacket);
 			end
 

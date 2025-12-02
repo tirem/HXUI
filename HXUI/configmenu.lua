@@ -246,8 +246,10 @@ local function DrawTargetBarSettings()
         DrawCheckbox('Show Bookends', 'showTargetBarBookends');
         DrawCheckbox('Show Lock On', 'showTargetBarLockOnBorder');
         imgui.ShowHelp('Display the lock icon and colored border when locked on to a target.');
-        DrawCheckbox('Show Cast Bar', 'showTargetBarCastBar');
-        imgui.ShowHelp('Display the enemy cast bar under the HP bar when the target is casting.');
+        if (not HXUILimitedMode) then
+            DrawCheckbox('Show Cast Bar', 'showTargetBarCastBar');
+            imgui.ShowHelp('Display the enemy cast bar under the HP bar when the target is casting.');
+        end
         DrawCheckbox('Hide During Events', 'targetBarHideDuringEvents');
         DrawCheckbox('Show Enemy Id', 'showEnemyId');
         imgui.ShowHelp('Display the internal ID of the monster next to its name.');
@@ -265,7 +267,7 @@ local function DrawTargetBarSettings()
         DrawSlider('HP% Font Size', 'targetBarPercentFontSize', 8, 36);
 
         -- Cast bar settings (only show if cast bar is enabled)
-        if (gConfig.showTargetBarCastBar) then
+        if (gConfig.showTargetBarCastBar and (not HXUILimitedMode)) then
             DrawSlider('Cast Font Size', 'targetBarCastFontSize', 8, 36);
             imgui.ShowHelp('Font size for enemy cast text that appears under the HP bar.');
 
@@ -312,6 +314,10 @@ local function DrawEnemyListSettings()
         DrawCheckbox('Show Enemy Targets', 'showEnemyListTargets');
         imgui.ShowHelp('Shows who each enemy is targeting based on their last action.');
         DrawCheckbox('Show Bookends', 'showEnemyListBookends');
+        if (not HXUILimitedMode) then
+            DrawCheckbox('Click to Target', 'enableEnemyListClickTarget');
+            imgui.ShowHelp('Click on an enemy entry to target it. Requires /shorthand to be enabled.');
+        end
 
         DrawSlider('Scale X', 'enemyListScaleX', 0.1, 3.0, '%.1f');
         DrawSlider('Scale Y', 'enemyListScaleY', 0.1, 3.0, '%.1f');
