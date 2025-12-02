@@ -22,11 +22,11 @@
 * SOFTWARE.
 ]]--
 
-addon.name      = 'HXUI';
-addon.author    = 'Team HXUI';
+addon.name      = 'XIUI';
+addon.author    = 'Team XIUI';
 addon.version   = '1.4.2';
 addon.desc      = 'Multiple UI elements with manager';
-addon.link      = 'https://github.com/tirem/HXUI'
+addon.link      = 'https://github.com/tirem/XIUI'
 
 require('common');
 local settings = require('settings');
@@ -51,15 +51,15 @@ local RENDER_FLAG_VISIBLE = 0x200;  -- Entity is visible and rendered
 local RENDER_FLAG_HIDDEN = 0x4000;  -- Entity is hidden (cutscene, menu, etc.)
 
 -- =================
--- = HXUI DEV ONLY =
+-- = XIUI DEV ONLY =
 -- =================
 -- Hot reloading of development files functionality
-local _HXUI_DEV_HOT_RELOADING_ENABLED = false;
-local _HXUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS = 1;
-local _HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME;
-local _HXUI_DEV_HOT_RELOAD_FILES = {};
+local _XIUI_DEV_HOT_RELOADING_ENABLED = false;
+local _XIUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS = 1;
+local _XIUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME;
+local _XIUI_DEV_HOT_RELOAD_FILES = {};
 -- Global switch to hard-disable functionaliy that is limited on HX servers
-HXUILimitedMode = true;
+HzLimitedMode = true;
 
 function string:split(sep)
    local sep, fields = sep or ":", {}
@@ -86,25 +86,25 @@ function _check_hot_reload()
 
 			local fileTable = {dateModified, timeModified};
 
-			if _HXUI_DEV_HOT_RELOAD_FILES[filename] ~= nil then
-				if table.concat(_HXUI_DEV_HOT_RELOAD_FILES[filename]) ~= table.concat(fileTable) then
+			if _XIUI_DEV_HOT_RELOAD_FILES[filename] ~= nil then
+				if table.concat(_XIUI_DEV_HOT_RELOAD_FILES[filename]) ~= table.concat(fileTable) then
 					needsReload = true;
-					print("[HXUI] Development file " .. filename .. " changed, reloading HXUI.")
+					print("[XIUI] Development file " .. filename .. " changed, reloading XIUI.")
 				end
 			end
 
-			_HXUI_DEV_HOT_RELOAD_FILES[filename] = fileTable;
+			_XIUI_DEV_HOT_RELOAD_FILES[filename] = fileTable;
 		end
 	end
 
 	result:close();
 
 	if needsReload then
-		AshitaCore:GetChatManager():QueueCommand(-1, '/addon reload hxui', channelCommand);
+		AshitaCore:GetChatManager():QueueCommand(-1, '/addon reload xiui', channelCommand);
 	end
 end
 -- ==================
--- = /HXUI DEV ONLY =
+-- = /XIUI DEV ONLY =
 -- ==================
 
 local user_settings =
@@ -1496,18 +1496,18 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 		ForceHide();
 	end
 
-	-- HXUI DEV ONLY
-	if _HXUI_DEV_HOT_RELOADING_ENABLED then
+	-- XIUI DEV ONLY
+	if _XIUI_DEV_HOT_RELOADING_ENABLED then
 		local currentTime = os.time();
 
-		if not _HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME then
-			_HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME = currentTime;
+		if not _XIUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME then
+			_XIUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME = currentTime;
 		end
 
-		if _HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME and currentTime - _HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME > _HXUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS then
+		if _XIUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME and currentTime - _XIUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME > _XIUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS then
 			_check_hot_reload();
 
-			_HXUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME = currentTime;
+			_XIUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME = currentTime;
 		end
 	end
 end);
@@ -1576,7 +1576,7 @@ ashita.events.register('command', 'command_cb', function (e)
    
 	-- Parse the command arguments
 	local command_args = e.command:lower():args()
-    if table.contains({'/horizonui', '/hui', '/hxui', '/horizonxiui'}, command_args[1]) then
+    if table.contains({'/xiui', '/hui', '/hxui', '/horizonxiui'}, command_args[1]) then
 		e.blocked = true;
 
         -- Toggle the config menu
@@ -1617,7 +1617,7 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
 				castBar.HandleActionPacket(actionPacket);
 			end
 
-			if (gConfig.showTargetBar and gConfig.showTargetBarCastBar and (not HXUILimitedMode)) then
+			if (gConfig.showTargetBar and gConfig.showTargetBarCastBar and (not HzLimitedMode)) then
 				targetBar.HandleActionPacket(actionPacket);
 			end
 

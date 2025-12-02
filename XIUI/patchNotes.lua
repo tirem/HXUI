@@ -2,7 +2,7 @@ require('common');
 local imgui = require('imgui');
 local ffi = require('ffi');
 
-local HXUITexture;
+local XIUITexture;
 local PatchVerTexture;
 local NewTexture;
 gShowPatchNotes = { true };
@@ -10,8 +10,8 @@ gShowPatchNotes = { true };
 local patchNotes = {};
 
 local function InitializeTextures()
-	if (HXUITexture == nil) then
-		HXUITexture = LoadTexture("patchNotes/hxui");
+	if (XIUITexture == nil) then
+		XIUITexture = LoadTexture("patchNotes/xiui");
 	end
 	if (PatchVerTexture == nil) then
 		PatchVerTexture = LoadTexture("patchNotes/patch");
@@ -29,7 +29,7 @@ patchNotes.DrawWindow = function()
     -- Obtain the player entity..
 
 	if (gShowPatchNotes[1] == false) then
-		HXUITexture = nil;
+		XIUITexture = nil;
 		PatchVerTexture = nil;
 		NewTexture = nil;
 		gConfig.patchNotesVer = gAdjustedSettings.currentPatchVer;
@@ -37,10 +37,10 @@ patchNotes.DrawWindow = function()
 		return;
 	end
 
-	if (HXUITexture == nil or PatchVerTexture == nil or NewTexture == nil) then
+	if (XIUITexture == nil or PatchVerTexture == nil or NewTexture == nil) then
 		InitializeTextures();
 	end
-	if (HXUITexture == nil or PatchVerTexture == nil or NewTexture == nil) then
+	if (XIUITexture == nil or PatchVerTexture == nil or NewTexture == nil) then
 		return;
 	end
 
@@ -49,12 +49,12 @@ patchNotes.DrawWindow = function()
 	imgui.PushStyleColor(ImGuiCol_TitleBgActive, {0,0.06,.16, .9});
 	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0,0.06,.16, .5});
 	imgui.PushStyleVar(ImGuiStyleVar_FramePadding, { 8, 6 });
-    if (gShowPatchNotes[1] and imgui.Begin('HXUI PatchNotes', gShowPatchNotes, bit.bor(ImGuiWindowFlags_NoSavedSettings))) then
+    if (gShowPatchNotes[1] and imgui.Begin('XIUI PatchNotes', gShowPatchNotes, bit.bor(ImGuiWindowFlags_NoSavedSettings))) then
 		-- Save starting Y position for button alignment
 		local startY = imgui.GetCursorPosY();
 
 		-- Draw logo and version text
-		imgui.Image(tonumber(ffi.cast("uint32_t", HXUITexture.image)), { 83, 53});
+		imgui.Image(tonumber(ffi.cast("uint32_t", XIUITexture.image)), { 83, 53});
 		imgui.SameLine();
 		imgui.BulletText('UPDATE 1.4.2');
 		imgui.SameLine();
@@ -84,7 +84,7 @@ patchNotes.DrawWindow = function()
 		imgui.BulletText('Improved gradient rendering for all bar types');
 		imgui.NewLine();
 		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'New Feature: Color Customizer');
-		imgui.BulletText('Use "/hxui color" (or colour..) to open the color customizer');
+		imgui.BulletText('Use "/xiui color" (or colour..) to open the color customizer');
 		imgui.BulletText('Added comprehensive color customization system');
 		imgui.BulletText('Customize all text colors (HP, MP, TP, distance, etc.)');
 		imgui.BulletText('Customize bar gradient colors or use solid colors');
