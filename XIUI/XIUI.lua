@@ -904,8 +904,8 @@ defaultUserSettings = deep_copy_table(user_settings);
 -- Migrate settings from HXUI to XIUI (one-time migration for users upgrading from HXUI)
 local function MigrateFromHXUI()
     local installPath = AshitaCore:GetInstallPath():gsub('\\$', ''); -- Remove trailing backslash if present
-    local oldConfigDir = installPath .. '\\config\\addons\\hxui';
-    local newConfigDir = installPath .. '\\config\\addons\\xiui';
+    local oldConfigDir = installPath .. '\\config\\addons\\HXUI';
+    local newConfigDir = installPath .. '\\config\\addons\\XIUI';
 
     -- Check if old config directory exists
     if not ashita.fs.exists(oldConfigDir) then
