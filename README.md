@@ -30,6 +30,17 @@ Contains the following elements:
         * `/addon load xiui`
     * Save this file.  XIUI should automatically load when you start Final Fantasy XI.
 
+***UPGRADING FROM HXUI***
+
+This addon was recently renamed from HXUI to XIUI. Your settings will be automatically migrated on first load.
+
+1. Download the latest XIUI release
+2. Delete your old `HXUI` folder from your addons directory
+3. Extract the new `XIUI` folder into your addons directory
+4. Load the addon with `/addon load xiui`
+
+You'll see a message in chat confirming the migration: `[XIUI] Successfully migrated settings from HXUI.`
+
 ***UPDATING NOTES***
-1) This addon has been recently renamed from HXUI to XIUI. If you are upgrading from HXUI and would like to keep your old config from before please rename the folder "hxui" in game/config/addons/ to "xiui"
-2) It is recommended to delete the "XIUI" folder in game/addons before upgrading to a new version as asset directories may change during development
+
+It is recommended to delete the `XIUI` folder in your addons directory before upgrading to a new version, as asset directories may change during development.

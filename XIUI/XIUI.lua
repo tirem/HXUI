@@ -901,6 +901,60 @@ T{
 gAdjustedSettings = deep_copy_table(default_settings);
 defaultUserSettings = deep_copy_table(user_settings);
 
+-- Migrate settings from HXUI to XIUI (one-time migration for users upgrading from HXUI)
+local function MigrateFromHXUI()
+    local installPath = AshitaCore:GetInstallPath():gsub('\\$', ''); -- Remove trailing backslash if present
+    local oldConfigDir = installPath .. '\\config\\addons\\hxui';
+    local newConfigDir = installPath .. '\\config\\addons\\xiui';
+
+    -- Check if old config directory exists
+    if not ashita.fs.exists(oldConfigDir) then
+        return;
+    end
+
+    -- Get all character folders in the old config directory
+    local characterFolders = ashita.fs.get_directory(oldConfigDir);
+    if characterFolders == nil then
+        return;
+    end
+
+    local migratedCount = 0;
+
+    for _, folderName in ipairs(characterFolders) do
+        local oldSettingsPath = oldConfigDir .. '\\' .. folderName .. '\\settings.lua';
+        local newSettingsDir = newConfigDir .. '\\' .. folderName;
+        local newSettingsPath = newSettingsDir .. '\\settings.lua';
+
+        -- Only migrate if old settings exist and new settings don't
+        if ashita.fs.exists(oldSettingsPath) and not ashita.fs.exists(newSettingsPath) then
+            -- Ensure the new directory exists
+            ashita.fs.create_directory(newSettingsDir);
+
+            -- Read old settings file
+            local oldFile = io.open(oldSettingsPath, 'rb');
+            if oldFile then
+                local content = oldFile:read('*all');
+                oldFile:close();
+
+                -- Write to new settings file
+                local newFile = io.open(newSettingsPath, 'wb');
+                if newFile then
+                    newFile:write(content);
+                    newFile:close();
+                    migratedCount = migratedCount + 1;
+                end
+            end
+        end
+    end
+
+    if migratedCount > 0 then
+        print('[XIUI] Successfully migrated settings for ' .. migratedCount .. ' character(s) from HXUI.');
+    end
+end
+
+-- Run migration before loading settings
+pcall(MigrateFromHXUI);
+
 local config = settings.load(user_settings_container);
 gConfig = config.userSettings;
 
