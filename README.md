@@ -1,5 +1,5 @@
 <img width="800" height="200" alt="XIUIBANNER" src="https://github.com/user-attachments/assets/5a7fd14c-adb1-4a4c-8fb0-0f28c804120c" />
-<img width="800" height="133" alt="Discord" src="https://github.com/user-attachments/assets/8b11b946-7b6d-402c-b19d-a3c24021dddc" />
+<a href="https://discord.gg/PxsTH7ZR97"><img width="800" height="133" alt="Discord" src="https://github.com/user-attachments/assets/8b11b946-7b6d-402c-b19d-a3c24021dddc" /></a>
 
 Contains the following elements:
 * Player Bar
