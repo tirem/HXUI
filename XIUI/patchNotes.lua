@@ -74,13 +74,22 @@ patchNotes.DrawWindow = function()
 		end
 
 		imgui.NewLine();
-		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'KNOWN ISSUES');
-		imgui.BulletText('Enemy List may cause performance issues when showing large lists of enemies.\nDisable the enemy list if you encounter issues.');
+		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'Performance Improvements');
+		imgui.BulletText('Major enemy list performance optimizations - fixed O(n) bottlenecks');
+		imgui.BulletText('Party list rendering performance improvements');
+		imgui.BulletText('Reduced memory allocations and garbage collection pressure');
+		imgui.BulletText('Optimized debuff handler with caching');
 		imgui.NewLine();
-		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'General Improvements');
-		imgui.BulletText('Added migration from HXUI to XIUI');
-		imgui.BulletText('Fixed targeting icon in party list position');
-		imgui.BulletText('Fixed target lock issue');
+		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'New Features');
+		imgui.BulletText('Per-party color settings - customize colors for each party');
+		imgui.BulletText('Per-party display settings - show/hide elements per party');
+		imgui.BulletText('HP gradient enabled by default');
+		imgui.BulletText('Color interpolation configuration');
+		imgui.BulletText('Castbar accuracy improvements for self and party members');
+		imgui.NewLine();
+		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'UI Improvements');
+		imgui.BulletText('Redesigned config menu with new layout');
+		imgui.BulletText('Added Discord and GitHub links to config');
 		
     end
 	imgui.PopStyleVar(1);
