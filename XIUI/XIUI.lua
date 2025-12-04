@@ -205,17 +205,195 @@ T{
     inventoryTrackerColorThreshold2 = 29,
     inventoryShowCount = true,
 
-	-- Party List Layout Selection (0 = Layout 1: Horizontal, 1 = Layout 2: Compact Vertical)
-	partyListLayout = 0,
-
-	-- Party List shared settings (apply to both layouts)
-	partyListDistanceHighlight = 0,
+	-- Party List global settings (shared across all parties)
 	partyListTitleFontSize = 12,
+    partyListHideDuringEvents = true,
+    partyListPreview = true,
+    partyListAlliance = true,
+
+	-- Per-party settings (Party A, B, C each have independent configurations)
+	partyA = T{
+		-- Layout mode (0 = Horizontal, 1 = Compact Vertical)
+		layout = 0,
+		-- Display options
+		showDistance = false,
+		distanceHighlight = 0,
+		showJobIcon = true,
+		showJob = true,
+		showCastBars = true,
+		castBarScaleY = 0.6,
+		showBookends = true,
+		showTitle = true,
+		flashTP = false,
+		showTP = true,
+		-- Appearance
+		backgroundName = 'Window1',
+		bgScale = 1.0,
+		cursor = 'GreyArrow.png',
+		statusTheme = 0, -- 0: HorizonXI, 1: HorizonXI-R, 2: FFXIV, 3: FFXI, 4: Disabled
+		buffScale = 1.0,
+		-- Positioning
+		expandHeight = false,
+		alignBottom = false,
+		minRows = 1,
+		entrySpacing = 0,
+		selectionBoxScaleY = 1,
+		-- Scale
+		scaleX = 1,
+		scaleY = 1,
+		-- Font sizes
+		fontSize = 12,
+		splitFontSizes = false,
+		nameFontSize = 12,
+		hpFontSize = 12,
+		mpFontSize = 12,
+		tpFontSize = 12,
+		distanceFontSize = 12,
+		jobFontSize = 12,
+		-- Job icon
+		jobIconScale = 1,
+		-- Bar scales (for Compact Vertical layout)
+		hpBarScaleX = 1,
+		mpBarScaleX = 1,
+		hpBarScaleY = 1,
+		mpBarScaleY = 1,
+	},
+
+	partyB = T{
+		-- Layout mode (0 = Horizontal, 1 = Compact Vertical)
+		layout = 0,
+		-- Display options
+		showDistance = false,
+		distanceHighlight = 0,
+		showJobIcon = true,
+		showJob = true,
+		showCastBars = true,
+		castBarScaleY = 0.6,
+		showBookends = true,
+		showTitle = true,
+		flashTP = false,
+		showTP = false,
+		-- Appearance
+		backgroundName = 'Window1',
+		bgScale = 1.0,
+		cursor = 'GreyArrow.png',
+		statusTheme = 0,
+		buffScale = 1.0,
+		-- Positioning
+		expandHeight = false,
+		alignBottom = false,
+		minRows = 1,
+		entrySpacing = 6,
+		selectionBoxScaleY = 1,
+		-- Scale
+		scaleX = 0.7,
+		scaleY = 0.7,
+		-- Font sizes
+		fontSize = 12,
+		splitFontSizes = false,
+		nameFontSize = 12,
+		hpFontSize = 12,
+		mpFontSize = 12,
+		tpFontSize = 12,
+		distanceFontSize = 12,
+		jobFontSize = 12,
+		-- Job icon
+		jobIconScale = 0.8,
+		-- Bar scales (for Compact Vertical layout)
+		hpBarScaleX = 0.9,
+		mpBarScaleX = 0.6,
+		hpBarScaleY = 1,
+		mpBarScaleY = 0.7,
+	},
+
+	partyC = T{
+		-- Layout mode (0 = Horizontal, 1 = Compact Vertical)
+		layout = 0,
+		-- Display options
+		showDistance = false,
+		distanceHighlight = 0,
+		showJobIcon = true,
+		showJob = true,
+		showCastBars = true,
+		castBarScaleY = 0.6,
+		showBookends = true,
+		showTitle = true,
+		flashTP = false,
+		showTP = false,
+		-- Appearance
+		backgroundName = 'Window1',
+		bgScale = 1.0,
+		cursor = 'GreyArrow.png',
+		statusTheme = 0,
+		buffScale = 1.0,
+		-- Positioning
+		expandHeight = false,
+		alignBottom = false,
+		minRows = 1,
+		entrySpacing = 6,
+		selectionBoxScaleY = 1,
+		-- Scale
+		scaleX = 0.7,
+		scaleY = 0.7,
+		-- Font sizes
+		fontSize = 12,
+		splitFontSizes = false,
+		nameFontSize = 12,
+		hpFontSize = 12,
+		mpFontSize = 12,
+		tpFontSize = 12,
+		distanceFontSize = 12,
+		jobFontSize = 12,
+		-- Job icon
+		jobIconScale = 0.8,
+		-- Bar scales (for Compact Vertical layout)
+		hpBarScaleX = 0.9,
+		mpBarScaleX = 0.6,
+		hpBarScaleY = 1,
+		mpBarScaleY = 0.7,
+	},
+
+	-- Layout templates (bar dimensions and text offsets per layout mode)
+	-- These are shared across all parties using the same layout mode
+	layoutHorizontal = T{
+		hpBarWidth = 150,
+		mpBarWidth = 100,
+		tpBarWidth = 100,
+		barHeight = 20,
+		barSpacing = 8,
+		nameTextOffsetX = 1,
+		nameTextOffsetY = 0,
+		hpTextOffsetX = -2,
+		hpTextOffsetY = -1,
+		mpTextOffsetX = -2,
+		mpTextOffsetY = -1,
+		tpTextOffsetX = -2,
+		tpTextOffsetY = -1,
+	},
+
+	layoutCompact = T{
+		hpBarWidth = 200,
+		mpBarWidth = 120,
+		tpBarWidth = 0,
+		barHeight = 20,
+		barSpacing = 8,
+		nameTextOffsetX = 1,
+		nameTextOffsetY = 0,
+		hpTextOffsetX = -8,
+		hpTextOffsetY = -1,
+		mpTextOffsetX = -4,
+		mpTextOffsetY = -1,
+		tpTextOffsetX = 0,
+		tpTextOffsetY = 1,
+	},
+
+	-- Legacy settings (kept for migration, will be removed in future)
+	partyListLayout = 0,
+	partyListDistanceHighlight = 0,
 	partyListBuffScale = 1,
 	partyListCastBarScaleY = 0.6,
 	partyListCastBars = true,
-	-- partyListCastBarFastCast removed - now uses castBarFastCastEnabled for both
-	partyListStatusTheme = 0, -- 0: HorizonXI-L, 1: HorizonXI-R 2: XIV1.0, 3: XIV, 4: Disabled
+	partyListStatusTheme = 0,
 	partyListTheme = 0,
 	partyListFlashTP = false,
 	showPartyListBookends = true,
@@ -225,19 +403,14 @@ T{
 	showPartyListJob = true,
 	partyListCursor = 'GreyArrow.png',
 	partyListBackgroundName = 'Window1',
-
-    partyListHideDuringEvents = true,
     partyListExpandHeight = false,
     partyListAlignBottom = false,
     partyListBgScale = 1.0,
     partyListBgColor = { 255, 255, 255, 255 },
     partyListBorderColor = { 255, 255, 255, 255 },
-    partyListPreview = true,
-    partyListAlliance = true,
 
-	-- Party List Layout 1 Settings (Horizontal)
+	-- Legacy layout settings (kept for migration)
 	partyListLayout1 = T{
-		-- Party 1 (Main) settings
 		partyListScaleX = 1,
 		partyListScaleY = 1,
 		partyListFontSize = 12,
@@ -253,8 +426,6 @@ T{
 		partyListTP = true,
 		partyListMinRows = 1,
 		selectionBoxScaleY = 1,
-
-		-- Party 2 (Alliance B) settings
 		partyList2ScaleX = 0.7,
 		partyList2ScaleY = 0.7,
 		partyList2FontSize = 12,
@@ -267,8 +438,6 @@ T{
 		partyList2JobIconScale = 0.8,
 		partyList2EntrySpacing = 6,
 		partyList2TP = false,
-
-		-- Party 3 (Alliance C) settings
 		partyList3ScaleX = 0.7,
 		partyList3ScaleY = 0.7,
 		partyList3FontSize = 12,
@@ -281,19 +450,15 @@ T{
 		partyList3JobIconScale = 0.8,
 		partyList3EntrySpacing = 6,
 		partyList3TP = false,
-
-		-- Bar dimensions
 		hpBarWidth = 150,
 		mpBarWidth = 100,
 		tpBarWidth = 100,
 		barHeight = 20,
 		barSpacing = 8,
-		hpBarScaleX = 1,  -- HP bar X scale (Layout 1)
-		mpBarScaleX = 1,  -- MP bar X scale (Layout 1)
-		hpBarScaleY = 1,  -- HP bar Y scale (Layout 1)
-		mpBarScaleY = 1,  -- MP bar Y scale (Layout 1)
-
-		-- Text offsets
+		hpBarScaleX = 1,
+		mpBarScaleX = 1,
+		hpBarScaleY = 1,
+		mpBarScaleY = 1,
 		nameTextOffsetX = 1,
 		nameTextOffsetY = 0,
 		hpTextOffsetX = -2,
@@ -304,9 +469,7 @@ T{
 		tpTextOffsetY = -1,
 	},
 
-	-- Party List Layout 2 Settings (Compact Vertical)
 	partyListLayout2 = T{
-		-- Party 1 (Main) settings
 		partyListScaleX = 1,
 		partyListScaleY = 1,
 		partyListFontSize = 12,
@@ -322,8 +485,6 @@ T{
 		partyListTP = true,
 		partyListMinRows = 1,
 		selectionBoxScaleY = 1,
-
-		-- Party 2 (Alliance B) settings
 		partyList2ScaleX = 0.55,
 		partyList2ScaleY = 0.55,
 		partyList2FontSize = 12,
@@ -340,8 +501,6 @@ T{
 		partyList2MpBarScaleX = 0.6,
 		partyList2HpBarScaleY = 1,
 		partyList2MpBarScaleY = 0.7,
-
-		-- Party 3 (Alliance C) settings
 		partyList3ScaleX = 0.55,
 		partyList3ScaleY = 0.55,
 		partyList3FontSize = 12,
@@ -358,27 +517,23 @@ T{
 		partyList3MpBarScaleX = 0.6,
 		partyList3HpBarScaleY = 1,
 		partyList3MpBarScaleY = 0.7,
-
-		-- Bar dimensions (optimized for compact vertical layout)
 		hpBarWidth = 200,
 		mpBarWidth = 120,
-		tpBarWidth = 0,  -- No TP bar in Layout 2
+		tpBarWidth = 0,
 		barHeight = 20,
-		barSpacing = 8,  -- Space between TP text and MP bar
-		hpBarScaleX = 0.9,  -- HP bar X scale (Layout 2)
-		mpBarScaleX = 0.6,  -- MP bar X scale (Layout 2)
-		hpBarScaleY = 1,  -- HP bar Y scale (Layout 2)
-		mpBarScaleY = 0.7,  -- MP bar Y scale (Layout 2)
-
-		-- Text offsets (optimized for Layout 2)
+		barSpacing = 8,
+		hpBarScaleX = 0.9,
+		mpBarScaleX = 0.6,
+		hpBarScaleY = 1,
+		mpBarScaleY = 0.7,
 		nameTextOffsetX = 1,
 		nameTextOffsetY = 0,
-		hpTextOffsetX = -8,  -- 8px from right edge of HP bar
+		hpTextOffsetX = -8,
 		hpTextOffsetY = -1,
-		mpTextOffsetX = -4,  -- 4px from right edge of MP bar
+		mpTextOffsetX = -4,
 		mpTextOffsetY = -1,
-		tpTextOffsetX = 0,   -- TP text left-aligned below HP bar
-		tpTextOffsetY = 1,   -- 1px below HP bar
+		tpTextOffsetX = 0,
+		tpTextOffsetY = 1,
 	},
 
 	castBarScaleX = 1,
@@ -1085,6 +1240,162 @@ if gConfig.partyListLayout == nil then
 	gConfig.partyListLayout = 0;
 end
 
+-- Migrate to new per-party settings structure (partyA, partyB, partyC)
+if not gConfig.partyA then
+	-- Migrate from old settings to new per-party structure
+	local oldLayout = (gConfig.partyListLayout == 1) and gConfig.partyListLayout2 or gConfig.partyListLayout1;
+
+	-- Helper to safely get old value or default
+	local function getOld(key, default)
+		if oldLayout and oldLayout[key] ~= nil then return oldLayout[key]; end
+		if gConfig[key] ~= nil then return gConfig[key]; end
+		return default;
+	end
+
+	gConfig.partyA = T{
+		layout = gConfig.partyListLayout or 0,
+		showDistance = gConfig.showPartyListDistance or false,
+		distanceHighlight = gConfig.partyListDistanceHighlight or 0,
+		showJobIcon = gConfig.showPartyJobIcon ~= false,
+		showJob = gConfig.showPartyListJob ~= false,
+		showCastBars = gConfig.partyListCastBars ~= false,
+		castBarScaleY = gConfig.partyListCastBarScaleY or 0.6,
+		showBookends = gConfig.showPartyListBookends ~= false,
+		showTitle = gConfig.showPartyListTitle ~= false,
+		flashTP = gConfig.partyListFlashTP or false,
+		showTP = getOld('partyListTP', true),
+		backgroundName = gConfig.partyListBackgroundName or 'Window1',
+		bgScale = gConfig.partyListBgScale or 1.0,
+		cursor = gConfig.partyListCursor or 'GreyArrow.png',
+		statusTheme = gConfig.partyListStatusTheme or 0,
+		buffScale = gConfig.partyListBuffScale or 1.0,
+		expandHeight = gConfig.partyListExpandHeight or false,
+		alignBottom = gConfig.partyListAlignBottom or false,
+		minRows = getOld('partyListMinRows', 1),
+		entrySpacing = getOld('partyListEntrySpacing', 0),
+		selectionBoxScaleY = getOld('selectionBoxScaleY', 1),
+		scaleX = getOld('partyListScaleX', 1),
+		scaleY = getOld('partyListScaleY', 1),
+		fontSize = getOld('partyListFontSize', 12),
+		splitFontSizes = getOld('splitFontSizes', false),
+		nameFontSize = getOld('partyListNameFontSize', 12),
+		hpFontSize = getOld('partyListHpFontSize', 12),
+		mpFontSize = getOld('partyListMpFontSize', 12),
+		tpFontSize = getOld('partyListTpFontSize', 12),
+		distanceFontSize = getOld('partyListDistanceFontSize', 12),
+		jobFontSize = getOld('partyListJobFontSize', 12),
+		jobIconScale = getOld('partyListJobIconScale', 1),
+		hpBarScaleX = getOld('hpBarScaleX', 1),
+		mpBarScaleX = getOld('mpBarScaleX', 1),
+		hpBarScaleY = getOld('hpBarScaleY', 1),
+		mpBarScaleY = getOld('mpBarScaleY', 1),
+	};
+
+	gConfig.partyB = T{
+		layout = gConfig.partyListLayout or 0,
+		showDistance = gConfig.showPartyListDistance or false,
+		distanceHighlight = gConfig.partyListDistanceHighlight or 0,
+		showJobIcon = gConfig.showPartyJobIcon ~= false,
+		showJob = gConfig.showPartyListJob ~= false,
+		showCastBars = gConfig.partyListCastBars ~= false,
+		castBarScaleY = gConfig.partyListCastBarScaleY or 0.6,
+		showBookends = gConfig.showPartyListBookends ~= false,
+		showTitle = gConfig.showPartyListTitle ~= false,
+		flashTP = gConfig.partyListFlashTP or false,
+		showTP = getOld('partyList2TP', false),
+		backgroundName = gConfig.partyListBackgroundName or 'Window1',
+		bgScale = gConfig.partyListBgScale or 1.0,
+		cursor = gConfig.partyListCursor or 'GreyArrow.png',
+		statusTheme = gConfig.partyListStatusTheme or 0,
+		buffScale = gConfig.partyListBuffScale or 1.0,
+		expandHeight = gConfig.partyListExpandHeight or false,
+		alignBottom = gConfig.partyListAlignBottom or false,
+		minRows = 1,
+		entrySpacing = getOld('partyList2EntrySpacing', 6),
+		selectionBoxScaleY = 1,
+		scaleX = getOld('partyList2ScaleX', 0.7),
+		scaleY = getOld('partyList2ScaleY', 0.7),
+		fontSize = getOld('partyList2FontSize', 12),
+		splitFontSizes = getOld('splitFontSizes', false),
+		nameFontSize = getOld('partyList2NameFontSize', 12),
+		hpFontSize = getOld('partyList2HpFontSize', 12),
+		mpFontSize = getOld('partyList2MpFontSize', 12),
+		tpFontSize = getOld('partyList2TpFontSize', 12),
+		distanceFontSize = getOld('partyList2DistanceFontSize', 12),
+		jobFontSize = getOld('partyList2JobFontSize', 12),
+		jobIconScale = getOld('partyList2JobIconScale', 0.8),
+		hpBarScaleX = getOld('partyList2HpBarScaleX', 0.9),
+		mpBarScaleX = getOld('partyList2MpBarScaleX', 0.6),
+		hpBarScaleY = getOld('partyList2HpBarScaleY', 1),
+		mpBarScaleY = getOld('partyList2MpBarScaleY', 0.7),
+	};
+
+	gConfig.partyC = T{
+		layout = gConfig.partyListLayout or 0,
+		showDistance = gConfig.showPartyListDistance or false,
+		distanceHighlight = gConfig.partyListDistanceHighlight or 0,
+		showJobIcon = gConfig.showPartyJobIcon ~= false,
+		showJob = gConfig.showPartyListJob ~= false,
+		showCastBars = gConfig.partyListCastBars ~= false,
+		castBarScaleY = gConfig.partyListCastBarScaleY or 0.6,
+		showBookends = gConfig.showPartyListBookends ~= false,
+		showTitle = gConfig.showPartyListTitle ~= false,
+		flashTP = gConfig.partyListFlashTP or false,
+		showTP = getOld('partyList3TP', false),
+		backgroundName = gConfig.partyListBackgroundName or 'Window1',
+		bgScale = gConfig.partyListBgScale or 1.0,
+		cursor = gConfig.partyListCursor or 'GreyArrow.png',
+		statusTheme = gConfig.partyListStatusTheme or 0,
+		buffScale = gConfig.partyListBuffScale or 1.0,
+		expandHeight = gConfig.partyListExpandHeight or false,
+		alignBottom = gConfig.partyListAlignBottom or false,
+		minRows = 1,
+		entrySpacing = getOld('partyList3EntrySpacing', 6),
+		selectionBoxScaleY = 1,
+		scaleX = getOld('partyList3ScaleX', 0.7),
+		scaleY = getOld('partyList3ScaleY', 0.7),
+		fontSize = getOld('partyList3FontSize', 12),
+		splitFontSizes = getOld('splitFontSizes', false),
+		nameFontSize = getOld('partyList3NameFontSize', 12),
+		hpFontSize = getOld('partyList3HpFontSize', 12),
+		mpFontSize = getOld('partyList3MpFontSize', 12),
+		tpFontSize = getOld('partyList3TpFontSize', 12),
+		distanceFontSize = getOld('partyList3DistanceFontSize', 12),
+		jobFontSize = getOld('partyList3JobFontSize', 12),
+		jobIconScale = getOld('partyList3JobIconScale', 0.8),
+		hpBarScaleX = getOld('partyList3HpBarScaleX', 0.9),
+		mpBarScaleX = getOld('partyList3MpBarScaleX', 0.6),
+		hpBarScaleY = getOld('partyList3HpBarScaleY', 1),
+		mpBarScaleY = getOld('partyList3MpBarScaleY', 0.7),
+	};
+
+	-- Initialize layout templates if missing
+	if not gConfig.layoutHorizontal then
+		gConfig.layoutHorizontal = deep_copy_table(defaultUserSettings.layoutHorizontal);
+	end
+	if not gConfig.layoutCompact then
+		gConfig.layoutCompact = deep_copy_table(defaultUserSettings.layoutCompact);
+	end
+end
+
+-- Helper function to get party settings by index (1=A, 2=B, 3=C)
+function GetPartySettings(partyIndex)
+	if partyIndex == 3 then return gConfig.partyC;
+	elseif partyIndex == 2 then return gConfig.partyB;
+	else return gConfig.partyA;
+	end
+end
+
+-- Helper function to get layout template for a party
+function GetLayoutTemplate(partyIndex)
+	local party = GetPartySettings(partyIndex);
+	if party.layout == 1 then
+		return gConfig.layoutCompact;
+	else
+		return gConfig.layoutHorizontal;
+	end
+end
+
 showConfig = { false };
 local pendingVisualUpdate = false;
 
@@ -1272,83 +1583,75 @@ function UpdateUserSettings()
 		right_justified = ds.targetBarSettings.totName_font_settings.right_justified,
 	};
 
-	-- Party List (load settings from current layout)
-	local currentLayout = (us.partyListLayout == 1) and us.partyListLayout2 or us.partyListLayout1;
-
-    gAdjustedSettings.partyListSettings.baseIconSize = ds.partyListSettings.iconSize;  -- Base icon size for job icons
-    gAdjustedSettings.partyListSettings.iconSize = ds.partyListSettings.iconSize * us.partyListBuffScale;  -- Scaled icon size for status icons
-    gAdjustedSettings.partyListSettings.expandHeight = us.partyListExpandHeight;
-    gAdjustedSettings.partyListSettings.alignBottom = us.partyListAlignBottom;
-    gAdjustedSettings.partyListSettings.minRows = currentLayout.partyListMinRows or 1;
-
-	-- Apply font sizes for each party (stored as arrays indexed by party)
-	-- When splitFontSizes is enabled, we create a composite value that changes when ANY individual size changes
-	-- This ensures UpdateVisuals detects the change and recalculates reference heights
-	local function getFontSizeHash(nameSize, hpSize, mpSize, tpSize, distSize, jobSize)
+	-- Party List (load settings from new per-party structure)
+	-- Helper function to get font size hash for change detection
+	local function getFontSizeHash(party)
+		local nameSize = party.nameFontSize or 12;
+		local hpSize = party.hpFontSize or 12;
+		local mpSize = party.mpFontSize or 12;
+		local tpSize = party.tpFontSize or 12;
+		local distSize = party.distanceFontSize or 12;
+		local jobSize = party.jobFontSize or 12;
 		return nameSize + (hpSize * 100) + (mpSize * 10000) + (tpSize * 1000000) + (distSize * 100000000) + (jobSize * 10000000000);
 	end
 
-	if currentLayout.splitFontSizes then
-		gAdjustedSettings.partyListSettings.fontSizes = {
-			getFontSizeHash(
-				currentLayout.partyListNameFontSize or 12,
-				currentLayout.partyListHpFontSize or 12,
-				currentLayout.partyListMpFontSize or 12,
-				currentLayout.partyListTpFontSize or 12,
-				currentLayout.partyListDistanceFontSize or 12,
-				currentLayout.partyListJobFontSize or 12
-			),
-			getFontSizeHash(
-				currentLayout.partyList2NameFontSize or 12,
-				currentLayout.partyList2HpFontSize or 12,
-				currentLayout.partyList2MpFontSize or 12,
-				currentLayout.partyList2TpFontSize or 12,
-				currentLayout.partyList2DistanceFontSize or 12,
-				currentLayout.partyList2JobFontSize or 12
-			),
-			getFontSizeHash(
-				currentLayout.partyList3NameFontSize or 12,
-				currentLayout.partyList3HpFontSize or 12,
-				currentLayout.partyList3MpFontSize or 12,
-				currentLayout.partyList3TpFontSize or 12,
-				currentLayout.partyList3DistanceFontSize or 12,
-				currentLayout.partyList3JobFontSize or 12
-			),
-		};
-	else
-		gAdjustedSettings.partyListSettings.fontSizes = {
-			currentLayout.partyListFontSize or 12,   -- Party 1
-			currentLayout.partyList2FontSize or 12,  -- Party 2
-			currentLayout.partyList3FontSize or 12,  -- Party 3
-		};
-	end
+	-- Store per-party settings in gAdjustedSettings for partylist.lua to access
+	gAdjustedSettings.partyListSettings.partySettings = {
+		[1] = us.partyA,
+		[2] = us.partyB,
+		[3] = us.partyC,
+	};
+
+	-- Store layout templates
+	gAdjustedSettings.partyListSettings.layoutTemplates = {
+		[0] = us.layoutHorizontal,
+		[1] = us.layoutCompact,
+	};
+
+    gAdjustedSettings.partyListSettings.baseIconSize = ds.partyListSettings.iconSize;  -- Base icon size for job icons
+
+	-- Apply font sizes for each party (hash used for change detection)
+	gAdjustedSettings.partyListSettings.fontSizes = {
+		us.partyA.splitFontSizes and getFontSizeHash(us.partyA) or (us.partyA.fontSize or 12),
+		us.partyB.splitFontSizes and getFontSizeHash(us.partyB) or (us.partyB.fontSize or 12),
+		us.partyC.splitFontSizes and getFontSizeHash(us.partyC) or (us.partyC.fontSize or 12),
+	};
+
 	gAdjustedSettings.partyListSettings.title_font_settings.font_height = math.max(us.partyListTitleFontSize, 8);
 
 	gAdjustedSettings.partyListSettings.entrySpacing = {
-        ds.partyListSettings.entrySpacing + (currentLayout.partyListEntrySpacing or 0),
-        ds.partyListSettings.entrySpacing + (currentLayout.partyList2EntrySpacing or 0),
-        ds.partyListSettings.entrySpacing + (currentLayout.partyList3EntrySpacing or 0),
+        ds.partyListSettings.entrySpacing + (us.partyA.entrySpacing or 0),
+        ds.partyListSettings.entrySpacing + (us.partyB.entrySpacing or 0),
+        ds.partyListSettings.entrySpacing + (us.partyC.entrySpacing or 0),
     };
 
-	-- Apply layout-specific bar dimensions and text offsets
-	gAdjustedSettings.partyListSettings.hpBarWidth = currentLayout.hpBarWidth or 150;
-	gAdjustedSettings.partyListSettings.mpBarWidth = currentLayout.mpBarWidth or 100;
-	gAdjustedSettings.partyListSettings.tpBarWidth = currentLayout.tpBarWidth or 100;
-	gAdjustedSettings.partyListSettings.barHeight = currentLayout.barHeight or 20;
-	gAdjustedSettings.partyListSettings.barSpacing = currentLayout.barSpacing or 8;
-	gAdjustedSettings.partyListSettings.hpBarScaleX = currentLayout.hpBarScaleX or 1;
-	gAdjustedSettings.partyListSettings.mpBarScaleX = currentLayout.mpBarScaleX or 1;
-	gAdjustedSettings.partyListSettings.hpBarScaleY = currentLayout.hpBarScaleY or 1;
-	gAdjustedSettings.partyListSettings.mpBarScaleY = currentLayout.mpBarScaleY or 1;
+	-- Note: Bar dimensions and text offsets are now per-party via layoutTemplates
+	-- These are kept for backwards compatibility but will be read per-party in partylist.lua
+	local layoutA = us.partyA.layout == 1 and us.layoutCompact or us.layoutHorizontal;
+	gAdjustedSettings.partyListSettings.hpBarWidth = layoutA.hpBarWidth or 150;
+	gAdjustedSettings.partyListSettings.mpBarWidth = layoutA.mpBarWidth or 100;
+	gAdjustedSettings.partyListSettings.tpBarWidth = layoutA.tpBarWidth or 100;
+	gAdjustedSettings.partyListSettings.barHeight = layoutA.barHeight or 20;
+	gAdjustedSettings.partyListSettings.barSpacing = layoutA.barSpacing or 8;
+	gAdjustedSettings.partyListSettings.hpBarScaleX = us.partyA.hpBarScaleX or 1;
+	gAdjustedSettings.partyListSettings.mpBarScaleX = us.partyA.mpBarScaleX or 1;
+	gAdjustedSettings.partyListSettings.hpBarScaleY = us.partyA.hpBarScaleY or 1;
+	gAdjustedSettings.partyListSettings.mpBarScaleY = us.partyA.mpBarScaleY or 1;
 
-	gAdjustedSettings.partyListSettings.nameTextOffsetX = currentLayout.nameTextOffsetX or 1;
-	gAdjustedSettings.partyListSettings.nameTextOffsetY = currentLayout.nameTextOffsetY or 0;
-	gAdjustedSettings.partyListSettings.hpTextOffsetX = currentLayout.hpTextOffsetX or -2;
-	gAdjustedSettings.partyListSettings.hpTextOffsetY = currentLayout.hpTextOffsetY or -1;
-	gAdjustedSettings.partyListSettings.mpTextOffsetX = currentLayout.mpTextOffsetX or -2;
-	gAdjustedSettings.partyListSettings.mpTextOffsetY = currentLayout.mpTextOffsetY or -1;
-	gAdjustedSettings.partyListSettings.tpTextOffsetX = currentLayout.tpTextOffsetX or -2;
-	gAdjustedSettings.partyListSettings.tpTextOffsetY = currentLayout.tpTextOffsetY or -1;
+	gAdjustedSettings.partyListSettings.nameTextOffsetX = layoutA.nameTextOffsetX or 1;
+	gAdjustedSettings.partyListSettings.nameTextOffsetY = layoutA.nameTextOffsetY or 0;
+	gAdjustedSettings.partyListSettings.hpTextOffsetX = layoutA.hpTextOffsetX or -2;
+	gAdjustedSettings.partyListSettings.hpTextOffsetY = layoutA.hpTextOffsetY or -1;
+	gAdjustedSettings.partyListSettings.mpTextOffsetX = layoutA.mpTextOffsetX or -2;
+	gAdjustedSettings.partyListSettings.mpTextOffsetY = layoutA.mpTextOffsetY or -1;
+	gAdjustedSettings.partyListSettings.tpTextOffsetX = layoutA.tpTextOffsetX or -2;
+	gAdjustedSettings.partyListSettings.tpTextOffsetY = layoutA.tpTextOffsetY or -1;
+
+	-- Legacy compatibility - these are still used by some code paths
+	gAdjustedSettings.partyListSettings.iconSize = ds.partyListSettings.iconSize * (us.partyA.buffScale or 1);
+	gAdjustedSettings.partyListSettings.expandHeight = us.partyA.expandHeight or false;
+	gAdjustedSettings.partyListSettings.alignBottom = us.partyA.alignBottom or false;
+	gAdjustedSettings.partyListSettings.minRows = us.partyA.minRows or 1;
 
 	-- Note: All party list text colors are set dynamically in partylist.DrawWindow every frame
 

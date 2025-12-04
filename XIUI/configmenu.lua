@@ -234,6 +234,86 @@ local function DrawComboBox(label, currentValue, items, callback)
     return changed, newValue;
 end
 
+-- Helper function for per-party checkbox (saves to partyA/B/C table)
+local function DrawPartyCheckbox(partyTable, label, configKey, callback)
+    local uniqueLabel = label .. '##party_' .. configKey;
+    if (imgui.Checkbox(uniqueLabel, { partyTable[configKey] })) then
+        partyTable[configKey] = not partyTable[configKey];
+        SaveSettingsOnly();
+        UpdateUserSettings();
+        if callback then callback() end
+    end
+end
+
+-- Helper function for per-party slider (saves to partyA/B/C table)
+local function DrawPartySlider(partyTable, label, configKey, min, max, format, callback)
+    local value = { partyTable[configKey] or min };
+    local changed = false;
+    local uniqueLabel = label .. '##party_' .. configKey;
+
+    if format ~= nil then
+        changed = imgui.SliderFloat(uniqueLabel, value, min, max, format);
+    elseif type(partyTable[configKey]) == 'number' and math.floor(partyTable[configKey]) == partyTable[configKey] then
+        changed = imgui.SliderInt(uniqueLabel, value, min, max);
+    else
+        changed = imgui.SliderFloat(uniqueLabel, value, min, max, '%.2f');
+    end
+
+    if changed then
+        partyTable[configKey] = value[1];
+        if callback then callback() end
+        UpdateUserSettings();
+    end
+
+    if (imgui.IsItemDeactivatedAfterEdit()) then
+        SaveSettingsToDisk();
+    end
+end
+
+-- Helper function for per-party combo box
+local function DrawPartyComboBox(partyTable, label, configKey, items, callback)
+    local currentValue = partyTable[configKey];
+    local uniqueLabel = label .. '##party_' .. configKey;
+
+    if (imgui.BeginCombo(uniqueLabel, currentValue)) then
+        for i = 1, #items do
+            local is_selected = items[i] == currentValue;
+            if (imgui.Selectable(items[i], is_selected) and items[i] ~= currentValue) then
+                partyTable[configKey] = items[i];
+                SaveSettingsOnly();
+                UpdateUserSettings();
+                if callback then callback(items[i]) end
+            end
+            if (is_selected) then
+                imgui.SetItemDefaultFocus();
+            end
+        end
+        imgui.EndCombo();
+    end
+end
+
+-- Helper function for per-party indexed combo box (0-based index)
+local function DrawPartyComboBoxIndexed(partyTable, label, configKey, items, callback)
+    local currentIndex = partyTable[configKey] or 0;
+    local uniqueLabel = label .. '##party_' .. configKey;
+
+    if (imgui.BeginCombo(uniqueLabel, items[currentIndex] or items[0])) then
+        for i = 0, #items do
+            local is_selected = i == currentIndex;
+            if (imgui.Selectable(items[i], is_selected) and i ~= currentIndex) then
+                partyTable[configKey] = i;
+                SaveSettingsOnly();
+                UpdateUserSettings();
+                if callback then callback(i) end
+            end
+            if (is_selected) then
+                imgui.SetItemDefaultFocus();
+            end
+        end
+        imgui.EndCombo();
+    end
+end
+
 -- Section: Global Settings (combines General, Font, and Bar settings)
 local function DrawGlobalSettings()
     DrawCheckbox('Lock HUD Position', 'lockPositions');
@@ -539,219 +619,153 @@ local function DrawEnemyListColorSettings()
     DrawTextColorPicker("Subtarget Border", gConfig.colorCustomization.enemyList, 'subtargetBorderColor', "Border color for subtargeted enemy");
 end
 
+-- Helper function to draw per-party settings tab content
+local function DrawPartyTabContent(party, partyName)
+    local layoutItems = { [0] = 'Horizontal', [1] = 'Compact Vertical' };
+    local statusThemeItems = { [0] = 'HorizonXI', [1] = 'HorizonXI-R', [2] = 'FFXIV', [3] = 'FFXI', [4] = 'Disabled' };
+    local bg_theme_paths = statusHandler.get_background_paths();
+    local cursor_paths = statusHandler.get_cursor_paths();
+
+    -- Layout Selector
+    DrawPartyComboBoxIndexed(party, 'Layout', 'layout', layoutItems, function()
+        if partyList ~= nil then
+            partyList.UpdateVisuals(gAdjustedSettings.partyListSettings);
+        end
+    end);
+
+    imgui.Spacing();
+    imgui.Text('Display Options');
+    imgui.Separator();
+    imgui.Spacing();
+
+    -- TP is only available for Party A (alliance members don't have TP data)
+    if partyName == 'A' then
+        DrawPartyCheckbox(party, 'Show TP', 'showTP');
+        if party.layout == 0 and party.showTP then
+            DrawPartyCheckbox(party, 'Flash TP at 100%', 'flashTP');
+        end
+    end
+    DrawPartyCheckbox(party, 'Show Distance', 'showDistance');
+    if party.showDistance then
+        imgui.SameLine();
+        imgui.PushItemWidth(100);
+        DrawPartySlider(party, 'Highlight', 'distanceHighlight', 0.0, 50.0, '%.1f');
+        imgui.PopItemWidth();
+    end
+    DrawPartyCheckbox(party, 'Show Job Icons', 'showJobIcon');
+    DrawPartyCheckbox(party, 'Show Job/Subjob', 'showJob');
+    imgui.ShowHelp('Display job and subjob info (Horizontal layout only).');
+    DrawPartyCheckbox(party, 'Show Cast Bars', 'showCastBars');
+    if party.showCastBars then
+        imgui.SameLine();
+        imgui.PushItemWidth(100);
+        DrawPartySlider(party, 'Scale Y', 'castBarScaleY', 0.1, 3.0, '%.1f');
+        imgui.PopItemWidth();
+    end
+    DrawPartyCheckbox(party, 'Show Bookends', 'showBookends');
+    DrawPartyCheckbox(party, 'Show Title', 'showTitle');
+    DrawPartyCheckbox(party, 'Align Bottom', 'alignBottom');
+    DrawPartyCheckbox(party, 'Expand Height', 'expandHeight');
+
+    imgui.Spacing();
+    imgui.Text('Appearance');
+    imgui.Separator();
+    imgui.Spacing();
+
+    DrawPartyComboBox(party, 'Background', 'backgroundName', bg_theme_paths, DeferredUpdateVisuals);
+    DrawPartySlider(party, 'Background Scale', 'bgScale', 0.1, 3.0, '%.2f', UpdatePartyListVisuals);
+    DrawPartyComboBox(party, 'Cursor', 'cursor', cursor_paths, DeferredUpdateVisuals);
+    DrawPartyComboBoxIndexed(party, 'Status Theme', 'statusTheme', statusThemeItems);
+    DrawPartySlider(party, 'Status Icon Scale', 'buffScale', 0.1, 3.0, '%.1f');
+
+    imgui.Spacing();
+    imgui.Text('Scale & Spacing');
+    imgui.Separator();
+    imgui.Spacing();
+
+    DrawPartySlider(party, 'Min Rows', 'minRows', 1, 6);
+    DrawPartySlider(party, 'Entry Spacing', 'entrySpacing', -4, 16);
+    DrawPartySlider(party, 'Selection Box Scale Y', 'selectionBoxScaleY', 0.5, 2.0, '%.2f');
+
+    -- Scale controls depend on layout mode
+    if party.layout == 0 then
+        DrawPartySlider(party, 'Scale X', 'scaleX', 0.1, 3.0, '%.2f');
+        DrawPartySlider(party, 'Scale Y', 'scaleY', 0.1, 3.0, '%.2f');
+    else
+        DrawPartySlider(party, 'HP Bar Scale X', 'hpBarScaleX', 0.1, 3.0, '%.2f');
+        DrawPartySlider(party, 'MP Bar Scale X', 'mpBarScaleX', 0.1, 3.0, '%.2f');
+        DrawPartySlider(party, 'HP Bar Scale Y', 'hpBarScaleY', 0.1, 3.0, '%.2f');
+        DrawPartySlider(party, 'MP Bar Scale Y', 'mpBarScaleY', 0.1, 3.0, '%.2f');
+    end
+
+    imgui.Spacing();
+    imgui.Text('Font Sizes');
+    imgui.Separator();
+    imgui.Spacing();
+
+    DrawPartyCheckbox(party, 'Split Font Sizes', 'splitFontSizes');
+    imgui.ShowHelp('When enabled, allows individual font size control for each text element.');
+
+    if party.splitFontSizes then
+        DrawPartySlider(party, 'Name Font Size', 'nameFontSize', 8, 36);
+        DrawPartySlider(party, 'HP Font Size', 'hpFontSize', 8, 36);
+        DrawPartySlider(party, 'MP Font Size', 'mpFontSize', 8, 36);
+        DrawPartySlider(party, 'TP Font Size', 'tpFontSize', 8, 36);
+        DrawPartySlider(party, 'Distance Font Size', 'distanceFontSize', 8, 36);
+        DrawPartySlider(party, 'Job Font Size', 'jobFontSize', 8, 36);
+    else
+        DrawPartySlider(party, 'Font Size', 'fontSize', 8, 36);
+    end
+
+    if party.showJobIcon then
+        DrawPartySlider(party, 'Job Icon Scale', 'jobIconScale', 0.1, 3.0, '%.1f');
+    end
+end
+
 -- Section: Party List Settings
 local function DrawPartyListSettings()
     DrawCheckbox('Enabled', 'showPartyList', CheckVisibility);
 
-    -- Layout Selector
-    local layoutItems = { [0] = 'Layout 1 (Horizontal)', [1] = 'Layout 2 (Compact Vertical)' };
-    if imgui.BeginCombo('Layout', layoutItems[gConfig.partyListLayout]) then
-        for i = 0, 1 do
-            local is_selected = i == gConfig.partyListLayout;
-            if imgui.Selectable(layoutItems[i], is_selected) then
-                if gConfig.partyListLayout ~= i then
-                    gConfig.partyListLayout = i;
-                    UpdateSettings();
-                    SaveSettingsOnly();
-                    if partyList ~= nil then
-                        partyList.UpdateVisuals(gAdjustedSettings.partyListSettings);
-                    end
-                end
-            end
-            if is_selected then
-                imgui.SetItemDefaultFocus();
-            end
-        end
-        imgui.EndCombo();
-    end
-    imgui.ShowHelp('Select between horizontal (Layout 1) and compact vertical (Layout 2) party list layouts. Each layout has independent settings.');
-
-    DrawCheckbox('Preview Full Party (when config open)', 'partyListPreview');
-    if gConfig.partyListLayout ~= 2 then
-        DrawCheckbox('Flash TP at 100%', 'partyListFlashTP');
-    end
-    DrawCheckbox('Show Distance', 'showPartyListDistance');
-    if gConfig.showPartyListDistance then
-        imgui.SameLine();
-        imgui.PushItemWidth(120);
-        DrawSlider('Distance Highlighting', 'partyListDistanceHighlight', 0.0, 50.0, '%.1f');
-        imgui.PopItemWidth();
-    end
-    DrawCheckbox('Show Job Icons', 'showPartyJobIcon');
-    DrawCheckbox('Show Job/Subjob', 'showPartyListJob');
-    imgui.ShowHelp('Display job and subjob info on the right side of the name row (Layout 1 only).');
-    DrawCheckbox('Show Cast Bars', 'partyListCastBars');
-    if (gConfig.partyListCastBars) then
-        imgui.SameLine();
-        imgui.PushItemWidth(120);
-        DrawSlider('Cast Bar Scale Y', 'partyListCastBarScaleY', 0.1, 3.0, '%.1f');
-        imgui.PopItemWidth();
-        imgui.ShowHelp('Fast cast settings are shared with Cast Bar config section.');
-    end
-
-    DrawCheckbox('Show Bookends', 'showPartyListBookends');
-    DrawCheckbox('Show When Solo', 'showPartyListWhenSolo');
-    DrawCheckbox('Show Title', 'showPartyListTitle');
-    DrawCheckbox('Hide During Events', 'partyListHideDuringEvents');
-    DrawCheckbox('Align Bottom', 'partyListAlignBottom');
-    DrawCheckbox('Expand Height', 'partyListExpandHeight');
-    DrawCheckbox('Alliance Windows', 'partyListAlliance');
-
-    -- Background
-    DrawSlider('Background Scale', 'partyListBgScale', 0.1, 3.0, '%.2f', UpdatePartyListVisuals);
-
-    local bg_theme_paths = statusHandler.get_background_paths();
-    DrawComboBox('Background', gConfig.partyListBackgroundName, bg_theme_paths, function(newValue)
-        gConfig.partyListBackgroundName = newValue;
-        SaveSettingsOnly();
-        DeferredUpdateVisuals();
-    end);
-    imgui.ShowHelp('The image to use for the party list background. [Resolution: 512x512 @ XIUI\\assets\\backgrounds]');
-
-    -- Cursor
-    local cursor_paths = statusHandler.get_cursor_paths();
-    DrawComboBox('Cursor', gConfig.partyListCursor, cursor_paths, function(newValue)
-        gConfig.partyListCursor = newValue;
-        SaveSettingsOnly();
-        DeferredUpdateVisuals();
-    end);
-    imgui.ShowHelp('The image to use for the party list cursor. [@ XIUI\\assets\\cursors]');
-
-    -- Status Theme
-    local comboBoxItems = { [0] = 'HorizonXI', [1] = 'HorizonXI-R', [2] = 'FFXIV', [3] = 'FFXI', [4] = 'Disabled' };
-    gConfig.partyListStatusTheme = math.clamp(gConfig.partyListStatusTheme, 0, 4);
-    if(imgui.BeginCombo('Status Theme', comboBoxItems[gConfig.partyListStatusTheme])) then
-        for i = 0, #comboBoxItems do
-            local is_selected = i == gConfig.partyListStatusTheme;
-
-            if (imgui.Selectable(comboBoxItems[i], is_selected) and gConfig.partyListStatusTheme ~= i) then
-                gConfig.partyListStatusTheme = i;
-                SaveSettingsOnly();
-            end
-            if(is_selected) then
-                imgui.SetItemDefaultFocus();
-            end
-        end
-        imgui.EndCombo();
-    end
-
-    DrawSlider('Status Icon Scale', 'partyListBuffScale', 0.1, 3.0, '%.1f');
-
-    -- Main Party Settings
+    -- Global settings (shared across all parties)
     imgui.Spacing();
-    imgui.Text('Party');
+    imgui.Text('Global Settings');
     imgui.Separator();
     imgui.Spacing();
 
-    DrawPartyLayoutCheckbox('Show TP', 'partyListTP');
-    DrawPartyLayoutSlider('Min Rows', 'partyListMinRows', 1, 6);
+    DrawCheckbox('Preview Full Party (when config open)', 'partyListPreview');
+    DrawCheckbox('Show When Solo', 'showPartyListWhenSolo');
+    DrawCheckbox('Hide During Events', 'partyListHideDuringEvents');
+    DrawCheckbox('Alliance Windows', 'partyListAlliance');
+    DrawSlider('Title Font Size', 'partyListTitleFontSize', 8, 36);
 
-    -- Layout 1: General Scale X and Y
-    if gConfig.partyListLayout == 0 then
-        DrawPartyLayoutSlider('Scale X', 'partyListScaleX', 0.1, 3.0, '%.2f');
-        DrawPartyLayoutSlider('Scale Y', 'partyListScaleY', 0.1, 3.0, '%.2f');
-    end
+    imgui.Spacing();
 
-    -- Layout 2: Individual HP and MP bar X and Y scales
-    if gConfig.partyListLayout == 1 then
-        DrawPartyLayoutSlider('HP Bar Scale X', 'hpBarScaleX', 0.1, 3.0, '%.2f');
-        DrawPartyLayoutSlider('MP Bar Scale X', 'mpBarScaleX', 0.1, 3.0, '%.2f');
-        DrawPartyLayoutSlider('HP Bar Scale Y', 'hpBarScaleY', 0.1, 3.0, '%.2f');
-        DrawPartyLayoutSlider('MP Bar Scale Y', 'mpBarScaleY', 0.1, 3.0, '%.2f');
-    end
-
-    -- Font Size: split mode has separate controls per text type
-    DrawPartyLayoutCheckbox('Split Font Sizes', 'splitFontSizes');
-    imgui.ShowHelp('When enabled, allows individual font size control for each text element.');
-    local currentLayout = (gConfig.partyListLayout == 1) and gConfig.partyListLayout2 or gConfig.partyListLayout1;
-    if currentLayout.splitFontSizes then
-        DrawPartyLayoutSlider('Name Font Size', 'partyListNameFontSize', 8, 36);
-        DrawPartyLayoutSlider('HP Font Size', 'partyListHpFontSize', 8, 36);
-        DrawPartyLayoutSlider('MP Font Size', 'partyListMpFontSize', 8, 36);
-        DrawPartyLayoutSlider('TP Font Size', 'partyListTpFontSize', 8, 36);
-        DrawPartyLayoutSlider('Distance Font Size', 'partyListDistanceFontSize', 8, 36);
-        DrawPartyLayoutSlider('Job Font Size', 'partyListJobFontSize', 8, 36);
-    else
-        DrawPartyLayoutSlider('Font Size', 'partyListFontSize', 8, 36);
-    end
-    if gConfig.showPartyJobIcon then
-        DrawPartyLayoutSlider('Job Icon Scale', 'partyListJobIconScale', 0.1, 3.0, '%.1f');
-    end
-    DrawPartyLayoutSlider('Entry Spacing', 'partyListEntrySpacing', -4, 16);
-    DrawPartyLayoutSlider('Selection Box Scale Y', 'selectionBoxScaleY', 0.5, 2.0, '%.2f');
-
-    -- Party B (Alliance)
-    if (gConfig.partyListAlliance) then
-        imgui.Spacing();
-        imgui.Text('Party B (Alliance)');
-        imgui.Separator();
-        imgui.Spacing();
-
-        DrawPartyLayoutCheckbox('Show TP', 'partyList2TP');
-        DrawPartyLayoutSlider('Scale X', 'partyList2ScaleX', 0.1, 3.0, '%.2f');
-        DrawPartyLayoutSlider('Scale Y', 'partyList2ScaleY', 0.1, 3.0, '%.2f');
-
-        -- Layout 2: Individual HP and MP bar X and Y scales
-        if gConfig.partyListLayout == 1 then
-            DrawPartyLayoutSlider('HP Bar Scale X', 'partyList2HpBarScaleX', 0.1, 3.0, '%.2f');
-            DrawPartyLayoutSlider('MP Bar Scale X', 'partyList2MpBarScaleX', 0.1, 3.0, '%.2f');
-            DrawPartyLayoutSlider('HP Bar Scale Y', 'partyList2HpBarScaleY', 0.1, 3.0, '%.2f');
-            DrawPartyLayoutSlider('MP Bar Scale Y', 'partyList2MpBarScaleY', 0.1, 3.0, '%.2f');
+    -- Party tabs
+    if imgui.BeginTabBar('PartyListTabs') then
+        -- Party A tab
+        if imgui.BeginTabItem('Party A') then
+            imgui.Spacing();
+            DrawPartyTabContent(gConfig.partyA, 'A');
+            imgui.EndTabItem();
         end
 
-        -- Font Size: split mode has separate controls per text type
-        if currentLayout.splitFontSizes then
-            DrawPartyLayoutSlider('Name Font Size', 'partyList2NameFontSize', 8, 36);
-            DrawPartyLayoutSlider('HP Font Size', 'partyList2HpFontSize', 8, 36);
-            DrawPartyLayoutSlider('MP Font Size', 'partyList2MpFontSize', 8, 36);
-            DrawPartyLayoutSlider('TP Font Size', 'partyList2TpFontSize', 8, 36);
-            DrawPartyLayoutSlider('Distance Font Size', 'partyList2DistanceFontSize', 8, 36);
-            DrawPartyLayoutSlider('Job Font Size', 'partyList2JobFontSize', 8, 36);
-        else
-            DrawPartyLayoutSlider('Font Size', 'partyList2FontSize', 8, 36);
+        -- Party B tab (only if alliance enabled)
+        if gConfig.partyListAlliance then
+            if imgui.BeginTabItem('Party B') then
+                imgui.Spacing();
+                DrawPartyTabContent(gConfig.partyB, 'B');
+                imgui.EndTabItem();
+            end
+
+            -- Party C tab
+            if imgui.BeginTabItem('Party C') then
+                imgui.Spacing();
+                DrawPartyTabContent(gConfig.partyC, 'C');
+                imgui.EndTabItem();
+            end
         end
 
-        if gConfig.showPartyJobIcon then
-            DrawPartyLayoutSlider('Job Icon Scale', 'partyList2JobIconScale', 0.1, 3.0, '%.1f');
-        end
-        DrawPartyLayoutSlider('Entry Spacing', 'partyList2EntrySpacing', -4, 16);
-    end
-
-    -- Party C (Alliance)
-    if (gConfig.partyListAlliance) then
-        imgui.Spacing();
-        imgui.Text('Party C (Alliance)');
-        imgui.Separator();
-        imgui.Spacing();
-
-        DrawPartyLayoutCheckbox('Show TP', 'partyList3TP');
-        DrawPartyLayoutSlider('Scale X', 'partyList3ScaleX', 0.1, 3.0, '%.2f');
-        DrawPartyLayoutSlider('Scale Y', 'partyList3ScaleY', 0.1, 3.0, '%.2f');
-
-        -- Layout 2: Individual HP and MP bar X and Y scales
-        if gConfig.partyListLayout == 1 then
-            DrawPartyLayoutSlider('HP Bar Scale X', 'partyList3HpBarScaleX', 0.1, 3.0, '%.2f');
-            DrawPartyLayoutSlider('MP Bar Scale X', 'partyList3MpBarScaleX', 0.1, 3.0, '%.2f');
-            DrawPartyLayoutSlider('HP Bar Scale Y', 'partyList3HpBarScaleY', 0.1, 3.0, '%.2f');
-            DrawPartyLayoutSlider('MP Bar Scale Y', 'partyList3MpBarScaleY', 0.1, 3.0, '%.2f');
-        end
-
-        -- Font Size: split mode has separate controls per text type
-        if currentLayout.splitFontSizes then
-            DrawPartyLayoutSlider('Name Font Size', 'partyList3NameFontSize', 8, 36);
-            DrawPartyLayoutSlider('HP Font Size', 'partyList3HpFontSize', 8, 36);
-            DrawPartyLayoutSlider('MP Font Size', 'partyList3MpFontSize', 8, 36);
-            DrawPartyLayoutSlider('TP Font Size', 'partyList3TpFontSize', 8, 36);
-            DrawPartyLayoutSlider('Distance Font Size', 'partyList3DistanceFontSize', 8, 36);
-            DrawPartyLayoutSlider('Job Font Size', 'partyList3JobFontSize', 8, 36);
-        else
-            DrawPartyLayoutSlider('Font Size', 'partyList3FontSize', 8, 36);
-        end
-
-        if gConfig.showPartyJobIcon then
-            DrawPartyLayoutSlider('Job Icon Scale', 'partyList3JobIconScale', 0.1, 3.0, '%.1f');
-        end
-        DrawPartyLayoutSlider('Entry Spacing', 'partyList3EntrySpacing', -4, 16);
+        imgui.EndTabBar();
     end
 end
 
@@ -1144,6 +1158,11 @@ config.DrawWindow = function(us)
     imgui.PushStyleColor(ImGuiCol_ScrollbarGrabActive, goldDark);
     imgui.PushStyleColor(ImGuiCol_Separator, borderDark);
     imgui.PushStyleColor(ImGuiCol_PopupBg, bgMedium);
+    imgui.PushStyleColor(ImGuiCol_Tab, tabColor);
+    imgui.PushStyleColor(ImGuiCol_TabHovered, tabHoverColor);
+    imgui.PushStyleColor(ImGuiCol_TabActive, tabActiveColor);
+    imgui.PushStyleColor(ImGuiCol_TabUnfocused, bgDark);
+    imgui.PushStyleColor(ImGuiCol_TabUnfocusedActive, bgMedium);
 
     imgui.PushStyleVar(ImGuiStyleVar_WindowPadding, {12, 12});
     imgui.PushStyleVar(ImGuiStyleVar_FramePadding, {6, 4});
@@ -1467,7 +1486,7 @@ config.DrawWindow = function(us)
     end
 
     imgui.PopStyleVar(9);
-    imgui.PopStyleColor(22);
+    imgui.PopStyleColor(27);  -- 22 base + 5 tab colors
     imgui.End();
 end
 
