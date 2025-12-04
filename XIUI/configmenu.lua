@@ -769,87 +769,124 @@ local function DrawPartyListSettings()
     end
 end
 
--- Section: Party List Color Settings
-local function DrawPartyListColorSettings()
+-- Helper function to draw color settings for a specific party
+local function DrawPartyColorTabContent(colors, partyName)
     imgui.Text("HP Bar Colors:");
     imgui.Separator();
     imgui.Spacing();
-    DrawGradientPicker("Party HP High (75-100%)", gConfig.colorCustomization.partyList.hpGradient.high, "Party member HP bar when health is above 75%");
-    DrawGradientPicker("Party HP Med-High (50-75%)", gConfig.colorCustomization.partyList.hpGradient.medHigh, "Party member HP bar when health is 50-75%");
-    DrawGradientPicker("Party HP Med-Low (25-50%)", gConfig.colorCustomization.partyList.hpGradient.medLow, "Party member HP bar when health is 25-50%");
-    DrawGradientPicker("Party HP Low (0-25%)", gConfig.colorCustomization.partyList.hpGradient.low, "Party member HP bar when health is below 25%");
+    DrawGradientPicker("HP High (75-100%)##" .. partyName, colors.hpGradient.high, "HP bar when health is above 75%");
+    DrawGradientPicker("HP Med-High (50-75%)##" .. partyName, colors.hpGradient.medHigh, "HP bar when health is 50-75%");
+    DrawGradientPicker("HP Med-Low (25-50%)##" .. partyName, colors.hpGradient.medLow, "HP bar when health is 25-50%");
+    DrawGradientPicker("HP Low (0-25%)##" .. partyName, colors.hpGradient.low, "HP bar when health is below 25%");
 
     imgui.Spacing();
-    imgui.Text("MP/TP Bar Colors:");
+    if partyName == 'A' then
+        imgui.Text("MP/TP Bar Colors:");
+    else
+        imgui.Text("MP Bar Colors:");
+    end
     imgui.Separator();
     imgui.Spacing();
-    DrawGradientPicker("Party MP Bar", gConfig.colorCustomization.partyList.mpGradient, "Party member MP bar color");
-    DrawGradientPicker("Party TP Bar", gConfig.colorCustomization.partyList.tpGradient, "Party member TP bar color");
+    DrawGradientPicker("MP Bar##" .. partyName, colors.mpGradient, "MP bar color");
+    -- TP only available for Party A
+    if partyName == 'A' then
+        DrawGradientPicker("TP Bar##" .. partyName, colors.tpGradient, "TP bar color");
+    end
 
-    imgui.Spacing();
-    imgui.Text("Cast Bar Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawGradientPicker("Party Cast Bar", gConfig.colorCustomization.partyList.castBarGradient, "Party member cast bar color (appears when casting)");
+    -- Cast bar only for Party A
+    if partyName == 'A' then
+        imgui.Spacing();
+        imgui.Text("Cast Bar Colors:");
+        imgui.Separator();
+        imgui.Spacing();
+        DrawGradientPicker("Cast Bar##" .. partyName, colors.castBarGradient, "Cast bar color (appears when casting)");
+    end
 
     imgui.Spacing();
     imgui.Text("Bar Background Override:");
     imgui.Separator();
     imgui.Spacing();
-    local overrideActive = {gConfig.colorCustomization.partyList.barBackgroundOverride.active};
-    if (imgui.Checkbox("Enable Background Override", overrideActive)) then
-        gConfig.colorCustomization.partyList.barBackgroundOverride.active = overrideActive[1];
+    local overrideActive = {colors.barBackgroundOverride.active};
+    if (imgui.Checkbox("Enable Background Override##" .. partyName, overrideActive)) then
+        colors.barBackgroundOverride.active = overrideActive[1];
         UpdateSettings();
     end
     imgui.ShowHelp("When enabled, uses the colors below instead of the global bar background color");
-    if gConfig.colorCustomization.partyList.barBackgroundOverride.active then
-        DrawGradientPicker("Background Color", gConfig.colorCustomization.partyList.barBackgroundOverride, "Override color for party list bar backgrounds");
+    if colors.barBackgroundOverride.active then
+        DrawGradientPicker("Background Color##bgOverride" .. partyName, colors.barBackgroundOverride, "Override color for bar backgrounds");
     end
 
     imgui.Spacing();
     imgui.Text("Bar Border Override:");
     imgui.Separator();
     imgui.Spacing();
-    local borderOverrideActive = {gConfig.colorCustomization.partyList.barBorderOverride.active};
-    if (imgui.Checkbox("Enable Border Override", borderOverrideActive)) then
-        gConfig.colorCustomization.partyList.barBorderOverride.active = borderOverrideActive[1];
+    local borderOverrideActive = {colors.barBorderOverride.active};
+    if (imgui.Checkbox("Enable Border Override##" .. partyName, borderOverrideActive)) then
+        colors.barBorderOverride.active = borderOverrideActive[1];
         UpdateSettings();
     end
     imgui.ShowHelp("When enabled, uses the color below instead of the global bar background color for borders");
-    if gConfig.colorCustomization.partyList.barBorderOverride.active then
-        local borderColor = HexToImGui(gConfig.colorCustomization.partyList.barBorderOverride.color);
-        if (imgui.ColorEdit4('Border Color##barBorderOverride', borderColor, bit.bor(ImGuiColorEditFlags_NoInputs, ImGuiColorEditFlags_AlphaBar))) then
-            gConfig.colorCustomization.partyList.barBorderOverride.color = ImGuiToHex(borderColor);
+    if colors.barBorderOverride.active then
+        local borderColor = HexToImGui(colors.barBorderOverride.color);
+        if (imgui.ColorEdit4('Border Color##barBorderOverride' .. partyName, borderColor, bit.bor(ImGuiColorEditFlags_NoInputs, ImGuiColorEditFlags_AlphaBar))) then
+            colors.barBorderOverride.color = ImGuiToHex(borderColor);
         end
         if (imgui.IsItemDeactivatedAfterEdit()) then
             SaveSettingsOnly();
         end
-        imgui.ShowHelp("Override color for party list bar borders");
+        imgui.ShowHelp("Override color for bar borders");
     end
 
     imgui.Spacing();
     imgui.Text("Text Colors:");
     imgui.Separator();
     imgui.Spacing();
-    DrawTextColorPicker("Name Text", gConfig.colorCustomization.partyList, 'nameTextColor', "Color of party member name");
-    DrawTextColorPicker("HP Text", gConfig.colorCustomization.partyList, 'hpTextColor', "Color of HP numbers");
-    DrawTextColorPicker("MP Text", gConfig.colorCustomization.partyList, 'mpTextColor', "Color of MP numbers");
-    DrawTextColorPicker("TP Text (Empty, <1000)", gConfig.colorCustomization.partyList, 'tpEmptyTextColor', "Color of TP numbers when below 1000");
-    DrawTextColorPicker("TP Text (Full, >=1000)", gConfig.colorCustomization.partyList, 'tpFullTextColor', "Color of TP numbers when 1000 or higher");
+    DrawTextColorPicker("Name Text##" .. partyName, colors, 'nameTextColor', "Color of member name");
+    DrawTextColorPicker("HP Text##" .. partyName, colors, 'hpTextColor', "Color of HP numbers");
+    DrawTextColorPicker("MP Text##" .. partyName, colors, 'mpTextColor', "Color of MP numbers");
+    -- TP text colors only for Party A
+    if partyName == 'A' then
+        DrawTextColorPicker("TP Text (Empty, <1000)##" .. partyName, colors, 'tpEmptyTextColor', "Color of TP numbers when below 1000");
+        DrawTextColorPicker("TP Text (Full, >=1000)##" .. partyName, colors, 'tpFullTextColor', "Color of TP numbers when 1000 or higher");
+    end
 
     imgui.Spacing();
     imgui.Text("Background Colors:");
     imgui.Separator();
     imgui.Spacing();
-    DrawTextColorPicker("Background Color", gConfig.colorCustomization.partyList, 'bgColor', "Color of party list background");
-    DrawTextColorPicker("Border Color", gConfig.colorCustomization.partyList, 'borderColor', "Color of party list borders");
+    DrawTextColorPicker("Background Color##" .. partyName, colors, 'bgColor', "Color of party list background");
+    DrawTextColorPicker("Border Color##" .. partyName, colors, 'borderColor', "Color of party list borders");
 
     imgui.Spacing();
     imgui.Text("Selection Colors:");
     imgui.Separator();
     imgui.Spacing();
-    DrawGradientPicker("Selection Box", gConfig.colorCustomization.partyList.selectionGradient, "Color gradient for the selection box around targeted party members");
-    DrawTextColorPicker("Selection Border", gConfig.colorCustomization.partyList, 'selectionBorderColor', "Color of the selection box border");
+    DrawGradientPicker("Selection Box##" .. partyName, colors.selectionGradient, "Color gradient for the selection box around targeted members");
+    DrawTextColorPicker("Selection Border##" .. partyName, colors, 'selectionBorderColor', "Color of the selection box border");
+end
+
+-- Section: Party List Color Settings
+local function DrawPartyListColorSettings()
+    if imgui.BeginTabBar('PartyListColorTabs') then
+        if imgui.BeginTabItem('Party A') then
+            DrawPartyColorTabContent(gConfig.colorCustomization.partyListA, 'A');
+            imgui.EndTabItem();
+        end
+
+        if gConfig.partyListAlliance then
+            if imgui.BeginTabItem('Party B') then
+                DrawPartyColorTabContent(gConfig.colorCustomization.partyListB, 'B');
+                imgui.EndTabItem();
+            end
+
+            if imgui.BeginTabItem('Party C') then
+                DrawPartyColorTabContent(gConfig.colorCustomization.partyListC, 'C');
+                imgui.EndTabItem();
+            end
+        end
+
+        imgui.EndTabBar();
+    end
 end
 
 -- Section: Exp Bar Settings

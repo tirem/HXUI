@@ -104,7 +104,7 @@ local function ApplyMessage(debuffs, action)
                     debuffs[target.Id][193] = nil 
                     debuffs[target.Id][buffId] = now + 90 --id 19
                 elseif spell == 376 or spell == 463 then -- foe/horde lullaby
-                    debuffs[target.Id][buffId] = now + 36
+                    debuffs[target.Id][buffId] = now + 30
                 elseif spell == 258 or spell == 362 then -- bind
                     debuffs[target.Id][buffId] = now + 60
                 elseif spell == 252 then -- stun

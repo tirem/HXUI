@@ -214,6 +214,15 @@ local function updatePartyConfigCache()
         else
             cache.barScales = nil;
         end
+
+        -- Color settings reference (cached for performance)
+        if partyIndex == 1 then
+            cache.colors = gConfig.colorCustomization.partyListA;
+        elseif partyIndex == 2 then
+            cache.colors = gConfig.colorCustomization.partyListB;
+        else
+            cache.colors = gConfig.colorCustomization.partyListC;
+        end
     end
 
     partyConfigCacheValid = true;
@@ -236,10 +245,11 @@ local function getBarScales(partyIndex)
     return partyConfigCache[partyIndex].barScales;
 end
 
-local function getBarBackgroundOverride()
+local function getBarBackgroundOverride(partyIndex)
     -- Check if party list has a bar background override enabled
-    if gConfig and gConfig.colorCustomization and gConfig.colorCustomization.partyList then
-        local override = gConfig.colorCustomization.partyList.barBackgroundOverride;
+    local colors = partyConfigCache[partyIndex] and partyConfigCache[partyIndex].colors;
+    if colors then
+        local override = colors.barBackgroundOverride;
         if override and override.active then
             -- If gradient enabled, use start to stop; otherwise use start for both (static color)
             local endColor = override.enabled and override.stop or override.start;
@@ -249,10 +259,11 @@ local function getBarBackgroundOverride()
     return nil;
 end
 
-local function getBarBorderOverride()
+local function getBarBorderOverride(partyIndex)
     -- Check if party list has a bar border override enabled
-    if gConfig and gConfig.colorCustomization and gConfig.colorCustomization.partyList then
-        local override = gConfig.colorCustomization.partyList.barBorderOverride;
+    local colors = partyConfigCache[partyIndex] and partyConfigCache[partyIndex].colors;
+    if colors then
+        local override = colors.barBorderOverride;
         if override and override.active then
             return override.color;
         end
@@ -452,16 +463,16 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     end
 
     local partyIndex = math.ceil((memIdx + 1) / partyMaxSize);
+    local cache = partyConfigCache[partyIndex];
     local scale = getScale(partyIndex);
     local showTP = showPartyTP(partyIndex);
 
     local subTargetActive = GetSubTargetActive();
 
-    -- Get the hp color for bars and text
-    local hpNameColor, hpGradient = GetCustomHpColors(memInfo.hpp, gConfig.colorCustomization.partyList);
+    -- Get the hp color for bars and text (use cached per-party colors)
+    local hpNameColor, hpGradient = GetCustomHpColors(memInfo.hpp, cache.colors);
 
     -- Detect current layout early for dimension calculations
-    local cache = partyConfigCache[partyIndex];
     local layout = cache.layout or 0;
 
     -- Get party-specific bar scales for Layout 2
@@ -579,7 +590,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
         local selectionBR = {selectionTL[1] + selectionWidth, selectionTL[2] + selectionHeight};
 
         -- Get selection gradient colors from config using helper
-        local selectionGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'selectionGradient') or {'#4da5d9', '#78c0ed'};
+        local selectionGradient = GetCustomGradient(cache.colors, 'selectionGradient') or {'#4da5d9', '#78c0ed'};
         local startColor = HexToImGui(selectionGradient[1]);
         local endColor = HexToImGui(selectionGradient[2]);
 
@@ -615,7 +626,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
 
         -- Draw border outline with rounded corners (convert ARGB to ImGui format for real-time updates)
         -- Cache the U32 conversion to avoid redundant bit operations every frame
-        local borderColorARGB = gConfig.colorCustomization.partyList.selectionBorderColor;
+        local borderColorARGB = cache.colors.selectionBorderColor;
         if cachedBorderColorARGB ~= borderColorARGB then
             cachedBorderColorARGB = borderColorARGB;
             cachedBorderColorU32 = imgui.GetColorU32(ARGBToImGui(borderColorARGB));
@@ -643,9 +654,9 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
 
     -- Update the hp text (text already set earlier for measurement)
     if not memberTextColorCache[memIdx] then memberTextColorCache[memIdx] = {}; end
-    if (memberTextColorCache[memIdx].hp ~= gConfig.colorCustomization.partyList.hpTextColor) then
-        memberText[memIdx].hp:set_font_color(gConfig.colorCustomization.partyList.hpTextColor);
-        memberTextColorCache[memIdx].hp = gConfig.colorCustomization.partyList.hpTextColor;
+    if (memberTextColorCache[memIdx].hp ~= cache.colors.hpTextColor) then
+        memberText[memIdx].hp:set_font_color(cache.colors.hpTextColor);
+        memberTextColorCache[memIdx].hp = cache.colors.hpTextColor;
     end
 
     -- Note: layout is already set from cache at the start of DrawMember
@@ -841,7 +852,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     if (memInfo.inzone) then
         -- Use individual HP bar height in Layout 2
         local currentHpBarHeight = (layout == 1) and hpBarHeight or barHeight;
-        progressbar.ProgressBar(hpPercentData, {hpBarWidth, currentHpBarHeight}, {borderConfig=borderConfig, decorate = cache.showBookends, backgroundGradientOverride = getBarBackgroundOverride(), borderColorOverride = getBarBorderOverride()});
+        progressbar.ProgressBar(hpPercentData, {hpBarWidth, currentHpBarHeight}, {borderConfig=borderConfig, decorate = cache.showBookends, backgroundGradientOverride = getBarBackgroundOverride(partyIndex), borderColorOverride = getBarBorderOverride(partyIndex)});
         -- Hide zone text when in zone
         memberText[memIdx].zone:set_visible(false);
     elseif (memInfo.zone == '' or memInfo.zone == nil) then
@@ -921,7 +932,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
         draw_circle({hpStartX + settings.dotRadius/2, hpStartY + settings.dotRadius/2}, settings.dotRadius, {1, 1, .5, 1}, settings.dotRadius * 3, true);
     end
 
-    local desiredNameColor = gConfig.colorCustomization.partyList.nameTextColor;
+    local desiredNameColor = cache.colors.nameTextColor;
     -- Only call set_color if the color has changed
     if (memberTextColorCache[memIdx].name ~= desiredNameColor) then
         memberText[memIdx].name:set_font_color(desiredNameColor);
@@ -999,7 +1010,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
                 local castBarY = hpStartY - nameRefHeight - settings.nameTextOffsetY + (nameRefHeight - castBarHeight) / 2; -- Vertically center with text area
 
                 -- Get cast bar gradient from config
-                local castGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'castBarGradient') or {'#ffaa00', '#ffcc44'};
+                local castGradient = GetCustomGradient(cache.colors, 'castBarGradient') or {'#ffaa00', '#ffcc44'};
 
                 -- Draw cast bar with absolute positioning
                 progressbar.ProgressBar(
@@ -1008,7 +1019,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
                     {
                         decorate = false,
                         absolutePosition = {castBarX, castBarY},
-                        borderColorOverride = getBarBorderOverride()
+                        borderColorOverride = getBarBorderOverride(partyIndex)
                     }
                 );
             end
@@ -1053,7 +1064,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     -- Update distance visibility and color
     memberText[memIdx].distance:set_visible(showDistance);
     if showDistance then
-        local desiredDistanceColor = highlightDistance and 0xFF00FFFF or gConfig.colorCustomization.partyList.nameTextColor;
+        local desiredDistanceColor = highlightDistance and 0xFF00FFFF or cache.colors.nameTextColor;
         if (memberTextColorCache[memIdx].distance ~= desiredDistanceColor) then
             memberText[memIdx].distance:set_font_color(desiredDistanceColor);
             memberTextColorCache[memIdx].distance = desiredDistanceColor;
@@ -1082,7 +1093,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
         memberText[memIdx].job:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + nameBaselineOffset);
 
         -- Set color (same as name text color)
-        local desiredJobColor = gConfig.colorCustomization.partyList.nameTextColor;
+        local desiredJobColor = cache.colors.nameTextColor;
         if (memberTextColorCache[memIdx].job ~= desiredJobColor) then
             memberText[memIdx].job:set_font_color(desiredJobColor);
             memberTextColorCache[memIdx].job = desiredJobColor;
@@ -1106,7 +1117,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
 
             -- === TP TEXT (LEFT OF MP BAR) ===
             -- Set TP text color
-            local desiredTpColor = (memInfo.tp >= 1000) and gConfig.colorCustomization.partyList.tpFullTextColor or gConfig.colorCustomization.partyList.tpEmptyTextColor;
+            local desiredTpColor = (memInfo.tp >= 1000) and cache.colors.tpFullTextColor or cache.colors.tpEmptyTextColor;
             if (memberTextColorCache[memIdx].tp ~= desiredTpColor) then
                 memberText[memIdx].tp:set_font_color(desiredTpColor);
                 memberTextColorCache[memIdx].tp = desiredTpColor;
@@ -1127,14 +1138,14 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
             imgui.SetCursorScreenPos({mpStartX, mpStartY});
 
             -- Draw MP bar
-            local mpGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'mpGradient') or {'#9abb5a', '#bfe07d'};
-            progressbar.ProgressBar({{memInfo.mpp, mpGradient}}, {mpBarWidth, mpBarHeight}, {borderConfig=borderConfig, decorate = cache.showBookends, backgroundGradientOverride = getBarBackgroundOverride(), borderColorOverride = getBarBorderOverride()});
+            local mpGradient = GetCustomGradient(cache.colors, 'mpGradient') or {'#9abb5a', '#bfe07d'};
+            progressbar.ProgressBar({{memInfo.mpp, mpGradient}}, {mpBarWidth, mpBarHeight}, {borderConfig=borderConfig, decorate = cache.showBookends, backgroundGradientOverride = getBarBackgroundOverride(partyIndex), borderColorOverride = getBarBorderOverride(partyIndex)});
 
             -- === MP TEXT (RIGHT OF MP BAR) ===
             -- Prepare MP text
-            if (memberTextColorCache[memIdx].mp ~= gConfig.colorCustomization.partyList.mpTextColor) then
-                memberText[memIdx].mp:set_font_color(gConfig.colorCustomization.partyList.mpTextColor);
-                memberTextColorCache[memIdx].mp = gConfig.colorCustomization.partyList.mpTextColor;
+            if (memberTextColorCache[memIdx].mp ~= cache.colors.mpTextColor) then
+                memberText[memIdx].mp:set_font_color(cache.colors.mpTextColor);
+                memberTextColorCache[memIdx].mp = cache.colors.mpTextColor;
             end
             memberText[memIdx].mp:set_text(tostring(memInfo.mp));
 
@@ -1151,14 +1162,14 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
             -- Draw the MP bar
             imgui.SetCursorPosX(imgui.GetCursorPosX());
             mpStartX, mpStartY = imgui.GetCursorScreenPos();
-            local mpGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'mpGradient') or {'#9abb5a', '#bfe07d'};
-            progressbar.ProgressBar({{memInfo.mpp, mpGradient}}, {mpBarWidth, mpBarHeight}, {borderConfig=borderConfig, decorate = cache.showBookends, backgroundGradientOverride = getBarBackgroundOverride(), borderColorOverride = getBarBorderOverride()});
+            local mpGradient = GetCustomGradient(cache.colors, 'mpGradient') or {'#9abb5a', '#bfe07d'};
+            progressbar.ProgressBar({{memInfo.mpp, mpGradient}}, {mpBarWidth, mpBarHeight}, {borderConfig=borderConfig, decorate = cache.showBookends, backgroundGradientOverride = getBarBackgroundOverride(partyIndex), borderColorOverride = getBarBorderOverride(partyIndex)});
 
             -- Update the mp text
             -- Only call set_color if the color has changed
-            if (memberTextColorCache[memIdx].mp ~= gConfig.colorCustomization.partyList.mpTextColor) then
-                memberText[memIdx].mp:set_font_color(gConfig.colorCustomization.partyList.mpTextColor);
-                memberTextColorCache[memIdx].mp = gConfig.colorCustomization.partyList.mpTextColor;
+            if (memberTextColorCache[memIdx].mp ~= cache.colors.mpTextColor) then
+                memberText[memIdx].mp:set_font_color(cache.colors.mpTextColor);
+                memberTextColorCache[memIdx].mp = cache.colors.mpTextColor;
             end
             memberText[memIdx].mp:set_text(tostring(memInfo.mp));
             -- MP font is left-aligned, so position RIGHT edge by subtracting text width
@@ -1174,7 +1185,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
                 imgui.SetCursorPosX(imgui.GetCursorPosX());
                 tpStartX, tpStartY = imgui.GetCursorScreenPos();
 
-                local tpGradient = GetCustomGradient(gConfig.colorCustomization.partyList, 'tpGradient') or {'#3898ce', '#78c4ee'};
+                local tpGradient = GetCustomGradient(cache.colors, 'tpGradient') or {'#3898ce', '#78c4ee'};
                 local tpOverlayGradient = {'#0078CC', '#0078CC'};
                 local mainPercent;
                 local tpOverlay;
@@ -1190,10 +1201,10 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
                     mainPercent = memInfo.tp / 1000;
                 end
 
-                progressbar.ProgressBar({{mainPercent, tpGradient}}, {tpBarWidth, barHeight}, {overlayBar=tpOverlay, borderConfig=borderConfig, decorate = cache.showBookends, backgroundGradientOverride = getBarBackgroundOverride(), borderColorOverride = getBarBorderOverride()});
+                progressbar.ProgressBar({{mainPercent, tpGradient}}, {tpBarWidth, barHeight}, {overlayBar=tpOverlay, borderConfig=borderConfig, decorate = cache.showBookends, backgroundGradientOverride = getBarBackgroundOverride(partyIndex), borderColorOverride = getBarBorderOverride(partyIndex)});
 
                 -- Update the tp text
-                local desiredTpColor = (memInfo.tp >= 1000) and gConfig.colorCustomization.partyList.tpFullTextColor or gConfig.colorCustomization.partyList.tpEmptyTextColor;
+                local desiredTpColor = (memInfo.tp >= 1000) and cache.colors.tpFullTextColor or cache.colors.tpEmptyTextColor;
                 -- Only call set_color if the color has changed
                 if (memberTextColorCache[memIdx].tp ~= desiredTpColor) then
                     memberText[memIdx].tp:set_font_color(desiredTpColor);
@@ -1563,8 +1574,8 @@ partyList.DrawPartyWindow = function(settings, party, partyIndex)
         local bgHeight = fullMenuHeight[partyIndex] + (settings.bgPaddingY * 2);
 
         -- Apply colors from colorCustomization every frame (for real-time updates)
-        local bgColor = gConfig.colorCustomization.partyList.bgColor;
-        local borderColor = gConfig.colorCustomization.partyList.borderColor;
+        local bgColor = cache.colors.bgColor;
+        local borderColor = cache.colors.borderColor;
 
         backgroundPrim.bg.visible = backgroundPrim.bg.exists;
         backgroundPrim.bg.position_x = imguiPosX - settings.bgPadding;

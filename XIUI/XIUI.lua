@@ -620,8 +620,8 @@ T{
 			-- Note: Entity name colors are in shared section
 		},
 
-		-- Party List
-		partyList = T{
+		-- Party List (per-party color settings)
+		partyListA = T{
 			hpGradient = T{
 				low = T{ enabled = true, start = '#ec3232', stop = '#f16161' },
 				medLow = T{ enabled = true, start = '#ee9c06', stop = '#ecb44e' },
@@ -630,18 +630,54 @@ T{
 			},
 			mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
 			tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' },
-			castBarGradient = T{ enabled = true, start = '#ffaa00', stop = '#ffcc44' },  -- Party member cast bar
-			barBackgroundOverride = T{ active = false, enabled = true, start = '#01122b', stop = '#061c39' },  -- Override global bar background
-			barBorderOverride = T{ active = false, color = '#01122b' },  -- Override global bar border color
+			castBarGradient = T{ enabled = true, start = '#ffaa00', stop = '#ffcc44' },
+			barBackgroundOverride = T{ active = false, enabled = true, start = '#01122b', stop = '#061c39' },
+			barBorderOverride = T{ active = false, color = '#01122b' },
 			nameTextColor = 0xFFFFFFFF,
 			hpTextColor = 0xFFFFFFFF,
 			mpTextColor = 0xFFFFFFFF,
-			tpEmptyTextColor = 0xFF9acce8,  -- TP < 1000
-			tpFullTextColor = 0xFF2fa9ff,   -- TP >= 1000
-			bgColor = 0xFFFFFFFF,           -- Background color
-			borderColor = 0xFFFFFFFF,       -- Border color
-			selectionGradient = T{ enabled = true, start = '#4da5d9', stop = '#78c0ed' },  -- Selection box gradient
-			selectionBorderColor = 0xFF78C0ED,  -- Selection box border
+			tpEmptyTextColor = 0xFF9acce8,
+			tpFullTextColor = 0xFF2fa9ff,
+			bgColor = 0xFFFFFFFF,
+			borderColor = 0xFFFFFFFF,
+			selectionGradient = T{ enabled = true, start = '#4da5d9', stop = '#78c0ed' },
+			selectionBorderColor = 0xFF78C0ED,
+		},
+		partyListB = T{
+			hpGradient = T{
+				low = T{ enabled = true, start = '#ec3232', stop = '#f16161' },
+				medLow = T{ enabled = true, start = '#ee9c06', stop = '#ecb44e' },
+				medHigh = T{ enabled = true, start = '#ffff0c', stop = '#ffff97' },
+				high = T{ enabled = true, start = '#e26c6c', stop = '#fa9c9c' },
+			},
+			mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
+			barBackgroundOverride = T{ active = false, enabled = true, start = '#01122b', stop = '#061c39' },
+			barBorderOverride = T{ active = false, color = '#01122b' },
+			nameTextColor = 0xFFFFFFFF,
+			hpTextColor = 0xFFFFFFFF,
+			mpTextColor = 0xFFFFFFFF,
+			bgColor = 0xFFFFFFFF,
+			borderColor = 0xFFFFFFFF,
+			selectionGradient = T{ enabled = true, start = '#4da5d9', stop = '#78c0ed' },
+			selectionBorderColor = 0xFF78C0ED,
+		},
+		partyListC = T{
+			hpGradient = T{
+				low = T{ enabled = true, start = '#ec3232', stop = '#f16161' },
+				medLow = T{ enabled = true, start = '#ee9c06', stop = '#ecb44e' },
+				medHigh = T{ enabled = true, start = '#ffff0c', stop = '#ffff97' },
+				high = T{ enabled = true, start = '#e26c6c', stop = '#fa9c9c' },
+			},
+			mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
+			barBackgroundOverride = T{ active = false, enabled = true, start = '#01122b', stop = '#061c39' },
+			barBorderOverride = T{ active = false, color = '#01122b' },
+			nameTextColor = 0xFFFFFFFF,
+			hpTextColor = 0xFFFFFFFF,
+			mpTextColor = 0xFFFFFFFF,
+			bgColor = 0xFFFFFFFF,
+			borderColor = 0xFFFFFFFF,
+			selectionGradient = T{ enabled = true, start = '#4da5d9', stop = '#78c0ed' },
+			selectionBorderColor = 0xFF78C0ED,
 		},
 
 		-- Exp Bar
@@ -1375,6 +1411,40 @@ if not gConfig.partyA then
 	end
 	if not gConfig.layoutCompact then
 		gConfig.layoutCompact = deep_copy_table(defaultUserSettings.layoutCompact);
+	end
+end
+
+-- Migrate old partyList colors to per-party color settings (partyListA, partyListB, partyListC)
+if gConfig.colorCustomization and gConfig.colorCustomization.partyList and not gConfig.colorCustomization.partyListA then
+	-- Copy old partyList colors to all three party color configs
+	gConfig.colorCustomization.partyListA = deep_copy_table(gConfig.colorCustomization.partyList);
+	gConfig.colorCustomization.partyListB = deep_copy_table(gConfig.colorCustomization.partyList);
+	gConfig.colorCustomization.partyListC = deep_copy_table(gConfig.colorCustomization.partyList);
+
+	-- Remove TP-related colors from Party B and C (alliance members don't have TP)
+	gConfig.colorCustomization.partyListB.tpGradient = nil;
+	gConfig.colorCustomization.partyListB.tpEmptyTextColor = nil;
+	gConfig.colorCustomization.partyListB.tpFullTextColor = nil;
+	gConfig.colorCustomization.partyListB.castBarGradient = nil;
+	gConfig.colorCustomization.partyListC.tpGradient = nil;
+	gConfig.colorCustomization.partyListC.tpEmptyTextColor = nil;
+	gConfig.colorCustomization.partyListC.tpFullTextColor = nil;
+	gConfig.colorCustomization.partyListC.castBarGradient = nil;
+
+	-- Remove old partyList (now deprecated)
+	gConfig.colorCustomization.partyList = nil;
+end
+
+-- Initialize per-party color settings if missing (for fresh installs after migration code)
+if gConfig.colorCustomization then
+	if not gConfig.colorCustomization.partyListA then
+		gConfig.colorCustomization.partyListA = deep_copy_table(defaultUserSettings.colorCustomization.partyListA);
+	end
+	if not gConfig.colorCustomization.partyListB then
+		gConfig.colorCustomization.partyListB = deep_copy_table(defaultUserSettings.colorCustomization.partyListB);
+	end
+	if not gConfig.colorCustomization.partyListC then
+		gConfig.colorCustomization.partyListC = deep_copy_table(defaultUserSettings.colorCustomization.partyListC);
 	end
 end
 
