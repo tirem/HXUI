@@ -399,11 +399,10 @@ T{
 		-- Player Bar
 		playerBar = T{
 			hpGradient = T{
-				enabled = true,
-				low = T{ start = '#ec3232', stop = '#f16161' },      -- 0-25%
-				medLow = T{ start = '#ee9c06', stop = '#ecb44e' },   -- 25-50%
-				medHigh = T{ start = '#ffff0c', stop = '#ffff97' },  -- 50-75%
-				high = T{ start = '#e26c6c', stop = '#fa9c9c' },     -- 75-100%
+				low = T{ enabled = true, start = '#ec3232', stop = '#f16161' },      -- 0-25%
+				medLow = T{ enabled = true, start = '#ee9c06', stop = '#ecb44e' },   -- 25-50%
+				medHigh = T{ enabled = true, start = '#ffff0c', stop = '#ffff97' },  -- 50-75%
+				high = T{ enabled = true, start = '#e26c6c', stop = '#fa9c9c' },     -- 75-100%
 			},
 			mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
 			tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' },
@@ -442,11 +441,10 @@ T{
 		-- Party List
 		partyList = T{
 			hpGradient = T{
-				enabled = true,
-				low = T{ start = '#ec3232', stop = '#f16161' },
-				medLow = T{ start = '#ee9c06', stop = '#ecb44e' },
-				medHigh = T{ start = '#ffff0c', stop = '#ffff97' },
-				high = T{ start = '#e26c6c', stop = '#fa9c9c' },
+				low = T{ enabled = true, start = '#ec3232', stop = '#f16161' },
+				medLow = T{ enabled = true, start = '#ee9c06', stop = '#ecb44e' },
+				medHigh = T{ enabled = true, start = '#ffff0c', stop = '#ffff97' },
+				high = T{ enabled = true, start = '#e26c6c', stop = '#fa9c9c' },
 			},
 			mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
 			tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' },
