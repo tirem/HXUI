@@ -39,7 +39,6 @@ local inventoryTracker = require('inventorytracker');
 local partyList = require('partylist');
 local castBar = require('castbar');
 local configMenu = require('configmenu');
-local colorCustom = require('colorcustom');
 local debuffHandler = require('debuffhandler');
 local actionTracker = require('actiontracker');
 local patchNotes = require('patchNotes');
@@ -1557,7 +1556,6 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 		end
 
 		configMenu.DrawWindow();
-		colorCustom.DrawWindow();
 
 		if (gConfig.patchNotesVer < gAdjustedSettings.currentPatchVer) then
 			patchNotes.DrawWindow();
@@ -1662,11 +1660,6 @@ ashita.events.register('command', 'command_cb', function (e)
             return;
         end
 
-        -- Toggle the color customization window
-        if (#command_args == 2 and command_args[2]:any('colors', 'colour', 'color')) then
-            gShowColorCustom[1] = not gShowColorCustom[1];
-            return;
-        end
 	end
 
 end);
