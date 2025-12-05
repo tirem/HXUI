@@ -1147,6 +1147,10 @@ local colorSettingsDrawFunctions = {
 };
 
 config.DrawWindow = function(us)
+    -- Early exit if config window isn't shown (atom0s recommendation)
+    -- This prevents unnecessary style pushes and imgui.End() calls when window is hidden
+    if (not showConfig[1]) then return; end
+
     -- XIUI Theme Colors (dark + gold accent)
     -- Base colors from XIUI branding
     local gold = {0.957, 0.855, 0.592, 1.0};           -- #F4DA97 - Primary gold accent
@@ -1212,7 +1216,7 @@ config.DrawWindow = function(us)
     imgui.PushStyleVar(ImGuiStyleVar_GrabRounding, 4.0);
 
     imgui.SetNextWindowSize({ 900, 650 }, ImGuiCond_FirstUseEver);
-    if(showConfig[1] and imgui.Begin("XIUI Config", showConfig, bit.bor(ImGuiWindowFlags_NoSavedSettings))) then
+    if(imgui.Begin("XIUI Config", showConfig, bit.bor(ImGuiWindowFlags_NoSavedSettings, ImGuiWindowFlags_NoDocking))) then
         local windowWidth = imgui.GetContentRegionAvail();
         local sidebarWidth = 180;
         local contentWidth = windowWidth - sidebarWidth - 20;
@@ -1385,10 +1389,9 @@ config.DrawWindow = function(us)
 
         -- Main layout: sidebar + content area
         -- Left sidebar with category buttons
-        imgui.BeginChild("Sidebar", { sidebarWidth, 0 }, false);
+        imgui.BeginChild("Sidebar", { sidebarWidth, 0 }, ImGuiChildFlags_None);
 
         imgui.PushStyleVar(ImGuiStyleVar_FramePadding, {10, 8});
-        imgui.SetWindowFontScale(1.1);
 
         for i, category in ipairs(categories) do
             -- Style the button differently if selected
@@ -1429,14 +1432,13 @@ config.DrawWindow = function(us)
         imgui.SameLine();
 
         -- Right content area
-        imgui.BeginChild("ContentArea", { 0, 0 }, false);
+        imgui.BeginChild("ContentArea", { 0, 0 }, ImGuiChildFlags_None);
 
         -- Tab bar at top of content area
         local tabWidth = 140;
         local tabHeight = 28;
 
         imgui.PushStyleVar(ImGuiStyleVar_FramePadding, {12, 6});
-        imgui.SetWindowFontScale(1.05);
 
         -- Settings tab
         local tabPosX, tabPosY = imgui.GetCursorScreenPos();
@@ -1502,9 +1504,7 @@ config.DrawWindow = function(us)
         imgui.Spacing();
 
         -- Content panel with border
-        imgui.BeginChild("SettingsContent", { 0, 0 }, false);
-
-        imgui.SetWindowFontScale(0.95);
+        imgui.BeginChild("SettingsContent", { 0, 0 }, ImGuiChildFlags_None);
 
         -- Draw the appropriate settings based on selected category and tab
         if selectedTab == 1 then
@@ -1522,9 +1522,9 @@ config.DrawWindow = function(us)
         imgui.EndChild();
     end
 
+    imgui.End();
     imgui.PopStyleVar(9);
     imgui.PopStyleColor(27);  -- 22 base + 5 tab colors
-    imgui.End();
 end
 
 return config;

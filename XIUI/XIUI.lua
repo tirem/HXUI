@@ -28,6 +28,13 @@ addon.version   = '1.5.0';
 addon.desc      = 'Multiple UI elements with manager';
 addon.link      = 'https://github.com/tirem/XIUI'
 
+-- Ashita version targeting (for ImGui compatibility)
+-- Set to true when developing/testing against Ashita 4.3 (2025_q3_update branch)
+-- Set to false for releases targeting current main branch (most players)
+-- See: https://github.com/AshitaXI/Ashita-v4beta/tree/2025_q3_update
+_G._XIUI_USE_ASHITA_4_3 = true;
+require('imgui_compat'); -- Must be before any module that uses imgui
+
 require('common');
 local settings = require('settings');
 local playerBar = require('playerbar');

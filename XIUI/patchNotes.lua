@@ -26,9 +26,8 @@ end
 * desc : Event called when the Direct3D device is presenting a scene.
 --]]
 patchNotes.DrawWindow = function()
-    -- Obtain the player entity..
-
-	if (gShowPatchNotes[1] == false) then
+	-- Early exit if patch notes window isn't shown
+	if (not gShowPatchNotes[1]) then
 		XIUITexture = nil;
 		PatchVerTexture = nil;
 		NewTexture = nil;
@@ -49,7 +48,7 @@ patchNotes.DrawWindow = function()
 	imgui.PushStyleColor(ImGuiCol_TitleBgActive, {0,0.06,.16, .9});
 	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0,0.06,.16, .5});
 	imgui.PushStyleVar(ImGuiStyleVar_FramePadding, { 8, 6 });
-    if (gShowPatchNotes[1] and imgui.Begin('XIUI PatchNotes', gShowPatchNotes, bit.bor(ImGuiWindowFlags_NoSavedSettings))) then
+	if (imgui.Begin('XIUI PatchNotes', gShowPatchNotes, bit.bor(ImGuiWindowFlags_NoSavedSettings, ImGuiWindowFlags_NoDocking))) then
 		-- Save starting Y position for button alignment
 		local startY = imgui.GetCursorPosY();
 
@@ -63,8 +62,10 @@ patchNotes.DrawWindow = function()
 		local buttonWidth = 120;
 		local buttonHeight = 30;
 		local imageHeight = 53;
-		local contentRegionMax = imgui.GetWindowContentRegionMax();
-		local buttonX = contentRegionMax - buttonWidth;
+		-- Use GetContentRegionAvail + GetCursorPosX to calculate max X position
+		local contentAvail = imgui.GetContentRegionAvail();
+		local cursorX = imgui.GetCursorPosX();
+		local buttonX = cursorX + contentAvail - buttonWidth;
 		local buttonY = startY + (imageHeight - buttonHeight) / 2;
 
 		imgui.SetCursorPos({ buttonX, buttonY });
@@ -90,11 +91,10 @@ patchNotes.DrawWindow = function()
 		imgui.TextColored({0.4, 0.8, 1.0, 1.0}, 'UI Improvements');
 		imgui.BulletText('Redesigned config menu with new layout');
 		imgui.BulletText('Added Discord and GitHub links to config');
-		
-    end
+	end
+	imgui.End();
 	imgui.PopStyleVar(1);
 	imgui.PopStyleColor(4);
-	imgui.End();
 end
 
 return patchNotes;
