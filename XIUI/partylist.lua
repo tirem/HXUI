@@ -575,7 +575,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     end
 
     -- DRAW SELECTION BOX using GetBackgroundDrawList (renders behind everything with rounded corners)
-    if (memInfo.targeted == true) then
+    if (memInfo.targeted == true or memInfo.subTargeted) then
         local drawList = imgui.GetBackgroundDrawList();
 
         local selectionWidth = allBarsLengths + settings.cursorPaddingX1 + settings.cursorPaddingX2;
