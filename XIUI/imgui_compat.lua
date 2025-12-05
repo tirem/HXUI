@@ -23,18 +23,23 @@ local orig_imgui_PushStyleColor = imgui.PushStyleColor;
 -- This global should be set in XIUI.lua before requiring this module
 local use43 = rawget(_G, '_XIUI_USE_ASHITA_4_3') or false;
 
--- ImDrawCornerFlags -> ImDrawFlags_RoundCorners* aliases (both branches use new naming)
--- These old names were used in older ImGui versions but Ashita uses the new names
-ImDrawCornerFlags_None = ImDrawFlags_RoundCornersNone;
-ImDrawCornerFlags_TopLeft = ImDrawFlags_RoundCornersTopLeft;
-ImDrawCornerFlags_TopRight = ImDrawFlags_RoundCornersTopRight;
-ImDrawCornerFlags_BotLeft = ImDrawFlags_RoundCornersBottomLeft;
-ImDrawCornerFlags_BotRight = ImDrawFlags_RoundCornersBottomRight;
-ImDrawCornerFlags_Top = ImDrawFlags_RoundCornersTop;
-ImDrawCornerFlags_Bot = ImDrawFlags_RoundCornersBottom;
-ImDrawCornerFlags_Left = ImDrawFlags_RoundCornersLeft;
-ImDrawCornerFlags_Right = ImDrawFlags_RoundCornersRight;
-ImDrawCornerFlags_All = ImDrawFlags_RoundCornersAll;
+-- ImDrawCornerFlags -> ImDrawFlags_RoundCorners* aliases
+-- 4.3 uses ImDrawFlags_RoundCorners* (new naming), main uses ImDrawCornerFlags_* (old naming)
+-- Create aliases so code can use ImDrawCornerFlags_* consistently on both branches
+if ImDrawFlags_RoundCornersAll ~= nil then
+    -- 4.3 branch: new names exist, create old name aliases pointing to new names
+    ImDrawCornerFlags_None = ImDrawFlags_RoundCornersNone;
+    ImDrawCornerFlags_TopLeft = ImDrawFlags_RoundCornersTopLeft;
+    ImDrawCornerFlags_TopRight = ImDrawFlags_RoundCornersTopRight;
+    ImDrawCornerFlags_BotLeft = ImDrawFlags_RoundCornersBottomLeft;
+    ImDrawCornerFlags_BotRight = ImDrawFlags_RoundCornersBottomRight;
+    ImDrawCornerFlags_Top = ImDrawFlags_RoundCornersTop;
+    ImDrawCornerFlags_Bot = ImDrawFlags_RoundCornersBottom;
+    ImDrawCornerFlags_Left = ImDrawFlags_RoundCornersLeft;
+    ImDrawCornerFlags_Right = ImDrawFlags_RoundCornersRight;
+    ImDrawCornerFlags_All = ImDrawFlags_RoundCornersAll;
+end
+-- On main branch: ImDrawCornerFlags_* already exist natively, no aliases needed
 
 if use43 then
     -- Running on 4.3 branch - add backwards compatibility aliases for old constant names
@@ -57,6 +62,12 @@ if use43 then
 
 else
     -- Running on MAIN branch - apply compatibility shims for 4.3-style code
+
+    -- ImGuiWindowFlags_NoDocking doesn't exist on main branch (added in 4.3)
+    -- Define as 0 so bit.bor() calls don't fail
+    if ImGuiWindowFlags_NoDocking == nil then
+        ImGuiWindowFlags_NoDocking = 0;
+    end
 
     -- BeginChild: 4.3 changed default cflags behavior
     -- On main, true = ImGuiChildFlags_Borders, on 4.3 it's more explicit

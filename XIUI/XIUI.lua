@@ -32,7 +32,7 @@ addon.link      = 'https://github.com/tirem/XIUI'
 -- Set to true when developing/testing against Ashita 4.3 (2025_q3_update branch)
 -- Set to false for releases targeting current main branch (most players)
 -- See: https://github.com/AshitaXI/Ashita-v4beta/tree/2025_q3_update
-_G._XIUI_USE_ASHITA_4_3 = true;
+_G._XIUI_USE_ASHITA_4_3 = false;
 require('imgui_compat'); -- Must be before any module that uses imgui
 
 require('common');
