@@ -17,7 +17,6 @@ local imgui = require('imgui');
 
 -- Store original functions
 local orig_imgui_BeginChild = imgui.BeginChild;
-local orig_imgui_PushStyleColor = imgui.PushStyleColor;
 
 -- Check if we're targeting Ashita 4.3 or main branch
 -- This global should be set in XIUI.lua before requiring this module
@@ -44,6 +43,13 @@ end
 if use43 then
     -- Running on 4.3 branch - add backwards compatibility aliases for old constant names
     -- These were renamed in ImGui 1.90+
+    -- Always set fallbacks first, then override with actual values if they exist
+    ImGuiCol_Tab = ImGuiCol_Tab or ImGuiCol_Header or 0;
+    ImGuiCol_TabHovered = ImGuiCol_TabHovered or ImGuiCol_HeaderHovered or 0;
+    ImGuiCol_TabActive = ImGuiCol_HeaderActive or 0;  -- Will be overwritten below if TabSelected exists
+    ImGuiCol_TabUnfocused = ImGuiCol_Header or 0;     -- Will be overwritten below if TabDimmed exists
+    ImGuiCol_TabUnfocusedActive = ImGuiCol_HeaderActive or 0;  -- Will be overwritten below if TabDimmedSelected exists
+
     if ImGuiCol_TabSelected ~= nil then
         ImGuiCol_TabActive = ImGuiCol_TabSelected;
         ImGuiCol_TabUnfocused = ImGuiCol_TabDimmed;
@@ -69,17 +75,33 @@ else
         ImGuiWindowFlags_NoDocking = 0;
     end
 
+    -- Tab color constants may not exist on older main branch versions
+    -- Provide fallbacks to prevent nil idx in PushStyleColor which causes push/pop imbalance
+    -- We use existing similar constants as fallbacks so styling still works reasonably
+    if ImGuiCol_Tab == nil then
+        ImGuiCol_Tab = ImGuiCol_Header or 0;
+    end
+    if ImGuiCol_TabHovered == nil then
+        ImGuiCol_TabHovered = ImGuiCol_HeaderHovered or 0;
+    end
+    if ImGuiCol_TabActive == nil then
+        ImGuiCol_TabActive = ImGuiCol_HeaderActive or 0;
+    end
+    if ImGuiCol_TabUnfocused == nil then
+        ImGuiCol_TabUnfocused = ImGuiCol_Header or 0;
+    end
+    if ImGuiCol_TabUnfocusedActive == nil then
+        ImGuiCol_TabUnfocusedActive = ImGuiCol_HeaderActive or 0;
+    end
+
     -- BeginChild: 4.3 changed default cflags behavior
     -- On main, true = ImGuiChildFlags_Borders, on 4.3 it's more explicit
     imgui.BeginChild = function(id, size, cflags, wflags)
         return orig_imgui_BeginChild(id, size, cflags == true and ImGuiChildFlags_Borders or ImGuiChildFlags_None, wflags);
     end
 
-    -- PushStyleColor: 4.3 requires idx to not be nil
-    imgui.PushStyleColor = function(idx, col)
-        if (idx == nil) then return; end
-        orig_imgui_PushStyleColor(idx, col);
-    end
+    -- PushStyleColor wrapper removed - all constants now guaranteed to exist via fallbacks above
+    -- This ensures push/pop counts always match
 
 end
 

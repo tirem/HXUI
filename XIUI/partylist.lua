@@ -884,9 +884,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
 
     -- Draw the HP bar (or zone bar for out-of-zone members)
     if (memInfo.inzone) then
-        -- Use individual HP bar height in Layout 2
-        local currentHpBarHeight = (layout == 1) and hpBarHeight or barHeight;
-        progressbar.ProgressBar(hpPercentData, {hpBarWidth, currentHpBarHeight}, {decorate = cache.showBookends, backgroundGradientOverride = getBarBackgroundOverride(partyIndex), borderColorOverride = getBarBorderOverride(partyIndex)});
+        progressbar.ProgressBar(hpPercentData, {hpBarWidth, hpBarHeight}, {decorate = cache.showBookends, backgroundGradientOverride = getBarBackgroundOverride(partyIndex), borderColorOverride = getBarBorderOverride(partyIndex)});
         -- Hide zone text when in zone
         memberText[memIdx].zone:set_visible(false);
     elseif (memInfo.zone == '' or memInfo.zone == nil) then
