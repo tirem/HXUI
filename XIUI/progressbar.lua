@@ -208,9 +208,12 @@ progressbar.DrawColoredBar = function(startPosition, endPosition, color, roundin
 end
 
 progressbar.DrawBookends = function(positionStartX, positionStartY, width, height)
-	-- Bookend width is user-controlled, radius is half the height for proper curves
-	local bookendWidth = gConfig and gConfig.bookendSize or 10;
+	-- Bookend width needs to be at least half the height for proper semicircular caps
+	-- User setting is a base/minimum, but we scale up if bar height requires it
+	local baseBookendWidth = gConfig and gConfig.bookendSize or 10;
 	local radius = height / 2;
+	-- Bookend width must accommodate the full radius for proper rounded caps
+	local bookendWidth = math.max(baseBookendWidth, radius);
 	local draw_list = imgui.GetWindowDrawList();
 
 	-- Get bookend gradient colors (default: dark blue gradient)
@@ -296,8 +299,9 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 
 	-- Draw the bookends!
 	if options.decorate then
-		-- Bookend width must match DrawBookends calculation
-		local bookendWidth = gConfig and gConfig.bookendSize or 10;
+		-- Bookend width must match DrawBookends calculation (scales with bar height)
+		local baseBookendWidth = gConfig and gConfig.bookendSize or 10;
+		local bookendWidth = math.max(baseBookendWidth, height / 2);
 
 		contentWidth = width - (bookendWidth * 2);
 		contentPositionStartX = contentPositionStartX + bookendWidth;
