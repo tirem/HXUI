@@ -2435,7 +2435,6 @@ config.DrawWindow = function(us)
             imgui.Text("XIUI - A UI Addon for Final Fantasy XI");
             imgui.Separator();
 
-
             imgui.TextColored({1.0, 0.84, 0.0, 1.0}, "Special Thanks");
             imgui.BulletText("atom0s - Ashita framework, and additional support");
             imgui.BulletText("Thorny - GdiFonts library & MobDB, and additional support");
