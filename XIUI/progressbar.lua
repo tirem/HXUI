@@ -4,7 +4,6 @@ require('libs/color');
 local imgui = require('imgui');
 local ffi = require('ffi');
 local d3d = require('d3d8');
-local d3d8dev = d3d.get_device();
 
 local progressbar = {
 	-- Bookend
@@ -101,11 +100,14 @@ function GetGradient(startColor, endColor)
 	end
 
 	if not texture then
+		local device = GetD3D8Device();
+		if (device == nil) then return nil; end
+
 		local image = MakeGradientBitmap(startColor, endColor);
 
 		local texture_ptr = ffi.new('IDirect3DTexture8*[1]');
 
-		local res = ffi.C.D3DXCreateTextureFromFileInMemory(d3d8dev, image:binary(), #image:binary(), texture_ptr);
+		local res = ffi.C.D3DXCreateTextureFromFileInMemory(device, image:binary(), #image:binary(), texture_ptr);
 
 		if (res ~= ffi.C.S_OK) then
 			return nil;
@@ -141,11 +143,14 @@ function GetThreeStepGradient(startColor, midColor, endColor)
 	end
 
 	if not texture then
+		local device = GetD3D8Device();
+		if (device == nil) then return nil; end
+
 		local image = MakeThreeStepGradientBitmap(startColor, midColor, endColor);
 
 		local texture_ptr = ffi.new('IDirect3DTexture8*[1]');
 
-		local res = ffi.C.D3DXCreateTextureFromFileInMemory(d3d8dev, image:binary(), #image:binary(), texture_ptr);
+		local res = ffi.C.D3DXCreateTextureFromFileInMemory(device, image:binary(), #image:binary(), texture_ptr);
 
 		if (res ~= ffi.C.S_OK) then
 			return nil;

@@ -4,7 +4,15 @@ local fonts = require('fonts');
 local ffi       = require('ffi');
 local d3d       = require('d3d8');
 local C         = ffi.C;
-local d3d8dev   = d3d.get_device();
+-- Deferred D3D device access for Linux/Wine compatibility
+-- Device may not be ready at module load time under Wine/Proton
+local d3d8dev = nil;
+function GetD3D8Device()
+    if d3d8dev == nil then
+        d3d8dev = d3d.get_device();
+    end
+    return d3d8dev;
+end
 local statusHandler = require('statushandler');
 local buffTable = require('bufftable');
 local gdi = require('gdifonts.include');
@@ -830,10 +838,14 @@ function LoadTexture(textureName)
         theme = "default";
     end
 
+    -- Get D3D device lazily for Linux/Wine compatibility
+    local device = GetD3D8Device();
+    if (device == nil) then return nil; end
+
     local textures = T{}
     -- Load the texture for usage..
     local texture_ptr = ffi.new('IDirect3DTexture8*[1]');
-    local res = C.D3DXCreateTextureFromFileA(d3d8dev, string.format('%s/assets/%s.png', addon.path, textureName), texture_ptr);
+    local res = C.D3DXCreateTextureFromFileA(device, string.format('%s/assets/%s.png', addon.path, textureName), texture_ptr);
     if (res ~= C.S_OK) then
 --      error(('Failed to load image texture: %08X (%s)'):fmt(res, d3d.get_error(res)));
         return nil;
