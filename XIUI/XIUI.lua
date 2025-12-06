@@ -30,7 +30,7 @@ addon.link      = 'https://github.com/tirem/XIUI'
 
 -- Ashita version targeting (for ImGui compatibility)
 _G._XIUI_USE_ASHITA_4_3 = false;
-require('imgui_compat');
+require('handlers.imgui_compat');
 
 require('common');
 local settings = require('settings');
@@ -54,11 +54,11 @@ local satchelTracker = require('satcheltracker');
 local partyList = require('partylist');
 local castBar = require('castbar');
 local configMenu = require('configmenu');
-local debuffHandler = require('debuffhandler');
-local actionTracker = require('actiontracker');
+local debuffHandler = require('handlers.debuffhandler');
+local actionTracker = require('handlers.actiontracker');
 local mobInfo = require('mobinfo.include');
 local patchNotes = require('patchNotes');
-local statusHandler = require('statushandler');
+local statusHandler = require('handlers.statushandler');
 
 -- Global switch to hard-disable functionality that is limited on HX servers
 HzLimitedMode = true;
@@ -173,7 +173,7 @@ uiModules.Register('mobInfo', {
     module = mobInfo.display,
     settingsKey = 'mobInfoSettings',
     configKey = 'showMobInfo',
-    hasSetHidden = false,
+    hasSetHidden = true,
 });
 
 -- Initialize settings from defaults

@@ -4,8 +4,8 @@ local d3d8 = require('d3d8');
 local imgui = require('imgui');
 local gdi = require('gdifonts.include');
 local primitives = require('primitives');
-local statusHandler = require('statushandler');
-local buffTable = require('bufftable');
+local statusHandler = require('handlers.statushandler');
+local buffTable = require('libs.bufftable');
 local progressbar = require('progressbar');
 local encoding = require('gdifonts.encoding');
 local ashita_settings = require('settings');
@@ -359,7 +359,9 @@ local function GetMemberInformation(memIdx)
                 startTime = os.clock() - loopTime,  -- Simulate progress through the cast
                 timestamp = os.time(),
                 job = 3,               -- WHM (for fast cast demo)
-                subjob = 5             -- RDM sub (for fast cast demo)
+                subjob = 5,            -- RDM sub (for fast cast demo)
+                jobLevel = 75,         -- Main job level
+                subjobLevel = 37       -- Sub job level (37 = Fast Cast II from RDM sub)
             };
         end
 
@@ -1019,7 +1021,9 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
                         castData.job,
                         castData.subjob,
                         castData.spellType,
-                        castData.spellName
+                        castData.spellName,
+                        castData.jobLevel,
+                        castData.subjobLevel
                     );
                     if fastCast > 0 then
                         -- The 0.75 factor corrects for how GetPercent() reports progress
@@ -1038,7 +1042,9 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
                     castData.job,
                     castData.subjob,
                     castData.spellType,
-                    castData.spellName
+                    castData.spellName,
+                    castData.jobLevel,
+                    castData.subjobLevel
                 );
                 if fastCast > 0 then
                     effectiveCastTime = castData.castTime * (1 - fastCast);
@@ -2232,15 +2238,19 @@ partyList.HandleActionPacket = function(actionPacket)
 				local castTime = spell.CastTime / 4.0;
 				local spellType = spell.Skill;  -- Magic skill type (33=Healing, 40=Singing, etc.)
 
-				-- Look up caster's job/subjob by server ID for fast cast calculation
+				-- Look up caster's job/subjob/levels by server ID for fast cast calculation
 				local memberJob = nil;
 				local memberSubjob = nil;
+				local memberJobLevel = nil;
+				local memberSubjobLevel = nil;
 				local party = GetPartySafe();
 				if (party) then
 					for i = 0, 17 do  -- All alliance members
 						if (party:GetMemberServerId(i) == actionPacket.UserId) then
 							memberJob = party:GetMemberMainJob(i);
 							memberSubjob = party:GetMemberSubJob(i);
+							memberJobLevel = party:GetMemberMainJobLevel(i);
+							memberSubjobLevel = party:GetMemberSubJobLevel(i);
 							break;
 						end
 					end
@@ -2254,7 +2264,9 @@ partyList.HandleActionPacket = function(actionPacket)
 					startTime = os.clock(),  -- High precision timestamp
 					timestamp = os.time(),   -- For cleanup
 					job = memberJob,         -- Caster's main job (for fast cast)
-					subjob = memberSubjob    -- Caster's sub job (for RDM fast cast)
+					subjob = memberSubjob,   -- Caster's sub job (for RDM fast cast)
+					jobLevel = memberJobLevel,     -- Main job level (for RDM trait tiers)
+					subjobLevel = memberSubjobLevel -- Sub job level (for RDM sub fast cast)
 				};
 			end
 		end

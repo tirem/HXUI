@@ -1,7 +1,7 @@
 -- GNU Licensed by mousseng's XITools repository [https://github.com/mousseng/xitools]
 require('common');
-require('helpers');
-local buffTable = require('bufftable');
+require('handlers.helpers');
+local buffTable = require('libs.bufftable');
 
 local debuffHandler =
 T{

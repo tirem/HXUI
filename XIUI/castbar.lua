@@ -1,5 +1,5 @@
 require('common');
-require('helpers');
+require('handlers.helpers');
 local imgui = require('imgui');
 local fonts = require('fonts');
 local progressbar = require('progressbar');
@@ -63,7 +63,9 @@ castbar.DrawWindow = function(settings)
 			player:GetMainJob(),
 			player:GetSubJob(),
 			castbar.currentSpellType,
-			castbar.currentSpellName
+			castbar.currentSpellName,
+			player:GetMainJobLevel(),
+			player:GetSubJobLevel()
 		);
 		if fastCast > 0 then
 			-- The 0.75 factor corrects for how GetCastBarSafe():GetPercent() reports progress

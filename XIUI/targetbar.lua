@@ -1,9 +1,9 @@
 require('common');
-require('helpers');
+require('handlers.helpers');
 local imgui = require('imgui');
-local statusHandler = require('statushandler');
-local debuffHandler = require('debuffhandler');
-local actionTracker = require('actiontracker');
+local statusHandler = require('handlers.statushandler');
+local debuffHandler = require('handlers.debuffhandler');
+local actionTracker = require('handlers.actiontracker');
 local progressbar = require('progressbar');
 local gdi = require('gdifonts.include');
 local encoding = require('gdifonts.encoding');

@@ -1,6 +1,6 @@
 require ("common");
-require('helpers');
-local statusHandler = require('statushandler');
+require('handlers.helpers');
+local statusHandler = require('handlers.statushandler');
 local imgui = require("imgui");
 local ffi = require("ffi");
 
@@ -780,6 +780,74 @@ end
 local function DrawMobInfoSettingsContent()
     DrawCheckbox('Enabled', 'showMobInfo', CheckVisibility);
     imgui.ShowHelp('Show mob information window when targeting monsters.');
+
+    -- Attribution for Thorny's MobDB (on same line as Enabled)
+    imgui.SameLine();
+    imgui.SetCursorPosX(imgui.GetCursorPosX() + 20); -- Add some spacing
+
+    -- Style colors for the attribution box
+    local bgLight = {0.137, 0.125, 0.106, 1.0};
+    local bgLighter = {0.176, 0.161, 0.137, 1.0};
+    local borderDark = {0.3, 0.275, 0.235, 1.0};
+    local gold = {0.957, 0.855, 0.592, 1.0};
+
+    -- Calculate box dimensions
+    local boxHeight = 20;
+    local iconSize = 14;
+    local iconPad = (boxHeight - iconSize) / 2;
+    local textPad = 6;
+    local text = 'MobDB by Thorny';
+    local textWidth = imgui.CalcTextSize(text);
+    local boxWidth = iconSize + textPad * 3 + textWidth;
+
+    local screenPosX, screenPosY = imgui.GetCursorScreenPos();
+    local isHovered = imgui.IsMouseHoveringRect({screenPosX, screenPosY}, {screenPosX + boxWidth, screenPosY + boxHeight});
+
+    -- Draw box background and outline
+    local draw_list = imgui.GetWindowDrawList();
+    local boxColor = isHovered and imgui.GetColorU32(bgLighter) or imgui.GetColorU32(bgLight);
+    local outlineColor = imgui.GetColorU32(borderDark);
+    draw_list:AddRectFilled(
+        {screenPosX, screenPosY},
+        {screenPosX + boxWidth, screenPosY + boxHeight},
+        boxColor,
+        4.0
+    );
+    draw_list:AddRect(
+        {screenPosX, screenPosY},
+        {screenPosX + boxWidth, screenPosY + boxHeight},
+        outlineColor,
+        4.0
+    );
+
+    -- Draw GitHub icon if loaded
+    if githubTexture ~= nil and githubTexture.image ~= nil then
+        draw_list:AddImage(
+            tonumber(ffi.cast("uint32_t", githubTexture.image)),
+            {screenPosX + textPad, screenPosY + iconPad},
+            {screenPosX + textPad + iconSize, screenPosY + iconPad + iconSize},
+            {0, 0}, {1, 1},
+            IM_COL32_WHITE
+        );
+    end
+
+    -- Draw text
+    local textColor = isHovered and imgui.GetColorU32(gold) or imgui.GetColorU32({0.8, 0.8, 0.8, 1.0});
+    draw_list:AddText(
+        {screenPosX + textPad + iconSize + textPad, screenPosY + (boxHeight - imgui.GetTextLineHeight()) / 2},
+        textColor,
+        text
+    );
+
+    -- Invisible button for interaction
+    imgui.InvisibleButton("mobdb_attribution_btn", { boxWidth, boxHeight });
+    if imgui.IsItemHovered() then
+        imgui.SetMouseCursor(ImGuiMouseCursor_Hand);
+        imgui.SetTooltip('Visit MobDB repository on GitHub');
+    end
+    if imgui.IsItemClicked() then
+        ashita.misc.open_url('https://github.com/ThornyFFXI/mobdb');
+    end
 
     if CollapsingSection('Display Options##mobInfo') then
         DrawCheckbox('Show Level', 'mobInfoShowLevel');

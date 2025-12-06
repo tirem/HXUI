@@ -1,6 +1,6 @@
 -- Action Tracker for improved Target-of-Target detection
 require('common');
-require('helpers');
+require('handlers.helpers');
 
 local actionTracker = T{
     -- Tracks last action target for each enemy

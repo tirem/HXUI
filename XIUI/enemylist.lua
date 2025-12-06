@@ -1,11 +1,11 @@
 require('common');
-require('helpers');
+require('handlers.helpers');
 local imgui = require('imgui');
 local gdi = require('gdifonts.include');
 local primitives = require('primitives');
-local debuffHandler = require('debuffhandler');
-local statusHandler = require('statushandler');
-local actionTracker = require('actiontracker');
+local debuffHandler = require('handlers.debuffhandler');
+local statusHandler = require('handlers.statushandler');
+local actionTracker = require('handlers.actiontracker');
 local progressbar = require('progressbar');
 
 -- Note: RENDER_FLAG_VISIBLE and RENDER_FLAG_HIDDEN are now imported from helpers.lua
