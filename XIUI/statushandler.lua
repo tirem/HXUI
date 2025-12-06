@@ -8,10 +8,6 @@ local ffi = require('ffi');
 local imgui = require('imgui');
 local encoding = require('gdifonts.encoding');
 -------------------------------------------------------------------------------
--- local state
--------------------------------------------------------------------------------
-local d3d8_device = d3d8.get_device();
--------------------------------------------------------------------------------
 -- local constants
 -------------------------------------------------------------------------------
 local icon_cache = T{
@@ -33,10 +29,13 @@ local id_overrides = T{
 -- load a dummy icon placeholder for a missing status and return a texture pointer
 ---@return ffi.cdata* texture_ptr the loaded texture object or nil on error
 local function load_dummy_icon()
+    local device = GetD3D8Device();
+    if (device == nil) then return nil; end
+
     local icon_path = ('%s\\addons\\%s\\ladybug.png'):fmt(AshitaCore:GetInstallPath(), 'statustimers');
     local dx_texture_ptr = ffi.new('IDirect3DTexture8*[1]');
 
-    if (ffi.C.D3DXCreateTextureFromFileA(d3d8_device, icon_path, dx_texture_ptr) == ffi.C.S_OK) then
+    if (ffi.C.D3DXCreateTextureFromFileA(device, icon_path, dx_texture_ptr) == ffi.C.S_OK) then
         return d3d8.gc_safe_release(ffi.cast('IDirect3DTexture8*', dx_texture_ptr[0]));
     end
 
@@ -51,6 +50,9 @@ local function load_status_icon_from_resource(status_id)
         return nil;
     end
 
+    local device = GetD3D8Device();
+    if (device == nil) then return nil; end
+
     local id_key = ("_%d"):fmt(status_id);
     if (id_overrides:haskey(id_key)) then
         status_id = id_overrides[id_key];
@@ -59,7 +61,7 @@ local function load_status_icon_from_resource(status_id)
     local icon = AshitaCore:GetResourceManager():GetStatusIconByIndex(status_id);
     if (icon ~= nil) then
         local dx_texture_ptr = ffi.new('IDirect3DTexture8*[1]');
-        if (ffi.C.D3DXCreateTextureFromFileInMemoryEx(d3d8_device, icon.Bitmap, icon.ImageSize, 0xFFFFFFFF, 0xFFFFFFFF, 1, 0, ffi.C.D3DFMT_A8R8G8B8, ffi.C.D3DPOOL_MANAGED, ffi.C.D3DX_DEFAULT, ffi.C.D3DX_DEFAULT, 0xFF000000, nil, nil, dx_texture_ptr) == ffi.C.S_OK) then
+        if (ffi.C.D3DXCreateTextureFromFileInMemoryEx(device, icon.Bitmap, icon.ImageSize, 0xFFFFFFFF, 0xFFFFFFFF, 1, 0, ffi.C.D3DFMT_A8R8G8B8, ffi.C.D3DPOOL_MANAGED, ffi.C.D3DX_DEFAULT, ffi.C.D3DX_DEFAULT, 0xFF000000, nil, nil, dx_texture_ptr) == ffi.C.S_OK) then
             return d3d8.gc_safe_release(ffi.cast('IDirect3DTexture8*', dx_texture_ptr[0]));
         end
     end
@@ -74,6 +76,9 @@ local function load_status_icon_from_theme(theme, status_id)
     if (status_id == nil or status_id < 0 or status_id > 0x3FF) then
         return nil;
     end
+
+    local device = GetD3D8Device();
+    if (device == nil) then return nil; end
 
     local icon_path = nil;
     local supports_alpha = false;
@@ -98,12 +103,12 @@ local function load_status_icon_from_theme(theme, status_id)
     local dx_texture_ptr = ffi.new('IDirect3DTexture8*[1]');
     if (supports_alpha) then
         -- use the native transaparency
-        if (ffi.C.D3DXCreateTextureFromFileA(d3d8_device, icon_path, dx_texture_ptr) == ffi.C.S_OK) then
+        if (ffi.C.D3DXCreateTextureFromFileA(device, icon_path, dx_texture_ptr) == ffi.C.S_OK) then
             return d3d8.gc_safe_release(ffi.cast('IDirect3DTexture8*', dx_texture_ptr[0]));
         end
     else
         -- use black as colour-key for transparency
-        if (ffi.C.D3DXCreateTextureFromFileExA(d3d8_device, icon_path, 0xFFFFFFFF, 0xFFFFFFFF, 1, 0, ffi.C.D3DFMT_A8R8G8B8, ffi.C.D3DPOOL_MANAGED, ffi.C.D3DX_DEFAULT, ffi.C.D3DX_DEFAULT, 0xFF000000, nil, nil, dx_texture_ptr) == ffi.C.S_OK) then
+        if (ffi.C.D3DXCreateTextureFromFileExA(device, icon_path, 0xFFFFFFFF, 0xFFFFFFFF, 1, 0, ffi.C.D3DFMT_A8R8G8B8, ffi.C.D3DPOOL_MANAGED, ffi.C.D3DX_DEFAULT, ffi.C.D3DX_DEFAULT, 0xFF000000, nil, nil, dx_texture_ptr) == ffi.C.S_OK) then
             return d3d8.gc_safe_release(ffi.cast('IDirect3DTexture8*', dx_texture_ptr[0]));
         end
     end
