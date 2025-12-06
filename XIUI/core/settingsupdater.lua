@@ -54,6 +54,21 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     -- Inventory Tracker fonts
     applyGlobalFontSettings(gAdjustedSettings.inventoryTrackerSettings.font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
 
+    -- Satchel Tracker fonts
+    applyGlobalFontSettings(gAdjustedSettings.satchelTrackerSettings.font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+
+    -- Locker Tracker fonts
+    applyGlobalFontSettings(gAdjustedSettings.lockerTrackerSettings.font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+
+    -- Safe Tracker fonts
+    applyGlobalFontSettings(gAdjustedSettings.safeTrackerSettings.font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+
+    -- Storage Tracker fonts
+    applyGlobalFontSettings(gAdjustedSettings.storageTrackerSettings.font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+
+    -- Wardrobe Tracker fonts
+    applyGlobalFontSettings(gAdjustedSettings.wardrobeTrackerSettings.font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+
     -- Party List fonts
     applyGlobalFontSettings(gAdjustedSettings.partyListSettings.hp_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
     applyGlobalFontSettings(gAdjustedSettings.partyListSettings.mp_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
@@ -186,6 +201,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.gilTrackerSettings.font_settings.font_height = math.max(us.gilTrackerFontSize, 8);
     gAdjustedSettings.gilTrackerSettings.font_settings.font_alignment = us.gilTrackerRightAlign and gdi.Alignment.Left or gdi.Alignment.Right;
     gAdjustedSettings.gilTrackerSettings.rightAlign = us.gilTrackerRightAlign;
+    gAdjustedSettings.gilTrackerSettings.showIcon = us.gilTrackerShowIcon;
 
     -- Inventory Tracker
     gAdjustedSettings.inventoryTrackerSettings.dotRadius = ds.inventoryTrackerSettings.dotRadius * us.inventoryTrackerScale;
@@ -195,6 +211,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.inventoryTrackerSettings.columnCount = us.inventoryTrackerColumnCount;
     gAdjustedSettings.inventoryTrackerSettings.rowCount = us.inventoryTrackerRowCount;
     gAdjustedSettings.inventoryTrackerSettings.showText = us.inventoryShowCount;
+    gAdjustedSettings.inventoryTrackerSettings.showDots = us.inventoryShowDots;
 
     -- Satchel Tracker
     gAdjustedSettings.satchelTrackerSettings.dotRadius = ds.satchelTrackerSettings.dotRadius * us.satchelTrackerScale;
@@ -204,6 +221,51 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.satchelTrackerSettings.columnCount = us.satchelTrackerColumnCount;
     gAdjustedSettings.satchelTrackerSettings.rowCount = us.satchelTrackerRowCount;
     gAdjustedSettings.satchelTrackerSettings.showText = us.satchelShowCount;
+    gAdjustedSettings.satchelTrackerSettings.showDots = us.satchelShowDots;
+
+    -- Locker Tracker
+    gAdjustedSettings.lockerTrackerSettings.dotRadius = ds.lockerTrackerSettings.dotRadius * us.lockerTrackerScale;
+    gAdjustedSettings.lockerTrackerSettings.dotSpacing = ds.lockerTrackerSettings.dotSpacing * us.lockerTrackerScale;
+    gAdjustedSettings.lockerTrackerSettings.groupSpacing = ds.lockerTrackerSettings.groupSpacing * us.lockerTrackerScale;
+    gAdjustedSettings.lockerTrackerSettings.font_settings.font_height = math.max(us.lockerTrackerFontSize, 8);
+    gAdjustedSettings.lockerTrackerSettings.columnCount = us.lockerTrackerColumnCount;
+    gAdjustedSettings.lockerTrackerSettings.rowCount = us.lockerTrackerRowCount;
+    gAdjustedSettings.lockerTrackerSettings.showText = us.lockerShowCount;
+    gAdjustedSettings.lockerTrackerSettings.showDots = us.lockerShowDots;
+
+    -- Safe Tracker
+    gAdjustedSettings.safeTrackerSettings.dotRadius = ds.safeTrackerSettings.dotRadius * us.safeTrackerScale;
+    gAdjustedSettings.safeTrackerSettings.dotSpacing = ds.safeTrackerSettings.dotSpacing * us.safeTrackerScale;
+    gAdjustedSettings.safeTrackerSettings.groupSpacing = ds.safeTrackerSettings.groupSpacing * us.safeTrackerScale;
+    gAdjustedSettings.safeTrackerSettings.font_settings.font_height = math.max(us.safeTrackerFontSize, 8);
+    gAdjustedSettings.safeTrackerSettings.columnCount = us.safeTrackerColumnCount;
+    gAdjustedSettings.safeTrackerSettings.rowCount = us.safeTrackerRowCount;
+    gAdjustedSettings.safeTrackerSettings.showText = us.safeShowCount;
+    gAdjustedSettings.safeTrackerSettings.showDots = us.safeShowDots;
+    gAdjustedSettings.safeTrackerSettings.showPerContainer = us.safeShowPerContainer;
+    gAdjustedSettings.safeTrackerSettings.showLabels = us.safeShowLabels;
+
+    -- Storage Tracker
+    gAdjustedSettings.storageTrackerSettings.dotRadius = ds.storageTrackerSettings.dotRadius * us.storageTrackerScale;
+    gAdjustedSettings.storageTrackerSettings.dotSpacing = ds.storageTrackerSettings.dotSpacing * us.storageTrackerScale;
+    gAdjustedSettings.storageTrackerSettings.groupSpacing = ds.storageTrackerSettings.groupSpacing * us.storageTrackerScale;
+    gAdjustedSettings.storageTrackerSettings.font_settings.font_height = math.max(us.storageTrackerFontSize, 8);
+    gAdjustedSettings.storageTrackerSettings.columnCount = us.storageTrackerColumnCount;
+    gAdjustedSettings.storageTrackerSettings.rowCount = us.storageTrackerRowCount;
+    gAdjustedSettings.storageTrackerSettings.showText = us.storageShowCount;
+    gAdjustedSettings.storageTrackerSettings.showDots = us.storageShowDots;
+
+    -- Wardrobe Tracker
+    gAdjustedSettings.wardrobeTrackerSettings.dotRadius = ds.wardrobeTrackerSettings.dotRadius * us.wardrobeTrackerScale;
+    gAdjustedSettings.wardrobeTrackerSettings.dotSpacing = ds.wardrobeTrackerSettings.dotSpacing * us.wardrobeTrackerScale;
+    gAdjustedSettings.wardrobeTrackerSettings.groupSpacing = ds.wardrobeTrackerSettings.groupSpacing * us.wardrobeTrackerScale;
+    gAdjustedSettings.wardrobeTrackerSettings.font_settings.font_height = math.max(us.wardrobeTrackerFontSize, 8);
+    gAdjustedSettings.wardrobeTrackerSettings.columnCount = us.wardrobeTrackerColumnCount;
+    gAdjustedSettings.wardrobeTrackerSettings.rowCount = us.wardrobeTrackerRowCount;
+    gAdjustedSettings.wardrobeTrackerSettings.showText = us.wardrobeShowCount;
+    gAdjustedSettings.wardrobeTrackerSettings.showDots = us.wardrobeShowDots;
+    gAdjustedSettings.wardrobeTrackerSettings.showPerContainer = us.wardrobeShowPerContainer;
+    gAdjustedSettings.wardrobeTrackerSettings.showLabels = us.wardrobeShowLabels;
 
     -- Enemy List
     gAdjustedSettings.enemyListSettings.barWidth = ds.enemyListSettings.barWidth * us.enemyListScaleX;

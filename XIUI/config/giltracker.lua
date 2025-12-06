@@ -13,9 +13,12 @@ local M = {};
 -- Section: Gil Tracker Settings
 function M.DrawSettings()
     components.DrawCheckbox('Enabled', 'showGilTracker', CheckVisibility);
+    components.DrawCheckbox('Show Icon', 'gilTrackerShowIcon');
+    imgui.ShowHelp('Show gil icon. Disable for text-only mode.');
     components.DrawSlider('Scale', 'gilTrackerScale', 0.1, 3.0, '%.1f');
     components.DrawSlider('Font Size', 'gilTrackerFontSize', 8, 36);
     components.DrawCheckbox('Right Align', 'gilTrackerRightAlign', UpdateGilTrackerVisuals);
+    imgui.ShowHelp('Position text to the right of icon (when icon enabled).');
 end
 
 -- Section: Gil Tracker Color Settings

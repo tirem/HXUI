@@ -50,8 +50,12 @@ local targetBar = uiMods.targetbar;
 local enemyList = uiMods.enemylist;
 local expBar = uiMods.expbar;
 local gilTracker = uiMods.giltracker;
-local inventoryTracker = uiMods.inventorytracker;
-local satchelTracker = uiMods.satcheltracker;
+local inventoryTracker = uiMods.inventory.inventory;
+local satchelTracker = uiMods.inventory.satchel;
+local lockerTracker = uiMods.inventory.locker;
+local safeTracker = uiMods.inventory.safe;
+local storageTracker = uiMods.inventory.storage;
+local wardrobeTracker = uiMods.inventory.wardrobe;
 local partyList = uiMods.partylist;
 local castBar = uiMods.castbar;
 local configMenu = require('config');
@@ -154,6 +158,30 @@ uiModules.Register('satchelTracker', {
     module = satchelTracker,
     settingsKey = 'satchelTrackerSettings',
     configKey = 'showSatchelTracker',
+    hasSetHidden = true,
+});
+uiModules.Register('lockerTracker', {
+    module = lockerTracker,
+    settingsKey = 'lockerTrackerSettings',
+    configKey = 'showLockerTracker',
+    hasSetHidden = true,
+});
+uiModules.Register('safeTracker', {
+    module = safeTracker,
+    settingsKey = 'safeTrackerSettings',
+    configKey = 'showSafeTracker',
+    hasSetHidden = true,
+});
+uiModules.Register('storageTracker', {
+    module = storageTracker,
+    settingsKey = 'storageTrackerSettings',
+    configKey = 'showStorageTracker',
+    hasSetHidden = true,
+});
+uiModules.Register('wardrobeTracker', {
+    module = wardrobeTracker,
+    settingsKey = 'wardrobeTrackerSettings',
+    configKey = 'showWardrobeTracker',
     hasSetHidden = true,
 });
 uiModules.Register('partyList', {

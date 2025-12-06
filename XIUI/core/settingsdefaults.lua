@@ -207,6 +207,7 @@ M.user_settings = T{
     gilTrackerScale = 1,
     gilTrackerFontSize = 12,
     gilTrackerRightAlign = false,
+    gilTrackerShowIcon = true,
 
     inventoryTrackerScale = 1,
     inventoryTrackerFontSize = 12,
@@ -216,6 +217,7 @@ M.user_settings = T{
     inventoryTrackerColorThreshold1 = 15,
     inventoryTrackerColorThreshold2 = 29,
     inventoryShowCount = true,
+    inventoryShowDots = true,
 
     showSatchelTracker = false,
     satchelTrackerScale = 1,
@@ -225,6 +227,51 @@ M.user_settings = T{
     satchelTrackerColorThreshold1 = 15,
     satchelTrackerColorThreshold2 = 29,
     satchelShowCount = true,
+    satchelShowDots = true,
+
+    showLockerTracker = false,
+    lockerTrackerScale = 1,
+    lockerTrackerFontSize = 12,
+    lockerTrackerColumnCount = 5,
+    lockerTrackerRowCount = 6,
+    lockerTrackerColorThreshold1 = 60,
+    lockerTrackerColorThreshold2 = 75,
+    lockerShowCount = true,
+    lockerShowDots = true,
+
+    showSafeTracker = false,
+    safeTrackerScale = 1,
+    safeTrackerFontSize = 12,
+    safeTrackerColumnCount = 5,
+    safeTrackerRowCount = 6,
+    safeTrackerColorThreshold1 = 120,
+    safeTrackerColorThreshold2 = 150,
+    safeShowCount = true,
+    safeShowDots = true,
+    safeShowPerContainer = false,
+    safeShowLabels = true,
+
+    showStorageTracker = false,
+    storageTrackerScale = 1,
+    storageTrackerFontSize = 12,
+    storageTrackerColumnCount = 5,
+    storageTrackerRowCount = 6,
+    storageTrackerColorThreshold1 = 60,
+    storageTrackerColorThreshold2 = 75,
+    storageShowCount = true,
+    storageShowDots = true,
+
+    showWardrobeTracker = false,
+    wardrobeTrackerScale = 1,
+    wardrobeTrackerFontSize = 12,
+    wardrobeTrackerColumnCount = 10,
+    wardrobeTrackerRowCount = 8,
+    wardrobeTrackerColorThreshold1 = 400,
+    wardrobeTrackerColorThreshold2 = 550,
+    wardrobeShowCount = true,
+    wardrobeShowDots = true,
+    wardrobeShowPerContainer = false,
+    wardrobeShowLabels = true,
 
     -- Mob Info settings
     showMobInfo = true,
@@ -566,6 +613,42 @@ M.user_settings = T{
             usedSlotColorThreshold2 = T{ r = 1.0, g = 0, b = 0, a = 1 },    -- Critical (red)
         },
 
+        -- Locker Tracker
+        lockerTracker = T{
+            textColor = 0xFFFFFFFF,
+            emptySlotColor = T{ r = 0, g = 0.07, b = 0.17, a = 1 },
+            usedSlotColor = T{ r = 0.37, g = 0.7, b = 0.88, a = 1 },        -- Normal (white/blue)
+            usedSlotColorThreshold1 = T{ r = 1.0, g = 1.0, b = 0, a = 1 },  -- Warning (yellow)
+            usedSlotColorThreshold2 = T{ r = 1.0, g = 0, b = 0, a = 1 },    -- Critical (red)
+        },
+
+        -- Safe Tracker (Safe + Safe2)
+        safeTracker = T{
+            textColor = 0xFFFFFFFF,
+            emptySlotColor = T{ r = 0, g = 0.07, b = 0.17, a = 1 },
+            usedSlotColor = T{ r = 0.37, g = 0.7, b = 0.88, a = 1 },        -- Normal (white/blue)
+            usedSlotColorThreshold1 = T{ r = 1.0, g = 1.0, b = 0, a = 1 },  -- Warning (yellow)
+            usedSlotColorThreshold2 = T{ r = 1.0, g = 0, b = 0, a = 1 },    -- Critical (red)
+        },
+
+        -- Storage Tracker
+        storageTracker = T{
+            textColor = 0xFFFFFFFF,
+            emptySlotColor = T{ r = 0, g = 0.07, b = 0.17, a = 1 },
+            usedSlotColor = T{ r = 0.37, g = 0.7, b = 0.88, a = 1 },        -- Normal (white/blue)
+            usedSlotColorThreshold1 = T{ r = 1.0, g = 1.0, b = 0, a = 1 },  -- Warning (yellow)
+            usedSlotColorThreshold2 = T{ r = 1.0, g = 0, b = 0, a = 1 },    -- Critical (red)
+        },
+
+        -- Wardrobe Tracker (all 8 wardrobes)
+        wardrobeTracker = T{
+            textColor = 0xFFFFFFFF,
+            emptySlotColor = T{ r = 0, g = 0.07, b = 0.17, a = 1 },
+            usedSlotColor = T{ r = 0.37, g = 0.7, b = 0.88, a = 1 },        -- Normal (white/blue)
+            usedSlotColorThreshold1 = T{ r = 1.0, g = 1.0, b = 0, a = 1 },  -- Warning (yellow)
+            usedSlotColorThreshold2 = T{ r = 1.0, g = 0, b = 0, a = 1 },    -- Critical (red)
+        },
+
         -- Cast Bar
         castBar = T{
             barGradient = T{ enabled = true, start = '#3798ce', stop = '#78c5ee' },
@@ -834,6 +917,78 @@ M.default_settings = T{
     satchelTrackerSettings = T{
         columnCount = 5,
         rowCount = 6,
+        dotRadius = 5,
+        dotSpacing = 1,
+        groupSpacing = 8,
+        textOffsetY = -3,
+        font_settings = T{
+            font_alignment = gdi.Alignment.Right,
+            font_family = 'Consolas',
+            font_height = 13,
+            font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+    },
+
+    lockerTrackerSettings = T{
+        columnCount = 5,
+        rowCount = 6,
+        dotRadius = 5,
+        dotSpacing = 1,
+        groupSpacing = 8,
+        textOffsetY = -3,
+        font_settings = T{
+            font_alignment = gdi.Alignment.Right,
+            font_family = 'Consolas',
+            font_height = 13,
+            font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+    },
+
+    safeTrackerSettings = T{
+        columnCount = 5,
+        rowCount = 6,
+        dotRadius = 5,
+        dotSpacing = 1,
+        groupSpacing = 8,
+        textOffsetY = -3,
+        font_settings = T{
+            font_alignment = gdi.Alignment.Right,
+            font_family = 'Consolas',
+            font_height = 13,
+            font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+    },
+
+    storageTrackerSettings = T{
+        columnCount = 5,
+        rowCount = 6,
+        dotRadius = 5,
+        dotSpacing = 1,
+        groupSpacing = 8,
+        textOffsetY = -3,
+        font_settings = T{
+            font_alignment = gdi.Alignment.Right,
+            font_family = 'Consolas',
+            font_height = 13,
+            font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+    },
+
+    wardrobeTrackerSettings = T{
+        columnCount = 10,
+        rowCount = 8,
         dotRadius = 5,
         dotSpacing = 1,
         groupSpacing = 8,

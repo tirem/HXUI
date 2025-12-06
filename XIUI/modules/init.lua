@@ -11,8 +11,7 @@ modules.targetbar = require('modules.targetbar');
 modules.enemylist = require('modules.enemylist');
 modules.expbar = require('modules.expbar');
 modules.giltracker = require('modules.giltracker');
-modules.inventorytracker = require('modules.inventorytracker');
-modules.satcheltracker = require('modules.satcheltracker');
+modules.inventory = require('modules.inventory.init');
 modules.partylist = require('modules.partylist.init');
 modules.castbar = require('modules.castbar');
 

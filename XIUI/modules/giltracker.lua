@@ -50,28 +50,93 @@ giltracker.DrawWindow = function(settings)
 	if (gConfig.lockPositions) then
 		windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
 	end
+
+	local showIcon = settings.showIcon;
+
+	-- For text-only mode, remove window padding so draggable area matches text exactly
+	if not showIcon then
+		imgui.PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
+	end
+
     if (imgui.Begin('GilTracker', true, windowFlags)) then
-		local cursorX, cursorY  = imgui.GetCursorScreenPos();
-		imgui.Image(tonumber(ffi.cast("uint32_t", gilTexture.image)), { settings.iconScale, settings.iconScale });
+		local cursorX, cursorY = imgui.GetCursorScreenPos();
 
 		-- Dynamically set font height based on settings (avoids expensive font recreation)
 		gilText:set_font_height(settings.font_settings.font_height);
-
 		gilText:set_text(FormatInt(gilAmount.Count));
 
-		-- Clean positioning logic:
-		-- rightAlign = true: text positioned to the RIGHT of the icon (left-aligned text)
-		-- rightAlign = false: text positioned to the LEFT of the icon (right-aligned text)
+		-- Get text dimensions for positioning and draggable area
+		local textWidth, textHeight = gilText:get_text_size();
 		local textPadding = 5; -- Standard spacing between icon and text
-		if (settings.rightAlign) then
-			-- Text on RIGHT side of icon
-			gilText:set_position_x(cursorX + settings.iconScale + textPadding);
+
+		-- DEBUG: Set to true to visualize draggable areas
+		local DEBUG_DRAW = true;
+
+		if showIcon then
+			-- Icon + text mode: create combined draggable area
+			local iconSize = settings.iconScale;
+
+			if (settings.rightAlign) then
+				-- Icon on left, text on right: [icon][text]
+				local totalWidth = iconSize + textPadding + textWidth;
+				local totalHeight = math.max(iconSize, textHeight);
+				imgui.Dummy({totalWidth, totalHeight});
+
+				-- DEBUG: Draw red rectangle around draggable area
+				if DEBUG_DRAW then
+					local draw_list = imgui.GetWindowDrawList();
+					draw_list:AddRect({cursorX, cursorY}, {cursorX + totalWidth, cursorY + totalHeight}, 0xFF0000FF, 0, 0, 2);
+				end
+
+				-- Draw icon at start of dummy area
+				local draw_list = imgui.GetWindowDrawList();
+				local iconY = cursorY + (totalHeight - iconSize) / 2;
+				draw_list:AddImage(tonumber(ffi.cast("uint32_t", gilTexture.image)),
+					{cursorX, iconY},
+					{cursorX + iconSize, iconY + iconSize});
+
+				-- Position text to the right of icon (right-aligned font, so position_x is right edge)
+				gilText:set_position_x(cursorX + iconSize + textPadding + textWidth);
+				gilText:set_position_y(cursorY + (totalHeight - textHeight) / 2);
+			else
+				-- Text on left, icon on right: [text][icon]
+				local totalWidth = textWidth + textPadding + iconSize;
+				local totalHeight = math.max(iconSize, textHeight);
+				imgui.Dummy({totalWidth, totalHeight});
+
+				-- DEBUG: Draw red rectangle around draggable area
+				if DEBUG_DRAW then
+					local draw_list = imgui.GetWindowDrawList();
+					draw_list:AddRect({cursorX, cursorY}, {cursorX + totalWidth, cursorY + totalHeight}, 0xFF0000FF, 0, 0, 2);
+				end
+
+				-- Draw icon at end of dummy area
+				local draw_list = imgui.GetWindowDrawList();
+				local iconX = cursorX + textWidth + textPadding;
+				local iconY = cursorY + (totalHeight - iconSize) / 2;
+				draw_list:AddImage(tonumber(ffi.cast("uint32_t", gilTexture.image)),
+					{iconX, iconY},
+					{iconX + iconSize, iconY + iconSize});
+
+				-- Position text at start (right-aligned font, so position_x is right edge)
+				gilText:set_position_x(cursorX + textWidth);
+				gilText:set_position_y(cursorY + (totalHeight - textHeight) / 2);
+			end
 		else
-			-- Text on LEFT side of icon
-			gilText:set_position_x(cursorX - textPadding);
+			-- Text-only mode: create dummy for dragging that matches text size
+			imgui.Dummy({textWidth, textHeight});
+
+			-- DEBUG: Draw red rectangle around draggable area
+			if DEBUG_DRAW then
+				local draw_list = imgui.GetWindowDrawList();
+				draw_list:AddRect({cursorX, cursorY}, {cursorX + textWidth, cursorY + textHeight}, 0xFF0000FF, 0, 0, 2);
+			end
+
+			-- Position text over the dummy area
+			-- Font is right-aligned by default, so position_x is the RIGHT edge of text
+			gilText:set_position_x(cursorX + textWidth);
+			gilText:set_position_y(cursorY);
 		end
-		-- Vertically center the text with the icon (offset upward to account for font baseline)
-		gilText:set_position_y(cursorY + (settings.iconScale / 2) - (settings.font_settings.font_height / 2));
 
 		-- Only call set_font_color if the color has changed (expensive operation for GDI fonts)
 		if (lastGilTextColor ~= gConfig.colorCustomization.gilTracker.textColor) then
@@ -82,6 +147,11 @@ giltracker.DrawWindow = function(settings)
 		SetFontsVisible(allFonts,true);
     end
 	imgui.End();
+
+	-- Pop style var if we pushed it for text-only mode
+	if not showIcon then
+		imgui.PopStyleVar(1);
+	end
 end
 
 giltracker.Initialize = function(settings)
