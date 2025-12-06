@@ -351,8 +351,8 @@ targetbar.DrawWindow = function(settings)
 
 		-- Dynamically set font heights based on settings (avoids expensive font recreation)
 		nameText:set_font_height(settings.name_font_settings.font_height);
-		percentText:set_font_height(settings.percent_font_settings.font_height);
-		distText:set_font_height(settings.distance_font_settings.font_height);
+		-- Note: percentText is no longer used directly (combined with distText)
+		-- distText font height is set dynamically below based on what's being displayed
 
 		-- Draw lock icon if locked on (using draw list to avoid affecting cursor position)
 		local lockIconOffset = 0;
@@ -384,38 +384,51 @@ targetbar.DrawWindow = function(settings)
 			lastNameTextColor = color;
 		end
 		nameText:set_text(targetNameText);
-		nameText:set_visible(true);
+		nameText:set_visible(gConfig.showTargetName);
 
-		-- Right-aligned text position - combine distance and HP% on same line
+		-- Right-aligned text positioning for distance and HP%
 		local rightTextX = startX + settings.barWidth - bookendWidth - textPadding;
 		local topTextY = startY - settings.topTextYOffset;
 
-		-- Build combined text string: [distance] - [hp%]
+		-- Distance and HP% are independent elements
 		local showDistance = gConfig.showTargetDistance;
-		local showHpPercent = isMonster or gConfig.alwaysShowHealthPercent;
-		local combinedText = "";
+		local showHpPercent = gConfig.showTargetHpPercent and (isMonster or gConfig.showTargetHpPercentAllTargets);
 
-		if (showDistance and showHpPercent) then
-			combinedText = string.format("%s - %s", tostring(dist), tostring(targetHpPercent));
-		elseif (showDistance) then
-			combinedText = tostring(dist);
-		elseif (showHpPercent) then
-			combinedText = tostring(targetHpPercent);
+		-- Track the rightmost position for stacking text elements
+		local currentRightX = rightTextX;
+
+		-- Draw HP% first (rightmost position)
+		if (showHpPercent) then
+			percentText:set_font_height(settings.percent_font_settings.font_height);
+			percentText:set_text(targetHpPercent);
+			local percentWidth, _ = percentText:get_text_size();
+			percentText:set_position_x(currentRightX);
+			percentText:set_position_y(topTextY - settings.percent_font_settings.font_height);
+
+			-- HP% color based on HP amount
+			local desiredPercentColor, _ = GetHpColors(targetEntity.HPPercent / 100);
+			if (lastPercentTextColor ~= desiredPercentColor) then
+				percentText:set_font_color(desiredPercentColor);
+				lastPercentTextColor = desiredPercentColor;
+			end
+
+			percentText:set_visible(true);
+			-- Move left for next element (add spacing)
+			currentRightX = currentRightX - percentWidth - 8;
+		else
+			percentText:set_visible(false);
 		end
 
-		if (combinedText ~= "") then
-			distText:set_text(combinedText);
+		-- Draw distance (to the left of HP% if both shown)
+		if (showDistance) then
+			distText:set_font_height(settings.distance_font_settings.font_height);
+			distText:set_text(tostring(dist));
 			local distWidth, _ = distText:get_text_size();
-			distText:set_position_x(rightTextX);
+			distText:set_position_x(currentRightX);
 			distText:set_position_y(topTextY - settings.distance_font_settings.font_height);
 
-			-- Use HP color only when showing HP% alone, otherwise use configured distance text color
-			local desiredDistColor;
-			if (showHpPercent and not showDistance) then
-				desiredDistColor, _ = GetHpColors(targetEntity.HPPercent / 100);
-			else
-				desiredDistColor = gConfig.colorCustomization.targetBar.distanceTextColor;
-			end
+			-- Distance uses configured color
+			local desiredDistColor = gConfig.colorCustomization.targetBar.distanceTextColor;
 			if (lastDistTextColor ~= desiredDistColor) then
 				distText:set_font_color(desiredDistColor);
 				lastDistTextColor = desiredDistColor;
@@ -425,9 +438,6 @@ targetbar.DrawWindow = function(settings)
 		else
 			distText:set_visible(false);
 		end
-
-		-- Hide the separate percentText since we're combining them
-		percentText:set_visible(false);
 
 		-- Draw enemy cast bar and text if casting (or in config mode) and if enabled
 		local castData = targetbar.enemyCasts[targetEntity.ServerId];

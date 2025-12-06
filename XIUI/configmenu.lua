@@ -673,7 +673,15 @@ local function DrawTargetBarSettings()
     DrawCheckbox('Enabled', 'showTargetBar', CheckVisibility);
 
     if CollapsingSection('Display Options##targetBar') then
+        DrawCheckbox('Show Name', 'showTargetName');
         DrawCheckbox('Show Distance', 'showTargetDistance');
+        DrawCheckbox('Show HP%', 'showTargetHpPercent');
+        if (gConfig.showTargetHpPercent) then
+            imgui.Indent(20);
+            DrawCheckbox('Include NPCs', 'showTargetHpPercentAllTargets');
+            imgui.ShowHelp('Also show HP% for NPCs, players, and other non-monster targets.');
+            imgui.Unindent(20);
+        end
         DrawCheckbox('Show Bookends', 'showTargetBarBookends');
         DrawCheckbox('Show Lock On', 'showTargetBarLockOnBorder');
         imgui.ShowHelp('Display the lock icon and colored border when locked on to a target.');
@@ -684,9 +692,6 @@ local function DrawTargetBarSettings()
         DrawCheckbox('Hide During Events', 'targetBarHideDuringEvents');
         DrawCheckbox('Show Enemy Id', 'showEnemyId');
         imgui.ShowHelp('Display the internal ID of the monster next to its name.');
-
-        DrawCheckbox('Always Show Health Percent', 'alwaysShowHealthPercent');
-        imgui.ShowHelp('Always display the percent of HP remanining regardless if the target is an enemy or not.');
 
         DrawCheckbox('Split Target Bars', 'splitTargetOfTarget');
         imgui.ShowHelp('Separate the Target of Target bar into its own window that can be moved independently.');

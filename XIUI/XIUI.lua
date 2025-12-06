@@ -171,11 +171,13 @@ T{
 	targetBarCastBarScaleX = 0.4,
 	targetBarCastBarScaleY = 1,
 	showTargetDistance = true,
+	showTargetHpPercent = true,
+	showTargetHpPercentAllTargets = false,
+	showTargetName = true,
 	showTargetBarBookends = true,
 	showTargetBarLockOnBorder = true,
 	showTargetBarCastBar = true,
 	showEnemyId = false;
-	alwaysShowHealthPercent = false,
     targetBarHideDuringEvents = true,
 	splitTargetOfTarget = false,
 	totBarScaleX = 1,
@@ -1544,6 +1546,21 @@ if gConfig.colorCustomization then
 	if not gConfig.colorCustomization.partyListC then
 		gConfig.colorCustomization.partyListC = deep_copy_table(defaultUserSettings.colorCustomization.partyListC);
 	end
+end
+
+-- Migrate new target bar settings (add missing fields for existing users)
+if gConfig.showTargetHpPercent == nil then
+	gConfig.showTargetHpPercent = true;
+end
+if gConfig.showTargetHpPercentAllTargets == nil then
+	gConfig.showTargetHpPercentAllTargets = false;
+end
+if gConfig.showTargetName == nil then
+	gConfig.showTargetName = true;
+end
+-- Remove deprecated setting
+if gConfig.alwaysShowHealthPercent ~= nil then
+	gConfig.alwaysShowHealthPercent = nil;
 end
 
 -- Helper function to get party settings by index (1=A, 2=B, 3=C)
