@@ -170,8 +170,13 @@ local function updatePartyConfigCache()
         -- Party-specific settings
         cache.showDistance = party.showDistance;
         cache.distanceHighlight = party.distanceHighlight or 0;
+        -- Job display settings
         cache.showJobIcon = party.showJobIcon;
         cache.showJob = party.showJob;
+        cache.showMainJob = party.showMainJob ~= false; -- Default true
+        cache.showMainJobLevel = party.showMainJobLevel ~= false; -- Default true
+        cache.showSubJob = party.showSubJob ~= false; -- Default true
+        cache.showSubJobLevel = party.showSubJobLevel ~= false; -- Default true
         cache.showCastBars = party.showCastBars;
         cache.castBarScaleY = party.castBarScaleY or 0.6;
         cache.showBookends = party.showBookends;
@@ -1106,32 +1111,48 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     -- Job/Subjob text (Layout 1 only, far right of name line)
     local showJobText = false;
     if cache.showJob and layout == 0 and memInfo.inzone and memInfo.job ~= '' and memInfo.job ~= nil and memInfo.job > 0 then
-        -- Build job string (e.g., "WAR99/NIN49")
-        local mainJobAbbr = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', memInfo.job) or '';
-        local jobStr = mainJobAbbr .. tostring(memInfo.level);
+        -- Build job string based on display settings
+        -- Examples: "BLM75/RDM37" (default), "BLM/RDM" (no levels), "BLM" (main only), "/RDM" (sub only)
+        local jobStr = '';
 
-        if memInfo.subjob ~= nil and memInfo.subjob ~= '' and memInfo.subjob > 0 then
+        -- Main job portion
+        if cache.showMainJob then
+            local mainJobAbbr = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', memInfo.job) or '';
+            jobStr = mainJobAbbr;
+            if cache.showMainJobLevel then
+                jobStr = jobStr .. tostring(memInfo.level);
+            end
+        end
+
+        -- Subjob portion
+        if cache.showSubJob and memInfo.subjob ~= nil and memInfo.subjob ~= '' and memInfo.subjob > 0 then
             local subJobAbbr = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', memInfo.subjob) or '';
-            jobStr = jobStr .. '/' .. subJobAbbr .. tostring(memInfo.subjoblevel);
+            jobStr = jobStr .. '/' .. subJobAbbr;
+            if cache.showSubJobLevel then
+                jobStr = jobStr .. tostring(memInfo.subjoblevel);
+            end
         end
 
-        memberText[memIdx].job:set_text(jobStr);
-        memberText[memIdx].job:set_font_height(fontSizes.job);
-        local jobTextWidth, jobTextHeight = memberText[memIdx].job:get_text_size();
+        -- Only show if we have something to display
+        if jobStr ~= '' then
+            memberText[memIdx].job:set_text(jobStr);
+            memberText[memIdx].job:set_font_height(fontSizes.job);
+            local jobTextWidth, jobTextHeight = memberText[memIdx].job:get_text_size();
 
-        -- Position at far right of name row (right-aligned to allBarsLengths)
-        local jobPosX = hpStartX + allBarsLengths - jobTextWidth;
-        memberText[memIdx].job:set_position_x(jobPosX);
-        memberText[memIdx].job:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + nameBaselineOffset);
+            -- Position at far right of name row (right-aligned to allBarsLengths)
+            local jobPosX = hpStartX + allBarsLengths - jobTextWidth;
+            memberText[memIdx].job:set_position_x(jobPosX);
+            memberText[memIdx].job:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + nameBaselineOffset);
 
-        -- Set color (same as name text color)
-        local desiredJobColor = cache.colors.nameTextColor;
-        if (memberTextColorCache[memIdx].job ~= desiredJobColor) then
-            memberText[memIdx].job:set_font_color(desiredJobColor);
-            memberTextColorCache[memIdx].job = desiredJobColor;
+            -- Set color (same as name text color)
+            local desiredJobColor = cache.colors.nameTextColor;
+            if (memberTextColorCache[memIdx].job ~= desiredJobColor) then
+                memberText[memIdx].job:set_font_color(desiredJobColor);
+                memberTextColorCache[memIdx].job = desiredJobColor;
+            end
+
+            showJobText = true;
         end
-
-        showJobText = true;
     end
     memberText[memIdx].job:set_visible(showJobText);
 

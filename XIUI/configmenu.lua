@@ -36,6 +36,20 @@ local categories = {
 -- Column spacing for horizontal color picker layouts
 local COLOR_COLUMN_SPACING = 200;
 
+-- Helper function for collapsible section headers
+-- Returns true if the section is expanded, false if collapsed
+-- defaultOpen: if true, section starts expanded (default behavior)
+local function CollapsingSection(label, defaultOpen)
+    if defaultOpen == nil then defaultOpen = true; end
+    imgui.Spacing();
+    local flags = defaultOpen and ImGuiTreeNodeFlags_DefaultOpen or 0;
+    local isOpen = imgui.CollapsingHeader(label, flags);
+    if isOpen then
+        imgui.Spacing();
+    end
+    return isOpen;
+end
+
 -- List of common Windows fonts
 local available_fonts = {
     'Arial',
@@ -497,111 +511,100 @@ end
 
 -- Section: Global Settings (combines General, Font, and Bar settings)
 local function DrawGlobalSettings()
-    DrawCheckbox('Lock HUD Position', 'lockPositions');
+    if CollapsingSection('General##global') then
+        DrawCheckbox('Lock HUD Position', 'lockPositions');
 
-    -- Status Icon Theme
-    local status_theme_paths = statusHandler.get_status_theme_paths();
-    DrawComboBox('Status Icon Theme', gConfig.statusIconTheme, status_theme_paths, function(newValue)
-        gConfig.statusIconTheme = newValue;
-        SaveSettingsOnly();
-        DeferredUpdateVisuals();
-    end);
-    imgui.ShowHelp('The folder to pull status icons from. [XIUI\\assets\\status]');
+        -- Status Icon Theme
+        local status_theme_paths = statusHandler.get_status_theme_paths();
+        DrawComboBox('Status Icon Theme', gConfig.statusIconTheme, status_theme_paths, function(newValue)
+            gConfig.statusIconTheme = newValue;
+            SaveSettingsOnly();
+            DeferredUpdateVisuals();
+        end);
+        imgui.ShowHelp('The folder to pull status icons from. [XIUI\\assets\\status]');
 
-    -- Job Icon Theme
-    local job_theme_paths = statusHandler.get_job_theme_paths();
-    DrawComboBox('Job Icon Theme', gConfig.jobIconTheme, job_theme_paths, function(newValue)
-        gConfig.jobIconTheme = newValue;
-        SaveSettingsOnly();
-        DeferredUpdateVisuals();
-    end);
-    imgui.ShowHelp('The folder to pull job icons from. [XIUI\\assets\\jobs]');
+        -- Job Icon Theme
+        local job_theme_paths = statusHandler.get_job_theme_paths();
+        DrawComboBox('Job Icon Theme', gConfig.jobIconTheme, job_theme_paths, function(newValue)
+            gConfig.jobIconTheme = newValue;
+            SaveSettingsOnly();
+            DeferredUpdateVisuals();
+        end);
+        imgui.ShowHelp('The folder to pull job icons from. [XIUI\\assets\\jobs]');
 
-    DrawSlider('Tooltip Scale', 'tooltipScale', 0.1, 3.0, '%.2f');
-    imgui.ShowHelp('Scales the size of the tooltip. Note that text may appear blured if scaled too large.');
+        DrawSlider('Tooltip Scale', 'tooltipScale', 0.1, 3.0, '%.2f');
+        imgui.ShowHelp('Scales the size of the tooltip. Note that text may appear blured if scaled too large.');
 
-    DrawCheckbox('Hide During Events', 'hideDuringEvents');
-
-    imgui.Spacing();
-    imgui.Text("Fonts");
-    imgui.Separator();
-    imgui.Spacing();
-
-    -- Font Family Selector
-    DrawComboBox('Font Family', gConfig.fontFamily, available_fonts, function(newValue)
-        gConfig.fontFamily = newValue;
-        ClearDebuffFontCache();
-        UpdateSettings();
-    end);
-    imgui.ShowHelp('The font family to use for all text in XIUI. Fonts must be installed on your system.');
-
-    -- Font Weight Selector
-    DrawComboBox('Font Weight', gConfig.fontWeight, {'Normal', 'Bold'}, function(newValue)
-        gConfig.fontWeight = newValue;
-        ClearDebuffFontCache();
-        UpdateSettings();
-    end);
-    imgui.ShowHelp('The font weight (boldness) to use for all text in XIUI.');
-
-    -- Font Outline Width Slider
-    DrawSlider('Font Outline Width', 'fontOutlineWidth', 0, 5, nil, function()
-        ClearDebuffFontCache();
-        DeferredUpdateVisuals();
-    end);
-    imgui.ShowHelp('The thickness of the text outline/stroke for all text in XIUI.');
-
-    imgui.Spacing();
-    imgui.Text("Bar Settings");
-    imgui.Separator();
-    imgui.Spacing();
-
-    DrawCheckbox('Show Bookends', 'showBookends');
-    if gConfig.showBookends then
-        imgui.SameLine();
-        imgui.SetNextItemWidth(100);
-        DrawSlider('Size##bookendSize', 'bookendSize', 5, 20);
+        DrawCheckbox('Hide During Events', 'hideDuringEvents');
     end
-    imgui.ShowHelp('Global setting to show or hide bookends on all progress bars.');
 
-    DrawCheckbox('Health Bar Flash Effects', 'healthBarFlashEnabled');
-    imgui.ShowHelp('Flash effect when taking damage on health bars.');
+    if CollapsingSection('Fonts##global') then
+        -- Font Family Selector
+        DrawComboBox('Font Family', gConfig.fontFamily, available_fonts, function(newValue)
+            gConfig.fontFamily = newValue;
+            ClearDebuffFontCache();
+            UpdateSettings();
+        end);
+        imgui.ShowHelp('The font family to use for all text in XIUI. Fonts must be installed on your system.');
 
-    DrawSlider('Bar Roundness', 'noBookendRounding', 0, 10);
-    imgui.ShowHelp('Corner roundness for bars without bookends (0 = square corners, 10 = very rounded).');
+        -- Font Weight Selector
+        DrawComboBox('Font Weight', gConfig.fontWeight, {'Normal', 'Bold'}, function(newValue)
+            gConfig.fontWeight = newValue;
+            ClearDebuffFontCache();
+            UpdateSettings();
+        end);
+        imgui.ShowHelp('The font weight (boldness) to use for all text in XIUI.');
 
-    DrawSlider('Bar Border Thickness', 'barBorderThickness', 0, 5);
-    imgui.ShowHelp('Thickness of the border around all progress bars.');
+        -- Font Outline Width Slider
+        DrawSlider('Font Outline Width', 'fontOutlineWidth', 0, 5, nil, function()
+            ClearDebuffFontCache();
+            DeferredUpdateVisuals();
+        end);
+        imgui.ShowHelp('The thickness of the text outline/stroke for all text in XIUI.');
+    end
+
+    if CollapsingSection('Bar Settings##global') then
+        DrawCheckbox('Show Bookends', 'showBookends');
+        if gConfig.showBookends then
+            imgui.SameLine();
+            imgui.SetNextItemWidth(100);
+            DrawSlider('Size##bookendSize', 'bookendSize', 5, 20);
+        end
+        imgui.ShowHelp('Global setting to show or hide bookends on all progress bars.');
+
+        DrawCheckbox('Health Bar Flash Effects', 'healthBarFlashEnabled');
+        imgui.ShowHelp('Flash effect when taking damage on health bars.');
+
+        DrawSlider('Bar Roundness', 'noBookendRounding', 0, 10);
+        imgui.ShowHelp('Corner roundness for bars without bookends (0 = square corners, 10 = very rounded).');
+
+        DrawSlider('Bar Border Thickness', 'barBorderThickness', 0, 5);
+        imgui.ShowHelp('Thickness of the border around all progress bars.');
+    end
 end
 
 -- Section: Global Color Settings
 local function DrawGlobalColorSettings()
-    imgui.Text("Background Color:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawGradientPicker("Bar Background", gConfig.colorCustomization.shared.backgroundGradient, "Background color for all progress bars");
+    if CollapsingSection('Background Color##globalColor') then
+        DrawGradientPicker("Bar Background", gConfig.colorCustomization.shared.backgroundGradient, "Background color for all progress bars");
+    end
 
-    imgui.Spacing();
-    imgui.Text("Bookend Gradient:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawThreeStepGradientPicker("Bookend", gConfig.colorCustomization.shared.bookendGradient, "3-step gradient for progress bar bookends (top -> middle -> bottom)");
+    if CollapsingSection('Bookend Gradient##globalColor') then
+        DrawThreeStepGradientPicker("Bookend", gConfig.colorCustomization.shared.bookendGradient, "3-step gradient for progress bar bookends (top -> middle -> bottom)");
+    end
 
-    imgui.Spacing();
-    imgui.Text("Entity Name Colors (by type):");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawTextColorPicker("Party/Alliance Player", gConfig.colorCustomization.shared, 'playerPartyTextColor', "Color for party/alliance member names");
-    DrawTextColorPicker("Other Player", gConfig.colorCustomization.shared, 'playerOtherTextColor', "Color for other player names");
-    DrawTextColorPicker("NPC", gConfig.colorCustomization.shared, 'npcTextColor', "Color for NPC names");
-    DrawTextColorPicker("Unclaimed Mob", gConfig.colorCustomization.shared, 'mobUnclaimedTextColor', "Color for unclaimed mob names");
-    DrawTextColorPicker("Party-Claimed Mob", gConfig.colorCustomization.shared, 'mobPartyClaimedTextColor', "Color for mobs claimed by your party");
-    DrawTextColorPicker("Other-Claimed Mob", gConfig.colorCustomization.shared, 'mobOtherClaimedTextColor', "Color for mobs claimed by others");
+    if CollapsingSection('Entity Name Colors##globalColor') then
+        DrawTextColorPicker("Party/Alliance Player", gConfig.colorCustomization.shared, 'playerPartyTextColor', "Color for party/alliance member names");
+        DrawTextColorPicker("Other Player", gConfig.colorCustomization.shared, 'playerOtherTextColor', "Color for other player names");
+        DrawTextColorPicker("NPC", gConfig.colorCustomization.shared, 'npcTextColor', "Color for NPC names");
+        DrawTextColorPicker("Unclaimed Mob", gConfig.colorCustomization.shared, 'mobUnclaimedTextColor', "Color for unclaimed mob names");
+        DrawTextColorPicker("Party-Claimed Mob", gConfig.colorCustomization.shared, 'mobPartyClaimedTextColor', "Color for mobs claimed by your party");
+        DrawTextColorPicker("Other-Claimed Mob", gConfig.colorCustomization.shared, 'mobOtherClaimedTextColor', "Color for mobs claimed by others");
+    end
 
-    imgui.Spacing();
-    imgui.Text("HP Bar Effects (Damage/Healing):");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawHPEffectsRow(gConfig.colorCustomization.shared, "##shared");
+    if CollapsingSection('HP Bar Effects##globalColor') then
+        DrawHPEffectsRow(gConfig.colorCustomization.shared, "##shared");
+    end
 end
 
 -- Section: Player Bar Settings
@@ -621,209 +624,202 @@ end
 
 -- Section: Player Bar Color Settings
 local function DrawPlayerBarColorSettings()
-    imgui.Text("HP Bar Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawHPBarColorsRow(gConfig.colorCustomization.playerBar.hpGradient, "##playerBar");
-
-    imgui.Spacing();
-    imgui.Spacing();
-    imgui.Text("MP/TP Bar Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-
-    -- Column headers
-    imgui.Text("MP Bar");
-    imgui.SameLine(COLOR_COLUMN_SPACING);
-    imgui.Text("TP Bar");
-    imgui.SameLine(COLOR_COLUMN_SPACING * 2);
-    imgui.Text("TP Overlay (1000+)");
-
-    -- First column - MP Bar
-    DrawGradientPickerColumn("MP Bar##playerBar", gConfig.colorCustomization.playerBar.mpGradient, "MP bar color gradient");
-
-    imgui.SameLine(COLOR_COLUMN_SPACING);
-
-    -- Second column - TP Bar
-    DrawGradientPickerColumn("TP Bar##playerBar", gConfig.colorCustomization.playerBar.tpGradient, "TP bar color gradient");
-
-    imgui.SameLine(COLOR_COLUMN_SPACING * 2);
-
-    -- Third column - TP Overlay with flash color
-    imgui.BeginGroup();
-    DrawGradientPickerColumn("TP Overlay##playerBar", gConfig.colorCustomization.playerBar.tpOverlayGradient, "TP overlay bar color when storing TP above 1000");
-    local flashColor = ARGBToImGui(gConfig.colorCustomization.playerBar.tpFlashColor);
-    if (imgui.ColorEdit4('Flash##tpFlashPlayerBar', flashColor, bit.bor(ImGuiColorEditFlags_NoInputs, ImGuiColorEditFlags_AlphaBar))) then
-        gConfig.colorCustomization.playerBar.tpFlashColor = ImGuiToARGB(flashColor);
+    if CollapsingSection('HP Bar Colors##playerBarColor') then
+        DrawHPBarColorsRow(gConfig.colorCustomization.playerBar.hpGradient, "##playerBar");
     end
-    if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
-    imgui.ShowHelp("Color to flash when TP is 1000+");
-    imgui.EndGroup();
 
-    imgui.Spacing();
-    imgui.Spacing();
-    imgui.Text("Text Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawTextColorPicker("HP Text", gConfig.colorCustomization.playerBar, 'hpTextColor', "Color of HP number text");
-    DrawTextColorPicker("MP Text", gConfig.colorCustomization.playerBar, 'mpTextColor', "Color of MP number text");
-    DrawTextColorPicker("TP Text (Empty, <1000)", gConfig.colorCustomization.playerBar, 'tpEmptyTextColor', "Color of TP number text when below 1000");
-    DrawTextColorPicker("TP Text (Full, >=1000)", gConfig.colorCustomization.playerBar, 'tpFullTextColor', "Color of TP number text when 1000 or higher");
+    if CollapsingSection('MP/TP Bar Colors##playerBarColor') then
+        -- Column headers
+        imgui.Text("MP Bar");
+        imgui.SameLine(COLOR_COLUMN_SPACING);
+        imgui.Text("TP Bar");
+        imgui.SameLine(COLOR_COLUMN_SPACING * 2);
+        imgui.Text("TP Overlay (1000+)");
+
+        -- First column - MP Bar
+        DrawGradientPickerColumn("MP Bar##playerBar", gConfig.colorCustomization.playerBar.mpGradient, "MP bar color gradient");
+
+        imgui.SameLine(COLOR_COLUMN_SPACING);
+
+        -- Second column - TP Bar
+        DrawGradientPickerColumn("TP Bar##playerBar", gConfig.colorCustomization.playerBar.tpGradient, "TP bar color gradient");
+
+        imgui.SameLine(COLOR_COLUMN_SPACING * 2);
+
+        -- Third column - TP Overlay with flash color
+        imgui.BeginGroup();
+        DrawGradientPickerColumn("TP Overlay##playerBar", gConfig.colorCustomization.playerBar.tpOverlayGradient, "TP overlay bar color when storing TP above 1000");
+        local flashColor = ARGBToImGui(gConfig.colorCustomization.playerBar.tpFlashColor);
+        if (imgui.ColorEdit4('Flash##tpFlashPlayerBar', flashColor, bit.bor(ImGuiColorEditFlags_NoInputs, ImGuiColorEditFlags_AlphaBar))) then
+            gConfig.colorCustomization.playerBar.tpFlashColor = ImGuiToARGB(flashColor);
+        end
+        if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
+        imgui.ShowHelp("Color to flash when TP is 1000+");
+        imgui.EndGroup();
+    end
+
+    if CollapsingSection('Text Colors##playerBarColor') then
+        DrawTextColorPicker("HP Text", gConfig.colorCustomization.playerBar, 'hpTextColor', "Color of HP number text");
+        DrawTextColorPicker("MP Text", gConfig.colorCustomization.playerBar, 'mpTextColor', "Color of MP number text");
+        DrawTextColorPicker("TP Text (Empty, <1000)", gConfig.colorCustomization.playerBar, 'tpEmptyTextColor', "Color of TP number text when below 1000");
+        DrawTextColorPicker("TP Text (Full, >=1000)", gConfig.colorCustomization.playerBar, 'tpFullTextColor', "Color of TP number text when 1000 or higher");
+    end
 end
 
 -- Section: Target Bar Settings
 local function DrawTargetBarSettings()
     DrawCheckbox('Enabled', 'showTargetBar', CheckVisibility);
-    DrawCheckbox('Show Distance', 'showTargetDistance');
-    DrawCheckbox('Show Bookends', 'showTargetBarBookends');
-    DrawCheckbox('Show Lock On', 'showTargetBarLockOnBorder');
-    imgui.ShowHelp('Display the lock icon and colored border when locked on to a target.');
-    if (not HzLimitedMode) then
-        DrawCheckbox('Show Cast Bar', 'showTargetBarCastBar');
-        imgui.ShowHelp('Display the enemy cast bar under the HP bar when the target is casting.');
+
+    if CollapsingSection('Display Options##targetBar') then
+        DrawCheckbox('Show Distance', 'showTargetDistance');
+        DrawCheckbox('Show Bookends', 'showTargetBarBookends');
+        DrawCheckbox('Show Lock On', 'showTargetBarLockOnBorder');
+        imgui.ShowHelp('Display the lock icon and colored border when locked on to a target.');
+        if (not HzLimitedMode) then
+            DrawCheckbox('Show Cast Bar', 'showTargetBarCastBar');
+            imgui.ShowHelp('Display the enemy cast bar under the HP bar when the target is casting.');
+        end
+        DrawCheckbox('Hide During Events', 'targetBarHideDuringEvents');
+        DrawCheckbox('Show Enemy Id', 'showEnemyId');
+        imgui.ShowHelp('Display the internal ID of the monster next to its name.');
+
+        DrawCheckbox('Always Show Health Percent', 'alwaysShowHealthPercent');
+        imgui.ShowHelp('Always display the percent of HP remanining regardless if the target is an enemy or not.');
+
+        DrawCheckbox('Split Target Bars', 'splitTargetOfTarget');
+        imgui.ShowHelp('Separate the Target of Target bar into its own window that can be moved independently.');
     end
-    DrawCheckbox('Hide During Events', 'targetBarHideDuringEvents');
-    DrawCheckbox('Show Enemy Id', 'showEnemyId');
-    imgui.ShowHelp('Display the internal ID of the monster next to its name.');
 
-    DrawCheckbox('Always Show Health Percent', 'alwaysShowHealthPercent');
-    imgui.ShowHelp('Always display the percent of HP remanining regardless if the target is an enemy or not.');
-
-    DrawCheckbox('Split Target Bars', 'splitTargetOfTarget');
-    imgui.ShowHelp('Separate the Target of Target bar into its own window that can be moved independently.');
-
-    DrawSlider('Scale X', 'targetBarScaleX', 0.1, 3.0, '%.1f');
-    DrawSlider('Scale Y', 'targetBarScaleY', 0.1, 3.0, '%.1f');
-    DrawSlider('Name Font Size', 'targetBarNameFontSize', 8, 36);
-    DrawSlider('Distance Font Size', 'targetBarDistanceFontSize', 8, 36);
-    DrawSlider('HP% Font Size', 'targetBarPercentFontSize', 8, 36);
+    if CollapsingSection('Scale & Font##targetBar') then
+        DrawSlider('Scale X', 'targetBarScaleX', 0.1, 3.0, '%.1f');
+        DrawSlider('Scale Y', 'targetBarScaleY', 0.1, 3.0, '%.1f');
+        DrawSlider('Name Font Size', 'targetBarNameFontSize', 8, 36);
+        DrawSlider('Distance Font Size', 'targetBarDistanceFontSize', 8, 36);
+        DrawSlider('HP% Font Size', 'targetBarPercentFontSize', 8, 36);
+    end
 
     -- Cast bar settings (only show if cast bar is enabled)
     if (gConfig.showTargetBarCastBar and (not HzLimitedMode)) then
-        DrawSlider('Cast Font Size', 'targetBarCastFontSize', 8, 36);
-        imgui.ShowHelp('Font size for enemy cast text that appears under the HP bar.');
+        if CollapsingSection('Cast Bar##targetBar') then
+            DrawSlider('Cast Font Size', 'targetBarCastFontSize', 8, 36);
+            imgui.ShowHelp('Font size for enemy cast text that appears under the HP bar.');
 
-        imgui.Text('Cast Bar Position & Scale:');
-        DrawSlider('Cast Bar Offset Y', 'targetBarCastBarOffsetY', 0, 50, '%.0f');
-        imgui.ShowHelp('Vertical distance below the HP bar (in pixels).');
-        DrawSlider('Cast Bar Scale X', 'targetBarCastBarScaleX', 0.1, 3.0, '%.1f');
-        imgui.ShowHelp('Horizontal scale multiplier for cast bar width.');
-        DrawSlider('Cast Bar Scale Y', 'targetBarCastBarScaleY', 0.1, 3.0, '%.1f');
-        imgui.ShowHelp('Vertical scale multiplier for cast bar height.');
+            DrawSlider('Cast Bar Offset Y', 'targetBarCastBarOffsetY', 0, 50, '%.0f');
+            imgui.ShowHelp('Vertical distance below the HP bar (in pixels).');
+            DrawSlider('Cast Bar Scale X', 'targetBarCastBarScaleX', 0.1, 3.0, '%.1f');
+            imgui.ShowHelp('Horizontal scale multiplier for cast bar width.');
+            DrawSlider('Cast Bar Scale Y', 'targetBarCastBarScaleY', 0.1, 3.0, '%.1f');
+            imgui.ShowHelp('Vertical scale multiplier for cast bar height.');
+        end
     end
 
-    imgui.Text('Buffs/Debuffs Position:');
-    DrawSlider('Buffs Offset Y', 'targetBarBuffsOffsetY', -20, 50, '%.0f');
-    imgui.ShowHelp('Vertical offset for buffs/debuffs below the HP bar (in pixels).');
+    if CollapsingSection('Buffs/Debuffs##targetBar') then
+        DrawSlider('Buffs Offset Y', 'targetBarBuffsOffsetY', -20, 50, '%.0f');
+        imgui.ShowHelp('Vertical offset for buffs/debuffs below the HP bar (in pixels).');
 
-    DrawSlider('Icon Scale', 'targetBarIconScale', 0.1, 3.0, '%.1f');
-    DrawSlider('Icon Font Size', 'targetBarIconFontSize', 8, 36);
+        DrawSlider('Icon Scale', 'targetBarIconScale', 0.1, 3.0, '%.1f');
+        DrawSlider('Icon Font Size', 'targetBarIconFontSize', 8, 36);
+    end
 
     -- Target of Target Bar settings (only show when split is enabled)
     if (gConfig.splitTargetOfTarget) then
-        imgui.Spacing();
-        imgui.Text('Target of Target Bar');
-        imgui.Separator();
-        imgui.Spacing();
-
-        DrawSlider('ToT Scale X', 'totBarScaleX', 0.1, 3.0, '%.1f');
-        DrawSlider('ToT Scale Y', 'totBarScaleY', 0.1, 3.0, '%.1f');
-        DrawSlider('ToT Font Size', 'totBarFontSize', 8, 36);
+        if CollapsingSection('Target of Target Bar##targetBar') then
+            DrawSlider('ToT Scale X', 'totBarScaleX', 0.1, 3.0, '%.1f');
+            DrawSlider('ToT Scale Y', 'totBarScaleY', 0.1, 3.0, '%.1f');
+            DrawSlider('ToT Font Size', 'totBarFontSize', 8, 36);
+        end
     end
 end
 
 -- Section: Target Bar Color Settings
 local function DrawTargetBarColorSettings()
-    imgui.Text("Bar Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawGradientPicker("Target HP Bar", gConfig.colorCustomization.targetBar.hpGradient, "Target HP bar color");
-    if (not HzLimitedMode) then
-        DrawGradientPicker("Cast Bar", gConfig.colorCustomization.targetBar.castBarGradient, "Enemy cast bar color");
+    if CollapsingSection('Bar Colors##targetBarColor') then
+        DrawGradientPicker("Target HP Bar", gConfig.colorCustomization.targetBar.hpGradient, "Target HP bar color");
+        if (not HzLimitedMode) then
+            DrawGradientPicker("Cast Bar", gConfig.colorCustomization.targetBar.castBarGradient, "Enemy cast bar color");
+        end
     end
 
-    imgui.Spacing();
-    imgui.Text("Text Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawTextColorPicker("Distance Text", gConfig.colorCustomization.targetBar, 'distanceTextColor', "Color of distance text");
-    if (not HzLimitedMode) then
-        DrawTextColorPicker("Cast Text", gConfig.colorCustomization.targetBar, 'castTextColor', "Color of enemy cast text");
+    if CollapsingSection('Text Colors##targetBarColor') then
+        DrawTextColorPicker("Distance Text", gConfig.colorCustomization.targetBar, 'distanceTextColor', "Color of distance text");
+        if (not HzLimitedMode) then
+            DrawTextColorPicker("Cast Text", gConfig.colorCustomization.targetBar, 'castTextColor', "Color of enemy cast text");
+        end
+        imgui.ShowHelp("Target name colors are in the Global section\nHP Percent text color is set dynamically based on HP amount");
     end
-    imgui.ShowHelp("Target name colors are in the Global section\nHP Percent text color is set dynamically based on HP amount");
 
-    -- Target of Target colors
-    imgui.Spacing();
-    imgui.Text("Target of Target:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawGradientPicker("ToT HP Bar", gConfig.colorCustomization.totBar.hpGradient, "Target of Target HP bar color");
-    imgui.ShowHelp("ToT name text color is set dynamically based on target type");
+    if CollapsingSection('Target of Target##targetBarColor') then
+        DrawGradientPicker("ToT HP Bar", gConfig.colorCustomization.totBar.hpGradient, "Target of Target HP bar color");
+        imgui.ShowHelp("ToT name text color is set dynamically based on target type");
+    end
 end
 
 -- Section: Enemy List Settings
 local function DrawEnemyListSettings()
     DrawCheckbox('Enabled', 'showEnemyList', CheckVisibility);
-    DrawCheckbox('Show Distance', 'showEnemyDistance');
-    if (gConfig.showEnemyDistance) then
-        DrawSlider('Distance Font Size', 'enemyListDistanceFontSize', 8, 36);
-    end
-    DrawCheckbox('Show HP% Text', 'showEnemyHPPText');
-    if (gConfig.showEnemyHPPText) then
-        DrawSlider('HP% Font Size', 'enemyListPercentFontSize', 8, 36);
-    end
-    DrawCheckbox('Show Debuffs', 'showEnemyListDebuffs');
-    if (gConfig.showEnemyListDebuffs) then
-        DrawCheckbox('Right Align Debuffs', 'enemyListDebuffsRightAlign');
-        imgui.ShowHelp('When enabled, debuff icons align to the right edge of each enemy entry instead of the left.');
-        DrawSlider('Debuff Offset X', 'enemyListDebuffOffsetX', -100, 200);
-        imgui.ShowHelp('Horizontal offset for debuff icons. Offsets from left edge (or right edge if right-aligned).');
-        DrawSlider('Debuff Offset Y', 'enemyListDebuffOffsetY', -100, 200);
-        imgui.ShowHelp('Vertical offset for debuff icons from top of entry.');
-        DrawSlider('Status Effect Icon Size', 'enemyListIconScale', 0.1, 3.0, '%.1f');
-    end
-    DrawCheckbox('Show Enemy Targets', 'showEnemyListTargets');
-    imgui.ShowHelp('Shows who each enemy is targeting based on their last action.');
-    DrawCheckbox('Show Bookends', 'showEnemyListBookends');
-    if (not HzLimitedMode) then
-        DrawCheckbox('Click to Target', 'enableEnemyListClickTarget');
-        imgui.ShowHelp('Click on an enemy entry to target it. Requires /shorthand to be enabled.');
+
+    if CollapsingSection('Display Options##enemyList') then
+        DrawCheckbox('Show Distance', 'showEnemyDistance');
+        if (gConfig.showEnemyDistance) then
+            DrawSlider('Distance Font Size', 'enemyListDistanceFontSize', 8, 36);
+        end
+        DrawCheckbox('Show HP% Text', 'showEnemyHPPText');
+        if (gConfig.showEnemyHPPText) then
+            DrawSlider('HP% Font Size', 'enemyListPercentFontSize', 8, 36);
+        end
+        DrawCheckbox('Show Enemy Targets', 'showEnemyListTargets');
+        imgui.ShowHelp('Shows who each enemy is targeting based on their last action.');
+        DrawCheckbox('Show Bookends', 'showEnemyListBookends');
+        if (not HzLimitedMode) then
+            DrawCheckbox('Click to Target', 'enableEnemyListClickTarget');
+            imgui.ShowHelp('Click on an enemy entry to target it. Requires /shorthand to be enabled.');
+        end
     end
 
-    DrawSlider('Scale X', 'enemyListScaleX', 0.1, 3.0, '%.1f');
-    DrawSlider('Scale Y', 'enemyListScaleY', 0.1, 3.0, '%.1f');
-    DrawSlider('Name Font Size', 'enemyListNameFontSize', 8, 36);
-    DrawSlider('Rows Per Column', 'enemyListRowsPerColumn', 1, 20);
-    imgui.ShowHelp('Number of enemies to show per column before starting a new column.');
-    DrawSlider('Max Columns', 'enemyListMaxColumns', 1, 5);
-    imgui.ShowHelp('Maximum number of columns to display. Total enemies = Rows x Columns.');
-    DrawSlider('Row Spacing', 'enemyListRowSpacing', 0, 20);
-    imgui.ShowHelp('Vertical space between enemy entries.');
-    DrawSlider('Column Spacing', 'enemyListColumnSpacing', 0, 50);
-    imgui.ShowHelp('Horizontal space between columns.');
+    if CollapsingSection('Debuffs##enemyList') then
+        DrawCheckbox('Show Debuffs', 'showEnemyListDebuffs');
+        if (gConfig.showEnemyListDebuffs) then
+            DrawCheckbox('Right Align Debuffs', 'enemyListDebuffsRightAlign');
+            imgui.ShowHelp('When enabled, debuff icons align to the right edge of each enemy entry instead of the left.');
+            DrawSlider('Debuff Offset X', 'enemyListDebuffOffsetX', -100, 200);
+            imgui.ShowHelp('Horizontal offset for debuff icons. Offsets from left edge (or right edge if right-aligned).');
+            DrawSlider('Debuff Offset Y', 'enemyListDebuffOffsetY', -100, 200);
+            imgui.ShowHelp('Vertical offset for debuff icons from top of entry.');
+            DrawSlider('Status Effect Icon Size', 'enemyListIconScale', 0.1, 3.0, '%.1f');
+        end
+    end
+
+    if CollapsingSection('Scale & Layout##enemyList') then
+        DrawSlider('Scale X', 'enemyListScaleX', 0.1, 3.0, '%.1f');
+        DrawSlider('Scale Y', 'enemyListScaleY', 0.1, 3.0, '%.1f');
+        DrawSlider('Name Font Size', 'enemyListNameFontSize', 8, 36);
+        DrawSlider('Rows Per Column', 'enemyListRowsPerColumn', 1, 20);
+        imgui.ShowHelp('Number of enemies to show per column before starting a new column.');
+        DrawSlider('Max Columns', 'enemyListMaxColumns', 1, 5);
+        imgui.ShowHelp('Maximum number of columns to display. Total enemies = Rows x Columns.');
+        DrawSlider('Row Spacing', 'enemyListRowSpacing', 0, 20);
+        imgui.ShowHelp('Vertical space between enemy entries.');
+        DrawSlider('Column Spacing', 'enemyListColumnSpacing', 0, 50);
+        imgui.ShowHelp('Horizontal space between columns.');
+    end
 end
 
 -- Section: Enemy List Color Settings
 local function DrawEnemyListColorSettings()
-    imgui.Text("HP Bar Color:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawGradientPicker("Enemy HP Bar", gConfig.colorCustomization.enemyList.hpGradient, "Enemy HP bar color");
+    if CollapsingSection('HP Bar Color##enemyListColor') then
+        DrawGradientPicker("Enemy HP Bar", gConfig.colorCustomization.enemyList.hpGradient, "Enemy HP bar color");
+    end
 
-    imgui.Spacing();
-    imgui.Text("Text Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawTextColorPicker("Distance Text", gConfig.colorCustomization.enemyList, 'distanceTextColor', "Color of distance text");
-    DrawTextColorPicker("HP% Text", gConfig.colorCustomization.enemyList, 'percentTextColor', "Color of HP percentage text");
-    imgui.ShowHelp("Enemy name colors are in the Global section");
+    if CollapsingSection('Text Colors##enemyListColor') then
+        DrawTextColorPicker("Distance Text", gConfig.colorCustomization.enemyList, 'distanceTextColor', "Color of distance text");
+        DrawTextColorPicker("HP% Text", gConfig.colorCustomization.enemyList, 'percentTextColor', "Color of HP percentage text");
+        imgui.ShowHelp("Enemy name colors are in the Global section");
+    end
 
-    imgui.Spacing();
-    imgui.Text("Border Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawTextColorPicker("Target Border", gConfig.colorCustomization.enemyList, 'targetBorderColor', "Border color for currently targeted enemy");
-    DrawTextColorPicker("Subtarget Border", gConfig.colorCustomization.enemyList, 'subtargetBorderColor', "Border color for subtargeted enemy");
+    if CollapsingSection('Border Colors##enemyListColor') then
+        DrawTextColorPicker("Target Border", gConfig.colorCustomization.enemyList, 'targetBorderColor', "Border color for currently targeted enemy");
+        DrawTextColorPicker("Subtarget Border", gConfig.colorCustomization.enemyList, 'subtargetBorderColor', "Border color for subtargeted enemy");
+    end
 end
 
 -- Helper function to copy all settings from one party to another
@@ -893,103 +889,111 @@ local function DrawPartyTabContent(party, partyName)
         end
     end);
 
-    imgui.Spacing();
-    imgui.Text('Display Options');
-    imgui.Separator();
-    imgui.Spacing();
+    if CollapsingSection('Display Options##party' .. partyName) then
+        DrawPartyCheckbox(party, 'Show TP', 'showTP');
+        if party.showTP then
+            DrawPartyCheckbox(party, 'Flash TP at 100%', 'flashTP');
+            if party.layout == 1 then
+                imgui.ShowHelp('In compact mode, the TP text will flash when at 1000+ TP.');
+            end
+        end
+        DrawPartyCheckbox(party, 'Show Distance', 'showDistance');
+        if party.showDistance then
+            imgui.SameLine();
+            imgui.PushItemWidth(100);
+            DrawPartySlider(party, 'Highlight', 'distanceHighlight', 0.0, 50.0, '%.1f');
+            imgui.PopItemWidth();
+        end
+        DrawPartyCheckbox(party, 'Show Cast Bars', 'showCastBars');
+        if party.showCastBars then
+            imgui.SameLine();
+            imgui.PushItemWidth(100);
+            DrawPartySlider(party, 'Scale Y', 'castBarScaleY', 0.1, 3.0, '%.1f');
+            imgui.PopItemWidth();
+        end
+        DrawPartyCheckbox(party, 'Show Bookends', 'showBookends');
+        DrawPartyCheckbox(party, 'Show Title', 'showTitle');
+        DrawPartyCheckbox(party, 'Align Bottom', 'alignBottom');
+        DrawPartyCheckbox(party, 'Expand Height', 'expandHeight');
+    end
 
-    DrawPartyCheckbox(party, 'Show TP', 'showTP');
-    if party.showTP then
-        DrawPartyCheckbox(party, 'Flash TP at 100%', 'flashTP');
-        if party.layout == 1 then
-            imgui.ShowHelp('In compact mode, the TP text will flash when at 1000+ TP.');
+    if CollapsingSection('Job Display##party' .. partyName) then
+        DrawPartyCheckbox(party, 'Show Job Icons', 'showJobIcon');
+        if party.showJobIcon then
+            imgui.SameLine();
+            imgui.PushItemWidth(100);
+            DrawPartySlider(party, 'Scale', 'jobIconScale', 0.1, 3.0, '%.1f');
+            imgui.PopItemWidth();
+        end
+        DrawPartyCheckbox(party, 'Show Job Text', 'showJob');
+        imgui.ShowHelp('Display job and subjob text (Horizontal layout only).');
+        if party.showJob then
+            imgui.Indent();
+            DrawPartyCheckbox(party, 'Show Main Job', 'showMainJob');
+            imgui.ShowHelp('Display main job abbreviation (e.g., "BLM").');
+            if party.showMainJob then
+                imgui.SameLine();
+                DrawPartyCheckbox(party, 'Main Job Level', 'showMainJobLevel');
+                imgui.ShowHelp('Display main job level (e.g., "BLM75").');
+            end
+            DrawPartyCheckbox(party, 'Show Sub Job', 'showSubJob');
+            imgui.ShowHelp('Display sub job abbreviation (e.g., "/RDM").');
+            if party.showSubJob then
+                imgui.SameLine();
+                DrawPartyCheckbox(party, 'Sub Job Level', 'showSubJobLevel');
+                imgui.ShowHelp('Display sub job level (e.g., "/RDM37").');
+            end
+            imgui.Unindent();
         end
     end
-    DrawPartyCheckbox(party, 'Show Distance', 'showDistance');
-    if party.showDistance then
-        imgui.SameLine();
-        imgui.PushItemWidth(100);
-        DrawPartySlider(party, 'Highlight', 'distanceHighlight', 0.0, 50.0, '%.1f');
-        imgui.PopItemWidth();
-    end
-    DrawPartyCheckbox(party, 'Show Job Icons', 'showJobIcon');
-    if party.showJobIcon then
-        imgui.SameLine();
-        imgui.PushItemWidth(100);
-        DrawPartySlider(party, 'Scale', 'jobIconScale', 0.1, 3.0, '%.1f');
-        imgui.PopItemWidth();
-    end
-    DrawPartyCheckbox(party, 'Show Job/Subjob', 'showJob');
-    imgui.ShowHelp('Display job and subjob info (Horizontal layout only).');
-    DrawPartyCheckbox(party, 'Show Cast Bars', 'showCastBars');
-    if party.showCastBars then
-        imgui.SameLine();
-        imgui.PushItemWidth(100);
-        DrawPartySlider(party, 'Scale Y', 'castBarScaleY', 0.1, 3.0, '%.1f');
-        imgui.PopItemWidth();
-    end
-    DrawPartyCheckbox(party, 'Show Bookends', 'showBookends');
-    DrawPartyCheckbox(party, 'Show Title', 'showTitle');
-    DrawPartyCheckbox(party, 'Align Bottom', 'alignBottom');
-    DrawPartyCheckbox(party, 'Expand Height', 'expandHeight');
 
-    imgui.Spacing();
-    imgui.Text('Appearance');
-    imgui.Separator();
-    imgui.Spacing();
-
-    DrawPartyComboBox(party, 'Background', 'backgroundName', bg_theme_paths, DeferredUpdateVisuals);
-    DrawPartySlider(party, 'Background Scale', 'bgScale', 0.1, 3.0, '%.2f', UpdatePartyListVisuals);
-    DrawPartyComboBox(party, 'Cursor', 'cursor', cursor_paths, DeferredUpdateVisuals);
-    DrawPartyComboBoxIndexed(party, 'Status Theme', 'statusTheme', statusThemeItems);
-    DrawPartyComboBoxIndexed(party, 'Status Side', 'statusSide', statusSideItems);
-    DrawPartySlider(party, 'Status Icon Scale', 'buffScale', 0.1, 3.0, '%.1f');
-
-    imgui.Spacing();
-    imgui.Text('Scale & Spacing');
-    imgui.Separator();
-    imgui.Spacing();
-
-    DrawPartySlider(party, 'Min Rows', 'minRows', 1, 6);
-    DrawPartySlider(party, 'Entry Spacing', 'entrySpacing', -4, 16);
-    DrawPartySlider(party, 'Selection Box Scale Y', 'selectionBoxScaleY', 0.5, 2.0, '%.2f');
-
-    -- General scale controls (applies to all elements)
-    DrawPartySlider(party, 'Scale X', 'scaleX', 0.1, 3.0, '%.2f');
-    DrawPartySlider(party, 'Scale Y', 'scaleY', 0.1, 3.0, '%.2f');
-
-    -- Individual bar scale controls
-    imgui.Spacing();
-    imgui.Text('Bar Scales');
-    imgui.Separator();
-    imgui.Spacing();
-    DrawPartySlider(party, 'HP Bar Scale X', 'hpBarScaleX', 0.1, 3.0, '%.2f');
-    DrawPartySlider(party, 'HP Bar Scale Y', 'hpBarScaleY', 0.1, 3.0, '%.2f');
-    DrawPartySlider(party, 'MP Bar Scale X', 'mpBarScaleX', 0.1, 3.0, '%.2f');
-    DrawPartySlider(party, 'MP Bar Scale Y', 'mpBarScaleY', 0.1, 3.0, '%.2f');
-    if party.showTP then
-        DrawPartySlider(party, 'TP Bar Scale X', 'tpBarScaleX', 0.1, 3.0, '%.2f');
-        DrawPartySlider(party, 'TP Bar Scale Y', 'tpBarScaleY', 0.1, 3.0, '%.2f');
+    if CollapsingSection('Appearance##party' .. partyName) then
+        DrawPartyComboBox(party, 'Background', 'backgroundName', bg_theme_paths, DeferredUpdateVisuals);
+        DrawPartySlider(party, 'Background Scale', 'bgScale', 0.1, 3.0, '%.2f', UpdatePartyListVisuals);
+        DrawPartyComboBox(party, 'Cursor', 'cursor', cursor_paths, DeferredUpdateVisuals);
+        DrawPartyComboBoxIndexed(party, 'Status Theme', 'statusTheme', statusThemeItems);
+        DrawPartyComboBoxIndexed(party, 'Status Side', 'statusSide', statusSideItems);
+        DrawPartySlider(party, 'Status Icon Scale', 'buffScale', 0.1, 3.0, '%.1f');
     end
 
-    imgui.Spacing();
-    imgui.Text('Font Sizes');
-    imgui.Separator();
-    imgui.Spacing();
+    if CollapsingSection('Scale & Spacing##party' .. partyName) then
+        DrawPartySlider(party, 'Min Rows', 'minRows', 1, 6);
+        DrawPartySlider(party, 'Entry Spacing', 'entrySpacing', -4, 16);
+        DrawPartySlider(party, 'Selection Box Scale Y', 'selectionBoxScaleY', 0.5, 2.0, '%.2f');
 
-    DrawPartyCheckbox(party, 'Split Font Sizes', 'splitFontSizes');
-    imgui.ShowHelp('When enabled, allows individual font size control for each text element.');
+        -- General scale controls (applies to all elements)
+        DrawPartySlider(party, 'Scale X', 'scaleX', 0.1, 3.0, '%.2f');
+        DrawPartySlider(party, 'Scale Y', 'scaleY', 0.1, 3.0, '%.2f');
+    end
 
-    if party.splitFontSizes then
-        DrawPartySlider(party, 'Name Font Size', 'nameFontSize', 8, 36);
-        DrawPartySlider(party, 'HP Font Size', 'hpFontSize', 8, 36);
-        DrawPartySlider(party, 'MP Font Size', 'mpFontSize', 8, 36);
-        DrawPartySlider(party, 'TP Font Size', 'tpFontSize', 8, 36);
-        DrawPartySlider(party, 'Distance Font Size', 'distanceFontSize', 8, 36);
-        DrawPartySlider(party, 'Job Font Size', 'jobFontSize', 8, 36);
-        DrawPartySlider(party, 'Zone Font Size', 'zoneFontSize', 8, 36);
-    else
-        DrawPartySlider(party, 'Font Size', 'fontSize', 8, 36);
+    if CollapsingSection('Bar Scales##party' .. partyName) then
+        DrawPartySlider(party, 'HP Bar Scale X', 'hpBarScaleX', 0.1, 3.0, '%.2f');
+        DrawPartySlider(party, 'HP Bar Scale Y', 'hpBarScaleY', 0.1, 3.0, '%.2f');
+        DrawPartySlider(party, 'MP Bar Scale X', 'mpBarScaleX', 0.1, 3.0, '%.2f');
+        DrawPartySlider(party, 'MP Bar Scale Y', 'mpBarScaleY', 0.1, 3.0, '%.2f');
+        if party.showTP then
+            DrawPartySlider(party, 'TP Bar Scale X', 'tpBarScaleX', 0.1, 3.0, '%.2f');
+            DrawPartySlider(party, 'TP Bar Scale Y', 'tpBarScaleY', 0.1, 3.0, '%.2f');
+        end
+    end
+
+    if CollapsingSection('Font Sizes##party' .. partyName) then
+        DrawPartyCheckbox(party, 'Split Font Sizes', 'splitFontSizes');
+        imgui.ShowHelp('When enabled, allows individual font size control for each text element.');
+
+        if party.splitFontSizes then
+            DrawPartySlider(party, 'Name Font Size', 'nameFontSize', 8, 36);
+            DrawPartySlider(party, 'HP Font Size', 'hpFontSize', 8, 36);
+            DrawPartySlider(party, 'MP Font Size', 'mpFontSize', 8, 36);
+            DrawPartySlider(party, 'TP Font Size', 'tpFontSize', 8, 36);
+            DrawPartySlider(party, 'Distance Font Size', 'distanceFontSize', 8, 36);
+            if party.showJob then
+                DrawPartySlider(party, 'Job Font Size', 'jobFontSize', 8, 36);
+            end
+            DrawPartySlider(party, 'Zone Font Size', 'zoneFontSize', 8, 36);
+        else
+            DrawPartySlider(party, 'Font Size', 'fontSize', 8, 36);
+        end
     end
 end
 
@@ -1135,141 +1139,116 @@ end
 local function DrawPartyColorTabContent(colors, partyName)
     -- Copy colors section (only for Party B and C)
     if partyName == 'B' or partyName == 'C' then
-        imgui.Text('Copy Colors');
-        imgui.Separator();
-        imgui.Spacing();
-
-        -- Build list of other parties to copy from
-        local copyOptions = {};
-        if partyName == 'B' then
-            copyOptions = { 'A', 'C' };
-        else -- partyName == 'C'
-            copyOptions = { 'A', 'B' };
-        end
-
-        imgui.Text('Copy colors from another party:');
-        for _, sourceName in ipairs(copyOptions) do
-            imgui.SameLine();
-            if imgui.Button('Party ' .. sourceName .. '##copy_colors_from_' .. sourceName .. '_to_' .. partyName) then
-                CopyPartyColorSettings(sourceName, partyName);
+        if CollapsingSection('Copy Colors##partyColor' .. partyName) then
+            -- Build list of other parties to copy from
+            local copyOptions = {};
+            if partyName == 'B' then
+                copyOptions = { 'A', 'C' };
+            else -- partyName == 'C'
+                copyOptions = { 'A', 'B' };
             end
-        end
-        imgui.ShowHelp('Copies all color settings from the selected party to this one.');
 
-        imgui.Spacing();
+            imgui.Text('Copy colors from another party:');
+            for _, sourceName in ipairs(copyOptions) do
+                imgui.SameLine();
+                if imgui.Button('Party ' .. sourceName .. '##copy_colors_from_' .. sourceName .. '_to_' .. partyName) then
+                    CopyPartyColorSettings(sourceName, partyName);
+                end
+            end
+            imgui.ShowHelp('Copies all color settings from the selected party to this one.');
+        end
     end
 
-    imgui.Text("HP Bar Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawHPBarColorsRow(colors.hpGradient, "##party" .. partyName);
+    if CollapsingSection('HP Bar Colors##partyColor' .. partyName) then
+        DrawHPBarColorsRow(colors.hpGradient, "##party" .. partyName);
+    end
 
-    imgui.Spacing();
-    imgui.Spacing();
     if partyName == 'A' then
-        imgui.Text("MP/TP Bar Colors:");
-        imgui.Separator();
-        imgui.Spacing();
-        DrawTwoColumnRow("MP Bar", colors.mpGradient, "MP bar color",
-                         "TP Bar", colors.tpGradient, "TP bar color", "##party" .. partyName);
+        if CollapsingSection('MP/TP Bar Colors##partyColor' .. partyName) then
+            DrawTwoColumnRow("MP Bar", colors.mpGradient, "MP bar color",
+                             "TP Bar", colors.tpGradient, "TP bar color", "##party" .. partyName);
+        end
     else
-        imgui.Text("MP Bar Colors:");
-        imgui.Separator();
-        imgui.Spacing();
-        DrawGradientPickerColumn("MP Bar##party" .. partyName, colors.mpGradient, "MP bar color");
+        if CollapsingSection('MP Bar Colors##partyColor' .. partyName) then
+            DrawGradientPickerColumn("MP Bar##party" .. partyName, colors.mpGradient, "MP bar color");
+        end
     end
 
     -- Cast bar only for Party A
     if partyName == 'A' then
-        imgui.Spacing();
-        imgui.Text("Cast Bar Colors:");
-        imgui.Separator();
-        imgui.Spacing();
-        DrawGradientPicker("Cast Bar##" .. partyName, colors.castBarGradient, "Cast bar color (appears when casting)");
-    end
-
-    imgui.Spacing();
-    imgui.Text("Bar Background Override:");
-    imgui.Separator();
-    imgui.Spacing();
-    local overrideActive = {colors.barBackgroundOverride.active};
-    if (imgui.Checkbox("Enable Background Override##" .. partyName, overrideActive)) then
-        colors.barBackgroundOverride.active = overrideActive[1];
-        UpdateSettings();
-    end
-    imgui.ShowHelp("When enabled, uses the colors below instead of the global bar background color");
-    if colors.barBackgroundOverride.active then
-        DrawGradientPicker("Background Color##bgOverride" .. partyName, colors.barBackgroundOverride, "Override color for bar backgrounds");
-    end
-
-    imgui.Spacing();
-    imgui.Text("Bar Border Override:");
-    imgui.Separator();
-    imgui.Spacing();
-    local borderOverrideActive = {colors.barBorderOverride.active};
-    if (imgui.Checkbox("Enable Border Override##" .. partyName, borderOverrideActive)) then
-        colors.barBorderOverride.active = borderOverrideActive[1];
-        UpdateSettings();
-    end
-    imgui.ShowHelp("When enabled, uses the color below instead of the global bar background color for borders");
-    if colors.barBorderOverride.active then
-        local borderColor = HexToImGui(colors.barBorderOverride.color);
-        if (imgui.ColorEdit4('Border Color##barBorderOverride' .. partyName, borderColor, bit.bor(ImGuiColorEditFlags_NoInputs, ImGuiColorEditFlags_AlphaBar))) then
-            colors.barBorderOverride.color = ImGuiToHex(borderColor);
+        if CollapsingSection('Cast Bar Colors##partyColor' .. partyName) then
+            DrawGradientPicker("Cast Bar##" .. partyName, colors.castBarGradient, "Cast bar color (appears when casting)");
         end
-        if (imgui.IsItemDeactivatedAfterEdit()) then
-            SaveSettingsOnly();
+    end
+
+    if CollapsingSection('Bar Overrides##partyColor' .. partyName) then
+        imgui.Text("Background Override:");
+        local overrideActive = {colors.barBackgroundOverride.active};
+        if (imgui.Checkbox("Enable Background Override##" .. partyName, overrideActive)) then
+            colors.barBackgroundOverride.active = overrideActive[1];
+            UpdateSettings();
         end
-        imgui.ShowHelp("Override color for bar borders");
+        imgui.ShowHelp("When enabled, uses the colors below instead of the global bar background color");
+        if colors.barBackgroundOverride.active then
+            DrawGradientPicker("Background Color##bgOverride" .. partyName, colors.barBackgroundOverride, "Override color for bar backgrounds");
+        end
+
+        imgui.Spacing();
+        imgui.Text("Border Override:");
+        local borderOverrideActive = {colors.barBorderOverride.active};
+        if (imgui.Checkbox("Enable Border Override##" .. partyName, borderOverrideActive)) then
+            colors.barBorderOverride.active = borderOverrideActive[1];
+            UpdateSettings();
+        end
+        imgui.ShowHelp("When enabled, uses the color below instead of the global bar background color for borders");
+        if colors.barBorderOverride.active then
+            local borderColor = HexToImGui(colors.barBorderOverride.color);
+            if (imgui.ColorEdit4('Border Color##barBorderOverride' .. partyName, borderColor, bit.bor(ImGuiColorEditFlags_NoInputs, ImGuiColorEditFlags_AlphaBar))) then
+                colors.barBorderOverride.color = ImGuiToHex(borderColor);
+            end
+            if (imgui.IsItemDeactivatedAfterEdit()) then
+                SaveSettingsOnly();
+            end
+            imgui.ShowHelp("Override color for bar borders");
+        end
     end
 
-    imgui.Spacing();
-    imgui.Text("Text Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawTextColorPicker("Name Text##" .. partyName, colors, 'nameTextColor', "Color of member name");
-    DrawTextColorPicker("HP Text##" .. partyName, colors, 'hpTextColor', "Color of HP numbers");
-    DrawTextColorPicker("MP Text##" .. partyName, colors, 'mpTextColor', "Color of MP numbers");
-    DrawTextColorPicker("TP Text (Empty, <1000)##" .. partyName, colors, 'tpEmptyTextColor', "Color of TP numbers when below 1000");
-    DrawTextColorPicker("TP Text (Full, >=1000)##" .. partyName, colors, 'tpFullTextColor', "Color of TP numbers when 1000 or higher");
-    DrawTextColorPicker("TP Flash Color##" .. partyName, colors, 'tpFlashColor', "Color to flash when TP is 1000+");
-
-    imgui.Spacing();
-    imgui.Text("Background Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawTextColorPicker("Background Color##" .. partyName, colors, 'bgColor', "Color of party list background");
-    DrawTextColorPicker("Border Color##" .. partyName, colors, 'borderColor', "Color of party list borders");
-
-    imgui.Spacing();
-    imgui.Text("Selection Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawGradientPicker("Selection Box##" .. partyName, colors.selectionGradient, "Color gradient for the selection box around targeted members");
-    DrawTextColorPicker("Selection Border##" .. partyName, colors, 'selectionBorderColor', "Color of the selection box border");
-
-    imgui.Spacing();
-    imgui.Text("Subtarget Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    -- Initialize subtarget colors if not present
-    if not colors.subtargetGradient then
-        colors.subtargetGradient = T{ enabled = true, start = '#d9a54d', stop = '#edcf78' };
+    if CollapsingSection('Text Colors##partyColor' .. partyName) then
+        DrawTextColorPicker("Name Text##" .. partyName, colors, 'nameTextColor', "Color of member name");
+        DrawTextColorPicker("HP Text##" .. partyName, colors, 'hpTextColor', "Color of HP numbers");
+        DrawTextColorPicker("MP Text##" .. partyName, colors, 'mpTextColor', "Color of MP numbers");
+        DrawTextColorPicker("TP Text (Empty, <1000)##" .. partyName, colors, 'tpEmptyTextColor', "Color of TP numbers when below 1000");
+        DrawTextColorPicker("TP Text (Full, >=1000)##" .. partyName, colors, 'tpFullTextColor', "Color of TP numbers when 1000 or higher");
+        DrawTextColorPicker("TP Flash Color##" .. partyName, colors, 'tpFlashColor', "Color to flash when TP is 1000+");
     end
-    if not colors.subtargetBorderColor then
-        colors.subtargetBorderColor = 0xFFfdd017;
-    end
-    DrawGradientPicker("Subtarget Box##" .. partyName, colors.subtargetGradient, "Color gradient for the selection box around subtargeted members");
-    DrawTextColorPicker("Subtarget Border##" .. partyName, colors, 'subtargetBorderColor', "Color of the subtarget selection box border");
 
-    -- Cursor tint colors (stored in party config, not color customization)
-    imgui.Spacing();
-    imgui.Text("Cursor Tint Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    local partyConfig = gConfig['party' .. partyName];
-    DrawPartyColorPicker(partyConfig, 'Target Cursor Tint##' .. partyName, 'targetArrowTint', 'Color tint applied to the cursor when targeting a party member', 0xFFFFFFFF);
-    DrawPartyColorPicker(partyConfig, 'Subtarget Cursor Tint##' .. partyName, 'subtargetArrowTint', 'Color tint applied to the cursor when subtargeting a party member', 0xFFfdd017);
+    if CollapsingSection('Background Colors##partyColor' .. partyName) then
+        DrawTextColorPicker("Background Color##" .. partyName, colors, 'bgColor', "Color of party list background");
+        DrawTextColorPicker("Border Color##" .. partyName, colors, 'borderColor', "Color of party list borders");
+    end
+
+    if CollapsingSection('Selection Colors##partyColor' .. partyName) then
+        DrawGradientPicker("Selection Box##" .. partyName, colors.selectionGradient, "Color gradient for the selection box around targeted members");
+        DrawTextColorPicker("Selection Border##" .. partyName, colors, 'selectionBorderColor', "Color of the selection box border");
+    end
+
+    if CollapsingSection('Subtarget Colors##partyColor' .. partyName) then
+        -- Initialize subtarget colors if not present
+        if not colors.subtargetGradient then
+            colors.subtargetGradient = T{ enabled = true, start = '#d9a54d', stop = '#edcf78' };
+        end
+        if not colors.subtargetBorderColor then
+            colors.subtargetBorderColor = 0xFFfdd017;
+        end
+        DrawGradientPicker("Subtarget Box##" .. partyName, colors.subtargetGradient, "Color gradient for the selection box around subtargeted members");
+        DrawTextColorPicker("Subtarget Border##" .. partyName, colors, 'subtargetBorderColor', "Color of the subtarget selection box border");
+    end
+
+    if CollapsingSection('Cursor Tint Colors##partyColor' .. partyName) then
+        local partyConfig = gConfig['party' .. partyName];
+        DrawPartyColorPicker(partyConfig, 'Target Cursor Tint##' .. partyName, 'targetArrowTint', 'Color tint applied to the cursor when targeting a party member', 0xFFFFFFFF);
+        DrawPartyColorPicker(partyConfig, 'Subtarget Cursor Tint##' .. partyName, 'subtargetArrowTint', 'Color tint applied to the cursor when subtargeting a party member', 0xFFfdd017);
+    end
 end
 
 -- Section: Party List Color Settings
@@ -1397,18 +1376,15 @@ end
 
 -- Section: Exp Bar Color Settings
 local function DrawExpBarColorSettings()
-    imgui.Text("Bar Color:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawGradientPicker("Exp/Merit Bar", gConfig.colorCustomization.expBar.barGradient, "Color for EXP/Merit/Capacity bar");
+    if CollapsingSection('Bar Color##expBarColor') then
+        DrawGradientPicker("Exp/Merit Bar", gConfig.colorCustomization.expBar.barGradient, "Color for EXP/Merit/Capacity bar");
+    end
 
-    imgui.Spacing();
-    imgui.Text("Text Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawTextColorPicker("Job Text", gConfig.colorCustomization.expBar, 'jobTextColor', "Color of job level text");
-    DrawTextColorPicker("Exp Text", gConfig.colorCustomization.expBar, 'expTextColor', "Color of experience numbers");
-    DrawTextColorPicker("Percent Text", gConfig.colorCustomization.expBar, 'percentTextColor', "Color of percentage text");
+    if CollapsingSection('Text Colors##expBarColor') then
+        DrawTextColorPicker("Job Text", gConfig.colorCustomization.expBar, 'jobTextColor', "Color of job level text");
+        DrawTextColorPicker("Exp Text", gConfig.colorCustomization.expBar, 'expTextColor', "Color of experience numbers");
+        DrawTextColorPicker("Percent Text", gConfig.colorCustomization.expBar, 'percentTextColor', "Color of percentage text");
+    end
 end
 
 -- Section: Gil Tracker Settings
@@ -1456,94 +1432,87 @@ end
 
 -- Section: Inventory Tracker Color Settings
 local function DrawInventoryTrackerColorSettings()
-    imgui.Text("Text Color:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawTextColorPicker("Count Text", gConfig.colorCustomization.inventoryTracker, 'textColor', "Color of inventory count text");
-
-    imgui.Spacing();
-    imgui.Text("Dot Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-
-    local emptySlot = {
-        gConfig.colorCustomization.inventoryTracker.emptySlotColor.r,
-        gConfig.colorCustomization.inventoryTracker.emptySlotColor.g,
-        gConfig.colorCustomization.inventoryTracker.emptySlotColor.b,
-        gConfig.colorCustomization.inventoryTracker.emptySlotColor.a
-    };
-    if (imgui.ColorEdit4('Empty Slot', emptySlot, bit.bor(ImGuiColorEditFlags_AlphaBar, ImGuiColorEditFlags_NoInputs))) then
-        gConfig.colorCustomization.inventoryTracker.emptySlotColor.r = emptySlot[1];
-        gConfig.colorCustomization.inventoryTracker.emptySlotColor.g = emptySlot[2];
-        gConfig.colorCustomization.inventoryTracker.emptySlotColor.b = emptySlot[3];
-        gConfig.colorCustomization.inventoryTracker.emptySlotColor.a = emptySlot[4];
+    if CollapsingSection('Text Color##inventoryColor') then
+        DrawTextColorPicker("Count Text", gConfig.colorCustomization.inventoryTracker, 'textColor', "Color of inventory count text");
     end
-    if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
-    imgui.ShowHelp('Color for empty inventory slots');
 
-    local usedSlot = {
-        gConfig.colorCustomization.inventoryTracker.usedSlotColor.r,
-        gConfig.colorCustomization.inventoryTracker.usedSlotColor.g,
-        gConfig.colorCustomization.inventoryTracker.usedSlotColor.b,
-        gConfig.colorCustomization.inventoryTracker.usedSlotColor.a
-    };
-    if (imgui.ColorEdit4('Used Slot (Normal)', usedSlot, bit.bor(ImGuiColorEditFlags_AlphaBar, ImGuiColorEditFlags_NoInputs))) then
-        gConfig.colorCustomization.inventoryTracker.usedSlotColor.r = usedSlot[1];
-        gConfig.colorCustomization.inventoryTracker.usedSlotColor.g = usedSlot[2];
-        gConfig.colorCustomization.inventoryTracker.usedSlotColor.b = usedSlot[3];
-        gConfig.colorCustomization.inventoryTracker.usedSlotColor.a = usedSlot[4];
+    if CollapsingSection('Dot Colors##inventoryColor') then
+        local emptySlot = {
+            gConfig.colorCustomization.inventoryTracker.emptySlotColor.r,
+            gConfig.colorCustomization.inventoryTracker.emptySlotColor.g,
+            gConfig.colorCustomization.inventoryTracker.emptySlotColor.b,
+            gConfig.colorCustomization.inventoryTracker.emptySlotColor.a
+        };
+        if (imgui.ColorEdit4('Empty Slot', emptySlot, bit.bor(ImGuiColorEditFlags_AlphaBar, ImGuiColorEditFlags_NoInputs))) then
+            gConfig.colorCustomization.inventoryTracker.emptySlotColor.r = emptySlot[1];
+            gConfig.colorCustomization.inventoryTracker.emptySlotColor.g = emptySlot[2];
+            gConfig.colorCustomization.inventoryTracker.emptySlotColor.b = emptySlot[3];
+            gConfig.colorCustomization.inventoryTracker.emptySlotColor.a = emptySlot[4];
+        end
+        if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
+        imgui.ShowHelp('Color for empty inventory slots');
+
+        local usedSlot = {
+            gConfig.colorCustomization.inventoryTracker.usedSlotColor.r,
+            gConfig.colorCustomization.inventoryTracker.usedSlotColor.g,
+            gConfig.colorCustomization.inventoryTracker.usedSlotColor.b,
+            gConfig.colorCustomization.inventoryTracker.usedSlotColor.a
+        };
+        if (imgui.ColorEdit4('Used Slot (Normal)', usedSlot, bit.bor(ImGuiColorEditFlags_AlphaBar, ImGuiColorEditFlags_NoInputs))) then
+            gConfig.colorCustomization.inventoryTracker.usedSlotColor.r = usedSlot[1];
+            gConfig.colorCustomization.inventoryTracker.usedSlotColor.g = usedSlot[2];
+            gConfig.colorCustomization.inventoryTracker.usedSlotColor.b = usedSlot[3];
+            gConfig.colorCustomization.inventoryTracker.usedSlotColor.a = usedSlot[4];
+        end
+        if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
+        imgui.ShowHelp('Color for used inventory slots (normal)');
+
+        local usedSlotThreshold1 = {
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.r,
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.g,
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.b,
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.a
+        };
+        if (imgui.ColorEdit4('Used Slot (Warning)', usedSlotThreshold1, bit.bor(ImGuiColorEditFlags_AlphaBar, ImGuiColorEditFlags_NoInputs))) then
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.r = usedSlotThreshold1[1];
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.g = usedSlotThreshold1[2];
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.b = usedSlotThreshold1[3];
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.a = usedSlotThreshold1[4];
+        end
+        if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
+        imgui.ShowHelp('Color for used inventory slots when at warning threshold');
+
+        local usedSlotThreshold2 = {
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.r,
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.g,
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.b,
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.a
+        };
+        if (imgui.ColorEdit4('Used Slot (Critical)', usedSlotThreshold2, bit.bor(ImGuiColorEditFlags_AlphaBar, ImGuiColorEditFlags_NoInputs))) then
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.r = usedSlotThreshold2[1];
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.g = usedSlotThreshold2[2];
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.b = usedSlotThreshold2[3];
+            gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.a = usedSlotThreshold2[4];
+        end
+        if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
+        imgui.ShowHelp('Color for used inventory slots when at critical threshold');
     end
-    if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
-    imgui.ShowHelp('Color for used inventory slots (normal)');
 
-    local usedSlotThreshold1 = {
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.r,
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.g,
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.b,
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.a
-    };
-    if (imgui.ColorEdit4('Used Slot (Warning)', usedSlotThreshold1, bit.bor(ImGuiColorEditFlags_AlphaBar, ImGuiColorEditFlags_NoInputs))) then
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.r = usedSlotThreshold1[1];
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.g = usedSlotThreshold1[2];
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.b = usedSlotThreshold1[3];
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold1.a = usedSlotThreshold1[4];
+    if CollapsingSection('Color Thresholds##inventoryColor') then
+        local threshold1 = { gConfig.inventoryTrackerColorThreshold1 };
+        if (imgui.SliderInt('Warning Threshold', threshold1, 0, 80)) then
+            gConfig.inventoryTrackerColorThreshold1 = threshold1[1];
+        end
+        if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
+        imgui.ShowHelp('Inventory count at which dots turn to warning color');
+
+        local threshold2 = { gConfig.inventoryTrackerColorThreshold2 };
+        if (imgui.SliderInt('Critical Threshold', threshold2, 0, 80)) then
+            gConfig.inventoryTrackerColorThreshold2 = threshold2[1];
+        end
+        if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
+        imgui.ShowHelp('Inventory count at which dots turn to critical color');
     end
-    if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
-    imgui.ShowHelp('Color for used inventory slots when at warning threshold');
-
-    local usedSlotThreshold2 = {
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.r,
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.g,
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.b,
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.a
-    };
-    if (imgui.ColorEdit4('Used Slot (Critical)', usedSlotThreshold2, bit.bor(ImGuiColorEditFlags_AlphaBar, ImGuiColorEditFlags_NoInputs))) then
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.r = usedSlotThreshold2[1];
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.g = usedSlotThreshold2[2];
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.b = usedSlotThreshold2[3];
-        gConfig.colorCustomization.inventoryTracker.usedSlotColorThreshold2.a = usedSlotThreshold2[4];
-    end
-    if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
-    imgui.ShowHelp('Color for used inventory slots when at critical threshold');
-
-    imgui.Spacing();
-    imgui.Text("Color Thresholds:");
-    imgui.Separator();
-    imgui.Spacing();
-
-    local threshold1 = { gConfig.inventoryTrackerColorThreshold1 };
-    if (imgui.SliderInt('Warning Threshold', threshold1, 0, 80)) then
-        gConfig.inventoryTrackerColorThreshold1 = threshold1[1];
-    end
-    if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
-    imgui.ShowHelp('Inventory count at which dots turn to warning color');
-
-    local threshold2 = { gConfig.inventoryTrackerColorThreshold2 };
-    if (imgui.SliderInt('Critical Threshold', threshold2, 0, 80)) then
-        gConfig.inventoryTrackerColorThreshold2 = threshold2[1];
-    end
-    if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
-    imgui.ShowHelp('Inventory count at which dots turn to critical color');
 end
 
 -- Helper for Cast Bar: Draw a single fast cast slider
@@ -1560,55 +1529,60 @@ end
 -- Section: Cast Bar Settings
 local function DrawCastBarSettings()
     DrawCheckbox('Enabled', 'showCastBar', CheckVisibility);
-    DrawCheckbox('Show Bookends', 'showCastBarBookends');
 
-    DrawSlider('Scale X', 'castBarScaleX', 0.1, 3.0, '%.1f');
-    DrawSlider('Scale Y', 'castBarScaleY', 0.1, 3.0, '%.1f');
-    DrawSlider('Font Size', 'castBarFontSize', 8, 36);
+    if CollapsingSection('Display Options##castBar') then
+        DrawCheckbox('Show Bookends', 'showCastBarBookends');
 
-    DrawCheckbox('Enable Fast Cast / True Display', 'castBarFastCastEnabled');
+        DrawSlider('Scale X', 'castBarScaleX', 0.1, 3.0, '%.1f');
+        DrawSlider('Scale Y', 'castBarScaleY', 0.1, 3.0, '%.1f');
+        DrawSlider('Font Size', 'castBarFontSize', 8, 36);
+    end
 
-    if gConfig.castBarFastCastEnabled then
-        -- Special fast cast sliders
-        local castBarFCRDMSJ = { gConfig.castBarFastCastRDMSJ };
-        if (imgui.SliderFloat('Fast Cast - RDM SubJob', castBarFCRDMSJ, 0.00, 1.00, '%.2f')) then
-            gConfig.castBarFastCastRDMSJ = castBarFCRDMSJ[1];
-        end
-        if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
+    if CollapsingSection('Fast Cast Settings##castBar') then
+        DrawCheckbox('Enable Fast Cast / True Display', 'castBarFastCastEnabled');
 
-        local castBarFCWHMCureSpeed = { gConfig.castBarFastCastWHMCureSpeed };
-        if (imgui.SliderFloat('WHM Cure Speed', castBarFCWHMCureSpeed, 0.00, 1.00, '%.2f')) then
-            gConfig.castBarFastCastWHMCureSpeed = castBarFCWHMCureSpeed[1];
-        end
-        if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
+        if gConfig.castBarFastCastEnabled then
+            imgui.Spacing();
+            -- Special fast cast sliders
+            local castBarFCRDMSJ = { gConfig.castBarFastCastRDMSJ };
+            if (imgui.SliderFloat('Fast Cast - RDM SubJob', castBarFCRDMSJ, 0.00, 1.00, '%.2f')) then
+                gConfig.castBarFastCastRDMSJ = castBarFCRDMSJ[1];
+            end
+            if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
 
-        local castBarFCBRDSingSpeed = { gConfig.castBarFastCastBRDSingSpeed };
-        if (imgui.SliderFloat('BRD Sing Speed', castBarFCBRDSingSpeed, 0.00, 1.00, '%.2f')) then
-            gConfig.castBarFastCastBRDSingSpeed = castBarFCBRDSingSpeed[1];
-        end
-        if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
+            local castBarFCWHMCureSpeed = { gConfig.castBarFastCastWHMCureSpeed };
+            if (imgui.SliderFloat('WHM Cure Speed', castBarFCWHMCureSpeed, 0.00, 1.00, '%.2f')) then
+                gConfig.castBarFastCastWHMCureSpeed = castBarFCWHMCureSpeed[1];
+            end
+            if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
 
-        -- Job-specific fast cast sliders (using helper function)
-        local jobs = { 'WAR', 'MNK', 'WHM', 'BLM', 'RDM', 'THF', 'PLD', 'DRK', 'BST', 'BRD', 'RNG', 'SAM', 'NIN', 'DRG', 'SMN', 'BLU', 'COR', 'PUP', 'DNC', 'SCH', 'GEO', 'RUN' };
-        for i = 1, #jobs do
-            DrawFastCastSlider(jobs[i], i);
+            local castBarFCBRDSingSpeed = { gConfig.castBarFastCastBRDSingSpeed };
+            if (imgui.SliderFloat('BRD Sing Speed', castBarFCBRDSingSpeed, 0.00, 1.00, '%.2f')) then
+                gConfig.castBarFastCastBRDSingSpeed = castBarFCBRDSingSpeed[1];
+            end
+            if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
+
+            imgui.Spacing();
+            imgui.Text('Per-Job Fast Cast:');
+            -- Job-specific fast cast sliders (using helper function)
+            local jobs = { 'WAR', 'MNK', 'WHM', 'BLM', 'RDM', 'THF', 'PLD', 'DRK', 'BST', 'BRD', 'RNG', 'SAM', 'NIN', 'DRG', 'SMN', 'BLU', 'COR', 'PUP', 'DNC', 'SCH', 'GEO', 'RUN' };
+            for i = 1, #jobs do
+                DrawFastCastSlider(jobs[i], i);
+            end
         end
     end
 end
 
 -- Section: Cast Bar Color Settings
 local function DrawCastBarColorSettings()
-    imgui.Text("Bar Color:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawGradientPicker("Cast Bar", gConfig.colorCustomization.castBar.barGradient, "Color of casting progress bar");
+    if CollapsingSection('Bar Color##castBarColor') then
+        DrawGradientPicker("Cast Bar", gConfig.colorCustomization.castBar.barGradient, "Color of casting progress bar");
+    end
 
-    imgui.Spacing();
-    imgui.Text("Text Colors:");
-    imgui.Separator();
-    imgui.Spacing();
-    DrawTextColorPicker("Spell Text", gConfig.colorCustomization.castBar, 'spellTextColor', "Color of spell/ability name");
-    DrawTextColorPicker("Percent Text", gConfig.colorCustomization.castBar, 'percentTextColor', "Color of cast percentage");
+    if CollapsingSection('Text Colors##castBarColor') then
+        DrawTextColorPicker("Spell Text", gConfig.colorCustomization.castBar, 'spellTextColor', "Color of spell/ability name");
+        DrawTextColorPicker("Percent Text", gConfig.colorCustomization.castBar, 'percentTextColor', "Color of cast percentage");
+    end
 end
 
 -- Dispatch tables for settings and color settings

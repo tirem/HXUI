@@ -226,8 +226,14 @@ T{
 		-- Display options
 		showDistance = false,
 		distanceHighlight = 0,
+		-- Job display options
 		showJobIcon = true,
+		jobIconScale = 1,
 		showJob = false,
+		showMainJob = true,
+		showMainJobLevel = true,
+		showSubJob = true,
+		showSubJobLevel = true,
 		showCastBars = true,
 		castBarScaleY = 0.6,
 		showBookends = true,
@@ -260,8 +266,6 @@ T{
 		distanceFontSize = 12,
 		jobFontSize = 12,
 		zoneFontSize = 10,
-		-- Job icon
-		jobIconScale = 1,
 		-- Bar scales (for all layouts)
 		hpBarScaleX = 1,
 		mpBarScaleX = 1,
@@ -277,8 +281,14 @@ T{
 		-- Display options
 		showDistance = false,
 		distanceHighlight = 0,
+		-- Job display options
 		showJobIcon = true,
+		jobIconScale = 0.8,
 		showJob = false,
+		showMainJob = true,
+		showMainJobLevel = true,
+		showSubJob = true,
+		showSubJobLevel = true,
 		showCastBars = true,
 		castBarScaleY = 0.6,
 		showBookends = true,
@@ -311,8 +321,6 @@ T{
 		distanceFontSize = 12,
 		jobFontSize = 12,
 		zoneFontSize = 10,
-		-- Job icon
-		jobIconScale = 0.8,
 		-- Bar scales (for all layouts)
 		hpBarScaleX = 1,
 		mpBarScaleX = 1,
@@ -328,8 +336,14 @@ T{
 		-- Display options
 		showDistance = false,
 		distanceHighlight = 0,
+		-- Job display options
 		showJobIcon = true,
+		jobIconScale = 0.8,
 		showJob = false,
+		showMainJob = true,
+		showMainJobLevel = true,
+		showSubJob = true,
+		showSubJobLevel = true,
 		showCastBars = true,
 		castBarScaleY = 0.6,
 		showBookends = true,
@@ -362,8 +376,6 @@ T{
 		distanceFontSize = 12,
 		jobFontSize = 12,
 		zoneFontSize = 10,
-		-- Job icon
-		jobIconScale = 0.8,
 		-- Bar scales (for all layouts)
 		hpBarScaleX = 1,
 		mpBarScaleX = 1,
