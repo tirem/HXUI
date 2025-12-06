@@ -3,7 +3,7 @@
 * Contains all default settings definitions for user settings and module defaults
 ]]--
 
-local gdi = require('gdifonts.include');
+local gdi = require('submodules.gdifonts.include');
 
 local M = {};
 
@@ -106,8 +106,6 @@ end
 
 -- User-configurable settings
 M.user_settings = T{
-    patchNotesVer = -1,
-
     lockPositions = false,
     tooltipScale = 1.0,
     hideDuringEvents = true,

@@ -49,11 +49,6 @@ if [ ! -f "XIUI/XIUI.lua" ]; then
     exit 1
 fi
 
-if [ ! -f "XIUI/patchNotes.lua" ]; then
-    echo -e "${RED}Error: XIUI/patchNotes.lua not found${NC}"
-    exit 1
-fi
-
 # Safety Check 1: Verify we're on the main branch
 echo -e "${YELLOW}Running pre-flight safety checks...${NC}"
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -130,19 +125,12 @@ echo ""
 echo -e "${YELLOW}Updating XIUI.lua...${NC}"
 sed -i "s/addon\.version[[:space:]]*=[[:space:]]*'[0-9.]*'/addon.version   = '$VERSION'/" XIUI/XIUI.lua
 
-# Update patchNotes.lua
-echo -e "${YELLOW}Updating patchNotes.lua...${NC}"
-sed -i "s/imgui\.BulletText(' UPDATE [0-9.]* ')/imgui.BulletText(' UPDATE $VERSION ')/" XIUI/patchNotes.lua
-
 # Verify updates
 echo ""
 echo -e "${GREEN}Files updated successfully!${NC}"
 echo ""
 echo "XIUI.lua version:"
 grep "addon.version" XIUI/XIUI.lua
-echo ""
-echo "patchNotes.lua version (line 59):"
-grep "imgui\.BulletText(' UPDATE" XIUI/patchNotes.lua
 echo ""
 
 if [ "$NO_TAG" = true ]; then
@@ -159,7 +147,7 @@ fi
 
 # Commit version changes
 echo -e "${YELLOW}Committing version changes...${NC}"
-git add XIUI/XIUI.lua XIUI/patchNotes.lua
+git add XIUI/XIUI.lua
 git commit -m "Bump version to $VERSION"
 
 if [ $? -ne 0 ]; then

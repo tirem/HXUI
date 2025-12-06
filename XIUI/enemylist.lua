@@ -1,7 +1,7 @@
 require('common');
 require('handlers.helpers');
 local imgui = require('imgui');
-local gdi = require('gdifonts.include');
+local gdi = require('submodules.gdifonts.include');
 local primitives = require('primitives');
 local debuffHandler = require('handlers.debuffhandler');
 local statusHandler = require('handlers.statushandler');

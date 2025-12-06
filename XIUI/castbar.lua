@@ -3,8 +3,8 @@ require('handlers.helpers');
 local imgui = require('imgui');
 local fonts = require('fonts');
 local progressbar = require('progressbar');
-local gdi = require('gdifonts.include');
-local encoding = require('gdifonts.encoding');
+local gdi = require('submodules.gdifonts.include');
+local encoding = require('submodules.gdifonts.encoding');
 
 local spellText;
 local percentText;

@@ -5,8 +5,8 @@ local statusHandler = require('handlers.statushandler');
 local debuffHandler = require('handlers.debuffhandler');
 local actionTracker = require('handlers.actiontracker');
 local progressbar = require('progressbar');
-local gdi = require('gdifonts.include');
-local encoding = require('gdifonts.encoding');
+local gdi = require('submodules.gdifonts.include');
+local encoding = require('submodules.gdifonts.encoding');
 local ffi = require("ffi");
 
 -- TODO: Calculate these instead of manually setting them

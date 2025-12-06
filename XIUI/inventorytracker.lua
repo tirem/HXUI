@@ -1,7 +1,7 @@
 require('common');
 require('handlers.helpers');
 local imgui = require('imgui');
-local gdi = require('gdifonts.include');
+local gdi = require('submodules.gdifonts.include');
 
 local inventoryText;
 local allFonts; -- Table for batch visibility operations

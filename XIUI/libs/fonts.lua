@@ -3,7 +3,7 @@
 * FontManager, ColorCachedFont, and font helper functions
 ]]--
 
-local gdi = require('gdifonts.include');
+local gdi = require('submodules.gdifonts.include');
 
 local M = {};
 

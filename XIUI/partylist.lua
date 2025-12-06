@@ -2,12 +2,12 @@ require('common');
 local ffi = require('ffi');
 local d3d8 = require('d3d8');
 local imgui = require('imgui');
-local gdi = require('gdifonts.include');
+local gdi = require('submodules.gdifonts.include');
 local primitives = require('primitives');
 local statusHandler = require('handlers.statushandler');
 local buffTable = require('libs.bufftable');
 local progressbar = require('progressbar');
-local encoding = require('gdifonts.encoding');
+local encoding = require('submodules.gdifonts.encoding');
 local ashita_settings = require('settings');
 
 local fullMenuWidth = {};

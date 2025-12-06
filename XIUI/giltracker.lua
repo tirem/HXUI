@@ -1,7 +1,7 @@
 require('common');
 require('handlers.helpers');
 local imgui = require('imgui');
-local gdi = require('gdifonts.include');
+local gdi = require('submodules.gdifonts.include');
 local ffi = require("ffi");
 
 local gilTexture;

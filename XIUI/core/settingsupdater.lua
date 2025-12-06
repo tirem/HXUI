@@ -3,7 +3,7 @@
 * Handles applying user settings to the adjusted settings used by modules
 ]]--
 
-local gdi = require('gdifonts.include');
+local gdi = require('submodules.gdifonts.include');
 
 local M = {};
 

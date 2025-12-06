@@ -34,7 +34,7 @@ require('handlers.imgui_compat');
 
 require('common');
 local settings = require('settings');
-local gdi = require('gdifonts.include');
+local gdi = require('submodules.gdifonts.include');
 
 -- Core modules
 local settingsDefaults = require('core.settingsdefaults');
@@ -57,7 +57,6 @@ local configMenu = require('configmenu');
 local debuffHandler = require('handlers.debuffhandler');
 local actionTracker = require('handlers.actiontracker');
 local mobInfo = require('mobinfo.include');
-local patchNotes = require('patchNotes');
 local statusHandler = require('handlers.statushandler');
 
 -- Global switch to hard-disable functionality that is limited on HX servers
@@ -210,9 +209,7 @@ function GetLayoutTemplate(partyIndex)
 end
 
 function ResetSettings()
-    local patchNotesVer = gConfig.patchNotesVer;
     gConfig = deep_copy_table(defaultUserSettings);
-    gConfig.patchNotesVer = patchNotesVer;
     config.userSettings = gConfig;
     UpdateSettings();
     settings.save();
@@ -302,10 +299,6 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         end
 
         configMenu.DrawWindow();
-
-        if (gConfig.patchNotesVer < gAdjustedSettings.currentPatchVer) then
-            patchNotes.DrawWindow();
-        end
     else
         uiModules.HideAll();
     end

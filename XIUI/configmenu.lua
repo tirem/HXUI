@@ -2263,7 +2263,7 @@ config.DrawWindow = function(us)
     imgui.PushStyleVar(ImGuiStyleVar_GrabRounding, 4.0);
 
     imgui.SetNextWindowSize({ 900, 650 }, ImGuiCond_FirstUseEver);
-    if(imgui.Begin("XIUI Config", showConfig, bit.bor(ImGuiWindowFlags_NoSavedSettings, ImGuiWindowFlags_NoDocking))) then
+    if(imgui.Begin("XIUI Config - v" .. addon.version, showConfig, bit.bor(ImGuiWindowFlags_NoSavedSettings, ImGuiWindowFlags_NoDocking))) then
         local windowWidth = imgui.GetContentRegionAvail();
         local sidebarWidth = 180;
         local contentWidth = windowWidth - sidebarWidth - 20;

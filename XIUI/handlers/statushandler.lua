@@ -6,7 +6,7 @@
 local d3d8 = require('d3d8');
 local ffi = require('ffi');
 local imgui = require('imgui');
-local encoding = require('gdifonts.encoding');
+local encoding = require('submodules.gdifonts.encoding');
 -------------------------------------------------------------------------------
 -- local constants
 -------------------------------------------------------------------------------

@@ -1,6 +1,6 @@
-[submodule "XIUI/gdifonts"]
-	path = XIUI/gdifonts
+[submodule "XIUI/submodules/gdifonts"]
+	path = XIUI/submodules/gdifonts
 	url = git@github.com:ThornyFFXI/gdifonts.git
-[submodule "XIUI/mobdb"]
-	path = XIUI/mobdb
+[submodule "XIUI/submodules/mobdb"]
+	path = XIUI/submodules/mobdb
 	url = https://github.com/ThornyFFXI/mobdb.git

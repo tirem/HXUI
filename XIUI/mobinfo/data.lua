@@ -20,7 +20,7 @@ local zoneData = {
 -- Get the base path for mob data files
 local function GetMobDataPath()
     local path = string.gsub(addon.path, '\\\\', '\\');
-    return path .. '/mobdb/addons/mobdb/data/';
+    return path .. '/submodules/mobdb/addons/mobdb/data/';
 end
 
 --[[

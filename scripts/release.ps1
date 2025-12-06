@@ -27,11 +27,6 @@ if (-not (Test-Path "XIUI/XIUI.lua")) {
     exit 1
 }
 
-if (-not (Test-Path "XIUI/patchNotes.lua")) {
-    Write-Host "Error: XIUI/patchNotes.lua not found" -ForegroundColor Red
-    exit 1
-}
-
 # Safety Check 1: Verify we're on the main branch
 Write-Host "Running release checks..." -ForegroundColor Yellow
 $currentBranch = git rev-parse --abbrev-ref HEAD
@@ -111,21 +106,12 @@ $xiuiContent = Get-Content "XIUI/XIUI.lua" -Raw
 $xiuiContent = $xiuiContent -replace "addon\.version\s*=\s*'[\d\.]*'", "addon.version   = '$Version'"
 Set-Content "XIUI/XIUI.lua" -Value $xiuiContent -NoNewline
 
-# Update patchNotes.lua
-Write-Host "Updating patchNotes.lua..." -ForegroundColor Yellow
-$patchContent = Get-Content "XIUI/patchNotes.lua" -Raw
-$patchContent = $patchContent -replace "imgui\.BulletText\('UPDATE [\d\.]+'\)", "imgui.BulletText('UPDATE $Version')"
-Set-Content "XIUI/patchNotes.lua" -Value $patchContent -NoNewline
-
 # Verify updates
 Write-Host ""
 Write-Host "Files updated successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "XIUI.lua version:"
 Select-String -Path "XIUI/XIUI.lua" -Pattern "addon.version"
-Write-Host ""
-Write-Host "patchNotes.lua version (line 59):"
-Select-String -Path "XIUI/patchNotes.lua" -Pattern "imgui\.BulletText\('UPDATE"
 Write-Host ""
 
 if ($NoTag) {
@@ -143,7 +129,7 @@ if ($LASTEXITCODE -eq 0) {
 
 # Commit version changes
 Write-Host "Committing version changes..." -ForegroundColor Yellow
-git add XIUI/XIUI.lua XIUI/patchNotes.lua
+git add XIUI/XIUI.lua
 git commit -m "Bump version to $Version"
 
 if ($LASTEXITCODE -ne 0) {
