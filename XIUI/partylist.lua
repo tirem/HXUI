@@ -961,7 +961,7 @@ local function DrawMember(memIdx, settings, isLastVisibleMember)
     else
         -- Layout 1: HP text below bar with standard offset
         memberText[memIdx].hp:set_position_x(hpStartX + hpBarWidth + settings.hpTextOffsetX);
-        memberText[memIdx].hp:set_position_y(hpStartY + barHeight + settings.hpTextOffsetY + hpBaselineOffset);
+        memberText[memIdx].hp:set_position_y(hpStartY + hpBarHeight + settings.hpTextOffsetY + hpBaselineOffset);
     end
 
     -- Draw the leader icon

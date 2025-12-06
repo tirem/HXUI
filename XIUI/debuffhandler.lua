@@ -76,7 +76,7 @@ local function ApplyMessage(debuffs, action)
                 if spell == 80 then
                     debuffs[target.Id][148] = now + 180
                 end
-            elseif action.Type == 4 and spellDamageMes:contains(message) then -- dia / bio damage handling
+            elseif action.Type == 4 and spellDamageMes:contains(message) then -- dia / bio / helix damage handling
                 local expiry = nil
 
                 if spell == 23 or spell == 33 or spell == 230 then
@@ -93,6 +93,10 @@ local function ApplyMessage(debuffs, action)
                 elseif spell == 230 or spell == 231 or spell == 232 then
                     debuffs[target.Id][134] = nil
                     debuffs[target.Id][135] = expiry
+                elseif (spell >= 278 and spell <= 285) or (spell >= 885 and spell <= 892) then
+                    -- Helix spells: base duration ~90s, can vary with Dark Arts/Job Points/gear
+                    -- Using 90s as conservative estimate
+                    debuffs[target.Id][186] = now + 90
                 end
             elseif statusOnMes:contains(message) then
                 -- Regular (de)buffs

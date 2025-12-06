@@ -63,6 +63,24 @@ buffTable.spellToDebuff = T{
     [459] = 217, --water_threnody
     [460] = 217, --light_threnody
     [461] = 217, --dark_threnody
+    -- Helix spells (Tier 1)
+    [278] = 186, --geohelix
+    [279] = 186, --hydrohelix
+    [280] = 186, --anemohelix
+    [281] = 186, --pyrohelix
+    [282] = 186, --cryohelix
+    [283] = 186, --ionohelix
+    [284] = 186, --noctohelix
+    [285] = 186, --luminohelix
+    -- Helix II spells (Tier 2)
+    [885] = 186, --geohelix_II
+    [886] = 186, --hydrohelix_II
+    [887] = 186, --anemohelix_II
+    [888] = 186, --pyrohelix_II
+    [889] = 186, --cryohelix_II
+    [890] = 186, --ionohelix_II
+    [891] = 186, --noctohelix_II
+    [892] = 186, --luminohelix_II
 };
 
 

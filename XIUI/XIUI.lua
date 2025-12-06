@@ -43,6 +43,7 @@ local enemyList = require('enemylist');
 local expBar = require('expbar');
 local gilTracker = require('giltracker');
 local inventoryTracker = require('inventorytracker');
+local satchelTracker = require('satcheltracker');
 local partyList = require('partylist');
 local castBar = require('castbar');
 local configMenu = require('configmenu');
@@ -212,6 +213,15 @@ T{
     inventoryTrackerColorThreshold1 = 15,
     inventoryTrackerColorThreshold2 = 29,
     inventoryShowCount = true,
+
+	showSatchelTracker = false,
+	satchelTrackerScale = 1,
+	satchelTrackerFontSize = 12,
+    satchelTrackerColumnCount = 5,
+    satchelTrackerRowCount = 6,
+    satchelTrackerColorThreshold1 = 15,
+    satchelTrackerColorThreshold2 = 29,
+    satchelShowCount = true,
 
 	-- Party List global settings (shared across all parties)
 	partyListTitleFontSize = 12,
@@ -748,6 +758,15 @@ T{
 			usedSlotColorThreshold2 = T{ r = 1.0, g = 0, b = 0, a = 1 },    -- Critical (red)
 		},
 
+		-- Satchel Tracker
+		satchelTracker = T{
+			textColor = 0xFFFFFFFF,
+			emptySlotColor = T{ r = 0, g = 0.07, b = 0.17, a = 1 },
+			usedSlotColor = T{ r = 0.37, g = 0.7, b = 0.88, a = 1 },        -- Normal (white/blue)
+			usedSlotColorThreshold1 = T{ r = 1.0, g = 1.0, b = 0, a = 1 },  -- Warning (yellow)
+			usedSlotColorThreshold2 = T{ r = 1.0, g = 0, b = 0, a = 1 },    -- Critical (red)
+		},
+
 		-- Cast Bar
 		castBar = T{
 			barGradient = T{ enabled = true, start = '#3798ce', stop = '#78c5ee' },
@@ -1010,7 +1029,27 @@ T{
 		};
 	};
 
-	inventoryTrackerSettings = 
+	inventoryTrackerSettings =
+	T{
+		columnCount = 5;
+		rowCount = 6;
+		dotRadius = 5;
+		dotSpacing = 1;
+		groupSpacing = 8;
+		textOffsetY = -3;
+		font_settings =
+		T{
+			font_alignment = gdi.Alignment.Right,
+			font_family = 'Consolas',
+			font_height = 13,
+			font_color = 0xFFFFFFFF,
+			font_flags = gdi.FontFlags.None,
+			outline_color = 0xFF000000,
+			outline_width = 2,
+		};
+	};
+
+	satchelTrackerSettings =
 	T{
 		columnCount = 5;
 		rowCount = 6;
@@ -1556,6 +1595,9 @@ function CheckVisibility()
 	if (gConfig.showInventoryTracker == false) then
 		inventoryTracker.SetHidden(true);
 	end
+	if (gConfig.showSatchelTracker == false) then
+		satchelTracker.SetHidden(true);
+	end
 	if (gConfig.showPartyList == false) then
 		partyList.SetHidden(true);
 	end
@@ -1574,6 +1616,7 @@ local function ForceHide()
 	expBar.SetHidden(true);
 	gilTracker.SetHidden(true);
 	inventoryTracker.SetHidden(true);
+	satchelTracker.SetHidden(true);
 	partyList.SetHidden(true);
 	castBar.SetHidden(true);
 end
@@ -1584,6 +1627,7 @@ local function UpdateVisuals()
 	expBar.UpdateVisuals(gAdjustedSettings.expBarSettings);
 	gilTracker.UpdateVisuals(gAdjustedSettings.gilTrackerSettings);
 	inventoryTracker.UpdateVisuals(gAdjustedSettings.inventoryTrackerSettings);
+	satchelTracker.UpdateVisuals(gAdjustedSettings.satchelTrackerSettings);
 	partyList.UpdateVisuals(gAdjustedSettings.partyListSettings);
 	castBar.UpdateVisuals(gAdjustedSettings.castBarSettings);
 	enemyList.UpdateVisuals(gAdjustedSettings.enemyListSettings);
@@ -1814,6 +1858,15 @@ function UpdateUserSettings()
     gAdjustedSettings.inventoryTrackerSettings.rowCount = us.inventoryTrackerRowCount;
     gAdjustedSettings.inventoryTrackerSettings.showText = us.inventoryShowCount;
 
+	-- Satchel Tracker
+	gAdjustedSettings.satchelTrackerSettings.dotRadius = ds.satchelTrackerSettings.dotRadius * us.satchelTrackerScale;
+	gAdjustedSettings.satchelTrackerSettings.dotSpacing = ds.satchelTrackerSettings.dotSpacing * us.satchelTrackerScale;
+	gAdjustedSettings.satchelTrackerSettings.groupSpacing = ds.satchelTrackerSettings.groupSpacing * us.satchelTrackerScale;
+	gAdjustedSettings.satchelTrackerSettings.font_settings.font_height = math.max(us.satchelTrackerFontSize, 8);
+    gAdjustedSettings.satchelTrackerSettings.columnCount = us.satchelTrackerColumnCount;
+    gAdjustedSettings.satchelTrackerSettings.rowCount = us.satchelTrackerRowCount;
+    gAdjustedSettings.satchelTrackerSettings.showText = us.satchelShowCount;
+
 	-- Enemy List
 	gAdjustedSettings.enemyListSettings.barWidth = ds.enemyListSettings.barWidth * us.enemyListScaleX;
 	gAdjustedSettings.enemyListSettings.barHeight = ds.enemyListSettings.barHeight * us.enemyListScaleY;
@@ -2036,6 +2089,9 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 		if (gConfig.showInventoryTracker) then
 			inventoryTracker.DrawWindow(gAdjustedSettings.inventoryTrackerSettings);
 		end
+		if (gConfig.showSatchelTracker) then
+			satchelTracker.DrawWindow(gAdjustedSettings.satchelTrackerSettings);
+		end
 		if (not gConfig.showPartyList or (gConfig.partyListHideDuringEvents and eventSystemActive)) then
             partyList.SetHidden(true);
         else
@@ -2078,6 +2134,7 @@ ashita.events.register('load', 'load_cb', function ()
 	expBar.Initialize(gAdjustedSettings.expBarSettings);
 	gilTracker.Initialize(gAdjustedSettings.gilTrackerSettings);
 	inventoryTracker.Initialize(gAdjustedSettings.inventoryTrackerSettings);
+	satchelTracker.Initialize(gAdjustedSettings.satchelTrackerSettings);
 	partyList.Initialize(gAdjustedSettings.partyListSettings);
 	castBar.Initialize(gAdjustedSettings.castBarSettings);
 	enemyList.Initialize(gAdjustedSettings.enemyListSettings);
@@ -2124,6 +2181,9 @@ ashita.events.register('unload', 'unload_cb', function ()
     end
     if inventoryTracker and inventoryTracker.Cleanup then
         inventoryTracker.Cleanup();
+    end
+    if satchelTracker and satchelTracker.Cleanup then
+        satchelTracker.Cleanup();
     end
 
     -- Cleanup GDI interface last
