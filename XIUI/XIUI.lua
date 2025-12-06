@@ -41,7 +41,7 @@ local settingsDefaults = require('core.settingsdefaults');
 local settingsMigration = require('core.settingsmigration');
 local settingsUpdater = require('core.settingsupdater');
 local gameState = require('core.gamestate');
-local uiModules = require('core.uimodules');
+local uiModules = require('core.moduleregistry');
 
 -- UI modules
 local playerBar = require('playerbar');
