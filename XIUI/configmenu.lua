@@ -796,7 +796,7 @@ local function DrawMobInfoSettingsContent()
     local iconSize = 14;
     local iconPad = (boxHeight - iconSize) / 2;
     local textPad = 6;
-    local text = 'MobDB by Thorny';
+    local text = 'Powered by MobDB (Thorny)';
     local textWidth = imgui.CalcTextSize(text);
     local boxWidth = iconSize + textPad * 3 + textWidth;
 
