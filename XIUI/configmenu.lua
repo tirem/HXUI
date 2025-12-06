@@ -13,6 +13,10 @@ local showRestoreColorsConfirm = false;
 -- Social icon textures
 local discordTexture = nil;
 local githubTexture = nil;
+local heartTexture = nil;
+
+-- Credits popup state
+local showCreditsPopup = false;
 
 -- Navigation state
 local selectedCategory = 1;  -- 1-indexed category selection
@@ -2283,6 +2287,9 @@ config.DrawWindow = function(us)
         if githubTexture == nil then
             githubTexture = LoadTexture("socials/github");
         end
+        if heartTexture == nil then
+            heartTexture = LoadTexture("socials/heart");
+        end
 
         -- Social icon buttons with square background boxes
         local boxSize = 26;
@@ -2292,7 +2299,7 @@ config.DrawWindow = function(us)
         local outlineColor = imgui.GetColorU32(borderDark);
 
         imgui.SameLine();
-        imgui.SetCursorPosX(windowWidth - (boxSize * 2) - boxSpacing);
+        imgui.SetCursorPosX(windowWidth - (boxSize * 3) - (boxSpacing * 2));
 
         -- Discord button
         if discordTexture ~= nil and discordTexture.image ~= nil then
@@ -2374,6 +2381,72 @@ config.DrawWindow = function(us)
             if imgui.IsItemClicked() then
                 ashita.misc.open_url("https://github.com/tirem/xiui");
             end
+        end
+
+        imgui.SameLine(0, boxSpacing);
+
+        -- Credits button (heart)
+        if heartTexture ~= nil and heartTexture.image ~= nil then
+            local screenPosX, screenPosY = imgui.GetCursorScreenPos();
+            local isHovered = imgui.IsMouseHoveringRect({screenPosX, screenPosY}, {screenPosX + boxSize, screenPosY + boxSize});
+
+            -- Draw box background and outline
+            local draw_list = imgui.GetWindowDrawList();
+            local boxColor = isHovered and imgui.GetColorU32(bgLighter) or imgui.GetColorU32(bgLight);
+            draw_list:AddRectFilled(
+                {screenPosX, screenPosY},
+                {screenPosX + boxSize, screenPosY + boxSize},
+                boxColor,
+                4.0
+            );
+            draw_list:AddRect(
+                {screenPosX, screenPosY},
+                {screenPosX + boxSize, screenPosY + boxSize},
+                outlineColor,
+                4.0
+            );
+
+            -- Draw image centered in box
+            draw_list:AddImage(
+                tonumber(ffi.cast("uint32_t", heartTexture.image)),
+                {screenPosX + iconPad, screenPosY + iconPad},
+                {screenPosX + iconPad + iconSize, screenPosY + iconPad + iconSize},
+                {0, 0}, {1, 1},
+                IM_COL32_WHITE
+            );
+
+            -- Invisible button for interaction
+            imgui.InvisibleButton("credits_btn", { boxSize, boxSize });
+            if imgui.IsItemHovered() then
+                imgui.SetMouseCursor(ImGuiMouseCursor_Hand);
+            end
+            if imgui.IsItemClicked() then
+                showCreditsPopup = true;
+            end
+        end
+
+        -- Credits popup
+        if showCreditsPopup then
+            imgui.OpenPopup("Attributions");
+            showCreditsPopup = false;
+        end
+
+        if imgui.BeginPopupModal("Attributions", true, ImGuiWindowFlags_AlwaysAutoResize) then
+            imgui.Text("XIUI - A UI Addon for Final Fantasy XI");
+            imgui.Separator();
+
+
+            imgui.TextColored({1.0, 0.84, 0.0, 1.0}, "Special Thanks");
+            imgui.BulletText("atom0s - Ashita framework, and additional support");
+            imgui.BulletText("Thorny - GdiFonts library & MobDB, and additional support");
+            imgui.NewLine();
+
+            imgui.Separator();
+            if imgui.Button("Close", { 120, 0 }) then
+                imgui.CloseCurrentPopup();
+            end
+
+            imgui.EndPopup();
         end
 
         -- Reset Settings confirmation popup
