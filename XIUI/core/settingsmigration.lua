@@ -6,6 +6,8 @@
 local M = {};
 
 -- Migrate settings from HXUI to XIUI (one-time migration for users upgrading from HXUI)
+-- IMPORTANT: This must be called BEFORE settings.load() so that copied files are picked up
+-- Returns: { count = number } or nil if no migration occurred
 function M.MigrateFromHXUI()
     local installPath = AshitaCore:GetInstallPath():gsub('\\$', ''); -- Remove trailing backslash if present
     local oldConfigDir = installPath .. '\\config\\addons\\HXUI';
@@ -13,13 +15,13 @@ function M.MigrateFromHXUI()
 
     -- Check if old config directory exists
     if not ashita.fs.exists(oldConfigDir) then
-        return;
+        return nil;
     end
 
     -- Get all character folders in the old config directory
     local characterFolders = ashita.fs.get_directory(oldConfigDir);
     if characterFolders == nil then
-        return;
+        return nil;
     end
 
     local migratedCount = 0;
@@ -52,8 +54,9 @@ function M.MigrateFromHXUI()
     end
 
     if migratedCount > 0 then
-        print('[XIUI] Successfully migrated settings for ' .. migratedCount .. ' character(s) from HXUI.');
+        return { count = migratedCount };
     end
+    return nil;
 end
 
 -- Migrate party list layout settings (convert old settings to layout-specific format)
@@ -362,16 +365,20 @@ function M.MigrateIndividualSettings(gConfig, defaults)
     end
 end
 
--- Run all migrations in the correct order
-function M.RunAllMigrations(gConfig, defaults)
-    -- Run HXUI migration first (file-level migration)
-    pcall(M.MigrateFromHXUI);
-
-    -- Run settings structure migrations
+-- Run structure migrations (called AFTER settings.load())
+-- These handle migrating old settings structures to new ones
+function M.RunStructureMigrations(gConfig, defaults)
     M.MigratePartyListLayoutSettings(gConfig, defaults);
     M.MigratePerPartySettings(gConfig, defaults);
     M.MigrateColorSettings(gConfig, defaults);
     M.MigrateIndividualSettings(gConfig, defaults);
+end
+
+-- Legacy function for backward compatibility (if any external code calls it)
+function M.RunAllMigrations(gConfig, defaults)
+    -- NOTE: MigrateFromHXUI should be called separately BEFORE settings.load()
+    -- This function now only runs structure migrations
+    M.RunStructureMigrations(gConfig, defaults);
 end
 
 return M;

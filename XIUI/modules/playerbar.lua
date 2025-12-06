@@ -2,7 +2,7 @@ require('common');
 require('handlers.helpers');
 local imgui = require('imgui');
 local gdi = require('submodules.gdifonts.include');
-local progressbar = require('progressbar');
+local progressbar = require('libs.progressbar');
 local buffTable = require('libs.bufftable');
 
 local hpText;

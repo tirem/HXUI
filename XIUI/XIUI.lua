@@ -44,19 +44,20 @@ local gameState = require('core.gamestate');
 local uiModules = require('core.moduleregistry');
 
 -- UI modules
-local playerBar = require('playerbar');
-local targetBar = require('targetbar');
-local enemyList = require('enemylist');
-local expBar = require('expbar');
-local gilTracker = require('giltracker');
-local inventoryTracker = require('inventorytracker');
-local satchelTracker = require('satcheltracker');
-local partyList = require('partylist');
-local castBar = require('castbar');
+local uiMods = require('modules.init');
+local playerBar = uiMods.playerbar;
+local targetBar = uiMods.targetbar;
+local enemyList = uiMods.enemylist;
+local expBar = uiMods.expbar;
+local gilTracker = uiMods.giltracker;
+local inventoryTracker = uiMods.inventorytracker;
+local satchelTracker = uiMods.satcheltracker;
+local partyList = uiMods.partylist;
+local castBar = uiMods.castbar;
 local configMenu = require('configmenu');
 local debuffHandler = require('handlers.debuffhandler');
 local actionTracker = require('handlers.actiontracker');
-local mobInfo = require('mobinfo.include');
+local mobInfo = require('modules.mobinfo.init');
 local statusHandler = require('handlers.statushandler');
 
 -- Global switch to hard-disable functionality that is limited on HX servers
@@ -183,10 +184,20 @@ local user_settings_container = T{
 gAdjustedSettings = deep_copy_table(settingsDefaults.default_settings);
 defaultUserSettings = deep_copy_table(settingsDefaults.user_settings);
 
--- Load settings and run migrations
+-- Run HXUI file migration BEFORE loading settings (so migrated files are picked up)
+local migrationResult = settingsMigration.MigrateFromHXUI();
+
+-- Load settings and run structure migrations
 local config = settings.load(user_settings_container);
 gConfig = config.userSettings;
-settingsMigration.RunAllMigrations(gConfig, defaultUserSettings);
+settingsMigration.RunStructureMigrations(gConfig, defaultUserSettings);
+
+-- Show migration message after settings are loaded (deferred to ensure chat is ready)
+if migrationResult and migrationResult.count > 0 then
+    ashita.tasks.once(1, function()
+        print('[XIUI] Successfully migrated settings for ' .. migrationResult.count .. ' character(s) from HXUI.');
+    end);
+end
 
 -- State variables
 showConfig = { false };

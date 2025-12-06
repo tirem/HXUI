@@ -12,7 +12,7 @@ require('handlers.helpers');
 local imgui = require('imgui');
 local gdi = require('submodules.gdifonts.include');
 local ffi = require("ffi");
-local mobdata = require('mobinfo.data');
+local mobdata = require('modules.mobinfo.data');
 
 local mobinfo = {};
 

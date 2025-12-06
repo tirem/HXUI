@@ -6,7 +6,7 @@ local primitives = require('primitives');
 local debuffHandler = require('handlers.debuffhandler');
 local statusHandler = require('handlers.statushandler');
 local actionTracker = require('handlers.actiontracker');
-local progressbar = require('progressbar');
+local progressbar = require('libs.progressbar');
 
 -- Note: RENDER_FLAG_VISIBLE and RENDER_FLAG_HIDDEN are now imported from helpers.lua
 

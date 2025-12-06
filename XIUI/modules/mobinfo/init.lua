@@ -6,7 +6,7 @@
 local mobinfo = {};
 
 -- Load sub-modules
-mobinfo.data = require('mobinfo.data');
-mobinfo.display = require('mobinfo.display');
+mobinfo.data = require('modules.mobinfo.data');
+mobinfo.display = require('modules.mobinfo.display');
 
 return mobinfo;
