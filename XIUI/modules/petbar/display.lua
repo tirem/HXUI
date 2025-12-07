@@ -291,11 +291,11 @@ function display.DrawWindow(settings)
             data.distanceText:set_visible(false);
         end
 
-        -- HP% text (right side of name row)
+        -- HP% text (right-aligned to HP bar width)
         if gConfig.petBarShowVitals ~= false then
             data.hpText:set_font_height(vitalsFontSize);
             data.hpText:set_text(tostring(petHpPercent) .. '%');
-            data.hpText:set_position_x(startX + barWidth);
+            data.hpText:set_position_x(startX + hpBarWidth);
             data.hpText:set_position_y(startY + (nameFontSize - vitalsFontSize) / 2);
             local hpColor = colorConfig.hpTextColor or 0xFFFFFFFF;
             if data.lastHpColor ~= hpColor then

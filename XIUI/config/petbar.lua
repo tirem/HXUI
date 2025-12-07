@@ -14,12 +14,6 @@ local M = {};
 -- Track selected avatar in config dropdown
 local selectedAvatarIndex = 1;
 
--- Display mode options for HP text
-local displayModeLabels = {
-    percent = 'Percent',
-    number = 'Number'
-};
-
 -- Helper: Draw Pet Bar specific settings (used in tab)
 local function DrawPetBarSettingsContent()
     components.DrawCheckbox('Enabled', 'showPetBar', CheckVisibility);
@@ -157,25 +151,25 @@ local function DrawPetBarSettingsContent()
         components.DrawSlider('Timers', 'petBarTimerFontSize', 6, 18);
     end
 
-    if components.CollapsingSection('HP Display##petBar') then
-        local hpDisplayLabel = displayModeLabels[gConfig.petBarHpDisplayMode] or 'Percent';
-        components.DrawComboBox('HP Display##petBarMode', hpDisplayLabel, {'Percent', 'Number'}, function(newValue)
-            if newValue == 'Percent' then
-                gConfig.petBarHpDisplayMode = 'percent';
-            else
-                gConfig.petBarHpDisplayMode = 'number';
-            end
-            SaveSettingsOnly();
-        end);
-        imgui.ShowHelp('How pet HP is displayed on the bar.');
-    end
-
     if components.CollapsingSection('Ability Icons##petBar') then
         -- Position mode
         local positionModes = {'In Container', 'Absolute'};
         local currentMode = gConfig.petBarIconsAbsolute and 'Absolute' or 'In Container';
         components.DrawComboBox('Position Mode##petBarIcons', currentMode, positionModes, function(newValue)
+            local wasAbsolute = gConfig.petBarIconsAbsolute;
             gConfig.petBarIconsAbsolute = (newValue == 'Absolute');
+            -- Reset offsets when switching modes
+            if wasAbsolute ~= gConfig.petBarIconsAbsolute then
+                if gConfig.petBarIconsAbsolute then
+                    -- Switching to Absolute: use absolute defaults
+                    gConfig.petBarIconsOffsetX = 112;
+                    gConfig.petBarIconsOffsetY = 79;
+                else
+                    -- Switching to In Container: reset to 0
+                    gConfig.petBarIconsOffsetX = 0;
+                    gConfig.petBarIconsOffsetY = 0;
+                end
+            end
             SaveSettingsOnly();
         end);
         imgui.ShowHelp('In Container: Icons flow within the pet bar.\nAbsolute: Icons positioned independently from the pet bar.');
