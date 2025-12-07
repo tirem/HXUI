@@ -70,7 +70,7 @@ giltracker.DrawWindow = function(settings)
 		local textPadding = 5; -- Standard spacing between icon and text
 
 		-- DEBUG: Set to true to visualize draggable areas
-		local DEBUG_DRAW = true;
+		local DEBUG_DRAW = false;
 
 		if showIcon then
 			-- Icon + text mode: create combined draggable area

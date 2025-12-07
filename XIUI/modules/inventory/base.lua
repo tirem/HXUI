@@ -100,7 +100,7 @@ local function DrawSingleContainerWindow(windowName, usedSlots, maxSlots, settin
         local framePaddingX = style.FramePadding.x;
 
         -- DEBUG: Set to true to visualize draggable areas
-        local DEBUG_DRAW = true;
+        local DEBUG_DRAW = false;
 
         if showDots then
             local winSizeX, winSizeY, groupOffsetX, totalGroups = CalculateDotsWindowSize(maxSlots > 0 and maxSlots or 30, settings);
