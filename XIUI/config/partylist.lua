@@ -11,6 +11,16 @@ local imgui = require('imgui');
 
 local M = {};
 
+-- Display mode options for HP/MP text
+local displayModeOptions = {'number', 'percent', 'both', 'both_percent_first', 'current_max'};
+local displayModeLabels = {
+    number = 'Number Only',
+    percent = 'Percent Only',
+    both = 'Number (Percent)',
+    both_percent_first = 'Percent (Number)',
+    current_max = 'Current/Max'
+};
+
 -- Helper function to copy all settings from one party to another
 local function CopyPartySettings(sourcePartyName, targetPartyName)
     -- Get source and target party tables
@@ -104,6 +114,42 @@ local function DrawPartyTabContent(party, partyName)
         components.DrawPartyCheckbox(party, 'Show Title', 'showTitle');
         components.DrawPartyCheckbox(party, 'Align Bottom', 'alignBottom');
         components.DrawPartyCheckbox(party, 'Expand Height', 'expandHeight');
+
+        -- HP Display Mode dropdown
+        local hpDisplayLabel = displayModeLabels[party.hpDisplayMode] or 'Number Only';
+        components.DrawComboBox('HP Display##party' .. partyName, hpDisplayLabel, {'Number Only', 'Percent Only', 'Number (Percent)', 'Percent (Number)', 'Current/Max'}, function(newValue)
+            if newValue == 'Number Only' then
+                party.hpDisplayMode = 'number';
+            elseif newValue == 'Percent Only' then
+                party.hpDisplayMode = 'percent';
+            elseif newValue == 'Number (Percent)' then
+                party.hpDisplayMode = 'both';
+            elseif newValue == 'Percent (Number)' then
+                party.hpDisplayMode = 'both_percent_first';
+            else
+                party.hpDisplayMode = 'current_max';
+            end
+            SaveSettingsOnly();
+        end);
+        imgui.ShowHelp('How HP is displayed: number (1234), percent (100%), number first (1234 (100%)), percent first (100% (1234)), or current/max (1234/1500).');
+
+        -- MP Display Mode dropdown
+        local mpDisplayLabel = displayModeLabels[party.mpDisplayMode] or 'Number Only';
+        components.DrawComboBox('MP Display##party' .. partyName, mpDisplayLabel, {'Number Only', 'Percent Only', 'Number (Percent)', 'Percent (Number)', 'Current/Max'}, function(newValue)
+            if newValue == 'Number Only' then
+                party.mpDisplayMode = 'number';
+            elseif newValue == 'Percent Only' then
+                party.mpDisplayMode = 'percent';
+            elseif newValue == 'Number (Percent)' then
+                party.mpDisplayMode = 'both';
+            elseif newValue == 'Percent (Number)' then
+                party.mpDisplayMode = 'both_percent_first';
+            else
+                party.mpDisplayMode = 'current_max';
+            end
+            SaveSettingsOnly();
+        end);
+        imgui.ShowHelp('How MP is displayed: number (1234), percent (100%), number first (1234 (100%)), percent first (100% (1234)), or current/max (750/1000).');
     end
 
     if components.CollapsingSection('Job Display##party' .. partyName) then
@@ -136,10 +182,13 @@ local function DrawPartyTabContent(party, partyName)
         end
     end
 
-    if components.CollapsingSection('Appearance##party' .. partyName) then
+    if components.CollapsingSection('Background##party' .. partyName) then
         components.DrawPartyComboBox(party, 'Background', 'backgroundName', bg_theme_paths, DeferredUpdateVisuals);
         components.DrawPartySlider(party, 'Background Scale', 'bgScale', 0.1, 3.0, '%.2f', UpdatePartyListVisuals);
         components.DrawPartyComboBox(party, 'Cursor', 'cursor', cursor_paths, DeferredUpdateVisuals);
+    end
+
+    if components.CollapsingSection('Status Icons##party' .. partyName) then
         components.DrawPartyComboBoxIndexed(party, 'Status Theme', 'statusTheme', statusThemeItems);
         components.DrawPartyComboBoxIndexed(party, 'Status Side', 'statusSide', statusSideItems);
         components.DrawPartySlider(party, 'Status Icon Scale', 'buffScale', 0.1, 3.0, '%.1f');
@@ -192,6 +241,7 @@ function M.DrawSettings(state)
     local selectedPartyTab = state.selectedPartyTab or 1;
 
     components.DrawCheckbox('Enabled', 'showPartyList', CheckVisibility);
+    components.DrawCheckbox('Preview Full Party (when config open)', 'partyListPreview');
 
     -- Global settings (shared across all parties)
     imgui.Spacing();
@@ -199,7 +249,6 @@ function M.DrawSettings(state)
     imgui.Separator();
     imgui.Spacing();
 
-    components.DrawCheckbox('Preview Full Party (when config open)', 'partyListPreview');
     components.DrawCheckbox('Show When Solo', 'showPartyListWhenSolo');
     components.DrawCheckbox('Hide During Events', 'partyListHideDuringEvents');
     components.DrawCheckbox('Alliance Windows', 'partyListAlliance');

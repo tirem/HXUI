@@ -16,6 +16,9 @@ local function createPartyDefaults(overrides)
         -- Display options
         showDistance = false,
         distanceHighlight = 0,
+        -- HP/MP display modes ('number', 'percent', 'both', 'both_percent_first', 'current_max')
+        hpDisplayMode = 'number',
+        mpDisplayMode = 'number',
         -- Job display options
         showJobIcon = true,
         jobIconScale = 1,
@@ -137,6 +140,7 @@ M.user_settings = T{
     enemyListDebuffsRightAlign = false,
     showEnemyListTargets = false,
     enableEnemyListClickTarget = true,
+    enemyListPreview = false,
 
     playerBarScaleX = 1,
     playerBarScaleY = 1,
@@ -145,8 +149,8 @@ M.user_settings = T{
     alwaysShowMpBar = true,
     playerBarTpFlashEnabled = true,
     playerBarHideDuringEvents = true,
-    playerBarHpDisplayMode = 'number', -- 'number', 'percent', 'both', 'both_percent_first'
-    playerBarMpDisplayMode = 'number', -- 'number', 'percent', 'both', 'both_percent_first'
+    playerBarHpDisplayMode = 'number', -- 'number', 'percent', 'both', 'both_percent_first', 'current_max'
+    playerBarMpDisplayMode = 'number', -- 'number', 'percent', 'both', 'both_percent_first', 'current_max'
 
     -- Text positioning settings for player bar (per stat)
     playerBarHpTextOffsetX = 0,
@@ -285,6 +289,7 @@ M.user_settings = T{
     mobInfoShowNoData = false,
     mobInfoFontSize = 12,
     mobInfoSingleRow = false, -- false = stacked layout, true = single row layout
+    mobInfoHideWhenEngaged = false, -- hide mob info when engaged in combat
 
     -- Party List global settings (shared across all parties)
     partyListTitleFontSize = 12,
@@ -1155,6 +1160,7 @@ M.default_settings = T{
             outline_width = 2,
         },
     },
+
 };
 
 return M;

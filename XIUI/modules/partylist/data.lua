@@ -187,6 +187,10 @@ function data.updatePartyConfigCache()
         cache.entrySpacing = party.entrySpacing or 0;
         cache.selectionBoxScaleY = party.selectionBoxScaleY or 1;
 
+        -- HP/MP display modes
+        cache.hpDisplayMode = party.hpDisplayMode or 'number';
+        cache.mpDisplayMode = party.mpDisplayMode or 'number';
+
         -- FontSizes
         if cache.fontSizes == nil then cache.fontSizes = {}; end
         if party.splitFontSizes then
@@ -290,7 +294,19 @@ function data.GetMemberInformation(memIdx)
         memInfo.subjoblevel = 49;
         memInfo.targeted = memIdx == 4 or memIdx == 10 or memIdx == 16;
         memInfo.serverid = -memIdx - 1;
-        memInfo.buffs = nil;
+        -- Preview buffs/debuffs - different combinations per member
+        -- Common buff IDs: 1=KO, 2=Sleep, 3=Poison, 4=Paralysis, 5=Blindness, 6=Silence, 7=Petrification
+        -- 10=Stun, 11=Bind, 12=Weight, 13=Slow, 33=Haste, 40=Blink, 43=Stoneskin, 94=Reraise
+        -- 116=Phalanx, 180=Multi Strikes, 187=Enmity Boost, 604=Ionis
+        local previewBuffs = {
+            [0] = {33, 43, 116, 40, 94},           -- Haste, Stoneskin, Phalanx, Blink, Reraise
+            [1] = {3, 13, 33, 43},                  -- Poison, Slow, Haste, Stoneskin
+            [2] = {2, 5, 6},                        -- Sleep, Blindness, Silence
+            [3] = {33, 94, 604, 180},               -- Haste, Reraise, Ionis, Multi Strikes
+            [4] = {4, 11, 12},                      -- Paralysis, Bind, Weight
+            [5] = {33, 40, 43, 116, 94, 187},       -- Lots of buffs
+        };
+        memInfo.buffs = previewBuffs[memIdx % 6];
         memInfo.sync = false;
         memInfo.subTargeted = memIdx == 2 or memIdx == 8 or memIdx == 14;
         memInfo.zone = 100;
@@ -355,10 +371,27 @@ function data.GetMemberInformation(memIdx)
     if (memberInfo.inzone == true) then
         memberInfo.hp = party:GetMemberHP(memIdx);
         memberInfo.hpp = party:GetMemberHPPercent(memIdx) / 100;
-        memberInfo.maxhp = memberInfo.hp / memberInfo.hpp;
         memberInfo.mp = party:GetMemberMP(memIdx);
         memberInfo.mpp = party:GetMemberMPPercent(memIdx) / 100;
-        memberInfo.maxmp = memberInfo.mp / memberInfo.mpp;
+
+        -- For the player (memIdx == 0), use actual max values from player object
+        -- For other party members, calculate from percentage (may be slightly inaccurate)
+        if memIdx == 0 then
+            memberInfo.maxhp = player:GetHPMax();
+            memberInfo.maxmp = player:GetMPMax();
+        else
+            -- Calculate max from current and percentage, with safeguards
+            if memberInfo.hpp > 0 then
+                memberInfo.maxhp = math.floor(memberInfo.hp / memberInfo.hpp + 0.5);
+            else
+                memberInfo.maxhp = 0;
+            end
+            if memberInfo.mpp > 0 then
+                memberInfo.maxmp = math.floor(memberInfo.mp / memberInfo.mpp + 0.5);
+            else
+                memberInfo.maxmp = 0;
+            end
+        end
         memberInfo.tp = party:GetMemberTP(memIdx);
         memberInfo.job = party:GetMemberMainJob(memIdx);
         memberInfo.level = party:GetMemberMainJobLevel(memIdx);

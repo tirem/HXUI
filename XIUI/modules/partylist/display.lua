@@ -96,10 +96,43 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     -- Calculate text sizes
     data.memberText[memIdx].name:set_text(tostring(memInfo.name));
     local nameWidth, nameHeight = data.memberText[memIdx].name:get_text_size();
-    data.memberText[memIdx].hp:set_text(tostring(memInfo.hp));
+
+    -- Format HP text based on display mode
+    local hpDisplayText;
+    local hpDisplayMode = cache.hpDisplayMode or 'number';
+    local hpPercent = math.floor(memInfo.hpp * 100);
+    if hpDisplayMode == 'percent' then
+        hpDisplayText = tostring(hpPercent) .. '%';
+    elseif hpDisplayMode == 'both' then
+        hpDisplayText = tostring(memInfo.hp) .. ' (' .. tostring(hpPercent) .. '%)';
+    elseif hpDisplayMode == 'both_percent_first' then
+        hpDisplayText = tostring(hpPercent) .. '% (' .. tostring(memInfo.hp) .. ')';
+    elseif hpDisplayMode == 'current_max' then
+        hpDisplayText = tostring(memInfo.hp) .. '/' .. tostring(memInfo.maxhp);
+    else
+        hpDisplayText = tostring(memInfo.hp);
+    end
+    data.memberText[memIdx].hp:set_text(hpDisplayText);
     local hpTextWidth, hpHeight = data.memberText[memIdx].hp:get_text_size();
-    data.memberText[memIdx].mp:set_text(tostring(memInfo.mp));
+
+    -- Format MP text based on display mode
+    local mpDisplayText;
+    local mpDisplayMode = cache.mpDisplayMode or 'number';
+    local mpPercent = math.floor(memInfo.mpp * 100);
+    if mpDisplayMode == 'percent' then
+        mpDisplayText = tostring(mpPercent) .. '%';
+    elseif mpDisplayMode == 'both' then
+        mpDisplayText = tostring(memInfo.mp) .. ' (' .. tostring(mpPercent) .. '%)';
+    elseif mpDisplayMode == 'both_percent_first' then
+        mpDisplayText = tostring(mpPercent) .. '% (' .. tostring(memInfo.mp) .. ')';
+    elseif mpDisplayMode == 'current_max' then
+        mpDisplayText = tostring(memInfo.mp) .. '/' .. tostring(memInfo.maxmp);
+    else
+        mpDisplayText = tostring(memInfo.mp);
+    end
+    data.memberText[memIdx].mp:set_text(mpDisplayText);
     local mpTextWidth, mpHeight = data.memberText[memIdx].mp:get_text_size();
+
     data.memberText[memIdx].tp:set_text(tostring(memInfo.tp));
     local tpTextWidth, tpHeight = data.memberText[memIdx].tp:get_text_size();
 
@@ -390,25 +423,21 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
         progressbar.ProgressBar(hpPercentData, {hpBarWidth, hpBarHeight}, {decorate = cache.showBookends, backgroundGradientOverride = data.getBarBackgroundOverride(partyIndex), borderColorOverride = data.getBarBorderOverride(partyIndex)});
         data.memberText[memIdx].zone:set_visible(false);
     elseif (memInfo.zone == '' or memInfo.zone == nil) then
-        local zoneBarWidth, zoneBarHeight;
+        local zoneBarWidth = allBarsLengths;
+        local zoneBarHeight;
         if layout == 1 then
-            zoneBarWidth = hpBarWidth;
             zoneBarHeight = hpBarHeight + 1 + mpBarHeight;
         else
-            zoneBarWidth = hpBarWidth + mpBarWidth;
-            if showTP then zoneBarWidth = zoneBarWidth + tpBarWidth; end
             zoneBarHeight = barHeight;
         end
         imgui.Dummy({zoneBarWidth, zoneBarHeight});
         data.memberText[memIdx].zone:set_visible(false);
     else
-        local zoneBarWidth, zoneBarHeight;
+        local zoneBarWidth = allBarsLengths;
+        local zoneBarHeight;
         if layout == 1 then
-            zoneBarWidth = hpBarWidth;
             zoneBarHeight = hpBarHeight + 1 + mpBarHeight;
         else
-            zoneBarWidth = hpBarWidth + mpBarWidth;
-            if showTP then zoneBarWidth = zoneBarWidth + tpBarWidth; end
             zoneBarHeight = barHeight;
         end
 
@@ -649,7 +678,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                 data.memberText[memIdx].mp:set_font_color(cache.colors.mpTextColor);
                 data.memberTextColorCache[memIdx].mp = cache.colors.mpTextColor;
             end
-            data.memberText[memIdx].mp:set_text(tostring(memInfo.mp));
+            -- MP text already set with formatting above
 
             local mpBaselineOffset = mpRefHeight - mpHeight;
             data.memberText[memIdx].mp:set_position_x(mpStartX + mpBarWidth + 4);
@@ -666,7 +695,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                 data.memberText[memIdx].mp:set_font_color(cache.colors.mpTextColor);
                 data.memberTextColorCache[memIdx].mp = cache.colors.mpTextColor;
             end
-            data.memberText[memIdx].mp:set_text(tostring(memInfo.mp));
+            -- MP text already set with formatting above
             local mpBaselineOffset = mpRefHeight - mpHeight;
             data.memberText[memIdx].mp:set_position_x(mpStartX + mpBarWidth - mpTextWidth);
             data.memberText[memIdx].mp:set_position_y(mpStartY + mpBarHeight + settings.mpTextOffsetY + mpBaselineOffset);

@@ -21,6 +21,30 @@ local windowMargin = 6;  -- Extra margin around window content to prevent clippi
 local allClaimedTargets = {};
 local enemylist = {};
 
+-- Preview mode mock data
+local previewEnemies = {
+    [9001] = { Name = 'Test Enemy 1', HPPercent = 100, Distance = 72.25 },    -- 8.5y
+    [9002] = { Name = 'Goblin Smithy', HPPercent = 75, Distance = 234.09 },   -- 15.3y
+    [9003] = { Name = 'Yagudo Templar', HPPercent = 50, Distance = 488.41 },  -- 22.1y
+    [9004] = { Name = 'Orcish Warlord', HPPercent = 25, Distance = 900 },     -- 30y
+    [9005] = { Name = 'Quadav Veteran', HPPercent = 10, Distance = 100 },     -- 10y
+    [9006] = { Name = 'Crab', HPPercent = 85, Distance = 156.25 },            -- 12.5y
+    [9007] = { Name = 'Very Long Enemy Name That Should Truncate', HPPercent = 60, Distance = 289 }, -- 17y
+    [9008] = { Name = 'Skeleton', HPPercent = 33, Distance = 625 },           -- 25y
+};
+-- Preview debuff data (different sets per enemy)
+-- Common debuff IDs: 2=Sleep, 3=Poison, 4=Paralysis, 5=Blind, 6=Silence, 10=Stun, 11=Bind, 12=Weight, 13=Slow
+local previewDebuffs = {
+    [9001] = {3, 13},           -- Poison, Slow
+    [9002] = {5, 6, 13},        -- Blind, Silence, Slow
+    [9003] = {11, 12},          -- Bind, Weight
+    [9004] = {3, 4, 5},         -- Poison, Paralyze, Blind
+    [9005] = {2},               -- Sleep
+    [9006] = {13},              -- Slow
+    [9007] = {3, 5, 6, 11, 13}, -- Many debuffs
+    [9008] = {},                -- No debuffs
+};
+
 -- Font objects for enemy list (keyed by numeric enemy index for O(1) lookup)
 local enemyNameFonts = {};  -- Enemy name font objects
 local enemyDistanceFonts = {};  -- Distance text font objects
@@ -164,10 +188,23 @@ enemylist.DrawWindow = function(settings)
 		local maxColumnHeight = 0;  -- Track tallest column for window sizing
 		local currentColumnHeight = 0;
 
-		for k,v in pairs(allClaimedTargets) do
-			local ent = GetEntity(k);
-			-- Pass cached entityMgr to GetIsValidMob to avoid redundant GetEntitySafe() call
-			if (v ~= nil and ent ~= nil and GetIsValidMob(k, entityMgr) and ent.HPPercent > 0 and ent.Name ~= nil) then
+		-- Determine which data source to use (preview mode vs real enemies)
+		local isPreviewMode = showConfig[1] and gConfig.enemyListPreview;
+		local enemySource = isPreviewMode and previewEnemies or allClaimedTargets;
+
+		for k,v in pairs(enemySource) do
+			local ent;
+			local isValid;
+			if isPreviewMode then
+				-- In preview mode, use mock entity data directly
+				ent = v;
+				isValid = true;
+			else
+				-- Normal mode: get real entity and validate
+				ent = GetEntity(k);
+				isValid = v ~= nil and ent ~= nil and GetIsValidMob(k, entityMgr) and ent.HPPercent > 0 and ent.Name ~= nil;
+			end
+			if isValid then
 				-- Check if we need to start a new column
 				if (currentRowInColumn >= rowsPerColumn and currentColumn < maxColumns - 1) then
 					-- Move to next column
@@ -252,7 +289,13 @@ enemylist.DrawWindow = function(settings)
 				-- but fonts render in a separate Ashita layer, so they may still overlap
 
 				-- Get entity name color based on type and claim status (ARGB format)
-				local nameColor = GetEntityNameColor(ent, k, gConfig.colorCustomization.shared);
+				local nameColor;
+				if isPreviewMode then
+					-- Use claimed enemy color for preview mode
+					nameColor = gConfig.colorCustomization.shared.claimedColor or 0xFFE1A0FF;
+				else
+					nameColor = GetEntityNameColor(ent, k, gConfig.colorCustomization.shared);
+				end
 
 				-- Draw border first if this is the selected target
 				local borderColor;
@@ -410,8 +453,11 @@ enemylist.DrawWindow = function(settings)
 				-- Positioned at top-left or top-right of entry (offset by user settings)
 				if (gConfig.showEnemyListDebuffs) then
 					local buffIds = nil;
-					-- Use cached entity manager (avoid repeated GetEntitySafe() calls)
-					if entityMgr ~= nil then
+					if isPreviewMode then
+						-- Use preview debuff data
+						buffIds = previewDebuffs[k];
+					elseif entityMgr ~= nil then
+						-- Use cached entity manager (avoid repeated GetEntitySafe() calls)
 						buffIds = debuffHandler.GetActiveDebuffs(entityMgr:GetServerId(k));
 					end
 					if (buffIds ~= nil and #buffIds > 0) then
@@ -441,11 +487,14 @@ enemylist.DrawWindow = function(settings)
 
 				-- ===== ENEMY TARGET CONTAINER =====
 				-- Show target's name and HP bar in a separate container to the right
-				if (gConfig.showEnemyListTargets) then
+				-- Skip in preview mode since we don't have real target tracking data
+				if (gConfig.showEnemyListTargets and not isPreviewMode) then
 					local targetIndex = actionTracker.GetLastTarget(ent.ServerId);
+					local hasValidTarget = false;
 					if (targetIndex ~= nil) then
 						local targetEntity = GetEntity(targetIndex);
 						if (targetEntity ~= nil and targetEntity.Name ~= nil) then
+							hasValidTarget = true;
 							-- Position target container below the debuff row
 							local targetContainerX = entryStartX + entryWidth + settings.debuffOffsetX + 10.;
 							-- Position Y at the bottom of the enemy entry (bottom-right)
@@ -507,10 +556,19 @@ enemylist.DrawWindow = function(settings)
 							targetFont:set_visible(true);
 						end
 					end
+					-- Hide target elements if enemy has no valid target (prevents stale overlays)
+					if (not hasValidTarget) then
+						if (enemyTargetBackgrounds[k] ~= nil) then
+							enemyTargetBackgrounds[k].visible = false;
+						end
+						if (enemyTargetFonts[k] ~= nil) then
+							enemyTargetFonts[k]:set_visible(false);
+						end
+					end
 				end
 
-				-- Add a click target over the entire entry to /target that mob (disabled in limited mode or by config)
-				if (not HzLimitedMode and gConfig.enableEnemyListClickTarget) then
+				-- Add a click target over the entire entry to /target that mob (disabled in limited mode, preview mode, or by config)
+				if (not HzLimitedMode and not isPreviewMode and gConfig.enableEnemyListClickTarget) then
 					imgui.SetCursorScreenPos({entryStartX, entryStartY});
 					if imgui.InvisibleButton('EnemyEntry' .. k, {entryWidth, entryHeight}) then
 						local clickEntityMgr = AshitaCore:GetMemoryManager():GetEntity();
@@ -533,7 +591,10 @@ enemylist.DrawWindow = function(settings)
 					break;
 				end
 			else
-				allClaimedTargets[k] = nil;
+				-- Only remove invalid entries in normal mode (not preview mode)
+				if not isPreviewMode then
+					allClaimedTargets[k] = nil;
+				end
 			end
 		end
 

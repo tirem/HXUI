@@ -11,16 +11,15 @@ local imgui = require('imgui');
 local M = {};
 
 -- Display mode options for HP/MP text
-local displayModeOptions = {'number', 'percent', 'both', 'both_percent_first'};
 local displayModeLabels = {
     number = 'Number Only',
     percent = 'Percent Only',
     both = 'Number (Percent)',
-    both_percent_first = 'Percent (Number)'
+    both_percent_first = 'Percent (Number)',
+    current_max = 'Current/Max'
 };
 
 -- Alignment options
-local alignmentOptions = {'left', 'center', 'right'};
 local alignmentLabels = {
     left = 'Left',
     center = 'Center',
@@ -43,35 +42,39 @@ function M.DrawSettings()
 
     -- HP Display Mode dropdown
     local hpDisplayLabel = displayModeLabels[gConfig.playerBarHpDisplayMode] or 'Number Only';
-    components.DrawComboBox('HP Display##playerBar', hpDisplayLabel, {'Number Only', 'Percent Only', 'Number (Percent)', 'Percent (Number)'}, function(newValue)
+    components.DrawComboBox('HP Display##playerBar', hpDisplayLabel, {'Number Only', 'Percent Only', 'Number (Percent)', 'Percent (Number)', 'Current/Max'}, function(newValue)
         if newValue == 'Number Only' then
             gConfig.playerBarHpDisplayMode = 'number';
         elseif newValue == 'Percent Only' then
             gConfig.playerBarHpDisplayMode = 'percent';
         elseif newValue == 'Number (Percent)' then
             gConfig.playerBarHpDisplayMode = 'both';
-        else
+        elseif newValue == 'Percent (Number)' then
             gConfig.playerBarHpDisplayMode = 'both_percent_first';
+        else
+            gConfig.playerBarHpDisplayMode = 'current_max';
         end
         SaveSettingsOnly();
     end);
-    imgui.ShowHelp('Choose how HP is displayed: number only (1234), percent only (100%), number first (1234 (100%)), or percent first (100% (1234)).');
+    imgui.ShowHelp('How HP is displayed: number (1234), percent (100%), number first (1234 (100%)), percent first (100% (1234)), or current/max (1234/1500).');
 
     -- MP Display Mode dropdown
     local mpDisplayLabel = displayModeLabels[gConfig.playerBarMpDisplayMode] or 'Number Only';
-    components.DrawComboBox('MP Display##playerBar', mpDisplayLabel, {'Number Only', 'Percent Only', 'Number (Percent)', 'Percent (Number)'}, function(newValue)
+    components.DrawComboBox('MP Display##playerBar', mpDisplayLabel, {'Number Only', 'Percent Only', 'Number (Percent)', 'Percent (Number)', 'Current/Max'}, function(newValue)
         if newValue == 'Number Only' then
             gConfig.playerBarMpDisplayMode = 'number';
         elseif newValue == 'Percent Only' then
             gConfig.playerBarMpDisplayMode = 'percent';
         elseif newValue == 'Number (Percent)' then
             gConfig.playerBarMpDisplayMode = 'both';
-        else
+        elseif newValue == 'Percent (Number)' then
             gConfig.playerBarMpDisplayMode = 'both_percent_first';
+        else
+            gConfig.playerBarMpDisplayMode = 'current_max';
         end
         SaveSettingsOnly();
     end);
-    imgui.ShowHelp('Choose how MP is displayed: number only (1234), percent only (100%), number first (1234 (100%)), or percent first (100% (1234)).');
+    imgui.ShowHelp('How MP is displayed: number (1234), percent (100%), number first (1234 (100%)), percent first (100% (1234)), or current/max (750/1000).');
 
     -- Text positioning section
     if components.CollapsingSection('Text Positioning##playerBar', false) then

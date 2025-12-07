@@ -177,6 +177,21 @@ mobinfo.DrawWindow = function(settings)
         return;
     end
 
+    -- Hide when engaged if setting is enabled
+    if gConfig.mobInfoHideWhenEngaged then
+        local entityMgr = AshitaCore:GetMemoryManager():GetEntity();
+        local partyMgr = AshitaCore:GetMemoryManager():GetParty();
+        if entityMgr and partyMgr then
+            local playerIndex = partyMgr:GetMemberTargetIndex(0);
+            local playerStatus = entityMgr:GetStatus(playerIndex);
+            -- Status 1 = Engaged in combat
+            if playerStatus == 1 then
+                SetFontsVisible(allFonts, false);
+                return;
+            end
+        end
+    end
+
     -- Obtain the player target entity
     local playerTarget = GetTargetSafe();
     local targetIndex;

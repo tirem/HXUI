@@ -179,6 +179,9 @@ local function DrawMobInfoSettingsContent(githubTexture)
 
         components.DrawCheckbox('Show When No Data', 'mobInfoShowNoData');
         imgui.ShowHelp('Show the window even when no mob data is available for the current zone.');
+
+        components.DrawCheckbox('Hide When Engaged', 'mobInfoHideWhenEngaged');
+        imgui.ShowHelp('Hide mob info when you are engaged in combat.');
     end
 
     if components.CollapsingSection('Scale & Font##mobInfo') then

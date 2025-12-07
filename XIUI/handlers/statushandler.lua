@@ -19,8 +19,10 @@ local debuffIcon = nil;
 local jobIcons = T{};
 
 -- this table implements overrides for certain icons to handle
--- local buffs_table = nil;
+-- incorrectly mapped icons in game resources
 local id_overrides = T{
+    -- Rampart (623) shows BCNM icon in game resources, use Sentinel (62) icon instead
+    ['_623'] = 62,
 };
 -------------------------------------------------------------------------------
 -- local functions
@@ -79,6 +81,12 @@ local function load_status_icon_from_theme(theme, status_id)
 
     local device = GetD3D8Device();
     if (device == nil) then return nil; end
+
+    -- Apply icon overrides for incorrectly mapped icons
+    local id_key = ("_%d"):fmt(status_id);
+    if (id_overrides:haskey(id_key)) then
+        status_id = id_overrides[id_key];
+    end
 
     local icon_path = nil;
     local supports_alpha = false;
