@@ -233,6 +233,47 @@ local function DrawPartyTabContent(party, partyName)
             components.DrawPartySlider(party, 'Font Size', 'fontSize', 8, 36);
         end
     end
+
+    if components.CollapsingSection('Text Positions##party' .. partyName) then
+        imgui.Text('Name Text');
+        imgui.PushItemWidth(100);
+        components.DrawPartySlider(party, 'X##nameX', 'nameTextOffsetX', -50, 50);
+        imgui.SameLine();
+        components.DrawPartySlider(party, 'Y##nameY', 'nameTextOffsetY', -50, 50);
+        imgui.PopItemWidth();
+
+        imgui.Text('HP Text');
+        imgui.PushItemWidth(100);
+        components.DrawPartySlider(party, 'X##hpX', 'hpTextOffsetX', -50, 50);
+        imgui.SameLine();
+        components.DrawPartySlider(party, 'Y##hpY', 'hpTextOffsetY', -50, 50);
+        imgui.PopItemWidth();
+
+        imgui.Text('MP Text');
+        imgui.PushItemWidth(100);
+        components.DrawPartySlider(party, 'X##mpX', 'mpTextOffsetX', -50, 50);
+        imgui.SameLine();
+        components.DrawPartySlider(party, 'Y##mpY', 'mpTextOffsetY', -50, 50);
+        imgui.PopItemWidth();
+
+        if party.showTP then
+            imgui.Text('TP Text');
+            imgui.PushItemWidth(100);
+            components.DrawPartySlider(party, 'X##tpX', 'tpTextOffsetX', -50, 50);
+            imgui.SameLine();
+            components.DrawPartySlider(party, 'Y##tpY', 'tpTextOffsetY', -50, 50);
+            imgui.PopItemWidth();
+        end
+
+        if party.showDistance then
+            imgui.Text('Distance Text');
+            imgui.PushItemWidth(100);
+            components.DrawPartySlider(party, 'X##distX', 'distanceTextOffsetX', -50, 50);
+            imgui.SameLine();
+            components.DrawPartySlider(party, 'Y##distY', 'distanceTextOffsetY', -50, 50);
+            imgui.PopItemWidth();
+        end
+    end
 end
 
 -- Section: Party List Settings

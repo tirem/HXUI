@@ -199,6 +199,18 @@ mobdata.GetLevelString = function(mobInfo)
 end
 
 --[[
+    Get job abbreviation string
+    @param mobInfo: The mob data table from GetMobInfo
+    @return string or nil: Job abbreviation (WAR, MNK, etc.) or nil if no job
+]]
+mobdata.GetJobString = function(mobInfo)
+    if mobInfo == nil or mobInfo.Job == nil or mobInfo.Job == 0 then
+        return nil;
+    end
+    return AshitaCore:GetResourceManager():GetString("jobs.names_abbr", mobInfo.Job);
+end
+
+--[[
     Get resistances (modifiers < 1.0)
     @param mobInfo: The mob data table from GetMobInfo
     @return table: Table of {type = modifier} for resistances

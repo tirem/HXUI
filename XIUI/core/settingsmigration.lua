@@ -363,6 +363,45 @@ function M.MigrateIndividualSettings(gConfig, defaults)
     if gConfig.alwaysShowHealthPercent ~= nil then
         gConfig.alwaysShowHealthPercent = nil;
     end
+
+    -- Migrate new mob info settings (add missing fields for existing users)
+    if gConfig.mobInfoShowJob == nil then
+        gConfig.mobInfoShowJob = defaults.mobInfoShowJob;
+    end
+    if gConfig.mobInfoDisableIconTints == nil then
+        gConfig.mobInfoDisableIconTints = defaults.mobInfoDisableIconTints;
+    end
+    if gConfig.mobInfoShowModifierText == nil then
+        gConfig.mobInfoShowModifierText = defaults.mobInfoShowModifierText;
+    end
+    if gConfig.mobInfoShowServerId == nil then
+        gConfig.mobInfoShowServerId = defaults.mobInfoShowServerId;
+    end
+    if gConfig.mobInfoServerIdHex == nil then
+        gConfig.mobInfoServerIdHex = defaults.mobInfoServerIdHex;
+    end
+    if gConfig.mobInfoSingleRow == nil then
+        gConfig.mobInfoSingleRow = defaults.mobInfoSingleRow;
+    end
+
+    -- Migrate party text position offsets (add to all parties if missing)
+    local partyTables = { gConfig.partyA, gConfig.partyB, gConfig.partyC };
+    local partyDefaults = { defaults.partyA, defaults.partyB, defaults.partyC };
+    for i, party in ipairs(partyTables) do
+        if party then
+            local partyDefault = partyDefaults[i];
+            if party.nameTextOffsetX == nil then party.nameTextOffsetX = partyDefault.nameTextOffsetX or 0; end
+            if party.nameTextOffsetY == nil then party.nameTextOffsetY = partyDefault.nameTextOffsetY or 0; end
+            if party.hpTextOffsetX == nil then party.hpTextOffsetX = partyDefault.hpTextOffsetX or 0; end
+            if party.hpTextOffsetY == nil then party.hpTextOffsetY = partyDefault.hpTextOffsetY or 0; end
+            if party.mpTextOffsetX == nil then party.mpTextOffsetX = partyDefault.mpTextOffsetX or 0; end
+            if party.mpTextOffsetY == nil then party.mpTextOffsetY = partyDefault.mpTextOffsetY or 0; end
+            if party.tpTextOffsetX == nil then party.tpTextOffsetX = partyDefault.tpTextOffsetX or 0; end
+            if party.tpTextOffsetY == nil then party.tpTextOffsetY = partyDefault.tpTextOffsetY or 0; end
+            if party.distanceTextOffsetX == nil then party.distanceTextOffsetX = partyDefault.distanceTextOffsetX or 0; end
+            if party.distanceTextOffsetY == nil then party.distanceTextOffsetY = partyDefault.distanceTextOffsetY or 0; end
+        end
+    end
 end
 
 -- Run structure migrations (called AFTER settings.load())

@@ -154,7 +154,15 @@ local function DrawMobInfoSettingsContent(githubTexture)
         ashita.misc.open_url('https://github.com/ThornyFFXI/mobdb');
     end
 
+    if components.CollapsingSection('Layout##mobInfo') then
+        components.DrawCheckbox('Single Row Layout', 'mobInfoSingleRow');
+        imgui.ShowHelp('Display all mob info on a single horizontal line with pipe separators.');
+    end
+
     if components.CollapsingSection('Display Options##mobInfo') then
+        components.DrawCheckbox('Show Job', 'mobInfoShowJob');
+        imgui.ShowHelp('Display the mob\'s job type (WAR, MNK, BLM, etc.).');
+
         components.DrawCheckbox('Show Level', 'mobInfoShowLevel');
         imgui.ShowHelp('Display the mob level or level range.');
 
@@ -177,6 +185,19 @@ local function DrawMobInfoSettingsContent(githubTexture)
         components.DrawCheckbox('Show Immunities', 'mobInfoShowImmunities');
         imgui.ShowHelp('Show status effects the mob is immune to.');
 
+        components.DrawCheckbox('Show Modifier Percentages', 'mobInfoShowModifierText');
+        imgui.ShowHelp('Show +25%/-50% text next to weakness/resistance icons.');
+
+        components.DrawCheckbox('Show Server ID', 'mobInfoShowServerId');
+        imgui.ShowHelp('Display the target\'s server ID.');
+
+        if gConfig.mobInfoShowServerId then
+            imgui.Indent(20);
+            components.DrawCheckbox('Hex Format', 'mobInfoServerIdHex');
+            imgui.ShowHelp('Show server ID in hexadecimal format (0x1C0) instead of decimal.');
+            imgui.Unindent(20);
+        end
+
         components.DrawCheckbox('Show When No Data', 'mobInfoShowNoData');
         imgui.ShowHelp('Show the window even when no mob data is available for the current zone.');
 
@@ -184,7 +205,10 @@ local function DrawMobInfoSettingsContent(githubTexture)
         imgui.ShowHelp('Hide mob info when you are engaged in combat.');
     end
 
-    if components.CollapsingSection('Scale & Font##mobInfo') then
+    if components.CollapsingSection('Appearance##mobInfo') then
+        components.DrawCheckbox('Disable Icon Tints', 'mobInfoDisableIconTints');
+        imgui.ShowHelp('Show icons without color overlays. Useful if you prefer the original icon colors.');
+
         components.DrawSlider('Icon Scale', 'mobInfoIconScale', 0.5, 3.0, '%.1f');
         imgui.ShowHelp('Scale multiplier for mob info icons.');
 

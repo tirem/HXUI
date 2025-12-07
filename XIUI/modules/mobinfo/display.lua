@@ -29,11 +29,20 @@ local textures = {
 };
 
 -- Font objects
-local levelText;
-local allFonts;
+local fonts = {
+    header = nil,       -- Job + Level text
+    separator = {},     -- Pool of separator fonts (|)
+    modifier = {},      -- Pool of modifier fonts (+25%, -50%)
+    serverId = nil,     -- Server ID text
+};
+local allFonts = {};
+
+-- Maximum pool sizes for dynamic text elements
+local MAX_SEPARATORS = 6;   -- Max separators in single-row mode
+local MAX_MODIFIERS = 16;   -- Max modifier texts (weaknesses + resistances)
 
 -- Cached colors
-local lastLevelTextColor;
+local lastTextColor;
 
 -- Detection method definitions with display info
 local detectionMethods = {
@@ -103,53 +112,301 @@ local function LoadMobInfoTexture(name)
     return { image = texture_ptr[0] };
 end
 
--- Draw a single icon with tooltip
+-- Helper to update font color if changed
+local function UpdateFontColor(font, color)
+    if lastTextColor ~= color then
+        font:set_font_color(color);
+    end
+end
+
+-- Draw a single icon with tooltip, returns width
 local function DrawIconWithTooltip(texture, size, tooltipText, tintColor)
+    local posX, posY = imgui.GetCursorScreenPos();
+
     if texture == nil or texture.image == nil then
         -- Draw a placeholder square if texture is missing
         local draw_list = imgui.GetWindowDrawList();
-        local posX, posY = imgui.GetCursorScreenPos();
+        local placeholderColor = tintColor and ARGBToABGR(tintColor) or 0xFF888888;
         draw_list:AddRectFilled(
             {posX, posY},
             {posX + size, posY + size},
-            tintColor or 0xFF888888,
+            placeholderColor,
             2.0
         );
-        imgui.Dummy({size, size});
     else
-        if tintColor then
-            imgui.Image(tonumber(ffi.cast("uint32_t", texture.image)), {size, size}, {0, 0}, {1, 1}, {
-                bit.band(bit.rshift(tintColor, 16), 0xFF) / 255,
-                bit.band(bit.rshift(tintColor, 8), 0xFF) / 255,
-                bit.band(tintColor, 0xFF) / 255,
-                bit.band(bit.rshift(tintColor, 24), 0xFF) / 255
-            });
-        else
-            imgui.Image(tonumber(ffi.cast("uint32_t", texture.image)), {size, size});
-        end
+        -- Use draw list AddImage for proper tint color support
+        local draw_list = imgui.GetWindowDrawList();
+        local imageColor = tintColor and ARGBToABGR(tintColor) or IM_COL32_WHITE;
+        draw_list:AddImage(
+            tonumber(ffi.cast("uint32_t", texture.image)),
+            {posX, posY},
+            {posX + size, posY + size},
+            {0, 0}, {1, 1},
+            imageColor
+        );
     end
+
+    -- Always use Dummy to advance cursor and enable hover detection
+    imgui.Dummy({size, size});
 
     if tooltipText and imgui.IsItemHovered() then
         imgui.SetTooltip(tooltipText);
     end
+
+    return size;
 end
 
--- Draw a row of icons with spacing
-local function DrawIconRow(icons, iconSize, spacing, maxPerRow)
-    local count = 0;
-    for _, iconData in ipairs(icons) do
-        if count > 0 then
-            if maxPerRow and count >= maxPerRow then
-                -- Start new row
-                count = 0;
-            else
-                imgui.SameLine(0, spacing);
+-- Build detection icons array
+local function BuildDetectionIcons(mobInfo)
+    local detectionIcons = {};
+    local methods = mobdata.GetDetectionMethods(mobInfo);
+    local disableTints = gConfig.mobInfoDisableIconTints;
+
+    -- Aggro indicator first
+    if mobInfo.Aggro then
+        table.insert(detectionIcons, {
+            texture = textures.detection.aggro,
+            tooltip = 'Aggressive',
+            tint = disableTints and nil or 0xFFFF4444
+        });
+    end
+
+    -- Link indicator
+    if gConfig.mobInfoShowLink and mobInfo.Link then
+        table.insert(detectionIcons, {
+            texture = textures.detection.link,
+            tooltip = 'Links with nearby mobs',
+            tint = disableTints and nil or 0xFFFFAA44
+        });
+    end
+
+    -- Detection methods
+    for _, method in ipairs(detectionMethods) do
+        if methods[method.key] then
+            table.insert(detectionIcons, {
+                texture = textures.detection[method.key],
+                tooltip = method.name .. ': ' .. method.tooltip
+            });
+        end
+    end
+
+    return detectionIcons;
+end
+
+-- Build weakness icons array
+local function BuildWeaknessIcons(mobInfo)
+    local weaknessIcons = {};
+    local weaknesses = mobdata.GetWeaknesses(mobInfo);
+    local disableTints = gConfig.mobInfoDisableIconTints;
+    local tintColor = disableTints and nil or gConfig.colorCustomization.mobInfo.weaknessColor;
+
+    -- Elements
+    for _, elem in ipairs(elements) do
+        if weaknesses[elem.key] then
+            local modifier = weaknesses[elem.key];
+            local percent = math.floor((modifier - 1) * 100);
+            table.insert(weaknessIcons, {
+                texture = textures.elements[string.lower(elem.key)],
+                -- Use %% to escape % for imgui.SetTooltip (printf-style function)
+                tooltip = elem.name .. ' Weakness (+' .. tostring(percent) .. '%% damage)',
+                tint = tintColor,
+                modifierText = '+' .. percent .. '%'
+            });
+        end
+    end
+
+    -- Physical types
+    for _, phys in ipairs(physicalTypes) do
+        if weaknesses[phys.key] then
+            local modifier = weaknesses[phys.key];
+            local percent = math.floor((modifier - 1) * 100);
+            table.insert(weaknessIcons, {
+                texture = textures.physical[string.lower(phys.key)],
+                -- Use %% to escape % for imgui.SetTooltip (printf-style function)
+                tooltip = phys.name .. ' Weakness (+' .. tostring(percent) .. '%% damage)',
+                tint = tintColor,
+                modifierText = '+' .. percent .. '%'
+            });
+        end
+    end
+
+    return weaknessIcons;
+end
+
+-- Build resistance icons array
+local function BuildResistanceIcons(mobInfo)
+    local resistanceIcons = {};
+    local resistances = mobdata.GetResistances(mobInfo);
+    local disableTints = gConfig.mobInfoDisableIconTints;
+    local tintColor = disableTints and nil or gConfig.colorCustomization.mobInfo.resistanceColor;
+
+    -- Elements
+    for _, elem in ipairs(elements) do
+        if resistances[elem.key] then
+            local modifier = resistances[elem.key];
+            local percent = math.floor((1 - modifier) * 100);
+            table.insert(resistanceIcons, {
+                texture = textures.elements[string.lower(elem.key)],
+                -- Use %% to escape % for imgui.SetTooltip (printf-style function)
+                tooltip = elem.name .. ' Resistance (-' .. tostring(percent) .. '%% damage)',
+                tint = tintColor,
+                modifierText = '-' .. percent .. '%'
+            });
+        end
+    end
+
+    -- Physical types
+    for _, phys in ipairs(physicalTypes) do
+        if resistances[phys.key] then
+            local modifier = resistances[phys.key];
+            local percent = math.floor((1 - modifier) * 100);
+            table.insert(resistanceIcons, {
+                texture = textures.physical[string.lower(phys.key)],
+                -- Use %% to escape % for imgui.SetTooltip (printf-style function)
+                tooltip = phys.name .. ' Resistance (-' .. tostring(percent) .. '%% damage)',
+                tint = tintColor,
+                modifierText = '-' .. percent .. '%'
+            });
+        end
+    end
+
+    return resistanceIcons;
+end
+
+-- Build immunity icons array
+local function BuildImmunityIcons(mobInfo)
+    local immunityIcons = {};
+    local immunities = mobdata.GetImmunities(mobInfo);
+    local disableTints = gConfig.mobInfoDisableIconTints;
+    local tintColor = disableTints and nil or gConfig.colorCustomization.mobInfo.immunityColor;
+
+    for _, imm in ipairs(immunityTypes) do
+        if immunities[imm.key] then
+            table.insert(immunityIcons, {
+                texture = textures.immunities[string.lower(imm.key)],
+                tooltip = 'Immune to ' .. imm.name,
+                tint = tintColor
+            });
+        end
+    end
+
+    return immunityIcons;
+end
+
+-- Hide all fonts
+local function HideAllFonts()
+    SetFontsVisible(allFonts, false);
+end
+
+-- Calculate width of icons with modifiers (for positioning)
+local function CalculateIconsWidth(icons, iconSize, spacing, fontHeight, modifierFontPool, modifierIndex)
+    local totalWidth = 0;
+    local usedModifiers = modifierIndex;
+
+    for i, iconData in ipairs(icons) do
+        if i > 1 then
+            totalWidth = totalWidth + spacing;
+        end
+        totalWidth = totalWidth + iconSize;
+
+        -- Add modifier text width if enabled
+        if iconData.modifierText and gConfig.mobInfoShowModifierText then
+            local modFont = modifierFontPool[usedModifiers];
+            if modFont then
+                modFont:set_font_height(fontHeight);
+                modFont:set_text(iconData.modifierText);
+                local textW, _ = modFont:get_text_size();
+                totalWidth = totalWidth + 2 + textW; -- 2px gap + text
+                usedModifiers = usedModifiers + 1;
             end
+        end
+    end
+
+    return totalWidth, usedModifiers;
+end
+
+-- Draw icons with optional modifier text using GDI fonts
+-- baseX is the absolute X position where this section starts
+-- Returns the total width consumed and new modifier index
+local function DrawIconsWithModifiers(icons, iconSize, spacing, fontHeight, textColor, modifierFontPool, modifierIndex, baseX, baseY)
+    local offsetX = 0;
+    local usedModifiers = modifierIndex;
+
+    for i, iconData in ipairs(icons) do
+        if i > 1 then
+            imgui.SameLine(0, spacing);
+            offsetX = offsetX + spacing;
         end
 
         DrawIconWithTooltip(iconData.texture, iconSize, iconData.tooltip, iconData.tint);
-        count = count + 1;
+        offsetX = offsetX + iconSize;
+
+        -- Draw modifier text if enabled and available
+        if iconData.modifierText and gConfig.mobInfoShowModifierText then
+            local modFont = modifierFontPool[usedModifiers];
+            if modFont then
+                modFont:set_font_height(fontHeight);
+                modFont:set_text(iconData.modifierText);
+                UpdateFontColor(modFont, textColor);
+
+                local textW, textH = modFont:get_text_size();
+                local textX = baseX + offsetX + 2;
+                local textY = baseY + (iconSize - textH) / 2; -- Vertically center
+
+                imgui.SameLine(0, 2);
+                offsetX = offsetX + 2;
+
+                modFont:set_position_x(textX);
+                modFont:set_position_y(textY);
+                modFont:set_visible(true);
+
+                imgui.Dummy({textW, iconSize});
+                offsetX = offsetX + textW;
+
+                usedModifiers = usedModifiers + 1;
+            end
+        end
     end
+
+    return offsetX, usedModifiers;
+end
+
+-- Draw a separator using GDI font at absolute position
+-- Returns the total width consumed (including padding) and the next separator index
+local function DrawGdiSeparator(separatorPool, sepIndex, fontHeight, textColor, posX, posY, iconSize)
+    local sepFont = separatorPool[sepIndex];
+    if not sepFont then
+        return 0, sepIndex;
+    end
+
+    sepFont:set_font_height(fontHeight);
+    sepFont:set_text('|');
+    UpdateFontColor(sepFont, textColor);
+
+    local textW, textH = sepFont:get_text_size();
+    local textY = posY + (iconSize - textH) / 2; -- Vertically center
+
+    -- Position: 4px padding, then separator, then 4px padding
+    sepFont:set_position_x(posX + 4);
+    sepFont:set_position_y(textY);
+    sepFont:set_visible(true);
+
+    return textW + 8, sepIndex + 1; -- 4px padding on each side
+end
+
+-- Draw icons without modifiers (detection, immunity)
+-- Returns total width consumed
+local function DrawIconsSimple(icons, iconSize, spacing)
+    local totalWidth = 0;
+    for i, iconData in ipairs(icons) do
+        if i > 1 then
+            imgui.SameLine(0, spacing);
+            totalWidth = totalWidth + spacing;
+        end
+        DrawIconWithTooltip(iconData.texture, iconSize, iconData.tooltip, iconData.tint);
+        totalWidth = totalWidth + iconSize;
+    end
+    return totalWidth;
 end
 
 --[[
@@ -159,7 +416,7 @@ end
 mobinfo.DrawWindow = function(settings)
     -- Check if enabled
     if not gConfig.showMobInfo then
-        SetFontsVisible(allFonts, false);
+        HideAllFonts();
         return;
     end
 
@@ -168,12 +425,12 @@ mobinfo.DrawWindow = function(settings)
     local playerEnt = GetPlayerEntity();
 
     if player == nil or playerEnt == nil then
-        SetFontsVisible(allFonts, false);
+        HideAllFonts();
         return;
     end
 
     if player.isZoning then
-        SetFontsVisible(allFonts, false);
+        HideAllFonts();
         return;
     end
 
@@ -186,7 +443,7 @@ mobinfo.DrawWindow = function(settings)
             local playerStatus = entityMgr:GetStatus(playerIndex);
             -- Status 1 = Engaged in combat
             if playerStatus == 1 then
-                SetFontsVisible(allFonts, false);
+                HideAllFonts();
                 return;
             end
         end
@@ -202,14 +459,14 @@ mobinfo.DrawWindow = function(settings)
     end
 
     if targetEntity == nil or targetEntity.Name == nil then
-        SetFontsVisible(allFonts, false);
+        HideAllFonts();
         return;
     end
 
     -- Only show for mobs
     local isMonster = GetIsMob(targetEntity);
     if not isMonster then
-        SetFontsVisible(allFonts, false);
+        HideAllFonts();
         return;
     end
 
@@ -218,13 +475,16 @@ mobinfo.DrawWindow = function(settings)
 
     -- If no data and we don't want to show "no data" window, hide
     if mobInfo == nil and not gConfig.mobInfoShowNoData then
-        SetFontsVisible(allFonts, false);
+        HideAllFonts();
         return;
     end
 
     -- Calculate icon size with scale
     local iconSize = settings.iconSize * gConfig.mobInfoIconScale;
     local spacing = settings.iconSpacing;
+    local singleRow = gConfig.mobInfoSingleRow;
+    local fontHeight = settings.level_font_settings.font_height;
+    local textColor = gConfig.colorCustomization.mobInfo.levelTextColor;
 
     -- Setup window
     imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
@@ -241,192 +501,275 @@ mobinfo.DrawWindow = function(settings)
         windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
     end
 
+    -- Hide all fonts initially - we'll show only what we need
+    HideAllFonts();
+
     if imgui.Begin('MobInfo', true, windowFlags) then
         -- If no data, show a simple message
         if mobInfo == nil then
-            imgui.Text('No mob data');
-            SetFontsVisible(allFonts, false);
+            fonts.header:set_text('No mob data');
+            fonts.header:set_font_height(fontHeight);
+            UpdateFontColor(fonts.header, textColor);
+            local startX, startY = imgui.GetCursorScreenPos();
+            fonts.header:set_position_x(startX);
+            fonts.header:set_position_y(startY);
+            fonts.header:set_visible(true);
+            local textW, textH = fonts.header:get_text_size();
+            imgui.Dummy({textW, textH});
         else
             local startX, startY = imgui.GetCursorScreenPos();
+            local cursorX, cursorY = startX, startY;
             local hasContent = false;
 
-            -- Level display
-            if gConfig.mobInfoShowLevel then
-                local levelString = mobdata.GetLevelString(mobInfo);
-                if levelString ~= '' then
-                    levelText:set_font_height(settings.level_font_settings.font_height);
-                    levelText:set_text('Lv.' .. levelString);
+            -- Build all icon arrays
+            local detectionIcons = gConfig.mobInfoShowDetection and BuildDetectionIcons(mobInfo) or {};
+            local weaknessIcons = gConfig.mobInfoShowWeaknesses and BuildWeaknessIcons(mobInfo) or {};
+            local resistanceIcons = gConfig.mobInfoShowResistances and BuildResistanceIcons(mobInfo) or {};
+            local immunityIcons = gConfig.mobInfoShowImmunities and BuildImmunityIcons(mobInfo) or {};
 
-                    local textColor = gConfig.colorCustomization.mobInfo.levelTextColor;
-                    if lastLevelTextColor ~= textColor then
-                        levelText:set_font_color(textColor);
-                        lastLevelTextColor = textColor;
+            -- Get job string
+            local jobString = gConfig.mobInfoShowJob and mobdata.GetJobString(mobInfo) or nil;
+
+            -- Get level string
+            local levelString = gConfig.mobInfoShowLevel and mobdata.GetLevelString(mobInfo) or '';
+
+            -- Get server ID if enabled
+            local serverIdString = nil;
+            if gConfig.mobInfoShowServerId and targetEntity.ServerId then
+                if gConfig.mobInfoServerIdHex then
+                    serverIdString = string.format('[0x%X]', targetEntity.ServerId);
+                else
+                    serverIdString = string.format('[%d]', targetEntity.ServerId);
+                end
+            end
+
+            -- Track separator and modifier font usage
+            local separatorIndex = 1;
+            local modifierIndex = 1;
+
+            if singleRow then
+                -- Single row layout: Job Level | Detection | Weaknesses | Resistances | Immunities | ServerId
+                -- Track absolute X position for GDI font positioning
+                local currentX = startX;
+
+                -- Build the header text (job + level)
+                local headerParts = {};
+                if jobString then
+                    table.insert(headerParts, jobString);
+                end
+                if levelString ~= '' then
+                    table.insert(headerParts, levelString);
+                end
+                local headerText = table.concat(headerParts, ' ');
+
+                -- Render header text with GDI font if we have any
+                if headerText ~= '' then
+                    fonts.header:set_font_height(fontHeight);
+                    fonts.header:set_text(headerText);
+                    UpdateFontColor(fonts.header, textColor);
+
+                    local textW, textH = fonts.header:get_text_size();
+                    local textY = startY + (iconSize - textH) / 2;
+                    fonts.header:set_position_x(currentX);
+                    fonts.header:set_position_y(textY);
+                    fonts.header:set_visible(true);
+
+                    imgui.Dummy({textW, iconSize});
+                    currentX = currentX + textW;
+                    hasContent = true;
+                end
+
+                -- Detection icons
+                if #detectionIcons > 0 then
+                    if hasContent then
+                        local sepW;
+                        sepW, separatorIndex = DrawGdiSeparator(fonts.separator, separatorIndex, fontHeight, textColor, currentX, startY, iconSize);
+                        imgui.SameLine(0, 0);
+                        imgui.Dummy({sepW, iconSize});
+                        currentX = currentX + sepW;
                     end
 
-                    local textW, textH = levelText:get_text_size();
-                    levelText:set_position_x(startX);
-                    levelText:set_position_y(startY);
-                    levelText:set_visible(true);
+                    imgui.SameLine(0, 0);
+                    local iconsWidth = DrawIconsSimple(detectionIcons, iconSize, spacing);
+                    currentX = currentX + iconsWidth;
+                    hasContent = true;
+                end
+
+                -- Weakness icons with modifiers
+                if #weaknessIcons > 0 then
+                    if hasContent then
+                        local sepW;
+                        sepW, separatorIndex = DrawGdiSeparator(fonts.separator, separatorIndex, fontHeight, textColor, currentX, startY, iconSize);
+                        imgui.SameLine(0, 0);
+                        imgui.Dummy({sepW, iconSize});
+                        currentX = currentX + sepW;
+                    end
+
+                    imgui.SameLine(0, 0);
+                    local iconsWidth, newModIdx = DrawIconsWithModifiers(weaknessIcons, iconSize, spacing, fontHeight, textColor, fonts.modifier, modifierIndex, currentX, startY);
+                    modifierIndex = newModIdx;
+                    currentX = currentX + iconsWidth;
+                    hasContent = true;
+                end
+
+                -- Resistance icons with modifiers
+                if #resistanceIcons > 0 then
+                    if hasContent then
+                        local sepW;
+                        sepW, separatorIndex = DrawGdiSeparator(fonts.separator, separatorIndex, fontHeight, textColor, currentX, startY, iconSize);
+                        imgui.SameLine(0, 0);
+                        imgui.Dummy({sepW, iconSize});
+                        currentX = currentX + sepW;
+                    end
+
+                    imgui.SameLine(0, 0);
+                    local iconsWidth, newModIdx = DrawIconsWithModifiers(resistanceIcons, iconSize, spacing, fontHeight, textColor, fonts.modifier, modifierIndex, currentX, startY);
+                    modifierIndex = newModIdx;
+                    currentX = currentX + iconsWidth;
+                    hasContent = true;
+                end
+
+                -- Immunity icons
+                if #immunityIcons > 0 then
+                    if hasContent then
+                        local sepW;
+                        sepW, separatorIndex = DrawGdiSeparator(fonts.separator, separatorIndex, fontHeight, textColor, currentX, startY, iconSize);
+                        imgui.SameLine(0, 0);
+                        imgui.Dummy({sepW, iconSize});
+                        currentX = currentX + sepW;
+                    end
+
+                    imgui.SameLine(0, 0);
+                    local iconsWidth = DrawIconsSimple(immunityIcons, iconSize, spacing);
+                    currentX = currentX + iconsWidth;
+                    hasContent = true;
+                end
+
+                -- Server ID
+                if serverIdString then
+                    if hasContent then
+                        local sepW;
+                        sepW, separatorIndex = DrawGdiSeparator(fonts.separator, separatorIndex, fontHeight, textColor, currentX, startY, iconSize);
+                        imgui.SameLine(0, 0);
+                        imgui.Dummy({sepW, iconSize});
+                        currentX = currentX + sepW;
+                    end
+
+                    fonts.serverId:set_font_height(fontHeight);
+                    fonts.serverId:set_text(serverIdString);
+                    UpdateFontColor(fonts.serverId, textColor);
+
+                    local textW, textH = fonts.serverId:get_text_size();
+                    local textY = startY + (iconSize - textH) / 2;
+                    fonts.serverId:set_position_x(currentX);
+                    fonts.serverId:set_position_y(textY);
+                    fonts.serverId:set_visible(true);
+
+                    imgui.SameLine(0, 0);
+                    imgui.Dummy({textW, iconSize});
+                    currentX = currentX + textW;
+                    hasContent = true;
+                end
+            else
+                -- Stacked layout (original behavior with new features)
+
+                -- Job + Level display
+                local showLevel = gConfig.mobInfoShowLevel and levelString ~= '';
+                if jobString or showLevel then
+                    local displayText = '';
+                    if jobString then
+                        displayText = jobString .. ' ';
+                    end
+                    if showLevel then
+                        displayText = displayText .. 'Lv.' .. levelString;
+                    end
+
+                    fonts.header:set_font_height(fontHeight);
+                    fonts.header:set_text(displayText);
+                    UpdateFontColor(fonts.header, textColor);
+
+                    local textW, textH = fonts.header:get_text_size();
+                    fonts.header:set_position_x(startX);
+                    fonts.header:set_position_y(startY);
+                    fonts.header:set_visible(true);
 
                     imgui.Dummy({textW, textH});
                     hasContent = true;
-                else
-                    levelText:set_visible(false);
-                end
-            else
-                levelText:set_visible(false);
-            end
-
-            -- Detection methods row
-            if gConfig.mobInfoShowDetection then
-                local detectionIcons = {};
-                local methods = mobdata.GetDetectionMethods(mobInfo);
-
-                -- Aggro indicator first
-                if mobInfo.Aggro then
-                    table.insert(detectionIcons, {
-                        texture = textures.detection.aggro,
-                        tooltip = 'Aggressive',
-                        tint = 0xFFFF4444
-                    });
                 end
 
-                -- Link indicator
-                if gConfig.mobInfoShowLink and mobInfo.Link then
-                    table.insert(detectionIcons, {
-                        texture = textures.detection.link,
-                        tooltip = 'Links with nearby mobs',
-                        tint = 0xFFFFAA44
-                    });
-                end
-
-                -- Detection methods
-                for _, method in ipairs(detectionMethods) do
-                    if methods[method.key] then
-                        table.insert(detectionIcons, {
-                            texture = textures.detection[method.key],
-                            tooltip = method.name .. ': ' .. method.tooltip
-                        });
-                    end
-                end
-
+                -- Detection methods row
                 if #detectionIcons > 0 then
                     if hasContent then
                         imgui.Spacing();
                     end
-                    DrawIconRow(detectionIcons, iconSize, spacing, settings.maxIconsPerRow);
+                    for i, iconData in ipairs(detectionIcons) do
+                        if i > 1 then
+                            imgui.SameLine(0, spacing);
+                        end
+                        DrawIconWithTooltip(iconData.texture, iconSize, iconData.tooltip, iconData.tint);
+                    end
                     hasContent = true;
                 end
-            end
 
-            -- Weaknesses row (green tinted)
-            if gConfig.mobInfoShowWeaknesses then
-                local weaknessIcons = {};
-                local weaknesses = mobdata.GetWeaknesses(mobInfo);
-
-                -- Elements
-                for _, elem in ipairs(elements) do
-                    if weaknesses[elem.key] then
-                        local modifier = weaknesses[elem.key];
-                        local percent = math.floor((modifier - 1) * 100);
-                        table.insert(weaknessIcons, {
-                            texture = textures.elements[string.lower(elem.key)],
-                            tooltip = elem.name .. ' Weakness (+' .. percent .. '%% damage)',
-                            tint = gConfig.colorCustomization.mobInfo.weaknessColor
-                        });
-                    end
-                end
-
-                -- Physical types
-                for _, phys in ipairs(physicalTypes) do
-                    if weaknesses[phys.key] then
-                        local modifier = weaknesses[phys.key];
-                        local percent = math.floor((modifier - 1) * 100);
-                        table.insert(weaknessIcons, {
-                            texture = textures.physical[string.lower(phys.key)],
-                            tooltip = phys.name .. ' Weakness (+' .. percent .. '%% damage)',
-                            tint = gConfig.colorCustomization.mobInfo.weaknessColor
-                        });
-                    end
-                end
-
+                -- Weaknesses row with modifiers
                 if #weaknessIcons > 0 then
                     if hasContent then
                         imgui.Spacing();
                     end
-                    DrawIconRow(weaknessIcons, iconSize, spacing, settings.maxIconsPerRow);
+                    cursorX, cursorY = imgui.GetCursorScreenPos();
+                    local _, newModIdx = DrawIconsWithModifiers(weaknessIcons, iconSize, spacing, fontHeight, textColor, fonts.modifier, modifierIndex, cursorX, cursorY);
+                    modifierIndex = newModIdx;
                     hasContent = true;
                 end
-            end
 
-            -- Resistances row (red tinted)
-            if gConfig.mobInfoShowResistances then
-                local resistanceIcons = {};
-                local resistances = mobdata.GetResistances(mobInfo);
-
-                -- Elements
-                for _, elem in ipairs(elements) do
-                    if resistances[elem.key] then
-                        local modifier = resistances[elem.key];
-                        local percent = math.floor((1 - modifier) * 100);
-                        table.insert(resistanceIcons, {
-                            texture = textures.elements[string.lower(elem.key)],
-                            tooltip = elem.name .. ' Resistance (-' .. percent .. '%% damage)',
-                            tint = gConfig.colorCustomization.mobInfo.resistanceColor
-                        });
-                    end
-                end
-
-                -- Physical types
-                for _, phys in ipairs(physicalTypes) do
-                    if resistances[phys.key] then
-                        local modifier = resistances[phys.key];
-                        local percent = math.floor((1 - modifier) * 100);
-                        table.insert(resistanceIcons, {
-                            texture = textures.physical[string.lower(phys.key)],
-                            tooltip = phys.name .. ' Resistance (-' .. percent .. '%% damage)',
-                            tint = gConfig.colorCustomization.mobInfo.resistanceColor
-                        });
-                    end
-                end
-
+                -- Resistances row with modifiers
                 if #resistanceIcons > 0 then
                     if hasContent then
                         imgui.Spacing();
                     end
-                    DrawIconRow(resistanceIcons, iconSize, spacing, settings.maxIconsPerRow);
+                    cursorX, cursorY = imgui.GetCursorScreenPos();
+                    local _, newModIdx = DrawIconsWithModifiers(resistanceIcons, iconSize, spacing, fontHeight, textColor, fonts.modifier, modifierIndex, cursorX, cursorY);
+                    modifierIndex = newModIdx;
                     hasContent = true;
                 end
-            end
 
-            -- Immunities row (yellow tinted)
-            if gConfig.mobInfoShowImmunities then
-                local immunityIcons = {};
-                local immunities = mobdata.GetImmunities(mobInfo);
-
-                for _, imm in ipairs(immunityTypes) do
-                    if immunities[imm.key] then
-                        table.insert(immunityIcons, {
-                            texture = textures.immunities[string.lower(imm.key)],
-                            tooltip = 'Immune to ' .. imm.name,
-                            tint = gConfig.colorCustomization.mobInfo.immunityColor
-                        });
-                    end
-                end
-
+                -- Immunities row
                 if #immunityIcons > 0 then
                     if hasContent then
                         imgui.Spacing();
                     end
-                    DrawIconRow(immunityIcons, iconSize, spacing, settings.maxIconsPerRow);
+                    for i, iconData in ipairs(immunityIcons) do
+                        if i > 1 then
+                            imgui.SameLine(0, spacing);
+                        end
+                        DrawIconWithTooltip(iconData.texture, iconSize, iconData.tooltip, iconData.tint);
+                    end
+                    hasContent = true;
+                end
+
+                -- Server ID row
+                if serverIdString then
+                    if hasContent then
+                        imgui.Spacing();
+                    end
+                    cursorX, cursorY = imgui.GetCursorScreenPos();
+
+                    fonts.serverId:set_font_height(fontHeight);
+                    fonts.serverId:set_text(serverIdString);
+                    UpdateFontColor(fonts.serverId, textColor);
+
+                    local textW, textH = fonts.serverId:get_text_size();
+                    fonts.serverId:set_position_x(cursorX);
+                    fonts.serverId:set_position_y(cursorY);
+                    fonts.serverId:set_visible(true);
+
+                    imgui.Dummy({textW, textH});
                     hasContent = true;
                 end
             end
 
-            -- If no content was drawn, show placeholder
-            if not hasContent then
-                levelText:set_visible(false);
-            end
+            -- Update cached color
+            lastTextColor = textColor;
         end
     end
     imgui.End();
@@ -434,8 +777,29 @@ end
 
 mobinfo.Initialize = function(settings)
     -- Create font objects
-    levelText = FontManager.create(settings.level_font_settings);
-    allFonts = {levelText};
+    fonts.header = FontManager.create(settings.level_font_settings);
+    fonts.serverId = FontManager.create(settings.level_font_settings);
+
+    -- Create separator font pool
+    fonts.separator = {};
+    for i = 1, MAX_SEPARATORS do
+        fonts.separator[i] = FontManager.create(settings.level_font_settings);
+    end
+
+    -- Create modifier font pool
+    fonts.modifier = {};
+    for i = 1, MAX_MODIFIERS do
+        fonts.modifier[i] = FontManager.create(settings.level_font_settings);
+    end
+
+    -- Build allFonts array for batch operations
+    allFonts = {fonts.header, fonts.serverId};
+    for _, font in ipairs(fonts.separator) do
+        table.insert(allFonts, font);
+    end
+    for _, font in ipairs(fonts.modifier) do
+        table.insert(allFonts, font);
+    end
 
     -- Load detection icons
     textures.detection.aggro = LoadMobInfoTexture('AggroHQ');
@@ -482,24 +846,57 @@ mobinfo.Initialize = function(settings)
 end
 
 mobinfo.UpdateVisuals = function(settings)
-    -- Recreate fonts
-    levelText = FontManager.recreate(levelText, settings.level_font_settings);
-    allFonts = {levelText};
+    -- Recreate all fonts
+    fonts.header = FontManager.recreate(fonts.header, settings.level_font_settings);
+    fonts.serverId = FontManager.recreate(fonts.serverId, settings.level_font_settings);
+
+    for i = 1, MAX_SEPARATORS do
+        fonts.separator[i] = FontManager.recreate(fonts.separator[i], settings.level_font_settings);
+    end
+
+    for i = 1, MAX_MODIFIERS do
+        fonts.modifier[i] = FontManager.recreate(fonts.modifier[i], settings.level_font_settings);
+    end
+
+    -- Rebuild allFonts array
+    allFonts = {fonts.header, fonts.serverId};
+    for _, font in ipairs(fonts.separator) do
+        table.insert(allFonts, font);
+    end
+    for _, font in ipairs(fonts.modifier) do
+        table.insert(allFonts, font);
+    end
 
     -- Reset cached colors
-    lastLevelTextColor = nil;
+    lastTextColor = nil;
 end
 
 mobinfo.SetHidden = function(hidden)
     if hidden == true then
-        SetFontsVisible(allFonts, false);
+        HideAllFonts();
     end
 end
 
 mobinfo.Cleanup = function()
-    -- Destroy fonts
-    levelText = FontManager.destroy(levelText);
-    allFonts = nil;
+    -- Destroy all fonts
+    fonts.header = FontManager.destroy(fonts.header);
+    fonts.serverId = FontManager.destroy(fonts.serverId);
+
+    for i = 1, MAX_SEPARATORS do
+        fonts.separator[i] = FontManager.destroy(fonts.separator[i]);
+    end
+
+    for i = 1, MAX_MODIFIERS do
+        fonts.modifier[i] = FontManager.destroy(fonts.modifier[i]);
+    end
+
+    fonts = {
+        header = nil,
+        separator = {},
+        modifier = {},
+        serverId = nil,
+    };
+    allFonts = {};
 
     -- Textures are managed by D3D, no explicit cleanup needed
     textures = {

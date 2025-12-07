@@ -48,6 +48,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     local layout = cache.layout or 0;
     local barScales = data.getBarScales(partyIndex);
     local layoutTemplate = data.getLayoutTemplate(partyIndex);
+    local textOffsets = data.getTextOffsets(partyIndex);
 
     -- Get base bar dimensions
     local baseHpBarWidth = layoutTemplate.hpBarWidth or settings.hpBarWidth or 150;
@@ -464,11 +465,11 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     local hpBaselineOffset = hpRefHeight - hpHeight;
     local nameBaselineOffset = nameRefHeight - nameHeight;
     if layout == 1 then
-        data.memberText[memIdx].hp:set_position_x(hpStartX + hpBarWidth + 4);
-        data.memberText[memIdx].hp:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + hpBaselineOffset);
+        data.memberText[memIdx].hp:set_position_x(hpStartX + hpBarWidth + 4 + textOffsets.hpX);
+        data.memberText[memIdx].hp:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + hpBaselineOffset + textOffsets.hpY);
     else
-        data.memberText[memIdx].hp:set_position_x(hpStartX + hpBarWidth + settings.hpTextOffsetX);
-        data.memberText[memIdx].hp:set_position_y(hpStartY + hpBarHeight + settings.hpTextOffsetY + hpBaselineOffset);
+        data.memberText[memIdx].hp:set_position_x(hpStartX + hpBarWidth + settings.hpTextOffsetX + textOffsets.hpX);
+        data.memberText[memIdx].hp:set_position_y(hpStartY + hpBarHeight + settings.hpTextOffsetY + hpBaselineOffset + textOffsets.hpY);
     end
 
     -- Draw leader icon
@@ -482,8 +483,8 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
         data.memberText[memIdx].name:set_font_color(desiredNameColor);
         data.memberTextColorCache[memIdx].name = desiredNameColor;
     end
-    data.memberText[memIdx].name:set_position_x(namePosX);
-    data.memberText[memIdx].name:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + nameBaselineOffset);
+    data.memberText[memIdx].name:set_position_x(namePosX + textOffsets.nameX);
+    data.memberText[memIdx].name:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + nameBaselineOffset + textOffsets.nameY);
 
     -- Handle cast bars
     local castData = nil;
@@ -567,8 +568,8 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
             local distanceText = ('%.1f'):fmt(distance);
             data.memberText[memIdx].distance:set_text('- ' .. distanceText);
             local distancePosX = namePosX + nameWidth + 4;
-            data.memberText[memIdx].distance:set_position_x(distancePosX);
-            data.memberText[memIdx].distance:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + nameBaselineOffset);
+            data.memberText[memIdx].distance:set_position_x(distancePosX + textOffsets.distanceX);
+            data.memberText[memIdx].distance:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + nameBaselineOffset + textOffsets.distanceY);
             showDistance = true;
             if (cache.distanceHighlight > 0 and distance <= cache.distanceHighlight) then
                 highlightDistance = true;
@@ -663,8 +664,8 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
             end
 
             local tpBaselineOffset = tpRefHeight - tpHeight;
-            data.memberText[memIdx].tp:set_position_x(rowStartX + 4);
-            data.memberText[memIdx].tp:set_position_y(rowStartY + tpBaselineOffset);
+            data.memberText[memIdx].tp:set_position_x(rowStartX + 4 + textOffsets.tpX);
+            data.memberText[memIdx].tp:set_position_y(rowStartY + tpBaselineOffset + textOffsets.tpY);
 
             local mpBarStartX = rowStartX + 4 + maxTpTextWidth + 4;
             mpStartX = mpBarStartX;
@@ -681,8 +682,8 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
             -- MP text already set with formatting above
 
             local mpBaselineOffset = mpRefHeight - mpHeight;
-            data.memberText[memIdx].mp:set_position_x(mpStartX + mpBarWidth + 4);
-            data.memberText[memIdx].mp:set_position_y(mpStartY + (mpBarHeight - mpRefHeight) / 2 + mpBaselineOffset);
+            data.memberText[memIdx].mp:set_position_x(mpStartX + mpBarWidth + 4 + textOffsets.mpX);
+            data.memberText[memIdx].mp:set_position_y(mpStartY + (mpBarHeight - mpRefHeight) / 2 + mpBaselineOffset + textOffsets.mpY);
         else
             -- Layout 1: Horizontal layout
             imgui.SameLine();
@@ -697,8 +698,8 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
             end
             -- MP text already set with formatting above
             local mpBaselineOffset = mpRefHeight - mpHeight;
-            data.memberText[memIdx].mp:set_position_x(mpStartX + mpBarWidth - mpTextWidth);
-            data.memberText[memIdx].mp:set_position_y(mpStartY + mpBarHeight + settings.mpTextOffsetY + mpBaselineOffset);
+            data.memberText[memIdx].mp:set_position_x(mpStartX + mpBarWidth - mpTextWidth + textOffsets.mpX);
+            data.memberText[memIdx].mp:set_position_y(mpStartY + mpBarHeight + settings.mpTextOffsetY + mpBaselineOffset + textOffsets.mpY);
 
             -- TP bar
             if (showTP) then
@@ -734,8 +735,8 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                 end
                 data.memberText[memIdx].tp:set_text(tostring(memInfo.tp));
                 local tpBaselineOffset = tpRefHeight - tpHeight;
-                data.memberText[memIdx].tp:set_position_x(tpStartX + tpBarWidth - tpTextWidth);
-                data.memberText[memIdx].tp:set_position_y(tpStartY + tpBarHeight + settings.tpTextOffsetY + tpBaselineOffset);
+                data.memberText[memIdx].tp:set_position_x(tpStartX + tpBarWidth - tpTextWidth + textOffsets.tpX);
+                data.memberText[memIdx].tp:set_position_y(tpStartY + tpBarHeight + settings.tpTextOffsetY + tpBaselineOffset + textOffsets.tpY);
             end
         end
 

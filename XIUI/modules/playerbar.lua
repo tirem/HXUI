@@ -386,8 +386,9 @@ playerbar.DrawWindow = function(settings)
 		tpText:set_font_height(settings.font_settings.font_height);
 
 		-- Calculate reference height for baseline alignment (only once per font height change)
+		-- Include all characters used in display modes: numbers, percent, parentheses, slash, space
 		if referenceTextHeight == 0 or referenceTextHeight ~= settings.font_settings.font_height then
-			hpText:set_text("0123456789");
+			hpText:set_text("0123456789%() /");
 			local _, refHeight = hpText:get_text_size();
 			referenceTextHeight = refHeight;
 		end

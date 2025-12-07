@@ -66,6 +66,17 @@ local function createPartyDefaults(overrides)
         hpBarScaleY = 1,
         mpBarScaleY = 1,
         tpBarScaleY = 1,
+        -- Text position offsets (per-party overrides)
+        nameTextOffsetX = 0,
+        nameTextOffsetY = 0,
+        hpTextOffsetX = 0,
+        hpTextOffsetY = 0,
+        mpTextOffsetX = 0,
+        mpTextOffsetY = 0,
+        tpTextOffsetX = 0,
+        tpTextOffsetY = 0,
+        distanceTextOffsetX = 0,
+        distanceTextOffsetY = 0,
     };
     if overrides then
         for k, v in pairs(overrides) do
@@ -294,6 +305,11 @@ M.user_settings = T{
     mobInfoFontSize = 12,
     mobInfoSingleRow = false, -- false = stacked layout, true = single row layout
     mobInfoHideWhenEngaged = false, -- hide mob info when engaged in combat
+    mobInfoShowJob = true, -- show mob's job type (WAR, MNK, etc.)
+    mobInfoDisableIconTints = false, -- show icons without color overlays
+    mobInfoShowModifierText = false, -- show +25%/-50% next to icons
+    mobInfoShowServerId = false, -- show target's server ID
+    mobInfoServerIdHex = true, -- true = hex format (0x1C0), false = decimal
 
     -- Party List global settings (shared across all parties)
     partyListTitleFontSize = 12,

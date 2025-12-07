@@ -221,6 +221,19 @@ function data.updatePartyConfigCache()
         cache.barScales.mpBarScaleY = party.mpBarScaleY or 1;
         cache.barScales.tpBarScaleY = party.tpBarScaleY or 1;
 
+        -- Text position offsets (per-party)
+        if cache.textOffsets == nil then cache.textOffsets = {}; end
+        cache.textOffsets.nameX = party.nameTextOffsetX or 0;
+        cache.textOffsets.nameY = party.nameTextOffsetY or 0;
+        cache.textOffsets.hpX = party.hpTextOffsetX or 0;
+        cache.textOffsets.hpY = party.hpTextOffsetY or 0;
+        cache.textOffsets.mpX = party.mpTextOffsetX or 0;
+        cache.textOffsets.mpY = party.mpTextOffsetY or 0;
+        cache.textOffsets.tpX = party.tpTextOffsetX or 0;
+        cache.textOffsets.tpY = party.tpTextOffsetY or 0;
+        cache.textOffsets.distanceX = party.distanceTextOffsetX or 0;
+        cache.textOffsets.distanceY = party.distanceTextOffsetY or 0;
+
         -- Color settings reference
         if partyIndex == 1 then
             cache.colors = gConfig.colorCustomization.partyListA;
@@ -249,6 +262,10 @@ end
 
 function data.getBarScales(partyIndex)
     return data.partyConfigCache[partyIndex].barScales;
+end
+
+function data.getTextOffsets(partyIndex)
+    return data.partyConfigCache[partyIndex].textOffsets;
 end
 
 function data.getBarBackgroundOverride(partyIndex)
@@ -494,7 +511,8 @@ function data.calculateRefHeights(partyIndex)
 
     local refHeights = data.partyRefHeights[partyIndex];
 
-    local numericRefString = "0123456789";
+    -- Include all characters used in display modes: numbers, percent, parentheses, slash, space
+    local numericRefString = "0123456789%() /";
     data.memberText[firstMemberIdx].hp:set_text(numericRefString);
     local _, hpRefH = data.memberText[firstMemberIdx].hp:get_text_size();
     refHeights.hpRefHeight = hpRefH;
