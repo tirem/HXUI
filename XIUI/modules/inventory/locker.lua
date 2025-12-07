@@ -11,6 +11,7 @@ local CONTAINER_LOCKER = 4;
 return BaseTracker.Create({
     windowName = 'LockerTracker',
     containers = { CONTAINER_LOCKER },
+    containerLabels = { 'Locker' },
     configPrefix = 'lockerTracker',
     colorKey = 'lockerTracker',
 });

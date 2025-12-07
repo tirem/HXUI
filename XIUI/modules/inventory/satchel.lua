@@ -11,6 +11,7 @@ local CONTAINER_SATCHEL = 5;
 return BaseTracker.Create({
     windowName = 'SatchelTracker',
     containers = { CONTAINER_SATCHEL },
+    containerLabels = { 'Satchel' },
     configPrefix = 'satchelTracker',
     colorKey = 'satchelTracker',
 });

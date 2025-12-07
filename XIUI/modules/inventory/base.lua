@@ -252,10 +252,11 @@ function BaseTracker.Create(config)
         local showText = settings.showText;
         local showPerContainer = settings.showPerContainer;
 
+        local showLabels = settings.showLabels;
+
         -- Per-container mode: each unlocked container gets its own window
         if showPerContainer and #config.containers > 1 then
             local fontIndex = 1;
-            local showLabels = settings.showLabels;
             for i, container in ipairs(containers) do
                 if container.unlocked then
                     local windowName = config.windowName .. '_' .. i;
@@ -286,6 +287,8 @@ function BaseTracker.Create(config)
             end
         else
             -- Combined mode: single window with all containers combined
+            -- Use first label if showLabels is enabled (for single-container trackers or combined multi-container)
+            local label = (showLabels and config.containerLabels) and config.containerLabels[1] or nil;
             local fontVisible = DrawSingleContainerWindow(
                 config.windowName,
                 totalUsed,
@@ -297,7 +300,8 @@ function BaseTracker.Create(config)
                 fonts[1],
                 lastTextColors[1],
                 showDots,
-                showText
+                showText,
+                label
             );
             if fonts[1] then
                 fonts[1]:set_visible(fontVisible);

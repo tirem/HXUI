@@ -212,6 +212,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.inventoryTrackerSettings.rowCount = us.inventoryTrackerRowCount;
     gAdjustedSettings.inventoryTrackerSettings.showText = us.inventoryShowCount;
     gAdjustedSettings.inventoryTrackerSettings.showDots = us.inventoryShowDots;
+    gAdjustedSettings.inventoryTrackerSettings.showLabels = us.inventoryShowLabels;
 
     -- Satchel Tracker
     gAdjustedSettings.satchelTrackerSettings.dotRadius = ds.satchelTrackerSettings.dotRadius * us.satchelTrackerScale;
@@ -222,6 +223,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.satchelTrackerSettings.rowCount = us.satchelTrackerRowCount;
     gAdjustedSettings.satchelTrackerSettings.showText = us.satchelShowCount;
     gAdjustedSettings.satchelTrackerSettings.showDots = us.satchelShowDots;
+    gAdjustedSettings.satchelTrackerSettings.showLabels = us.satchelShowLabels;
 
     -- Locker Tracker
     gAdjustedSettings.lockerTrackerSettings.dotRadius = ds.lockerTrackerSettings.dotRadius * us.lockerTrackerScale;
@@ -232,6 +234,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.lockerTrackerSettings.rowCount = us.lockerTrackerRowCount;
     gAdjustedSettings.lockerTrackerSettings.showText = us.lockerShowCount;
     gAdjustedSettings.lockerTrackerSettings.showDots = us.lockerShowDots;
+    gAdjustedSettings.lockerTrackerSettings.showLabels = us.lockerShowLabels;
 
     -- Safe Tracker
     gAdjustedSettings.safeTrackerSettings.dotRadius = ds.safeTrackerSettings.dotRadius * us.safeTrackerScale;
@@ -254,6 +257,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.storageTrackerSettings.rowCount = us.storageTrackerRowCount;
     gAdjustedSettings.storageTrackerSettings.showText = us.storageShowCount;
     gAdjustedSettings.storageTrackerSettings.showDots = us.storageShowDots;
+    gAdjustedSettings.storageTrackerSettings.showLabels = us.storageShowLabels;
 
     -- Wardrobe Tracker
     gAdjustedSettings.wardrobeTrackerSettings.dotRadius = ds.wardrobeTrackerSettings.dotRadius * us.wardrobeTrackerScale;

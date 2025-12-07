@@ -11,6 +11,7 @@ local CONTAINER_STORAGE = 2;
 return BaseTracker.Create({
     windowName = 'StorageTracker',
     containers = { CONTAINER_STORAGE },
+    containerLabels = { 'Storage' },
     configPrefix = 'storageTracker',
     colorKey = 'storageTracker',
 });

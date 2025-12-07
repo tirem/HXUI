@@ -222,6 +222,7 @@ M.user_settings = T{
     inventoryTrackerColorThreshold2 = 29,
     inventoryShowCount = true,
     inventoryShowDots = true,
+    inventoryShowLabels = false,
 
     showSatchelTracker = false,
     satchelTrackerScale = 1,
@@ -232,6 +233,7 @@ M.user_settings = T{
     satchelTrackerColorThreshold2 = 29,
     satchelShowCount = true,
     satchelShowDots = true,
+    satchelShowLabels = false,
 
     showLockerTracker = false,
     lockerTrackerScale = 1,
@@ -242,6 +244,7 @@ M.user_settings = T{
     lockerTrackerColorThreshold2 = 75,
     lockerShowCount = true,
     lockerShowDots = true,
+    lockerShowLabels = false,
 
     showSafeTracker = false,
     safeTrackerScale = 1,
@@ -264,6 +267,7 @@ M.user_settings = T{
     storageTrackerColorThreshold2 = 75,
     storageShowCount = true,
     storageShowDots = true,
+    storageShowLabels = false,
 
     showWardrobeTracker = false,
     wardrobeTrackerScale = 1,
