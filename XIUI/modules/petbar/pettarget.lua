@@ -128,9 +128,11 @@ function pettarget.DrawWindow(settings)
         local vitalsFontSize = gConfig.petBarVitalsFontSize or settings.vitals_font_settings.font_height;
         local distanceFontSize = gConfig.petBarDistanceFontSize or settings.distance_font_settings.font_height;
 
-        -- Bar dimensions (use same width as main pet bar HP bar)
-        local barWidth = totalRowWidth;
-        local barHeight = settings.barHeight or 12;
+        -- Bar dimensions with scale settings
+        local barScaleX = gConfig.petTargetBarScaleX or 1.0;
+        local barScaleY = gConfig.petTargetBarScaleY or 1.0;
+        local barWidth = totalRowWidth * barScaleX;
+        local barHeight = (settings.barHeight or 12) * barScaleY;
 
         -- Get positioning settings
         local nameAbsolute = gConfig.petTargetNameAbsolute;
@@ -185,14 +187,17 @@ function pettarget.DrawWindow(settings)
         end
         targetHpText:set_visible(true);
 
-        imgui.Dummy({totalRowWidth, targetFontSize + 4});
+        -- Only add space for name row if name or HP are inline (not absolute)
+        if not nameAbsolute or not hpAbsolute then
+            imgui.Dummy({barWidth, targetFontSize + 4});
+        end
 
         -- Row 2: HP Bar with interpolation
         local currentTime = os.clock();
         local hpGradient = GetCustomGradient(colorConfig, 'hpGradient') or {'#e26c6c', '#fb9494'};
         local hpPercentData = HpInterpolation.update('pettarget', targetHp, targetIndex, settings, currentTime, hpGradient);
 
-        progressbar.ProgressBar(hpPercentData, {barWidth, barHeight}, {decorate = gConfig.petBarShowBookends});
+        progressbar.ProgressBar(hpPercentData, {barWidth, barHeight}, {decorate = gConfig.petTargetShowBookends or gConfig.petBarShowBookends});
 
         -- Distance text positioning
         targetDistanceText:set_font_height(distanceFontSize);

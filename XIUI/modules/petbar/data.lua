@@ -965,6 +965,7 @@ function data.ClearColorCache()
     data.lastHpColor = nil;
     data.lastMpColor = nil;
     data.lastTpColor = nil;
+    data.lastBstTimerColor = nil;
 end
 
 -- ============================================

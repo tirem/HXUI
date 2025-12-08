@@ -66,7 +66,6 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
         imgui.ShowHelp('Show pet level before the name (e.g., "Lv.35 FunguarFamiliar").');
 
         imgui.Spacing();
-        imgui.Text('Distance');
         components.DrawPartyCheckbox(typeSettings, 'Show Distance##' .. configKey, 'showDistance');
         imgui.ShowHelp('Show distance from player to pet.');
 
@@ -173,7 +172,7 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
             components.DrawPartySlider(typeSettings, 'Offset Y##icons' .. configKey, 'iconsOffsetY', -200, 200);
             imgui.ShowHelp('Vertical offset for ability icons.');
 
-            -- Avatar (SMN) specific ability toggles
+            -- Pet-type specific ability toggles
             if configKey == 'petBarAvatar' then
                 imgui.Spacing();
                 imgui.Separator();
@@ -186,6 +185,54 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
                 imgui.ShowHelp('Show Apogee ability timer (enhances next blood pact).');
                 components.DrawCheckbox('Mana Cede', 'petBarSmnShowManaCede');
                 imgui.ShowHelp('Show Mana Cede ability timer (transfer MP to avatar).');
+            elseif configKey == 'petBarCharm' then
+                imgui.Spacing();
+                imgui.Separator();
+                imgui.Spacing();
+                components.DrawCheckbox('Ready/Sic', 'petBarBstShowReady');
+                imgui.ShowHelp('Show Ready/Sic ability timer (offensive pet command).');
+                components.DrawCheckbox('Reward', 'petBarBstShowReward');
+                imgui.ShowHelp('Show Reward ability timer (pet healing).');
+            elseif configKey == 'petBarJug' then
+                imgui.Spacing();
+                imgui.Separator();
+                imgui.Spacing();
+                components.DrawCheckbox('Ready/Sic', 'petBarBstShowReady');
+                imgui.ShowHelp('Show Ready/Sic ability timer (offensive pet command).');
+                components.DrawCheckbox('Reward', 'petBarBstShowReward');
+                imgui.ShowHelp('Show Reward ability timer (pet healing).');
+                components.DrawCheckbox('Call Beast', 'petBarBstShowCallBeast');
+                imgui.ShowHelp('Show Call Beast ability timer (summon jug pet).');
+                components.DrawCheckbox('Bestial Loyalty', 'petBarBstShowBestialLoyalty');
+                imgui.ShowHelp('Show Bestial Loyalty ability timer (summon jug pet without charm).');
+            elseif configKey == 'petBarAutomaton' then
+                imgui.Spacing();
+                imgui.Separator();
+                imgui.Spacing();
+                components.DrawCheckbox('Activate', 'petBarPupShowActivate');
+                imgui.ShowHelp('Show Activate ability timer (summon automaton).');
+                components.DrawCheckbox('Repair', 'petBarPupShowRepair');
+                imgui.ShowHelp('Show Repair ability timer (heal automaton).');
+                components.DrawCheckbox('Deus Ex Automata', 'petBarPupShowDeusExAutomata');
+                imgui.ShowHelp('Show Deus Ex Automata ability timer (revive automaton).');
+                components.DrawCheckbox('Deploy', 'petBarPupShowDeploy');
+                imgui.ShowHelp('Show Deploy ability timer (send automaton to engage).');
+                components.DrawCheckbox('Deactivate', 'petBarPupShowDeactivate');
+                imgui.ShowHelp('Show Deactivate ability timer (dismiss automaton).');
+                components.DrawCheckbox('Retrieve', 'petBarPupShowRetrieve');
+                imgui.ShowHelp('Show Retrieve ability timer (call automaton back).');
+            elseif configKey == 'petBarWyvern' then
+                imgui.Spacing();
+                imgui.Separator();
+                imgui.Spacing();
+                components.DrawCheckbox('Call Wyvern', 'petBarDrgShowCallWyvern');
+                imgui.ShowHelp('Show Call Wyvern ability timer (summon wyvern).');
+                components.DrawCheckbox('Spirit Link', 'petBarDrgShowSpiritLink');
+                imgui.ShowHelp('Show Spirit Link ability timer (heal wyvern).');
+                components.DrawCheckbox('Deep Breathing', 'petBarDrgShowDeepBreathing');
+                imgui.ShowHelp('Show Deep Breathing ability timer (enhance wyvern breath).');
+                components.DrawCheckbox('Steady Wing', 'petBarDrgShowSteadyWing');
+                imgui.ShowHelp('Show Steady Wing ability timer (wyvern stoneskin).');
             end
         end
     end
@@ -303,13 +350,6 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
 
     -- Charm (BST charmed pets) specific settings
     if configKey == 'petBarCharm' then
-        if components.CollapsingSection('Ability Icons##charm') then
-            components.DrawCheckbox('Ready/Sic', 'petBarBstShowReady');
-            imgui.ShowHelp('Show Ready/Sic ability timer (offensive pet command).');
-            components.DrawCheckbox('Reward', 'petBarBstShowReward');
-            imgui.ShowHelp('Show Reward ability timer (pet healing).');
-        end
-
         if components.CollapsingSection('Charm Indicator##charm') then
             components.DrawCheckbox('Show Charm Indicator', 'petBarShowCharmIndicator');
             imgui.ShowHelp('Show heart icon and elapsed timer for charmed pets.');
@@ -337,54 +377,31 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
 
     -- Jug (BST jug pets) specific settings
     if configKey == 'petBarJug' then
-        if components.CollapsingSection('Ability Icons##jug') then
-            components.DrawCheckbox('Ready/Sic', 'petBarBstShowReady');
-            imgui.ShowHelp('Show Ready/Sic ability timer (offensive pet command).');
-            components.DrawCheckbox('Reward', 'petBarBstShowReward');
-            imgui.ShowHelp('Show Reward ability timer (pet healing).');
-            components.DrawCheckbox('Call Beast', 'petBarBstShowCallBeast');
-            imgui.ShowHelp('Show Call Beast ability timer (summon jug pet).');
-            components.DrawCheckbox('Bestial Loyalty', 'petBarBstShowBestialLoyalty');
-            imgui.ShowHelp('Show Bestial Loyalty ability timer (summon jug pet without charm).');
-        end
-
         if components.CollapsingSection('Jug Pet Timer##jug') then
             components.DrawCheckbox('Show Jug Pet Timer', 'petBarShowJugTimer');
             imgui.ShowHelp('Show countdown timer for jug pet duration (time remaining).');
+
+            imgui.Spacing();
+
+            -- Icon size
+            components.DrawSlider('Icon Size##petBarJug', 'petBarJugIconSize', 8, 32);
+            imgui.ShowHelp('Size of the jug icon.');
+
+            -- Timer font size
+            components.DrawSlider('Timer Font Size##petBarJug', 'petBarJugTimerFontSize', 6, 18);
+            imgui.ShowHelp('Font size for jug duration timer.');
+
+            imgui.Spacing();
+            imgui.Text('Position (relative to window)');
+
+            -- X/Y Offset
+            components.DrawSlider('Offset X##petBarJug', 'petBarJugOffsetX', -200, 200);
+            imgui.ShowHelp('Horizontal offset from window left.');
+            components.DrawSlider('Offset Y##petBarJug', 'petBarJugOffsetY', -200, 200);
+            imgui.ShowHelp('Vertical offset from window top.');
         end
     end
 
-    -- Automaton (PUP) specific settings
-    if configKey == 'petBarAutomaton' then
-        if components.CollapsingSection('Ability Icons##automaton') then
-            components.DrawCheckbox('Activate', 'petBarPupShowActivate');
-            imgui.ShowHelp('Show Activate ability timer (summon automaton).');
-            components.DrawCheckbox('Repair', 'petBarPupShowRepair');
-            imgui.ShowHelp('Show Repair ability timer (heal automaton).');
-            components.DrawCheckbox('Deus Ex Automata', 'petBarPupShowDeusExAutomata');
-            imgui.ShowHelp('Show Deus Ex Automata ability timer (revive automaton).');
-            components.DrawCheckbox('Deploy', 'petBarPupShowDeploy');
-            imgui.ShowHelp('Show Deploy ability timer (send automaton to engage).');
-            components.DrawCheckbox('Deactivate', 'petBarPupShowDeactivate');
-            imgui.ShowHelp('Show Deactivate ability timer (dismiss automaton).');
-            components.DrawCheckbox('Retrieve', 'petBarPupShowRetrieve');
-            imgui.ShowHelp('Show Retrieve ability timer (call automaton back).');
-        end
-    end
-
-    -- Wyvern (DRG) specific settings
-    if configKey == 'petBarWyvern' then
-        if components.CollapsingSection('Ability Icons##wyvern') then
-            components.DrawCheckbox('Call Wyvern', 'petBarDrgShowCallWyvern');
-            imgui.ShowHelp('Show Call Wyvern ability timer (summon wyvern).');
-            components.DrawCheckbox('Spirit Link', 'petBarDrgShowSpiritLink');
-            imgui.ShowHelp('Show Spirit Link ability timer (heal wyvern).');
-            components.DrawCheckbox('Deep Breathing', 'petBarDrgShowDeepBreathing');
-            imgui.ShowHelp('Show Deep Breathing ability timer (enhance wyvern breath).');
-            components.DrawCheckbox('Steady Wing', 'petBarDrgShowSteadyWing');
-            imgui.ShowHelp('Show Steady Wing ability timer (wyvern stoneskin).');
-        end
-    end
 end
 
 -- Helper: Draw copy buttons for pet type settings
@@ -657,6 +674,13 @@ local function DrawPetTargetSettingsContent()
             components.DrawSlider('Offset Y##petTargetDistance', 'petTargetDistanceOffsetY', -200, 200);
             imgui.ShowHelp('Vertical offset from window top.');
         end
+    end
+
+    if components.CollapsingSection('Bar Scale##petTarget') then
+        components.DrawSlider('Scale X##petTargetBar', 'petTargetBarScaleX', 0.5, 2.0, '%.1f');
+        imgui.ShowHelp('Horizontal scale of the HP bar.');
+        components.DrawSlider('Scale Y##petTargetBar', 'petTargetBarScaleY', 0.5, 2.0, '%.1f');
+        imgui.ShowHelp('Vertical scale of the HP bar.');
     end
 
     if components.CollapsingSection('Background##petTarget') then

@@ -35,7 +35,13 @@ petbar.Initialize = function(settings)
     data.tpText = FontManager.create(settings.vitals_font_settings);
     data.tpText:set_font_alignment(gdi.Alignment.Right);
 
-    data.allFonts = {data.nameText, data.distanceText, data.hpText, data.mpText, data.tpText};
+    -- BST timer fonts (jug countdown, charm elapsed)
+    data.bstTimerText = FontManager.create(settings.vitals_font_settings);
+
+    data.allFonts = {data.nameText, data.distanceText, data.hpText, data.mpText, data.tpText, data.bstTimerText};
+
+    -- Load jug icon texture
+    data.jugIconTexture = LoadTextureWithExt('pets/jug', 'png');
 
     -- Initialize primitives - creation order determines render order
     -- Order: background -> pet images -> borders
@@ -115,7 +121,10 @@ petbar.UpdateVisuals = function(settings)
     data.tpText = FontManager.recreate(data.tpText, settings.vitals_font_settings);
     data.tpText:set_font_alignment(gdi.Alignment.Right);
 
-    data.allFonts = {data.nameText, data.distanceText, data.hpText, data.mpText, data.tpText};
+    -- BST timer fonts
+    data.bstTimerText = FontManager.recreate(data.bstTimerText, settings.vitals_font_settings);
+
+    data.allFonts = {data.nameText, data.distanceText, data.hpText, data.mpText, data.tpText, data.bstTimerText};
 
     -- Clear cached colors
     data.ClearColorCache();
@@ -162,8 +171,10 @@ petbar.Cleanup = function()
     data.hpText = FontManager.destroy(data.hpText);
     data.mpText = FontManager.destroy(data.mpText);
     data.tpText = FontManager.destroy(data.tpText);
+    data.bstTimerText = FontManager.destroy(data.bstTimerText);
 
     data.allFonts = nil;
+    data.jugIconTexture = nil;
 
     -- Cleanup background and border primitives using windowbackground library
     windowBg.destroy(data.backgroundPrim);

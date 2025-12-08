@@ -92,7 +92,7 @@ end
 local function createPetBarTypeDefaults(overrides)
     local defaults = T{
         -- Display toggles
-        showLevel = true,
+        showLevel = false,
         showDistance = true,
         showHP = true,
         showMP = true,
@@ -697,9 +697,13 @@ M.user_settings = T{
     petBarShowCharmIndicator = true,
     petBarShowJugTimer = true,
     petBarCharmIconSize = 16,
-    petBarCharmTimerFontSize = 10,
+    petBarCharmTimerFontSize = 12,
     petBarCharmOffsetX = 0,
     petBarCharmOffsetY = -20,
+    petBarJugIconSize = 16,
+    petBarJugTimerFontSize = 12,
+    petBarJugOffsetX = 0,
+    petBarJugOffsetY = -20,
 
     -- Pet ability icon toggles per job
     -- SMN abilities
@@ -770,6 +774,8 @@ M.user_settings = T{
     petTargetBackgroundTheme = nil,  -- Uses petBarBackgroundTheme by default
     petTargetBackgroundOpacity = 1.0,
     petTargetBorderOpacity = 1.0,
+    petTargetBarScaleX = 1.0,
+    petTargetBarScaleY = 1.0,
 
     -- Pet Target text positioning (absolute = relative to window top-left, inline = flow with layout)
     -- Target Name positioning

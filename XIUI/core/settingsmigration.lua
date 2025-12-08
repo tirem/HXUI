@@ -498,7 +498,7 @@ function M.MigrateIndividualSettings(gConfig, defaults)
         if petType and type(petType) == 'table' then
             local petDefault = petTypeDefaults[i];
             -- Display toggles
-            if petType.showLevel == nil then petType.showLevel = gConfig.petBarShowLevel or true; end
+            if petType.showLevel == nil then petType.showLevel = gConfig.petBarShowLevel or false; end
             if petType.showDistance == nil then petType.showDistance = gConfig.petBarShowDistance or true; end
             if petType.showHP == nil then petType.showHP = gConfig.petBarShowVitals or true; end
             if petType.showMP == nil then petType.showMP = gConfig.petBarShowVitals or true; end

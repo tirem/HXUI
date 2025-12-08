@@ -6,6 +6,7 @@
 require('common');
 require('handlers.helpers');
 local imgui = require('imgui');
+local ffi = require('ffi');
 local progressbar = require('libs.progressbar');
 
 local data = require('modules.petbar.data');
@@ -543,47 +544,52 @@ function display.DrawWindow(settings)
 
         if showJugTimer or showCharmTimer then
             local drawList = imgui.GetForegroundDrawList();
-            local iconSize = gConfig.petBarCharmIconSize or 16;
-            local offsetX = gConfig.petBarCharmOffsetX or 0;
-            local offsetY = gConfig.petBarCharmOffsetY or -20;
 
-            local timerX = windowPosX + offsetX;
-            local timerY = windowPosY + offsetY;
+            -- Get timer text for positioning
+            local timerStr = nil;
+            local textColor = colorConfig.charmTimerColor or 0xFFFFFFFF;
+            local iconSize, timerX, timerY, timerFontSize;
 
             if showJugTimer then
-                -- Jug pet: Show jug icon with countdown timer
-                local jugColor = imgui.GetColorU32(color.ARGBToImGui(colorConfig.jugIconColor or 0xFFFFFFFF));
+                -- Jug-specific settings
+                iconSize = gConfig.petBarJugIconSize or 16;
+                local offsetX = gConfig.petBarJugOffsetX or 0;
+                local offsetY = gConfig.petBarJugOffsetY or -20;
+                timerFontSize = gConfig.petBarJugTimerFontSize or 12;
+                timerX = windowPosX + offsetX;
+                timerY = windowPosY + offsetY;
 
-                -- Draw a simple jug/bottle icon (rounded rectangle)
-                local iconCenterX = timerX + iconSize / 2;
-                local iconCenterY = timerY + iconSize / 2;
-                drawList:AddRectFilled(
-                    {timerX + 2, timerY + iconSize * 0.3},
-                    {timerX + iconSize - 2, timerY + iconSize},
-                    jugColor, 3
-                );
-                -- Jug neck
-                drawList:AddRectFilled(
-                    {timerX + iconSize * 0.3, timerY},
-                    {timerX + iconSize * 0.7, timerY + iconSize * 0.4},
-                    jugColor, 2
-                );
+                timerStr = data.FormatTimeMMSS(jugTimeRemaining);
+                -- Warning color if under 5 minutes
+                if jugTimeRemaining and jugTimeRemaining < 300 then
+                    textColor = colorConfig.durationWarningColor or 0xFFFF6600;
+                end
 
-                -- Timer text (countdown)
-                local timerStr = data.FormatTimeMMSS(jugTimeRemaining);
-                if timerStr then
-                    local textColor = colorConfig.charmTimerColor or 0xFFFFFFFF;
-                    -- Warning color if under 5 minutes
-                    if jugTimeRemaining < 300 then
-                        textColor = colorConfig.durationWarningColor or 0xFFFF6600;
-                    end
-                    -- Draw timer text next to icon using ImGui
-                    local textX = timerX + iconSize + 4;
-                    local textY = timerY + (iconSize - 12) / 2;
-                    drawList:AddText({textX, textY}, imgui.GetColorU32(color.ARGBToImGui(textColor)), timerStr);
+                -- Draw jug icon using texture
+                if data.jugIconTexture and data.jugIconTexture.image then
+                    local jugColor = imgui.GetColorU32(color.ARGBToImGui(colorConfig.jugIconColor or 0xFFFFFFFF));
+                    drawList:AddImage(
+                        tonumber(ffi.cast("uint32_t", data.jugIconTexture.image)),
+                        {timerX, timerY},
+                        {timerX + iconSize, timerY + iconSize},
+                        {0, 0}, {1, 1},
+                        jugColor
+                    );
                 end
             elseif showCharmTimer then
-                -- Charmed pet: Show heart icon with elapsed timer
+                -- Charm-specific settings
+                iconSize = gConfig.petBarCharmIconSize or 16;
+                local offsetX = gConfig.petBarCharmOffsetX or 0;
+                local offsetY = gConfig.petBarCharmOffsetY or -20;
+                timerFontSize = gConfig.petBarCharmTimerFontSize or 12;
+                timerX = windowPosX + offsetX;
+                timerY = windowPosY + offsetY;
+
+                if charmElapsed then
+                    timerStr = data.FormatTimeMMSS(charmElapsed);
+                end
+
+                -- Charmed pet: Show heart icon
                 local heartColor = imgui.GetColorU32(color.ARGBToImGui(colorConfig.charmHeartColor or 0xFFFF6699));
 
                 -- Draw heart shape using filled triangles/circles
@@ -603,17 +609,30 @@ function display.DrawWindow(settings)
                     {centerX, centerY + halfSize * 0.8},
                     heartColor
                 );
+            end
 
-                -- Timer text (elapsed time)
-                if charmElapsed then
-                    local timerStr = data.FormatTimeMMSS(charmElapsed);
-                    if timerStr then
-                        local textColor = colorConfig.charmTimerColor or 0xFFFFFFFF;
-                        local textX = timerX + iconSize + 4;
-                        local textY = timerY + (iconSize - 12) / 2;
-                        drawList:AddText({textX, textY}, imgui.GetColorU32(color.ARGBToImGui(textColor)), timerStr);
-                    end
+            -- Draw timer text using GDI font
+            if timerStr and data.bstTimerText then
+                local textX = timerX + iconSize + 1;
+                local textY = timerY + (iconSize - timerFontSize) / 2;
+                data.bstTimerText:set_font_height(timerFontSize);
+                data.bstTimerText:set_text(timerStr);
+                data.bstTimerText:set_position_x(textX);
+                data.bstTimerText:set_position_y(textY);
+                if data.lastBstTimerColor ~= textColor then
+                    data.bstTimerText:set_font_color(textColor);
+                    data.lastBstTimerColor = textColor;
                 end
+                data.bstTimerText:set_visible(true);
+            else
+                if data.bstTimerText then
+                    data.bstTimerText:set_visible(false);
+                end
+            end
+        else
+            -- Hide BST timer text when not showing
+            if data.bstTimerText then
+                data.bstTimerText:set_visible(false);
             end
         end
 
