@@ -48,6 +48,8 @@ local selectedInventoryColorTab = 1;  -- 1 = Inventory, 2 = Satchel (for color s
 local selectedTargetBarTab = 1;  -- 1 = Target Bar, 2 = Mob Info
 local selectedTargetBarColorTab = 1;  -- 1 = Target Bar, 2 = Mob Info (for color settings)
 local selectedPetBarTab = 1;  -- 1 = Pet Bar, 2 = Pet Target
+local selectedPetTypeTab = 1;  -- 1 = Avatar, 2 = Charm, 3 = Jug, 4 = Automaton, 5 = Wyvern
+local selectedPetTypeColorTab = 1;  -- Pet type color sub-tab
 local selectedPetBarColorTab = 1;  -- 1 = Pet Bar, 2 = Pet Target (for color settings)
 
 -- Category definitions
@@ -75,6 +77,8 @@ local function buildState()
         selectedTargetBarColorTab = selectedTargetBarColorTab,
         selectedPetBarTab = selectedPetBarTab,
         selectedPetBarColorTab = selectedPetBarColorTab,
+        selectedPetTypeTab = selectedPetTypeTab,
+        selectedPetTypeColorTab = selectedPetTypeColorTab,
         githubTexture = githubTexture,
     };
 end
@@ -86,6 +90,7 @@ local function applySettingsState(newState)
         if newState.selectedInventoryTab then selectedInventoryTab = newState.selectedInventoryTab; end
         if newState.selectedTargetBarTab then selectedTargetBarTab = newState.selectedTargetBarTab; end
         if newState.selectedPetBarTab then selectedPetBarTab = newState.selectedPetBarTab; end
+        if newState.selectedPetTypeTab then selectedPetTypeTab = newState.selectedPetTypeTab; end
     end
 end
 
@@ -95,6 +100,7 @@ local function applyColorState(newState)
         if newState.selectedInventoryColorTab then selectedInventoryColorTab = newState.selectedInventoryColorTab; end
         if newState.selectedTargetBarColorTab then selectedTargetBarColorTab = newState.selectedTargetBarColorTab; end
         if newState.selectedPetBarColorTab then selectedPetBarColorTab = newState.selectedPetBarColorTab; end
+        if newState.selectedPetTypeColorTab then selectedPetTypeColorTab = newState.selectedPetTypeColorTab; end
     end
 end
 

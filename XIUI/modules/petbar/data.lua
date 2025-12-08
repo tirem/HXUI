@@ -450,6 +450,47 @@ function data.GetPetJob()
     return nil;
 end
 
+-- Get pet type key for per-type settings lookup
+-- Returns: 'avatar', 'charm', 'jug', 'automaton', 'wyvern' (defaults to 'avatar')
+function data.GetPetTypeKey()
+    -- Preview mode: derive from preview type
+    if showConfig and showConfig[1] and gConfig.petBarPreview then
+        local previewType = gConfig.petBarPreviewType or data.PREVIEW_AVATAR;
+        if previewType == data.PREVIEW_WYVERN then
+            return 'wyvern';
+        elseif previewType == data.PREVIEW_AVATAR then
+            return 'avatar';
+        elseif previewType == data.PREVIEW_AUTOMATON then
+            return 'automaton';
+        elseif previewType == data.PREVIEW_JUG then
+            return 'jug';
+        elseif previewType == data.PREVIEW_CHARMED then
+            return 'charm';
+        end
+        return 'avatar';
+    end
+
+    -- Real mode: use tracked pet type
+    if data.petType then
+        return data.petType;
+    end
+
+    -- Fallback: try to determine from current job
+    local petJob = data.GetPetJob();
+    if petJob == data.JOB_SMN then
+        return 'avatar';
+    elseif petJob == data.JOB_DRG then
+        return 'wyvern';
+    elseif petJob == data.JOB_PUP then
+        return 'automaton';
+    elseif petJob == data.JOB_BST then
+        -- Default BST to jug (charm requires tracking)
+        return 'jug';
+    end
+
+    return 'avatar';  -- Default fallback
+end
+
 -- Get pet data - single entry point for both preview and real data
 -- This follows the partylist pattern where preview is handled inside the data function
 function data.GetPetData()
@@ -548,8 +589,8 @@ local function ShouldShowAbility(name, petJob)
         elseif name == 'Mana Cede' then return gConfig.petBarSmnShowManaCede ~= false;
         end
     elseif petJob == data.JOB_BST then
+        -- Ready and Sic share the same timer (ID 102), so we track as "Ready"
         if name == 'Ready' then return gConfig.petBarBstShowReady ~= false;
-        elseif name == 'Sic' then return gConfig.petBarBstShowSic ~= false;
         elseif name == 'Reward' then return gConfig.petBarBstShowReward ~= false;
         elseif name == 'Call Beast' then return gConfig.petBarBstShowCallBeast ~= false;
         elseif name == 'Bestial Loyalty' then return gConfig.petBarBstShowBestialLoyalty ~= false;
@@ -585,9 +626,9 @@ local mockAbilities = {
     },
     [data.JOB_BST] = {
         {name = 'Ready', timer = 0, maxTimer = 30, isReady = true},
-        {name = 'Sic', timer = 10, maxTimer = 30, isReady = false},
-        {name = 'Reward', timer = 0, maxTimer = 90, isReady = true},
-        {name = 'Call Beast', timer = 20, maxTimer = 60, isReady = false},
+        {name = 'Reward', timer = 15, maxTimer = 90, isReady = false},
+        {name = 'Call Beast', timer = 0, maxTimer = 60, isReady = true},
+        {name = 'Bestial Loyalty', timer = 20, maxTimer = 60, isReady = false},
     },
     [data.JOB_DRG] = {
         {name = 'Call Wyvern', timer = 0, maxTimer = 20, isReady = true},
@@ -599,7 +640,9 @@ local mockAbilities = {
         {name = 'Activate', timer = 0, maxTimer = 60, isReady = true},
         {name = 'Repair', timer = 15, maxTimer = 180, isReady = false},
         {name = 'Deploy', timer = 0, maxTimer = 60, isReady = true},
+        {name = 'Deactivate', timer = 25, maxTimer = 60, isReady = false},
         {name = 'Retrieve', timer = 10, maxTimer = 30, isReady = false},
+        {name = 'Deus Ex Automata', timer = 0, maxTimer = 60, isReady = true},
     },
 };
 
@@ -685,32 +728,34 @@ function data.GetPetAbilityTimers()
     if not petJob then return timers; end
 
     -- Pet ability IDs for direct memory reading
-    -- These are the actual ability IDs used by the game
+    -- These are the ability recast timer IDs used by the game
+    -- Reference: Windower Resources ability_recasts.lua
     local petAbilityIds = {
         [data.JOB_SMN] = {
-            {id = 173, name = 'Blood Pact: Rage', maxTimer = 3600},
-            {id = 174, name = 'Blood Pact: Ward', maxTimer = 3600},
-            {id = 254, name = 'Apogee', maxTimer = 3600},
-            {id = 255, name = 'Mana Cede', maxTimer = 3600},
+            {id = 173, name = 'Blood Pact: Rage', maxTimer = 3600},  -- Timer ID 173
+            {id = 174, name = 'Blood Pact: Ward', maxTimer = 3600},  -- Timer ID 174
+            {id = 108, name = 'Apogee', maxTimer = 3600},           -- Timer ID 108
+            {id = 71, name = 'Mana Cede', maxTimer = 3600},         -- Timer ID 71
         },
         [data.JOB_BST] = {
-            {id = 102, name = 'Call Beast', maxTimer = 3600},
-            {id = 94, name = 'Reward', maxTimer = 5400},
-            {id = 103, name = 'Sic', maxTimer = 1800},
+            {id = 102, name = 'Ready', maxTimer = 1800},            -- Timer ID 102 (Ready/Sic share timer)
+            {id = 103, name = 'Reward', maxTimer = 5400},           -- Timer ID 103
+            {id = 104, name = 'Call Beast', maxTimer = 3600},       -- Timer ID 104
+            {id = 104, name = 'Bestial Loyalty', maxTimer = 3600},  -- Timer ID 104 (shares with Call Beast)
         },
         [data.JOB_DRG] = {
-            {id = 163, name = 'Call Wyvern', maxTimer = 72000},
-            {id = 164, name = 'Spirit Link', maxTimer = 7200},
-            {id = 221, name = 'Deep Breathing', maxTimer = 3600},
-            {id = 224, name = 'Steady Wing', maxTimer = 7200},
+            {id = 163, name = 'Call Wyvern', maxTimer = 72000},     -- Timer ID 163
+            {id = 162, name = 'Spirit Link', maxTimer = 7200},      -- Timer ID 162
+            {id = 164, name = 'Deep Breathing', maxTimer = 3600},   -- Timer ID 164
+            {id = 70, name = 'Steady Wing', maxTimer = 7200},       -- Timer ID 70
         },
         [data.JOB_PUP] = {
-            {id = 205, name = 'Activate', maxTimer = 3600},
-            {id = 206, name = 'Repair', maxTimer = 10800},
-            {id = 210, name = 'Deploy', maxTimer = 3600},
-            {id = 209, name = 'Deactivate', maxTimer = 3600},
-            {id = 211, name = 'Retrieve', maxTimer = 3600},
-            {id = 242, name = 'Deus Ex Automata', maxTimer = 3600},
+            {id = 205, name = 'Activate', maxTimer = 3600},         -- Timer ID 205
+            {id = 206, name = 'Repair', maxTimer = 10800},          -- Timer ID 206
+            {id = 207, name = 'Deploy', maxTimer = 3600},           -- Timer ID 207
+            {id = 208, name = 'Deactivate', maxTimer = 3600},       -- Timer ID 208
+            {id = 209, name = 'Retrieve', maxTimer = 3600},         -- Timer ID 209
+            {id = 115, name = 'Deus Ex Automata', maxTimer = 3600}, -- Timer ID 115
         },
     };
 
@@ -769,11 +814,26 @@ end
 
 -- Update background primitives position and visibility
 function data.UpdateBackground(x, y, width, height, settings)
-    local bgTheme = gConfig.petBarBackgroundTheme or 'Window1';
-    local bgOpacity = gConfig.petBarBackgroundOpacity or 1.0;
-    local bgColor = gConfig.colorCustomization and gConfig.colorCustomization.petBar and gConfig.colorCustomization.petBar.bgColor or 0xFFFFFFFF;
-    local borderColor = gConfig.colorCustomization and gConfig.colorCustomization.petBar and gConfig.colorCustomization.petBar.borderColor or 0xFFFFFFFF;
-    local borderOpacity = gConfig.petBarBorderOpacity or 1.0;
+    -- Get per-pet-type settings
+    local petTypeKey = data.GetPetTypeKey();
+    local settingsKey = 'petBar' .. petTypeKey:gsub("^%l", string.upper);  -- 'petBarAvatar', etc.
+    local typeSettings = gConfig[settingsKey] or {};
+    local typeColors = gConfig.colorCustomization and gConfig.colorCustomization[settingsKey] or {};
+
+    -- Background theme/opacity from per-type settings with legacy fallback
+    local bgTheme = typeSettings.backgroundTheme or gConfig.petBarBackgroundTheme or 'Window1';
+    local bgOpacity = typeSettings.backgroundOpacity or gConfig.petBarBackgroundOpacity or 1.0;
+    local borderOpacity = typeSettings.borderOpacity or gConfig.petBarBorderOpacity or 1.0;
+
+    -- Colors from per-type settings with legacy fallback
+    local bgColor = typeColors.bgColor or (gConfig.colorCustomization and gConfig.colorCustomization.petBar and gConfig.colorCustomization.petBar.bgColor) or 0xFFFFFFFF;
+    local borderColor = typeColors.borderColor or (gConfig.colorCustomization and gConfig.colorCustomization.petBar and gConfig.colorCustomization.petBar.borderColor) or 0xFFFFFFFF;
+
+    -- Check if theme changed and reload textures if needed
+    if data.loadedBgName ~= bgTheme then
+        data.loadedBgName = bgTheme;
+        windowBg.setTheme(data.backgroundPrim, bgTheme, settings.bgScale);
+    end
 
     -- Common options for windowbackground library
     local bgOptions = {
@@ -941,7 +1001,8 @@ function data.GetPreviewPetData(previewType)
         mockData.level = 75;
         mockData.petType = 'wyvern';
     elseif previewType == data.PREVIEW_AVATAR then
-        mockData.name = 'Ifrit';
+        -- Use selected avatar from config, default to first in list (Carbuncle)
+        mockData.name = gConfig.petBarPreviewAvatar or data.avatarList[1];
         mockData.hpPercent = 100;
         mockData.distance = 8.5;
         mockData.mpPercent = 75;

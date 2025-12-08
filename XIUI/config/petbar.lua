@@ -14,323 +14,558 @@ local M = {};
 -- Track selected avatar in config dropdown
 local selectedAvatarIndex = 1;
 
--- Helper: Draw Pet Bar specific settings (used in tab)
-local function DrawPetBarSettingsContent()
-    components.DrawCheckbox('Enabled', 'showPetBar', CheckVisibility);
-    components.DrawCheckbox('Hide During Events', 'petBarHideDuringEvents');
-    components.DrawCheckbox('Show Bookends', 'petBarShowBookends');
-    components.DrawCheckbox('Preview Mode', 'petBarPreview');
-    imgui.ShowHelp('Show the pet bar with mock data to preview your settings.');
+-- Pet type definitions for sub-tabs
+-- previewType maps to data.PREVIEW_* constants: WYVERN=1, AVATAR=2, AUTOMATON=3, JUG=4, CHARM=5
+local PET_TYPES = {
+    { key = 'Avatar', configKey = 'petBarAvatar', label = 'Avatar', previewType = 2 },
+    { key = 'Charm', configKey = 'petBarCharm', label = 'Charm', previewType = 5 },
+    { key = 'Jug', configKey = 'petBarJug', label = 'Jug', previewType = 4 },
+    { key = 'Automaton', configKey = 'petBarAutomaton', label = 'Automaton', previewType = 3 },
+    { key = 'Wyvern', configKey = 'petBarWyvern', label = 'Wyvern', previewType = 1 },
+};
 
-    if gConfig.petBarPreview then
-        local previewTypes = {'Wyvern (DRG)', 'Avatar (SMN)', 'Automaton (PUP)', 'Jug Pet (BST)', 'Charmed Pet (BST)'};
-        local currentType = gConfig.petBarPreviewType or petData.PREVIEW_AVATAR;
-        components.DrawComboBox('Preview Type##petBarPreview', previewTypes[currentType], previewTypes, function(newValue)
-            for i, name in ipairs(previewTypes) do
-                if name == newValue then
-                    gConfig.petBarPreviewType = i;
-                    break;
-                end
-            end
-            SaveSettingsOnly();
-        end);
-        imgui.ShowHelp('Select which pet type to preview.');
-    end
-
-    if components.CollapsingSection('Display Options##petBar') then
-        components.DrawCheckbox('Show Pet Level', 'petBarShowLevel');
-        imgui.ShowHelp('Show pet level before the name (e.g., "Lv.35 FunguarFamiliar").');
-
-        components.DrawCheckbox('Show Distance', 'petBarShowDistance');
-        imgui.ShowHelp('Show distance from player to pet.');
-
-        if gConfig.petBarShowDistance then
-            imgui.SameLine();
-            imgui.SetNextItemWidth(120);
-            local positionModes = {'Next to Name', 'Absolute'};
-            local currentMode = gConfig.petBarDistanceAbsolute and 'Absolute' or 'Next to Name';
-            components.DrawComboBox('Position Mode##petBarDistance', currentMode, positionModes, function(newValue)
-                gConfig.petBarDistanceAbsolute = (newValue == 'Absolute');
-                SaveSettingsOnly();
-            end);
-            imgui.ShowHelp('Next to Name: Distance appears after pet name.\nAbsolute: Distance positioned relative to window top-left.');
-
-            if gConfig.petBarDistanceAbsolute then
-                components.DrawSlider('Offset X##petBarDistance', 'petBarDistanceOffsetX', -200, 200);
-                imgui.ShowHelp('Horizontal offset from window left.');
-                components.DrawSlider('Offset Y##petBarDistance', 'petBarDistanceOffsetY', -200, 200);
-                imgui.ShowHelp('Vertical offset from window top.');
+-- Copy settings between pet types
+local function CopyPetTypeSettings(sourceKey, targetKey)
+    local source = gConfig[sourceKey];
+    local target = gConfig[targetKey];
+    -- Validate both source and target are tables
+    if source and target and type(source) == 'table' and type(target) == 'table' then
+        for k, v in pairs(source) do
+            if type(v) == 'table' then
+                target[k] = deep_copy_table(v);
+            else
+                target[k] = v;
             end
         end
+        SaveSettingsOnly();
+    end
+end
 
-        components.DrawCheckbox('Show Vitals (HP/MP/TP)', 'petBarShowVitals');
-        imgui.ShowHelp('Show pet HP, MP, and TP bars.');
-        components.DrawCheckbox('Show Ability Timers', 'petBarShowTimers');
-        imgui.ShowHelp('Show pet-related ability recast timers (Blood Pact, Ready, Sic, etc.).');
+-- Copy color settings between pet types
+local function CopyPetTypeColors(sourceKey, targetKey)
+    local colorSource = gConfig.colorCustomization and gConfig.colorCustomization[sourceKey];
+    -- Validate source is a table
+    if colorSource and type(colorSource) == 'table' then
+        gConfig.colorCustomization[targetKey] = deep_copy_table(colorSource);
+        SaveSettingsOnly();
+    end
+end
+
+-- Helper: Draw per-pet-type visual settings
+local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
+    local typeSettings = gConfig[configKey];
+    -- Validate typeSettings is a table with expected properties
+    if not typeSettings or type(typeSettings) ~= 'table' or typeSettings.hpScaleX == nil then
+        imgui.TextColored({1.0, 0.5, 0.5, 1.0}, 'Settings not initialized for ' .. petTypeLabel);
+        imgui.Text('Please reload the addon to initialize per-type settings.');
+        return;
     end
 
-    if components.CollapsingSection('Background##petBar') then
-        local bgThemes = {'-None-', 'Plain', 'Window1', 'Window2', 'Window3', 'Window4', 'Window5', 'Window6', 'Window7', 'Window8'};
-        local currentTheme = gConfig.petBarBackgroundTheme or 'Window1';
-        components.DrawComboBox('Theme##petBarBg', currentTheme, bgThemes, function(newValue)
-            gConfig.petBarBackgroundTheme = newValue;
-            DeferredUpdateVisuals();
-        end);
-        imgui.ShowHelp('Select the background window theme.');
-        components.DrawSlider('Background Opacity##petBarBg', 'petBarBackgroundOpacity', 0.0, 1.0, '%.2f');
-        imgui.ShowHelp('Opacity of the background.');
-        components.DrawSlider('Border Opacity##petBarBg', 'petBarBorderOpacity', 0.0, 1.0, '%.2f');
-        imgui.ShowHelp('Opacity of the window borders (Window themes only).');
-    end
-
-    if components.CollapsingSection('Bar Scale##petBar') then
-        imgui.Text('HP Bar');
-        components.DrawSlider('Scale X##petBarHp', 'petBarHpScaleX', 0.5, 2.0, '%.1f');
-        components.DrawSlider('Scale Y##petBarHp', 'petBarHpScaleY', 0.5, 2.0, '%.1f');
-        imgui.Spacing();
-        imgui.Text('MP Bar');
-        components.DrawSlider('Scale X##petBarMp', 'petBarMpScaleX', 0.5, 2.0, '%.1f');
-        components.DrawSlider('Scale Y##petBarMp', 'petBarMpScaleY', 0.5, 2.0, '%.1f');
-        imgui.Spacing();
-        imgui.Text('TP Bar');
-        components.DrawSlider('Scale X##petBarTp', 'petBarTpScaleX', 0.5, 2.0, '%.1f');
-        components.DrawSlider('Scale Y##petBarTp', 'petBarTpScaleY', 0.5, 2.0, '%.1f');
-    end
-
-    if components.CollapsingSection('Font Sizes##petBar') then
-        components.DrawSlider('Pet Name', 'petBarNameFontSize', 8, 24);
-        components.DrawSlider('Distance', 'petBarDistanceFontSize', 6, 18);
-        components.DrawSlider('Vitals (HP/MP/TP)', 'petBarVitalsFontSize', 6, 18);
-        components.DrawSlider('Timers', 'petBarTimerFontSize', 6, 18);
-    end
-
-    if components.CollapsingSection('Ability Icons##petBar') then
-        components.DrawCheckbox('Show 2-Hour Ability', 'petBarShow2HourAbility');
-        imgui.ShowHelp('Show the 2-hour ability timer (Astral Flow, Familiar, Spirit Surge, Overdrive).');
+    if components.CollapsingSection('Display Options##' .. configKey) then
+        components.DrawPartyCheckbox(typeSettings, 'Show Pet Level##' .. configKey, 'showLevel');
+        imgui.ShowHelp('Show pet level before the name (e.g., "Lv.35 FunguarFamiliar").');
 
         imgui.Spacing();
+        imgui.Text('Distance');
+        components.DrawPartyCheckbox(typeSettings, 'Show Distance##' .. configKey, 'showDistance');
+        imgui.ShowHelp('Show distance from player to pet.');
 
-        -- Position mode
-        local positionModes = {'In Container', 'Absolute'};
-        local currentMode = gConfig.petBarIconsAbsolute and 'Absolute' or 'In Container';
-        components.DrawComboBox('Position Mode##petBarIcons', currentMode, positionModes, function(newValue)
-            local wasAbsolute = gConfig.petBarIconsAbsolute;
-            gConfig.petBarIconsAbsolute = (newValue == 'Absolute');
-            -- Reset offsets when switching modes
-            if wasAbsolute ~= gConfig.petBarIconsAbsolute then
-                if gConfig.petBarIconsAbsolute then
-                    -- Switching to Absolute: use absolute defaults
-                    gConfig.petBarIconsOffsetX = 112;
-                    gConfig.petBarIconsOffsetY = 79;
-                else
-                    -- Switching to In Container: reset to 0
-                    gConfig.petBarIconsOffsetX = 0;
-                    gConfig.petBarIconsOffsetY = 0;
-                end
-            end
-            SaveSettingsOnly();
-        end);
-        imgui.ShowHelp('In Container: Icons flow within the pet bar.\nAbsolute: Icons positioned independently from the pet bar.');
-
-        -- Scale
-        components.DrawSlider('Scale##petBarIcons', 'petBarIconsScale', 0.5, 2.0, '%.1f');
-        imgui.ShowHelp('Scale of the ability icons.');
-
-        -- X/Y Offset
-        components.DrawSlider('Offset X##petBarIcons', 'petBarIconsOffsetX', -200, 200);
-        imgui.ShowHelp('Horizontal offset for ability icons.');
-        components.DrawSlider('Offset Y##petBarIcons', 'petBarIconsOffsetY', -200, 200);
-        imgui.ShowHelp('Vertical offset for ability icons.');
-    end
-
-    -- ============================================
-    -- Job-Specific Settings
-    -- ============================================
-
-    if components.CollapsingSection('(BST) Beastmaster##petBar') then
-        imgui.TextColored({0.8, 0.8, 0.4, 1.0}, 'Ability Icons');
-        imgui.Separator();
-
-        components.DrawCheckbox('Ready', 'petBarBstShowReady');
-        imgui.ShowHelp('Show Ready ability timer (offensive pet command).');
-        components.DrawCheckbox('Sic', 'petBarBstShowSic');
-        imgui.ShowHelp('Show Sic ability timer (offensive pet command).');
-        components.DrawCheckbox('Reward', 'petBarBstShowReward');
-        imgui.ShowHelp('Show Reward ability timer (pet healing).');
-        components.DrawCheckbox('Call Beast', 'petBarBstShowCallBeast');
-        imgui.ShowHelp('Show Call Beast ability timer (summon jug pet).');
-        components.DrawCheckbox('Bestial Loyalty', 'petBarBstShowBestialLoyalty');
-        imgui.ShowHelp('Show Bestial Loyalty ability timer (summon jug pet without charm).');
-
-        imgui.Spacing();
-        imgui.TextColored({0.8, 0.8, 0.4, 1.0}, 'Pet Timers');
-        imgui.Separator();
-
-        components.DrawCheckbox('Show Jug Pet Timer', 'petBarShowJugTimer');
-        imgui.ShowHelp('Show countdown timer for jug pet duration (time remaining).');
-
-        components.DrawCheckbox('Show Charm Indicator', 'petBarShowCharmIndicator');
-        imgui.ShowHelp('Show heart icon and elapsed timer for charmed pets.');
-
-        imgui.Spacing();
-
-        -- Icon size
-        components.DrawSlider('Icon Size##petBarCharm', 'petBarCharmIconSize', 8, 32);
-        imgui.ShowHelp('Size of the heart icon.');
-
-        -- Timer font size
-        components.DrawSlider('Timer Font Size##petBarCharm', 'petBarCharmTimerFontSize', 6, 18);
-        imgui.ShowHelp('Font size for charm duration timer.');
-
-        imgui.Spacing();
-        imgui.Text('Position (relative to window)');
-
-        -- X/Y Offset
-        components.DrawSlider('Offset X##petBarCharm', 'petBarCharmOffsetX', -200, 200);
-        imgui.ShowHelp('Horizontal offset from window left.');
-        components.DrawSlider('Offset Y##petBarCharm', 'petBarCharmOffsetY', -200, 200);
-        imgui.ShowHelp('Vertical offset from window top. Negative values position above the window.');
-    end
-
-    if components.CollapsingSection('(SMN) Summoner##petBar') then
-        imgui.TextColored({0.8, 0.8, 0.4, 1.0}, 'Ability Icons');
-        imgui.Separator();
-
-        components.DrawCheckbox('Blood Pact: Rage', 'petBarSmnShowBPRage');
-        imgui.ShowHelp('Show Blood Pact: Rage ability timer (offensive blood pacts).');
-        components.DrawCheckbox('Blood Pact: Ward', 'petBarSmnShowBPWard');
-        imgui.ShowHelp('Show Blood Pact: Ward ability timer (defensive/support blood pacts).');
-        components.DrawCheckbox('Apogee', 'petBarSmnShowApogee');
-        imgui.ShowHelp('Show Apogee ability timer (enhances next blood pact).');
-        components.DrawCheckbox('Mana Cede', 'petBarSmnShowManaCede');
-        imgui.ShowHelp('Show Mana Cede ability timer (transfer MP to avatar).');
-
-        imgui.Spacing();
-        imgui.TextColored({0.8, 0.8, 0.4, 1.0}, 'Avatar Image');
-        imgui.Separator();
-
-        components.DrawCheckbox('Show Avatar Image', 'petBarShowImage');
-        imgui.ShowHelp('Show avatar image overlay on the pet bar.');
-
-        if gConfig.petBarShowImage then
-            imgui.Spacing();
-
-            -- Ensure petBarAvatarSettings exists
-            if gConfig.petBarAvatarSettings == nil then
-                gConfig.petBarAvatarSettings = T{};
-            end
-
-            -- Avatar dropdown
-            local avatarList = petData.avatarList;
-            local currentAvatar = avatarList[selectedAvatarIndex] or 'Carbuncle';
-
-            if imgui.BeginCombo('Avatar##petBarAvatarSelect', currentAvatar) then
-                for i, avatarName in ipairs(avatarList) do
-                    local isSelected = (i == selectedAvatarIndex);
-                    if imgui.Selectable(avatarName, isSelected) then
-                        selectedAvatarIndex = i;
-                    end
-                    if isSelected then
-                        imgui.SetItemDefaultFocus();
+        if typeSettings.showDistance then
+            -- Position mode
+            local positionModes = {'Next to Name', 'Absolute'};
+            local currentMode = typeSettings.distanceAbsolute and 'Absolute' or 'Next to Name';
+            imgui.SetNextItemWidth(150);
+            if imgui.BeginCombo('Position Mode##dist' .. configKey, currentMode) then
+                for _, mode in ipairs(positionModes) do
+                    if imgui.Selectable(mode, mode == currentMode) then
+                        typeSettings.distanceAbsolute = (mode == 'Absolute');
+                        SaveSettingsOnly();
                     end
                 end
                 imgui.EndCombo();
             end
-            imgui.ShowHelp('Select an avatar to adjust its image settings.');
+            imgui.ShowHelp('Next to Name: Distance appears after pet name.\nAbsolute: Distance positioned relative to window.');
 
-            imgui.Spacing();
-            imgui.Separator();
-            imgui.Spacing();
-
-            -- Get settings key for current avatar
-            local settingsKey = petData.GetPetSettingsKey(currentAvatar);
-
-            -- Ensure this avatar has settings
-            if gConfig.petBarAvatarSettings[settingsKey] == nil then
-                gConfig.petBarAvatarSettings[settingsKey] = T{
-                    scale = 0.4,
-                    opacity = 0.3,
-                    offsetX = 0,
-                    offsetY = 0,
-                    clipToBackground = false,
-                };
+            if typeSettings.distanceAbsolute then
+                components.DrawPartySlider(typeSettings, 'Offset X##dist' .. configKey, 'distanceOffsetX', -200, 200);
+                imgui.ShowHelp('Horizontal offset from window left.');
+                components.DrawPartySlider(typeSettings, 'Offset Y##dist' .. configKey, 'distanceOffsetY', -200, 200);
+                imgui.ShowHelp('Vertical offset from window top.');
             end
-
-            local avatarSettings = gConfig.petBarAvatarSettings[settingsKey];
-
-            -- Scale slider
-            local scaleValue = { avatarSettings.scale or 0.4 };
-            if imgui.SliderFloat('Scale##petBarAvatarScale', scaleValue, 0.1, 2.0, '%.2f') then
-                avatarSettings.scale = scaleValue[1];
-                SaveSettingsOnly();
-            end
-            imgui.ShowHelp('Scale of the avatar image overlay.');
-
-            -- Opacity slider
-            local opacityValue = { avatarSettings.opacity or 0.3 };
-            if imgui.SliderFloat('Opacity##petBarAvatarOpacity', opacityValue, 0.0, 1.0, '%.2f') then
-                avatarSettings.opacity = opacityValue[1];
-                SaveSettingsOnly();
-            end
-            imgui.ShowHelp('Opacity of the avatar image overlay.');
-
-            -- Offset X slider
-            local offsetXValue = { avatarSettings.offsetX or 0 };
-            if imgui.SliderInt('Offset X##petBarAvatarOffsetX', offsetXValue, -600, 600) then
-                avatarSettings.offsetX = offsetXValue[1];
-                SaveSettingsOnly();
-            end
-            imgui.ShowHelp('Horizontal offset for the avatar image.');
-
-            -- Offset Y slider
-            local offsetYValue = { avatarSettings.offsetY or 0 };
-            if imgui.SliderInt('Offset Y##petBarAvatarOffsetY', offsetYValue, -600, 600) then
-                avatarSettings.offsetY = offsetYValue[1];
-                SaveSettingsOnly();
-            end
-            imgui.ShowHelp('Vertical offset for the avatar image.');
-
-            -- Clip to Background checkbox
-            local clipValue = { avatarSettings.clipToBackground or false };
-            if imgui.Checkbox('Clip to Background##petBarAvatarClip', clipValue) then
-                avatarSettings.clipToBackground = clipValue[1];
-                SaveSettingsOnly();
-            end
-            imgui.ShowHelp('Clip the avatar image to the pet bar background bounds.');
         end
     end
 
-    if components.CollapsingSection('(DRG) Dragoon##petBar') then
-        imgui.TextColored({0.8, 0.8, 0.4, 1.0}, 'Ability Icons');
-        imgui.Separator();
+    if components.CollapsingSection('Bar Settings##' .. configKey) then
+        -- HP Bar
+        components.DrawPartyCheckbox(typeSettings, 'Show HP Bar##' .. configKey, 'showHP');
+        imgui.ShowHelp('Show pet HP bar.');
+        if typeSettings.showHP then
+            components.DrawPartySlider(typeSettings, 'Scale X##hp' .. configKey, 'hpScaleX', 0.5, 2.0, '%.1f');
+            components.DrawPartySlider(typeSettings, 'Scale Y##hp' .. configKey, 'hpScaleY', 0.5, 2.0, '%.1f');
+        end
 
-        components.DrawCheckbox('Call Wyvern', 'petBarDrgShowCallWyvern');
-        imgui.ShowHelp('Show Call Wyvern ability timer (summon wyvern).');
-        components.DrawCheckbox('Spirit Link', 'petBarDrgShowSpiritLink');
-        imgui.ShowHelp('Show Spirit Link ability timer (heal wyvern).');
-        components.DrawCheckbox('Deep Breathing', 'petBarDrgShowDeepBreathing');
-        imgui.ShowHelp('Show Deep Breathing ability timer (enhance wyvern breath).');
-        components.DrawCheckbox('Steady Wing', 'petBarDrgShowSteadyWing');
-        imgui.ShowHelp('Show Steady Wing ability timer (wyvern stoneskin).');
+        imgui.Spacing();
+
+        -- MP Bar
+        components.DrawPartyCheckbox(typeSettings, 'Show MP Bar##' .. configKey, 'showMP');
+        imgui.ShowHelp('Show pet MP bar.');
+        if typeSettings.showMP then
+            components.DrawPartySlider(typeSettings, 'Scale X##mp' .. configKey, 'mpScaleX', 0.5, 2.0, '%.1f');
+            components.DrawPartySlider(typeSettings, 'Scale Y##mp' .. configKey, 'mpScaleY', 0.5, 2.0, '%.1f');
+        end
+
+        imgui.Spacing();
+
+        -- TP Bar
+        components.DrawPartyCheckbox(typeSettings, 'Show TP Bar##' .. configKey, 'showTP');
+        imgui.ShowHelp('Show pet TP bar.');
+        if typeSettings.showTP then
+            components.DrawPartySlider(typeSettings, 'Scale X##tp' .. configKey, 'tpScaleX', 0.5, 2.0, '%.1f');
+            components.DrawPartySlider(typeSettings, 'Scale Y##tp' .. configKey, 'tpScaleY', 0.5, 2.0, '%.1f');
+        end
     end
 
-    if components.CollapsingSection('(PUP) Puppetmaster##petBar') then
-        imgui.TextColored({0.8, 0.8, 0.4, 1.0}, 'Ability Icons');
-        imgui.Separator();
-
-        components.DrawCheckbox('Activate', 'petBarPupShowActivate');
-        imgui.ShowHelp('Show Activate ability timer (summon automaton).');
-        components.DrawCheckbox('Repair', 'petBarPupShowRepair');
-        imgui.ShowHelp('Show Repair ability timer (heal automaton).');
-        components.DrawCheckbox('Deus Ex Automata', 'petBarPupShowDeusExAutomata');
-        imgui.ShowHelp('Show Deus Ex Automata ability timer (revive automaton).');
-        components.DrawCheckbox('Deploy', 'petBarPupShowDeploy');
-        imgui.ShowHelp('Show Deploy ability timer (send automaton to engage).');
-        components.DrawCheckbox('Deactivate', 'petBarPupShowDeactivate');
-        imgui.ShowHelp('Show Deactivate ability timer (dismiss automaton).');
-        components.DrawCheckbox('Retrieve', 'petBarPupShowRetrieve');
-        imgui.ShowHelp('Show Retrieve ability timer (call automaton back).');
+    if components.CollapsingSection('Font Sizes##' .. configKey) then
+        components.DrawPartySlider(typeSettings, 'Pet Name##' .. configKey, 'nameFontSize', 8, 24);
+        components.DrawPartySlider(typeSettings, 'Distance##' .. configKey, 'distanceFontSize', 6, 18);
+        components.DrawPartySlider(typeSettings, 'HP Text##' .. configKey, 'hpFontSize', 6, 18);
+        components.DrawPartySlider(typeSettings, 'MP Text##' .. configKey, 'mpFontSize', 6, 18);
+        components.DrawPartySlider(typeSettings, 'TP Text##' .. configKey, 'tpFontSize', 6, 18);
     end
+
+    if components.CollapsingSection('Background##' .. configKey) then
+        local bgThemes = {'-None-', 'Plain', 'Window1', 'Window2', 'Window3', 'Window4', 'Window5', 'Window6', 'Window7', 'Window8'};
+        local currentTheme = typeSettings.backgroundTheme or 'Window1';
+        components.DrawPartyComboBox(typeSettings, 'Theme##bg' .. configKey, 'backgroundTheme', bgThemes, DeferredUpdateVisuals);
+        imgui.ShowHelp('Select the background window theme for this pet type.');
+        components.DrawPartySlider(typeSettings, 'Background Opacity##' .. configKey, 'backgroundOpacity', 0.0, 1.0, '%.2f');
+        imgui.ShowHelp('Opacity of the background.');
+        components.DrawPartySlider(typeSettings, 'Border Opacity##' .. configKey, 'borderOpacity', 0.0, 1.0, '%.2f');
+        imgui.ShowHelp('Opacity of the window borders (Window themes only).');
+    end
+
+    if components.CollapsingSection('Ability Icons##' .. configKey) then
+        components.DrawPartyCheckbox(typeSettings, 'Show Ability Timers##' .. configKey, 'showTimers');
+        imgui.ShowHelp('Show pet-related ability recast timers (Blood Pact, Ready, Sic, etc.).');
+
+        if typeSettings.showTimers then
+            imgui.Spacing();
+
+            -- Position mode
+            local positionModes = {'In Container', 'Absolute'};
+            local currentMode = typeSettings.iconsAbsolute and 'Absolute' or 'In Container';
+            imgui.SetNextItemWidth(150);
+            if imgui.BeginCombo('Position Mode##icons' .. configKey, currentMode) then
+                for _, mode in ipairs(positionModes) do
+                    if imgui.Selectable(mode, mode == currentMode) then
+                        typeSettings.iconsAbsolute = (mode == 'Absolute');
+                        SaveSettingsOnly();
+                    end
+                end
+                imgui.EndCombo();
+            end
+            imgui.ShowHelp('In Container: Icons flow within the pet bar.\nAbsolute: Icons positioned independently.');
+
+            components.DrawPartySlider(typeSettings, 'Scale##icons' .. configKey, 'iconsScale', 0.5, 2.0, '%.1f');
+            imgui.ShowHelp('Scale of the ability icons.');
+            components.DrawPartySlider(typeSettings, 'Offset X##icons' .. configKey, 'iconsOffsetX', -200, 200);
+            imgui.ShowHelp('Horizontal offset for ability icons.');
+            components.DrawPartySlider(typeSettings, 'Offset Y##icons' .. configKey, 'iconsOffsetY', -200, 200);
+            imgui.ShowHelp('Vertical offset for ability icons.');
+
+            -- Avatar (SMN) specific ability toggles
+            if configKey == 'petBarAvatar' then
+                imgui.Spacing();
+                imgui.Separator();
+                imgui.Spacing();
+                components.DrawCheckbox('Blood Pact: Rage', 'petBarSmnShowBPRage');
+                imgui.ShowHelp('Show Blood Pact: Rage ability timer (offensive blood pacts).');
+                components.DrawCheckbox('Blood Pact: Ward', 'petBarSmnShowBPWard');
+                imgui.ShowHelp('Show Blood Pact: Ward ability timer (defensive/support blood pacts).');
+                components.DrawCheckbox('Apogee', 'petBarSmnShowApogee');
+                imgui.ShowHelp('Show Apogee ability timer (enhances next blood pact).');
+                components.DrawCheckbox('Mana Cede', 'petBarSmnShowManaCede');
+                imgui.ShowHelp('Show Mana Cede ability timer (transfer MP to avatar).');
+            end
+        end
+    end
+
+    -- ============================================
+    -- Pet-Type-Specific Settings
+    -- ============================================
+
+    -- Avatar (SMN) specific settings
+    if configKey == 'petBarAvatar' then
+        if components.CollapsingSection('Avatar Image##avatar') then
+            components.DrawCheckbox('Show Avatar Image', 'petBarShowImage');
+            imgui.ShowHelp('Show avatar image overlay on the pet bar.');
+
+            if gConfig.petBarShowImage then
+                imgui.Spacing();
+
+                -- Ensure petBarAvatarSettings exists
+                if gConfig.petBarAvatarSettings == nil then
+                    gConfig.petBarAvatarSettings = T{};
+                end
+
+                -- Avatar dropdown
+                local avatarList = petData.avatarList;
+                -- Sync selectedAvatarIndex with saved preview avatar
+                if gConfig.petBarPreviewAvatar then
+                    for i, name in ipairs(avatarList) do
+                        if name == gConfig.petBarPreviewAvatar then
+                            selectedAvatarIndex = i;
+                            break;
+                        end
+                    end
+                end
+                local currentAvatar = avatarList[selectedAvatarIndex] or 'Carbuncle';
+
+                if imgui.BeginCombo('Avatar##petBarAvatarSelect', currentAvatar) then
+                    for i, avatarName in ipairs(avatarList) do
+                        local isSelected = (i == selectedAvatarIndex);
+                        if imgui.Selectable(avatarName, isSelected) then
+                            selectedAvatarIndex = i;
+                            -- Update preview avatar name so preview shows this avatar
+                            gConfig.petBarPreviewAvatar = avatarName;
+                            SaveSettingsOnly();
+                        end
+                        if isSelected then
+                            imgui.SetItemDefaultFocus();
+                        end
+                    end
+                    imgui.EndCombo();
+                end
+                imgui.ShowHelp('Select an avatar to adjust its image settings. Preview will show this avatar.');
+
+                imgui.Spacing();
+                imgui.Separator();
+                imgui.Spacing();
+
+                -- Get settings key for current avatar
+                local settingsKey = petData.GetPetSettingsKey(currentAvatar);
+
+                -- Ensure this avatar has settings
+                if gConfig.petBarAvatarSettings[settingsKey] == nil then
+                    gConfig.petBarAvatarSettings[settingsKey] = T{
+                        scale = 0.4,
+                        opacity = 0.3,
+                        offsetX = 0,
+                        offsetY = 0,
+                        clipToBackground = false,
+                    };
+                end
+
+                local avatarSettings = gConfig.petBarAvatarSettings[settingsKey];
+
+                -- Scale slider
+                local scaleValue = { avatarSettings.scale or 0.4 };
+                if imgui.SliderFloat('Scale##petBarAvatarScale', scaleValue, 0.1, 2.0, '%.2f') then
+                    avatarSettings.scale = scaleValue[1];
+                    SaveSettingsOnly();
+                end
+                imgui.ShowHelp('Scale of the avatar image overlay.');
+
+                -- Opacity slider
+                local opacityValue = { avatarSettings.opacity or 0.3 };
+                if imgui.SliderFloat('Opacity##petBarAvatarOpacity', opacityValue, 0.0, 1.0, '%.2f') then
+                    avatarSettings.opacity = opacityValue[1];
+                    SaveSettingsOnly();
+                end
+                imgui.ShowHelp('Opacity of the avatar image overlay.');
+
+                -- Offset X slider
+                local offsetXValue = { avatarSettings.offsetX or 0 };
+                if imgui.SliderInt('Offset X##petBarAvatarOffsetX', offsetXValue, -600, 600) then
+                    avatarSettings.offsetX = offsetXValue[1];
+                    SaveSettingsOnly();
+                end
+                imgui.ShowHelp('Horizontal offset for the avatar image.');
+
+                -- Offset Y slider
+                local offsetYValue = { avatarSettings.offsetY or 0 };
+                if imgui.SliderInt('Offset Y##petBarAvatarOffsetY', offsetYValue, -600, 600) then
+                    avatarSettings.offsetY = offsetYValue[1];
+                    SaveSettingsOnly();
+                end
+                imgui.ShowHelp('Vertical offset for the avatar image.');
+
+                -- Clip to Background checkbox
+                local clipValue = { avatarSettings.clipToBackground or false };
+                if imgui.Checkbox('Clip to Background##petBarAvatarClip', clipValue) then
+                    avatarSettings.clipToBackground = clipValue[1];
+                    SaveSettingsOnly();
+                end
+                imgui.ShowHelp('Clip the avatar image to the pet bar background bounds.');
+            end
+        end
+    end
+
+    -- Charm (BST charmed pets) specific settings
+    if configKey == 'petBarCharm' then
+        if components.CollapsingSection('Ability Icons##charm') then
+            components.DrawCheckbox('Ready/Sic', 'petBarBstShowReady');
+            imgui.ShowHelp('Show Ready/Sic ability timer (offensive pet command).');
+            components.DrawCheckbox('Reward', 'petBarBstShowReward');
+            imgui.ShowHelp('Show Reward ability timer (pet healing).');
+        end
+
+        if components.CollapsingSection('Charm Indicator##charm') then
+            components.DrawCheckbox('Show Charm Indicator', 'petBarShowCharmIndicator');
+            imgui.ShowHelp('Show heart icon and elapsed timer for charmed pets.');
+
+            imgui.Spacing();
+
+            -- Icon size
+            components.DrawSlider('Icon Size##petBarCharm', 'petBarCharmIconSize', 8, 32);
+            imgui.ShowHelp('Size of the heart icon.');
+
+            -- Timer font size
+            components.DrawSlider('Timer Font Size##petBarCharm', 'petBarCharmTimerFontSize', 6, 18);
+            imgui.ShowHelp('Font size for charm duration timer.');
+
+            imgui.Spacing();
+            imgui.Text('Position (relative to window)');
+
+            -- X/Y Offset
+            components.DrawSlider('Offset X##petBarCharm', 'petBarCharmOffsetX', -200, 200);
+            imgui.ShowHelp('Horizontal offset from window left.');
+            components.DrawSlider('Offset Y##petBarCharm', 'petBarCharmOffsetY', -200, 200);
+            imgui.ShowHelp('Vertical offset from window top.');
+        end
+    end
+
+    -- Jug (BST jug pets) specific settings
+    if configKey == 'petBarJug' then
+        if components.CollapsingSection('Ability Icons##jug') then
+            components.DrawCheckbox('Ready/Sic', 'petBarBstShowReady');
+            imgui.ShowHelp('Show Ready/Sic ability timer (offensive pet command).');
+            components.DrawCheckbox('Reward', 'petBarBstShowReward');
+            imgui.ShowHelp('Show Reward ability timer (pet healing).');
+            components.DrawCheckbox('Call Beast', 'petBarBstShowCallBeast');
+            imgui.ShowHelp('Show Call Beast ability timer (summon jug pet).');
+            components.DrawCheckbox('Bestial Loyalty', 'petBarBstShowBestialLoyalty');
+            imgui.ShowHelp('Show Bestial Loyalty ability timer (summon jug pet without charm).');
+        end
+
+        if components.CollapsingSection('Jug Pet Timer##jug') then
+            components.DrawCheckbox('Show Jug Pet Timer', 'petBarShowJugTimer');
+            imgui.ShowHelp('Show countdown timer for jug pet duration (time remaining).');
+        end
+    end
+
+    -- Automaton (PUP) specific settings
+    if configKey == 'petBarAutomaton' then
+        if components.CollapsingSection('Ability Icons##automaton') then
+            components.DrawCheckbox('Activate', 'petBarPupShowActivate');
+            imgui.ShowHelp('Show Activate ability timer (summon automaton).');
+            components.DrawCheckbox('Repair', 'petBarPupShowRepair');
+            imgui.ShowHelp('Show Repair ability timer (heal automaton).');
+            components.DrawCheckbox('Deus Ex Automata', 'petBarPupShowDeusExAutomata');
+            imgui.ShowHelp('Show Deus Ex Automata ability timer (revive automaton).');
+            components.DrawCheckbox('Deploy', 'petBarPupShowDeploy');
+            imgui.ShowHelp('Show Deploy ability timer (send automaton to engage).');
+            components.DrawCheckbox('Deactivate', 'petBarPupShowDeactivate');
+            imgui.ShowHelp('Show Deactivate ability timer (dismiss automaton).');
+            components.DrawCheckbox('Retrieve', 'petBarPupShowRetrieve');
+            imgui.ShowHelp('Show Retrieve ability timer (call automaton back).');
+        end
+    end
+
+    -- Wyvern (DRG) specific settings
+    if configKey == 'petBarWyvern' then
+        if components.CollapsingSection('Ability Icons##wyvern') then
+            components.DrawCheckbox('Call Wyvern', 'petBarDrgShowCallWyvern');
+            imgui.ShowHelp('Show Call Wyvern ability timer (summon wyvern).');
+            components.DrawCheckbox('Spirit Link', 'petBarDrgShowSpiritLink');
+            imgui.ShowHelp('Show Spirit Link ability timer (heal wyvern).');
+            components.DrawCheckbox('Deep Breathing', 'petBarDrgShowDeepBreathing');
+            imgui.ShowHelp('Show Deep Breathing ability timer (enhance wyvern breath).');
+            components.DrawCheckbox('Steady Wing', 'petBarDrgShowSteadyWing');
+            imgui.ShowHelp('Show Steady Wing ability timer (wyvern stoneskin).');
+        end
+    end
+end
+
+-- Helper: Draw copy buttons for pet type settings
+local function DrawPetTypeCopyButtons(currentConfigKey, currentLabel, settingsType)
+    if components.CollapsingSection('Copy Settings##' .. currentConfigKey .. settingsType) then
+        imgui.TextColored({0.7, 0.7, 0.7, 1.0}, 'Copy ' .. settingsType .. ' from:');
+        for _, petType in ipairs(PET_TYPES) do
+            if petType.configKey ~= currentConfigKey then
+                imgui.SameLine();
+                if imgui.Button(petType.label .. '##copy' .. settingsType .. petType.configKey .. 'to' .. currentConfigKey) then
+                    if settingsType == 'Settings' then
+                        CopyPetTypeSettings(petType.configKey, currentConfigKey);
+                    else
+                        CopyPetTypeColors(petType.configKey, currentConfigKey);
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Helper: Draw per-pet-type color settings
+local function DrawPetTypeColorSettings(configKey, petTypeLabel)
+    local colorConfig = gConfig.colorCustomization and gConfig.colorCustomization[configKey];
+    -- Validate colorConfig is a table with expected properties
+    if not colorConfig or type(colorConfig) ~= 'table' or colorConfig.hpGradient == nil then
+        imgui.TextColored({1.0, 0.5, 0.5, 1.0}, 'Color settings not initialized for ' .. petTypeLabel);
+        imgui.Text('Please reload the addon to initialize per-type colors.');
+        return;
+    end
+
+    if components.CollapsingSection('Bar Colors##' .. configKey .. 'color') then
+        -- Column headers
+        imgui.Text("HP Bar");
+        imgui.SameLine(components.COLOR_COLUMN_SPACING);
+        imgui.Text("MP Bar");
+        imgui.SameLine(components.COLOR_COLUMN_SPACING * 2);
+        imgui.Text("TP Bar");
+
+        -- HP Bar
+        if colorConfig.hpGradient then
+            components.DrawGradientPickerColumn("HP Bar##" .. configKey, colorConfig.hpGradient, "HP bar color gradient");
+        end
+
+        imgui.SameLine(components.COLOR_COLUMN_SPACING);
+
+        -- MP Bar
+        if colorConfig.mpGradient then
+            components.DrawGradientPickerColumn("MP Bar##" .. configKey, colorConfig.mpGradient, "MP bar color gradient");
+        end
+
+        imgui.SameLine(components.COLOR_COLUMN_SPACING * 2);
+
+        -- TP Bar
+        if colorConfig.tpGradient then
+            components.DrawGradientPickerColumn("TP Bar##" .. configKey, colorConfig.tpGradient, "TP bar color gradient");
+        end
+    end
+
+    if components.CollapsingSection('Text Colors##' .. configKey .. 'color') then
+        components.DrawTextColorPicker("Pet Name##" .. configKey, colorConfig, 'nameTextColor', "Color of pet name text");
+        components.DrawTextColorPicker("Distance##" .. configKey, colorConfig, 'distanceTextColor', "Color of distance text");
+        components.DrawTextColorPicker("HP Text##" .. configKey, colorConfig, 'hpTextColor', "Color of HP value text");
+        components.DrawTextColorPicker("MP Text##" .. configKey, colorConfig, 'mpTextColor', "Color of MP value text");
+        components.DrawTextColorPicker("TP Text##" .. configKey, colorConfig, 'tpTextColor', "Color of TP value text");
+    end
+
+    -- ============================================
+    -- Pet-Type-Specific Color Settings
+    -- ============================================
+
+    -- Avatar (SMN) specific color settings
+    if configKey == 'petBarAvatar' then
+        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color') then
+            -- Ensure timer colors exist
+            if colorConfig.timerBPRageReadyColor == nil then colorConfig.timerBPRageReadyColor = 0xE6FF3333; end
+            if colorConfig.timerBPRageRecastColor == nil then colorConfig.timerBPRageRecastColor = 0xD9FF6666; end
+            if colorConfig.timerBPWardReadyColor == nil then colorConfig.timerBPWardReadyColor = 0xE600CCCC; end
+            if colorConfig.timerBPWardRecastColor == nil then colorConfig.timerBPWardRecastColor = 0xD966DDDD; end
+            if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
+            if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
+
+            imgui.Text('Blood Pact: Rage');
+            components.DrawTextColorPicker("Ready##rage" .. configKey, colorConfig, 'timerBPRageReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##rage" .. configKey, colorConfig, 'timerBPRageRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Blood Pact: Ward');
+            components.DrawTextColorPicker("Ready##ward" .. configKey, colorConfig, 'timerBPWardReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##ward" .. configKey, colorConfig, 'timerBPWardRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Two-Hour (Astral Flow)');
+            components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
+        end
+    end
+
+    -- Charm (BST charmed pets) specific color settings
+    if configKey == 'petBarCharm' then
+        if components.CollapsingSection('Charm Indicator Colors##' .. configKey .. 'color') then
+            if colorConfig.charmHeartColor == nil then colorConfig.charmHeartColor = 0xFFFF6699; end
+            if colorConfig.charmTimerColor == nil then colorConfig.charmTimerColor = 0xFFFFFFFF; end
+            if colorConfig.durationWarningColor == nil then colorConfig.durationWarningColor = 0xFFFF6600; end
+
+            components.DrawTextColorPicker("Charm Heart##" .. configKey, colorConfig, 'charmHeartColor', "Color of heart icon for charmed pets");
+            components.DrawTextColorPicker("Timer Text##" .. configKey, colorConfig, 'charmTimerColor', "Color of pet timer text");
+            components.DrawTextColorPicker("Duration Warning##" .. configKey, colorConfig, 'durationWarningColor', "Color when charm is about to break");
+        end
+
+        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color') then
+            if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
+            if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
+
+            imgui.Text('Two-Hour (Familiar)');
+            components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
+        end
+    end
+
+    -- Jug (BST jug pets) specific color settings
+    if configKey == 'petBarJug' then
+        if components.CollapsingSection('Jug Pet Indicator Colors##' .. configKey .. 'color') then
+            if colorConfig.jugIconColor == nil then colorConfig.jugIconColor = 0xFFFFFFFF; end
+            if colorConfig.charmTimerColor == nil then colorConfig.charmTimerColor = 0xFFFFFFFF; end
+            if colorConfig.durationWarningColor == nil then colorConfig.durationWarningColor = 0xFFFF6600; end
+
+            components.DrawTextColorPicker("Jug Icon##" .. configKey, colorConfig, 'jugIconColor', "Color of jug icon");
+            components.DrawTextColorPicker("Timer Text##" .. configKey, colorConfig, 'charmTimerColor', "Color of pet timer text");
+            components.DrawTextColorPicker("Duration Warning##" .. configKey, colorConfig, 'durationWarningColor', "Color when jug pet duration is low");
+        end
+
+        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color') then
+            if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
+            if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
+
+            imgui.Text('Two-Hour (Familiar)');
+            components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
+        end
+    end
+
+    -- Automaton (PUP) specific color settings
+    if configKey == 'petBarAutomaton' then
+        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color') then
+            if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
+            if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
+
+            imgui.Text('Two-Hour (Overdrive)');
+            components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
+        end
+    end
+
+    -- Wyvern (DRG) specific color settings
+    if configKey == 'petBarWyvern' then
+        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color') then
+            if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
+            if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
+
+            imgui.Text('Two-Hour (Spirit Surge)');
+            components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
+        end
+    end
+
+    if components.CollapsingSection('Background Colors##' .. configKey .. 'color') then
+        if colorConfig.bgColor == nil then colorConfig.bgColor = 0xFFFFFFFF; end
+        if colorConfig.borderColor == nil then colorConfig.borderColor = 0xFFFFFFFF; end
+
+        components.DrawTextColorPicker("Background Tint##" .. configKey, colorConfig, 'bgColor', "Tint color for background");
+        components.DrawTextColorPicker("Border Color##" .. configKey, colorConfig, 'borderColor', "Color of window borders");
+    end
+end
+
+-- Helper: Draw Pet Bar specific settings (used in tab)
+local function DrawPetBarSettingsContent()
+    components.DrawCheckbox('Enabled', 'showPetBar', CheckVisibility);
+    components.DrawCheckbox('Hide During Events', 'petBarHideDuringEvents');
+    components.DrawCheckbox('Preview Mode', 'petBarPreview');
+    imgui.ShowHelp('Show the pet bar with mock data. Preview shows the pet type from the selected tab below.');
 end
 
 -- Helper: Draw Pet Target specific settings (used in tab)
@@ -341,6 +576,87 @@ local function DrawPetTargetSettingsContent()
     if components.CollapsingSection('Display Options##petTarget') then
         components.DrawSlider('Font Size', 'petBarTargetFontSize', 6, 24);
         imgui.ShowHelp('Font size for pet target text.');
+
+        imgui.Spacing();
+
+        -- Target Name positioning
+        imgui.Text('Target Name');
+        imgui.SameLine();
+        imgui.SetNextItemWidth(120);
+        local namePositionModes = {'Inline', 'Absolute'};
+        local nameCurrentMode = gConfig.petTargetNameAbsolute and 'Absolute' or 'Inline';
+        components.DrawComboBox('Position Mode##petTargetName', nameCurrentMode, namePositionModes, function(newValue)
+            local wasAbsolute = gConfig.petTargetNameAbsolute;
+            gConfig.petTargetNameAbsolute = (newValue == 'Absolute');
+            -- Reset offsets when switching modes
+            if wasAbsolute ~= gConfig.petTargetNameAbsolute and not gConfig.petTargetNameAbsolute then
+                gConfig.petTargetNameOffsetX = 0;
+                gConfig.petTargetNameOffsetY = 0;
+            end
+            SaveSettingsOnly();
+        end);
+        imgui.ShowHelp('Inline: Name flows within layout.\nAbsolute: Name positioned relative to window top-left.');
+
+        if gConfig.petTargetNameAbsolute then
+            components.DrawSlider('Offset X##petTargetName', 'petTargetNameOffsetX', -200, 200);
+            imgui.ShowHelp('Horizontal offset from window left.');
+            components.DrawSlider('Offset Y##petTargetName', 'petTargetNameOffsetY', -200, 200);
+            imgui.ShowHelp('Vertical offset from window top.');
+        end
+
+        imgui.Spacing();
+
+        -- HP% positioning
+        imgui.Text('HP%');
+        imgui.SameLine();
+        imgui.SetNextItemWidth(120);
+        local hpPositionModes = {'Inline', 'Absolute'};
+        local hpCurrentMode = gConfig.petTargetHpAbsolute and 'Absolute' or 'Inline';
+        components.DrawComboBox('Position Mode##petTargetHp', hpCurrentMode, hpPositionModes, function(newValue)
+            local wasAbsolute = gConfig.petTargetHpAbsolute;
+            gConfig.petTargetHpAbsolute = (newValue == 'Absolute');
+            -- Reset offsets when switching modes
+            if wasAbsolute ~= gConfig.petTargetHpAbsolute and not gConfig.petTargetHpAbsolute then
+                gConfig.petTargetHpOffsetX = 0;
+                gConfig.petTargetHpOffsetY = 0;
+            end
+            SaveSettingsOnly();
+        end);
+        imgui.ShowHelp('Inline: HP% right-aligned on name row.\nAbsolute: HP% positioned relative to window top-left.');
+
+        if gConfig.petTargetHpAbsolute then
+            components.DrawSlider('Offset X##petTargetHp', 'petTargetHpOffsetX', -200, 200);
+            imgui.ShowHelp('Horizontal offset from window left.');
+            components.DrawSlider('Offset Y##petTargetHp', 'petTargetHpOffsetY', -200, 200);
+            imgui.ShowHelp('Vertical offset from window top.');
+        end
+
+        imgui.Spacing();
+
+        -- Distance positioning
+        imgui.Text('Distance');
+        imgui.SameLine();
+        imgui.SetNextItemWidth(120);
+        local distPositionModes = {'Inline', 'Absolute'};
+        local distCurrentMode = gConfig.petTargetDistanceAbsolute and 'Absolute' or 'Inline';
+        components.DrawComboBox('Position Mode##petTargetDistance', distCurrentMode, distPositionModes, function(newValue)
+            local wasAbsolute = gConfig.petTargetDistanceAbsolute;
+            gConfig.petTargetDistanceAbsolute = (newValue == 'Absolute');
+            -- Reset offsets when switching modes
+            if wasAbsolute ~= gConfig.petTargetDistanceAbsolute and not gConfig.petTargetDistanceAbsolute then
+                gConfig.petTargetDistanceOffsetX = 0;
+                gConfig.petTargetDistanceOffsetY = 0;
+            end
+            SaveSettingsOnly();
+        end);
+        imgui.ShowHelp('Inline: Distance below HP bar.\nAbsolute: Distance positioned relative to window top-left.');
+
+        if gConfig.petTargetDistanceAbsolute then
+            components.DrawSlider('Offset X##petTargetDistance', 'petTargetDistanceOffsetX', -200, 200);
+            imgui.ShowHelp('Horizontal offset from window left.');
+            components.DrawSlider('Offset Y##petTargetDistance', 'petTargetDistanceOffsetY', -200, 200);
+            imgui.ShowHelp('Vertical offset from window top.');
+        end
     end
 
     if components.CollapsingSection('Background##petTarget') then
@@ -360,8 +676,16 @@ end
 
 -- Section: Pet Bar Settings (with tabs for Pet Bar / Pet Target)
 -- state.selectedPetBarTab: tab selection state
+-- state.selectedPetTypeTab: pet type sub-tab selection (1=Avatar, 2=Charm, etc.)
 function M.DrawSettings(state)
     local selectedPetBarTab = state.selectedPetBarTab or 1;
+    local selectedPetTypeTab = state.selectedPetTypeTab or 1;
+
+    -- Sync preview type with selected pet type tab
+    local currentPetType = PET_TYPES[selectedPetTypeTab];
+    if currentPetType and gConfig.petBarPreviewType ~= currentPetType.previewType then
+        gConfig.petBarPreviewType = currentPetType.previewType;
+    end
 
     -- Tab styling colors
     local tabHeight = 24;
@@ -434,13 +758,77 @@ function M.DrawSettings(state)
 
     -- Draw settings based on selected tab
     if selectedPetBarTab == 1 then
+        -- Draw global pet bar settings first
         DrawPetBarSettingsContent();
+
+        imgui.Spacing();
+        imgui.Separator();
+        imgui.Spacing();
+
+        -- Pet Type Sub-Tabs
+        imgui.TextColored({0.957, 0.855, 0.592, 1.0}, 'Per-Pet-Type Visual Settings');
+        imgui.ShowHelp('Customize the appearance for each pet type independently.');
+        imgui.Spacing();
+
+        -- Draw pet type sub-tabs
+        local smallTabHeight = 20;
+        local smallTabPadding = 8;
+        for i, petType in ipairs(PET_TYPES) do
+            local tabTextWidth = imgui.CalcTextSize(petType.label);
+            local tabWidth = tabTextWidth + smallTabPadding * 2;
+            local tabPosX, tabPosY = imgui.GetCursorScreenPos();
+
+            if selectedPetTypeTab == i then
+                imgui.PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
+                imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0});
+                imgui.PushStyleColor(ImGuiCol_ButtonActive, {0, 0, 0, 0});
+            else
+                imgui.PushStyleColor(ImGuiCol_Button, bgMedium);
+                imgui.PushStyleColor(ImGuiCol_ButtonHovered, bgLight);
+                imgui.PushStyleColor(ImGuiCol_ButtonActive, bgLighter);
+            end
+
+            if imgui.Button(petType.label .. '##petTypeTab', { tabWidth, smallTabHeight }) then
+                selectedPetTypeTab = i;
+                -- Update preview type to match selected tab
+                gConfig.petBarPreviewType = petType.previewType;
+            end
+
+            if selectedPetTypeTab == i then
+                local draw_list = imgui.GetWindowDrawList();
+                draw_list:AddRectFilled(
+                    {tabPosX + 2, tabPosY + smallTabHeight - 2},
+                    {tabPosX + tabWidth - 2, tabPosY + smallTabHeight},
+                    imgui.GetColorU32(gold),
+                    1.0
+                );
+            end
+            imgui.PopStyleColor(3);
+
+            if i < #PET_TYPES then
+                imgui.SameLine();
+            end
+        end
+
+        imgui.Spacing();
+        imgui.Separator();
+        imgui.Spacing();
+
+        -- Draw per-type settings for selected pet type
+        local currentPetType = PET_TYPES[selectedPetTypeTab];
+        if currentPetType then
+            -- Copy buttons
+            DrawPetTypeCopyButtons(currentPetType.configKey, currentPetType.label, 'Settings');
+
+            -- Per-type visual settings
+            DrawPetTypeVisualSettings(currentPetType.configKey, currentPetType.label);
+        end
     else
         DrawPetTargetSettingsContent();
     end
 
     -- Return updated state
-    return { selectedPetBarTab = selectedPetBarTab };
+    return { selectedPetBarTab = selectedPetBarTab, selectedPetTypeTab = selectedPetTypeTab };
 end
 
 -- Helper: Draw Pet Bar specific color settings (used in tab)
@@ -508,76 +896,6 @@ local function DrawPetBarColorSettingsContent()
         components.DrawTextColorPicker("TP Text", gConfig.colorCustomization.petBar, 'tpTextColor', "Color of TP value text");
     end
 
-    if components.CollapsingSection('Timer Colors##petBarColor') then
-        -- Ensure timer color settings exist for all categories
-        -- Rage (offensive) - Orange tones
-        if gConfig.colorCustomization.petBar.timerRageReadyColor == nil then
-            gConfig.colorCustomization.petBar.timerRageReadyColor = 0xE6FF6600;
-        end
-        if gConfig.colorCustomization.petBar.timerRageRecastColor == nil then
-            gConfig.colorCustomization.petBar.timerRageRecastColor = 0xD9FF9933;
-        end
-        -- Ward (defensive) - Cyan tones
-        if gConfig.colorCustomization.petBar.timerWardReadyColor == nil then
-            gConfig.colorCustomization.petBar.timerWardReadyColor = 0xE600CCFF;
-        end
-        if gConfig.colorCustomization.petBar.timerWardRecastColor == nil then
-            gConfig.colorCustomization.petBar.timerWardRecastColor = 0xD966E0FF;
-        end
-        -- 2-Hour - Magenta tones
-        if gConfig.colorCustomization.petBar.timer2hReadyColor == nil then
-            gConfig.colorCustomization.petBar.timer2hReadyColor = 0xE6FF00FF;
-        end
-        if gConfig.colorCustomization.petBar.timer2hRecastColor == nil then
-            gConfig.colorCustomization.petBar.timer2hRecastColor = 0xD9FF66FF;
-        end
-        -- Other (utility) - Green/Yellow (legacy)
-        if gConfig.colorCustomization.petBar.timerReadyColor == nil then
-            gConfig.colorCustomization.petBar.timerReadyColor = 0xE600FF00;
-        end
-        if gConfig.colorCustomization.petBar.timerRecastColor == nil then
-            gConfig.colorCustomization.petBar.timerRecastColor = 0xD9FFFF00;
-        end
-
-        imgui.Text('Rage (Blood Pact: Rage, Ready, Sic, Deploy)');
-        components.DrawTextColorPicker("Ready##rage", gConfig.colorCustomization.petBar, 'timerRageReadyColor', "Color when Rage ability is ready");
-        components.DrawTextColorPicker("Recast##rage", gConfig.colorCustomization.petBar, 'timerRageRecastColor', "Color when Rage ability is on cooldown");
-
-        imgui.Spacing();
-        imgui.Text('Ward (Blood Pact: Ward, Reward, Repair, Spirit Link)');
-        components.DrawTextColorPicker("Ready##ward", gConfig.colorCustomization.petBar, 'timerWardReadyColor', "Color when Ward ability is ready");
-        components.DrawTextColorPicker("Recast##ward", gConfig.colorCustomization.petBar, 'timerWardRecastColor', "Color when Ward ability is on cooldown");
-
-        imgui.Spacing();
-        imgui.Text('Two-Hour (Astral Flow, Familiar, Spirit Surge, Overdrive)');
-        components.DrawTextColorPicker("Ready##2h", gConfig.colorCustomization.petBar, 'timer2hReadyColor', "Color when 2-Hour ability is ready");
-        components.DrawTextColorPicker("Recast##2h", gConfig.colorCustomization.petBar, 'timer2hRecastColor', "Color when 2-Hour ability is on cooldown");
-
-        imgui.Spacing();
-        imgui.Text('Other (Apogee, Call Beast, Activate, etc.)');
-        components.DrawTextColorPicker("Ready##other", gConfig.colorCustomization.petBar, 'timerReadyColor', "Color when utility ability is ready");
-        components.DrawTextColorPicker("Recast##other", gConfig.colorCustomization.petBar, 'timerRecastColor', "Color when utility ability is on cooldown");
-    end
-
-    if components.CollapsingSection('(BST) Beastmaster##petBarColor') then
-        -- Ensure color settings exist
-        if gConfig.colorCustomization.petBar.charmHeartColor == nil then
-            gConfig.colorCustomization.petBar.charmHeartColor = 0xFFFF6699;
-        end
-        if gConfig.colorCustomization.petBar.jugIconColor == nil then
-            gConfig.colorCustomization.petBar.jugIconColor = 0xFFFFFFFF;
-        end
-        if gConfig.colorCustomization.petBar.charmTimerColor == nil then
-            gConfig.colorCustomization.petBar.charmTimerColor = 0xFFFFFFFF;
-        end
-
-        imgui.TextColored({0.8, 0.8, 0.4, 1.0}, 'Pet Timer Icons');
-        imgui.Separator();
-        components.DrawTextColorPicker("Charm Heart Icon", gConfig.colorCustomization.petBar, 'charmHeartColor', "Color/tint of the heart icon for charmed pets");
-        components.DrawTextColorPicker("Jug Icon", gConfig.colorCustomization.petBar, 'jugIconColor', "Color/tint of the jug icon for jug pets");
-        components.DrawTextColorPicker("Timer Text", gConfig.colorCustomization.petBar, 'charmTimerColor', "Color of the pet timer text (charm/jug)");
-    end
-
     if components.CollapsingSection('Background Colors##petBarColor') then
         components.DrawTextColorPicker("Background Tint", gConfig.colorCustomization.petBar, 'bgColor', "Tint color for background");
         components.DrawTextColorPicker("Border Color", gConfig.colorCustomization.petBar, 'borderColor', "Color of window borders (Window themes only)");
@@ -592,6 +910,8 @@ local function DrawPetTargetColorSettingsContent()
             hpGradient = T{ enabled = true, start = '#e26c6c', stop = '#fb9494' },
             bgColor = 0xFFFF8D8D,
             targetTextColor = 0xFFFFFFFF,
+            hpTextColor = 0xFFFFA7A7,
+            distanceTextColor = 0xFFFFFFFF,
             borderColor = 0xFFFF8D8D,
         };
     end
@@ -603,13 +923,23 @@ local function DrawPetTargetColorSettingsContent()
     if gConfig.colorCustomization.petTarget.hpGradient == nil then
         gConfig.colorCustomization.petTarget.hpGradient = T{ enabled = true, start = '#e26c6c', stop = '#fb9494' };
     end
+    -- Ensure hpTextColor exists (for existing configs)
+    if gConfig.colorCustomization.petTarget.hpTextColor == nil then
+        gConfig.colorCustomization.petTarget.hpTextColor = 0xFFFFA7A7;
+    end
+    -- Ensure distanceTextColor exists (for existing configs)
+    if gConfig.colorCustomization.petTarget.distanceTextColor == nil then
+        gConfig.colorCustomization.petTarget.distanceTextColor = 0xFFFFFFFF;
+    end
 
     if components.CollapsingSection('Bar Colors##petTargetColor') then
         components.DrawGradientPickerColumn("HP Bar##petTarget", gConfig.colorCustomization.petTarget.hpGradient, "Pet target HP bar color gradient");
     end
 
     if components.CollapsingSection('Text Colors##petTargetColor') then
-        components.DrawTextColorPicker("Target Info", gConfig.colorCustomization.petTarget, 'targetTextColor', "Color of pet target text");
+        components.DrawTextColorPicker("Target Name", gConfig.colorCustomization.petTarget, 'targetTextColor', "Color of pet target name text");
+        components.DrawTextColorPicker("HP%", gConfig.colorCustomization.petTarget, 'hpTextColor', "Color of HP percent text");
+        components.DrawTextColorPicker("Distance", gConfig.colorCustomization.petTarget, 'distanceTextColor', "Color of distance text");
     end
 
     if components.CollapsingSection('Background Colors##petTargetColor') then
@@ -620,8 +950,16 @@ end
 
 -- Section: Pet Bar Color Settings (with tabs for Pet Bar / Pet Target)
 -- state.selectedPetBarColorTab: tab selection state
+-- state.selectedPetTypeColorTab: pet type sub-tab selection for colors
 function M.DrawColorSettings(state)
     local selectedPetBarColorTab = state.selectedPetBarColorTab or 1;
+    local selectedPetTypeColorTab = state.selectedPetTypeColorTab or 1;
+
+    -- Sync preview type with selected pet type color tab
+    local currentPetType = PET_TYPES[selectedPetTypeColorTab];
+    if currentPetType and gConfig.petBarPreviewType ~= currentPetType.previewType then
+        gConfig.petBarPreviewType = currentPetType.previewType;
+    end
 
     -- Tab styling colors
     local tabHeight = 24;
@@ -694,13 +1032,65 @@ function M.DrawColorSettings(state)
 
     -- Draw color settings based on selected tab
     if selectedPetBarColorTab == 1 then
-        DrawPetBarColorSettingsContent();
+        -- Draw pet type sub-tabs
+        local smallTabHeight = 20;
+        local smallTabPadding = 8;
+        for i, petType in ipairs(PET_TYPES) do
+            local tabTextWidth = imgui.CalcTextSize(petType.label);
+            local tabWidth = tabTextWidth + smallTabPadding * 2;
+            local tabPosX, tabPosY = imgui.GetCursorScreenPos();
+
+            if selectedPetTypeColorTab == i then
+                imgui.PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
+                imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0});
+                imgui.PushStyleColor(ImGuiCol_ButtonActive, {0, 0, 0, 0});
+            else
+                imgui.PushStyleColor(ImGuiCol_Button, bgMedium);
+                imgui.PushStyleColor(ImGuiCol_ButtonHovered, bgLight);
+                imgui.PushStyleColor(ImGuiCol_ButtonActive, bgLighter);
+            end
+
+            if imgui.Button(petType.label .. '##petTypeColorTab', { tabWidth, smallTabHeight }) then
+                selectedPetTypeColorTab = i;
+                -- Update preview type to match selected tab
+                gConfig.petBarPreviewType = petType.previewType;
+            end
+
+            if selectedPetTypeColorTab == i then
+                local draw_list = imgui.GetWindowDrawList();
+                draw_list:AddRectFilled(
+                    {tabPosX + 2, tabPosY + smallTabHeight - 2},
+                    {tabPosX + tabWidth - 2, tabPosY + smallTabHeight},
+                    imgui.GetColorU32(gold),
+                    1.0
+                );
+            end
+            imgui.PopStyleColor(3);
+
+            if i < #PET_TYPES then
+                imgui.SameLine();
+            end
+        end
+
+        imgui.Spacing();
+        imgui.Separator();
+        imgui.Spacing();
+
+        -- Draw per-type color settings for selected pet type
+        local currentPetType = PET_TYPES[selectedPetTypeColorTab];
+        if currentPetType then
+            -- Copy buttons
+            DrawPetTypeCopyButtons(currentPetType.configKey, currentPetType.label, 'Colors');
+
+            -- Per-type color settings
+            DrawPetTypeColorSettings(currentPetType.configKey, currentPetType.label);
+        end
     else
         DrawPetTargetColorSettingsContent();
     end
 
     -- Return updated state
-    return { selectedPetBarColorTab = selectedPetBarColorTab };
+    return { selectedPetBarColorTab = selectedPetBarColorTab, selectedPetTypeColorTab = selectedPetTypeColorTab };
 end
 
 return M;

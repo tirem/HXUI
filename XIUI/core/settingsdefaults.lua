@@ -87,6 +87,123 @@ local function createPartyDefaults(overrides)
     return defaults;
 end
 
+-- Factory function to create per-pet-type settings with overrides
+-- Each pet type (Avatar, Charm, Jug, Automaton, Wyvern) can have independent visual settings
+local function createPetBarTypeDefaults(overrides)
+    local defaults = T{
+        -- Display toggles
+        showLevel = true,
+        showDistance = true,
+        showHP = true,
+        showMP = true,
+        showTP = true,
+        showTimers = true,
+        -- Scale settings
+        scaleX = 1.0,
+        scaleY = 1.0,
+        hpScaleX = 1.0,
+        hpScaleY = 1.0,
+        mpScaleX = 1.0,
+        mpScaleY = 1.0,
+        tpScaleX = 1.0,
+        tpScaleY = 1.0,
+        -- Font sizes
+        nameFontSize = 12,
+        distanceFontSize = 10,
+        hpFontSize = 10,
+        mpFontSize = 10,
+        tpFontSize = 10,
+        -- Background settings
+        backgroundTheme = 'Window1',
+        backgroundOpacity = 1.0,
+        borderOpacity = 1.0,
+        showBookends = false,
+        -- Ability icon positioning
+        iconsAbsolute = true,
+        iconsScale = 0.6,
+        iconsOffsetX = 128,
+        iconsOffsetY = 78,
+        -- Distance text positioning
+        distanceAbsolute = true,
+        distanceOffsetX = 11,
+        distanceOffsetY = 79,
+    };
+    if overrides then
+        for k, v in pairs(overrides) do
+            defaults[k] = v;
+        end
+    end
+    return defaults;
+end
+
+-- Factory function to create per-pet-type color settings
+local function createPetBarTypeColorDefaults()
+    return T{
+        -- Bar gradients
+        hpGradient = T{ enabled = true, start = '#e26c6c', stop = '#fa9c9c' },
+        mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
+        tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' },
+        -- Text colors
+        nameTextColor = 0xFFFFFFFF,
+        distanceTextColor = 0xFFFFFFFF,
+        hpTextColor = 0xFFFFA7A7,
+        mpTextColor = 0xFFD4FF97,
+        tpTextColor = 0xFF8DC7FF,
+        targetTextColor = 0xFFFFFFFF,
+        -- SMN ability colors
+        timerBPRageReadyColor = 0xE6FF3333,
+        timerBPRageRecastColor = 0xD9FF6666,
+        timerBPWardReadyColor = 0xE600CCCC,
+        timerBPWardRecastColor = 0xD966DDDD,
+        timerApogeeReadyColor = 0xE6FFCC00,
+        timerApogeeRecastColor = 0xD9FFDD66,
+        timerManaCedeReadyColor = 0xE6009999,
+        timerManaCedeRecastColor = 0xD966BBBB,
+        -- BST ability colors
+        timerReadyReadyColor = 0xE6FF6600,
+        timerReadyRecastColor = 0xD9FF9933,
+        timerRewardReadyColor = 0xE600CC66,
+        timerRewardRecastColor = 0xD966DD99,
+        timerCallBeastReadyColor = 0xE63399FF,
+        timerCallBeastRecastColor = 0xD966BBFF,
+        timerBestialLoyaltyReadyColor = 0xE69966FF,
+        timerBestialLoyaltyRecastColor = 0xD9BB99FF,
+        -- DRG ability colors
+        timerCallWyvernReadyColor = 0xE63366FF,
+        timerCallWyvernRecastColor = 0xD96699FF,
+        timerSpiritLinkReadyColor = 0xE633CC33,
+        timerSpiritLinkRecastColor = 0xD966DD66,
+        timerDeepBreathingReadyColor = 0xE6FFFF33,
+        timerDeepBreathingRecastColor = 0xD9FFFF99,
+        timerSteadyWingReadyColor = 0xE6CC66FF,
+        timerSteadyWingRecastColor = 0xD9DD99FF,
+        -- PUP ability colors
+        timerActivateReadyColor = 0xE63399FF,
+        timerActivateRecastColor = 0xD966BBFF,
+        timerRepairReadyColor = 0xE633CC66,
+        timerRepairRecastColor = 0xD966DD99,
+        timerDeployReadyColor = 0xE6FF9933,
+        timerDeployRecastColor = 0xD9FFBB66,
+        timerDeactivateReadyColor = 0xE6999999,
+        timerDeactivateRecastColor = 0xD9BBBBBB,
+        timerRetrieveReadyColor = 0xE666CCFF,
+        timerRetrieveRecastColor = 0xD999DDFF,
+        timerDeusExAutomataReadyColor = 0xE6FFCC33,
+        timerDeusExAutomataRecastColor = 0xD9FFDD66,
+        -- 2-Hour timer colors
+        timer2hReadyColor = 0xE6FF00FF,
+        timer2hRecastColor = 0xD9FF66FF,
+        -- BST specific
+        durationWarningColor = 0xFFFF6600,
+        charmHeartColor = 0xFFFF6699,
+        jugIconColor = 0xFFFFFFFF,
+        charmTimerColor = 0xFFFFFFFF,
+        -- Background
+        bgColor = 0xFFFFFFFF,
+        borderColor = 0xFFFFFFFF,
+    };
+end
+
 -- Factory function to create party color settings
 local function createPartyColorDefaults(includeTP)
     local colors = T{
@@ -590,9 +707,8 @@ M.user_settings = T{
     petBarSmnShowBPWard = true,
     petBarSmnShowApogee = false,
     petBarSmnShowManaCede = false,
-    -- BST abilities
+    -- BST abilities (Ready and Sic share same timer ID 102, tracked as Ready)
     petBarBstShowReady = true,
-    petBarBstShowSic = true,
     petBarBstShowReward = true,
     petBarBstShowCallBeast = true,
     petBarBstShowBestialLoyalty = true,
@@ -652,6 +768,8 @@ M.user_settings = T{
     petBarHpDisplayMode = 'percent', -- 'percent', 'number'
     petBarTargetFontSize = 10,
     petTargetBackgroundTheme = nil,  -- Uses petBarBackgroundTheme by default
+    petTargetBackgroundOpacity = 1.0,
+    petTargetBorderOpacity = 1.0,
 
     -- Pet Target text positioning (absolute = relative to window top-left, inline = flow with layout)
     -- Target Name positioning
@@ -665,7 +783,14 @@ M.user_settings = T{
     -- Distance text positioning
     petTargetDistanceAbsolute = true,    -- Absolute by default
     petTargetDistanceOffsetX = 11,
-    petTargetDistanceOffsetY = 50,
+    petTargetDistanceOffsetY = 44,
+
+    -- Per-pet-type settings (Avatar, Charm, Jug, Automaton, Wyvern each have independent visual settings)
+    petBarAvatar = createPetBarTypeDefaults(),
+    petBarCharm = createPetBarTypeDefaults(),
+    petBarJug = createPetBarTypeDefaults(),
+    petBarAutomaton = createPetBarTypeDefaults(),
+    petBarWyvern = createPetBarTypeDefaults(),
 
     -- Bar Settings (global progress bar configuration)
     showBookends = false,            -- Global bookend visibility (overrides individual bookend settings)
@@ -809,18 +934,49 @@ M.user_settings = T{
             mpTextColor = 0xFFD4FF97,
             tpTextColor = 0xFF8DC7FF,
             targetTextColor = 0xFFFFFFFF,
-            -- Rage timer colors (Blood Pact: Rage, Ready, Sic, Deploy)
-            timerRageReadyColor = 0xE6FF6600,   -- Orange
-            timerRageRecastColor = 0xD9FF9933,  -- Light orange
-            -- Ward timer colors (Blood Pact: Ward, Reward, Repair, Spirit Link)
-            timerWardReadyColor = 0xE600CCFF,   -- Cyan
-            timerWardRecastColor = 0xD966E0FF,  -- Light cyan
+            -- SMN ability colors (individual)
+            timerBPRageReadyColor = 0xE6FF3333,     -- Red - Blood Pact: Rage ready
+            timerBPRageRecastColor = 0xD9FF6666,    -- Light red - Blood Pact: Rage recast
+            timerBPWardReadyColor = 0xE600CCCC,     -- Teal - Blood Pact: Ward ready
+            timerBPWardRecastColor = 0xD966DDDD,    -- Light teal - Blood Pact: Ward recast
+            timerApogeeReadyColor = 0xE6FFCC00,     -- Gold - Apogee ready
+            timerApogeeRecastColor = 0xD9FFDD66,    -- Light gold - Apogee recast
+            timerManaCedeReadyColor = 0xE6009999,   -- Dark teal - Mana Cede ready
+            timerManaCedeRecastColor = 0xD966BBBB,  -- Light dark teal - Mana Cede recast
+            -- BST ability colors (individual)
+            timerReadyReadyColor = 0xE6FF6600,      -- Orange - Ready ready
+            timerReadyRecastColor = 0xD9FF9933,     -- Light orange - Ready recast
+            timerRewardReadyColor = 0xE600CC66,     -- Green - Reward ready
+            timerRewardRecastColor = 0xD966DD99,    -- Light green - Reward recast
+            timerCallBeastReadyColor = 0xE63399FF,  -- Blue - Call Beast ready
+            timerCallBeastRecastColor = 0xD966BBFF, -- Light blue - Call Beast recast
+            timerBestialLoyaltyReadyColor = 0xE69966FF,  -- Purple - Bestial Loyalty ready
+            timerBestialLoyaltyRecastColor = 0xD9BB99FF, -- Light purple - Bestial Loyalty recast
+            -- DRG ability colors (individual)
+            timerCallWyvernReadyColor = 0xE63366FF,     -- Blue - Call Wyvern ready
+            timerCallWyvernRecastColor = 0xD96699FF,    -- Light blue - Call Wyvern recast
+            timerSpiritLinkReadyColor = 0xE633CC33,     -- Green - Spirit Link ready
+            timerSpiritLinkRecastColor = 0xD966DD66,    -- Light green - Spirit Link recast
+            timerDeepBreathingReadyColor = 0xE6FFFF33,  -- Yellow - Deep Breathing ready
+            timerDeepBreathingRecastColor = 0xD9FFFF99, -- Light yellow - Deep Breathing recast
+            timerSteadyWingReadyColor = 0xE6CC66FF,     -- Purple - Steady Wing ready
+            timerSteadyWingRecastColor = 0xD9DD99FF,    -- Light purple - Steady Wing recast
+            -- PUP ability colors (individual)
+            timerActivateReadyColor = 0xE63399FF,       -- Blue - Activate ready
+            timerActivateRecastColor = 0xD966BBFF,      -- Light blue - Activate recast
+            timerRepairReadyColor = 0xE633CC66,         -- Green - Repair ready
+            timerRepairRecastColor = 0xD966DD99,        -- Light green - Repair recast
+            timerDeployReadyColor = 0xE6FF9933,         -- Orange - Deploy ready
+            timerDeployRecastColor = 0xD9FFBB66,        -- Light orange - Deploy recast
+            timerDeactivateReadyColor = 0xE6999999,     -- Gray - Deactivate ready
+            timerDeactivateRecastColor = 0xD9BBBBBB,    -- Light gray - Deactivate recast
+            timerRetrieveReadyColor = 0xE666CCFF,       -- Light blue - Retrieve ready
+            timerRetrieveRecastColor = 0xD999DDFF,      -- Lighter blue - Retrieve recast
+            timerDeusExAutomataReadyColor = 0xE6FFCC33, -- Gold - Deus Ex Automata ready
+            timerDeusExAutomataRecastColor = 0xD9FFDD66,-- Light gold - Deus Ex Automata recast
             -- 2-Hour timer colors (Astral Flow, Familiar, Spirit Surge, Overdrive)
             timer2hReadyColor = 0xE6FF00FF,     -- Magenta
             timer2hRecastColor = 0xD9FF66FF,    -- Light magenta
-            -- Other timer colors (utility abilities)
-            timerReadyColor = 0xE600FF00,       -- Green
-            timerRecastColor = 0xD9FFFF00,      -- Yellow
             durationWarningColor = 0xFFFF6600, -- Charm/Jug about to expire (orange)
             charmHeartColor = 0xFFFF6699,      -- BST charm heart icon (pink)
             jugIconColor = 0xFFFFFFFF,         -- BST jug pet icon
@@ -837,6 +993,13 @@ M.user_settings = T{
             distanceTextColor = 0xFFFFFFFF,    -- Distance text color
             borderColor = 0xFFFF8D8D,
         },
+
+        -- Per-pet-type color settings (Avatar, Charm, Jug, Automaton, Wyvern)
+        petBarAvatar = createPetBarTypeColorDefaults(),
+        petBarCharm = createPetBarTypeColorDefaults(),
+        petBarJug = createPetBarTypeColorDefaults(),
+        petBarAutomaton = createPetBarTypeColorDefaults(),
+        petBarWyvern = createPetBarTypeColorDefaults(),
 
         -- Mob Info
         mobInfo = T{

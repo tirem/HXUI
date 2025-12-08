@@ -334,6 +334,94 @@ function M.MigrateColorSettings(gConfig, defaults)
     end
 end
 
+-- Migrate to new per-pet-type settings structure (petBarAvatar, petBarCharm, etc.)
+-- Copies current flat settings to all pet types for existing users
+function M.MigratePerPetTypeSettings(gConfig, defaults)
+    -- Skip if already migrated (check for petBarAvatar with actual properties)
+    -- Also validate it's actually a table (not corrupted)
+    if gConfig.petBarAvatar and type(gConfig.petBarAvatar) == 'table' and gConfig.petBarAvatar.hpScaleX ~= nil then
+        return;
+    end
+
+    -- Helper to safely get old flat value or default
+    local function getOld(key, defaultValue)
+        if gConfig[key] ~= nil then return gConfig[key]; end
+        return defaultValue;
+    end
+
+    -- Create base settings from current flat values
+    local baseSettings = T{
+        -- Display toggles (migrate from old global settings)
+        showLevel = getOld('petBarShowLevel', true),
+        showDistance = getOld('petBarShowDistance', true),
+        showHP = getOld('petBarShowVitals', true),
+        showMP = getOld('petBarShowVitals', true),
+        showTP = getOld('petBarShowVitals', true),
+        showTimers = getOld('petBarShowTimers', true),
+        -- Scale settings
+        scaleX = getOld('petBarScaleX', 1.0),
+        scaleY = getOld('petBarScaleY', 1.0),
+        hpScaleX = getOld('petBarHpScaleX', 1.0),
+        hpScaleY = getOld('petBarHpScaleY', 1.0),
+        mpScaleX = getOld('petBarMpScaleX', 1.0),
+        mpScaleY = getOld('petBarMpScaleY', 1.0),
+        tpScaleX = getOld('petBarTpScaleX', 1.0),
+        tpScaleY = getOld('petBarTpScaleY', 1.0),
+        nameFontSize = getOld('petBarNameFontSize', 12),
+        distanceFontSize = getOld('petBarDistanceFontSize', 10),
+        hpFontSize = getOld('petBarVitalsFontSize', 10),
+        mpFontSize = getOld('petBarVitalsFontSize', 10),
+        tpFontSize = getOld('petBarVitalsFontSize', 10),
+        backgroundTheme = getOld('petBarBackgroundTheme', 'Window1'),
+        backgroundOpacity = getOld('petBarBackgroundOpacity', 1.0),
+        borderOpacity = 1.0,
+        showBookends = getOld('petBarShowBookends', false),
+        iconsAbsolute = getOld('petBarIconsAbsolute', true),
+        iconsScale = getOld('petBarIconsScale', 0.6),
+        iconsOffsetX = getOld('petBarIconsOffsetX', 128),
+        iconsOffsetY = getOld('petBarIconsOffsetY', 78),
+        distanceAbsolute = getOld('petBarDistanceAbsolute', true),
+        distanceOffsetX = getOld('petBarDistanceOffsetX', 11),
+        distanceOffsetY = getOld('petBarDistanceOffsetY', 79),
+    };
+
+    -- Copy base settings to all pet types
+    gConfig.petBarAvatar = deep_copy_table(baseSettings);
+    gConfig.petBarCharm = deep_copy_table(baseSettings);
+    gConfig.petBarJug = deep_copy_table(baseSettings);
+    gConfig.petBarAutomaton = deep_copy_table(baseSettings);
+    gConfig.petBarWyvern = deep_copy_table(baseSettings);
+end
+
+-- Migrate old petBar colors to per-pet-type color settings
+function M.MigratePerPetTypeColorSettings(gConfig, defaults)
+    if not gConfig.colorCustomization then
+        return;
+    end
+
+    -- Skip if already migrated (check for actual properties)
+    -- Also validate it's actually a table (not corrupted)
+    if gConfig.colorCustomization.petBarAvatar and type(gConfig.colorCustomization.petBarAvatar) == 'table' and gConfig.colorCustomization.petBarAvatar.hpGradient then
+        return;
+    end
+
+    -- Copy existing petBar colors to all pet types
+    if gConfig.colorCustomization.petBar then
+        gConfig.colorCustomization.petBarAvatar = deep_copy_table(gConfig.colorCustomization.petBar);
+        gConfig.colorCustomization.petBarCharm = deep_copy_table(gConfig.colorCustomization.petBar);
+        gConfig.colorCustomization.petBarJug = deep_copy_table(gConfig.colorCustomization.petBar);
+        gConfig.colorCustomization.petBarAutomaton = deep_copy_table(gConfig.colorCustomization.petBar);
+        gConfig.colorCustomization.petBarWyvern = deep_copy_table(gConfig.colorCustomization.petBar);
+    else
+        -- Use defaults if petBar colors don't exist
+        gConfig.colorCustomization.petBarAvatar = deep_copy_table(defaults.colorCustomization.petBarAvatar);
+        gConfig.colorCustomization.petBarCharm = deep_copy_table(defaults.colorCustomization.petBarCharm);
+        gConfig.colorCustomization.petBarJug = deep_copy_table(defaults.colorCustomization.petBarJug);
+        gConfig.colorCustomization.petBarAutomaton = deep_copy_table(defaults.colorCustomization.petBarAutomaton);
+        gConfig.colorCustomization.petBarWyvern = deep_copy_table(defaults.colorCustomization.petBarWyvern);
+    end
+end
+
 -- Migrate individual settings that may be missing for existing users
 function M.MigrateIndividualSettings(gConfig, defaults)
     -- Add bookend gradient if missing
@@ -402,6 +490,27 @@ function M.MigrateIndividualSettings(gConfig, defaults)
             if party.distanceTextOffsetY == nil then party.distanceTextOffsetY = partyDefault.distanceTextOffsetY or 0; end
         end
     end
+
+    -- Migrate new per-pet-type display toggles (add missing fields to existing per-pet-type settings)
+    local petTypeTables = { gConfig.petBarAvatar, gConfig.petBarCharm, gConfig.petBarJug, gConfig.petBarAutomaton, gConfig.petBarWyvern };
+    local petTypeDefaults = { defaults.petBarAvatar, defaults.petBarCharm, defaults.petBarJug, defaults.petBarAutomaton, defaults.petBarWyvern };
+    for i, petType in ipairs(petTypeTables) do
+        if petType and type(petType) == 'table' then
+            local petDefault = petTypeDefaults[i];
+            -- Display toggles
+            if petType.showLevel == nil then petType.showLevel = gConfig.petBarShowLevel or true; end
+            if petType.showDistance == nil then petType.showDistance = gConfig.petBarShowDistance or true; end
+            if petType.showHP == nil then petType.showHP = gConfig.petBarShowVitals or true; end
+            if petType.showMP == nil then petType.showMP = gConfig.petBarShowVitals or true; end
+            if petType.showTP == nil then petType.showTP = gConfig.petBarShowVitals or true; end
+            if petType.showTimers == nil then petType.showTimers = gConfig.petBarShowTimers or true; end
+            -- Individual font sizes (migrate from old vitalsFontSize)
+            local oldVitalsFontSize = petType.vitalsFontSize or gConfig.petBarVitalsFontSize or 10;
+            if petType.hpFontSize == nil then petType.hpFontSize = oldVitalsFontSize; end
+            if petType.mpFontSize == nil then petType.mpFontSize = oldVitalsFontSize; end
+            if petType.tpFontSize == nil then petType.tpFontSize = oldVitalsFontSize; end
+        end
+    end
 end
 
 -- Run structure migrations (called AFTER settings.load())
@@ -409,7 +518,9 @@ end
 function M.RunStructureMigrations(gConfig, defaults)
     M.MigratePartyListLayoutSettings(gConfig, defaults);
     M.MigratePerPartySettings(gConfig, defaults);
+    M.MigratePerPetTypeSettings(gConfig, defaults);
     M.MigrateColorSettings(gConfig, defaults);
+    M.MigratePerPetTypeColorSettings(gConfig, defaults);
     M.MigrateIndividualSettings(gConfig, defaults);
 end
 

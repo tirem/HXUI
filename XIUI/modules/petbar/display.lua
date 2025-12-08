@@ -14,57 +14,141 @@ local color = require('libs.color');
 local display = {};
 
 -- ============================================
--- Get Timer Colors Based on Ability Category
+-- Per-Pet-Type Settings Helpers
 -- ============================================
--- Rage (offensive): Blood Pact: Rage, Ready, Sic, Deploy
--- Ward (defensive): Blood Pact: Ward, Reward, Repair, Spirit Link
--- Two-Hour: Astral Flow, Familiar, Spirit Surge, Overdrive
--- Other: Apogee, Mana Cede, Call Beast, Call Wyvern, Activate, etc.
+
+-- Get the current pet type settings (e.g., gConfig.petBarAvatar)
+local function GetPetTypeSettings()
+    local petTypeKey = data.GetPetTypeKey();
+    local settingsKey = 'petBar' .. petTypeKey:gsub("^%l", string.upper);  -- 'petBarAvatar', etc.
+    return gConfig[settingsKey] or {};
+end
+
+-- Get the current pet type color config (e.g., gConfig.colorCustomization.petBarAvatar)
+local function GetPetTypeColors()
+    local petTypeKey = data.GetPetTypeKey();
+    local settingsKey = 'petBar' .. petTypeKey:gsub("^%l", string.upper);  -- 'petBarAvatar', etc.
+    if gConfig.colorCustomization and gConfig.colorCustomization[settingsKey] then
+        return gConfig.colorCustomization[settingsKey];
+    end
+    -- Fall back to legacy petBar colors
+    return gConfig.colorCustomization and gConfig.colorCustomization.petBar or {};
+end
+
+-- Helper to get a setting with fallback to per-type, then flat legacy, then default
+local function GetPetBarSetting(settingName, defaultValue)
+    local typeSettings = GetPetTypeSettings();
+    if typeSettings[settingName] ~= nil then
+        return typeSettings[settingName];
+    end
+    -- Fall back to legacy flat settings
+    local legacyKey = 'petBar' .. settingName:gsub("^%l", string.upper);
+    if gConfig[legacyKey] ~= nil then
+        return gConfig[legacyKey];
+    end
+    return defaultValue;
+end
+
+-- ============================================
+-- Get Timer Colors Based on Individual Ability
+-- ============================================
+-- Each ability has its own unique color for better visual distinction
 local function GetTimerColors(abilityName, colorConfig)
     local name = abilityName or '';
+    local cc = colorConfig or {};
 
-    -- Blood Pact handling - check for Rage/Ward variants
+    -- SMN abilities
     if name:find('Blood Pact') then
         if name:find('Rage') then
-            local readyColor = (colorConfig and colorConfig.timerRageReadyColor) or 0xE6FF6600;
-            local recastColor = (colorConfig and colorConfig.timerRageRecastColor) or 0xD9FF9933;
-            return readyColor, recastColor;
+            return cc.timerBPRageReadyColor or 0xE6FF3333,
+                   cc.timerBPRageRecastColor or 0xD9FF6666;
         elseif name:find('Ward') then
-            local readyColor = (colorConfig and colorConfig.timerWardReadyColor) or 0xE600CCFF;
-            local recastColor = (colorConfig and colorConfig.timerWardRecastColor) or 0xD966E0FF;
-            return readyColor, recastColor;
+            return cc.timerBPWardReadyColor or 0xE600CCCC,
+                   cc.timerBPWardRecastColor or 0xD966DDDD;
         end
-        -- Generic Blood Pact without Rage/Ward - default to Rage colors
-        local readyColor = (colorConfig and colorConfig.timerRageReadyColor) or 0xE6FF6600;
-        local recastColor = (colorConfig and colorConfig.timerRageRecastColor) or 0xD9FF9933;
-        return readyColor, recastColor;
+        -- Generic Blood Pact - default to Rage colors
+        return cc.timerBPRageReadyColor or 0xE6FF3333,
+               cc.timerBPRageRecastColor or 0xD9FF6666;
+    end
+    if name == 'Apogee' then
+        return cc.timerApogeeReadyColor or 0xE6FFCC00,
+               cc.timerApogeeRecastColor or 0xD9FFDD66;
+    end
+    if name == 'Mana Cede' then
+        return cc.timerManaCedeReadyColor or 0xE6009999,
+               cc.timerManaCedeRecastColor or 0xD966BBBB;
     end
 
-    -- Rage abilities (offensive) - Orange
-    if name == 'Ready' or name == 'Sic' or name == 'Deploy' then
-        local readyColor = (colorConfig and colorConfig.timerRageReadyColor) or 0xE6FF6600;
-        local recastColor = (colorConfig and colorConfig.timerRageRecastColor) or 0xD9FF9933;
-        return readyColor, recastColor;
+    -- BST abilities
+    if name == 'Ready' then
+        return cc.timerReadyReadyColor or 0xE6FF6600,
+               cc.timerReadyRecastColor or 0xD9FF9933;
+    end
+    if name == 'Reward' then
+        return cc.timerRewardReadyColor or 0xE600CC66,
+               cc.timerRewardRecastColor or 0xD966DD99;
+    end
+    if name == 'Call Beast' then
+        return cc.timerCallBeastReadyColor or 0xE63399FF,
+               cc.timerCallBeastRecastColor or 0xD966BBFF;
+    end
+    if name == 'Bestial Loyalty' then
+        return cc.timerBestialLoyaltyReadyColor or 0xE69966FF,
+               cc.timerBestialLoyaltyRecastColor or 0xD9BB99FF;
     end
 
-    -- Ward abilities (defensive) - Cyan
-    if name == 'Reward' or name == 'Repair' or name == 'Spirit Link' then
-        local readyColor = (colorConfig and colorConfig.timerWardReadyColor) or 0xE600CCFF;
-        local recastColor = (colorConfig and colorConfig.timerWardRecastColor) or 0xD966E0FF;
-        return readyColor, recastColor;
+    -- DRG abilities
+    if name == 'Call Wyvern' then
+        return cc.timerCallWyvernReadyColor or 0xE63366FF,
+               cc.timerCallWyvernRecastColor or 0xD96699FF;
+    end
+    if name == 'Spirit Link' then
+        return cc.timerSpiritLinkReadyColor or 0xE633CC33,
+               cc.timerSpiritLinkRecastColor or 0xD966DD66;
+    end
+    if name == 'Deep Breathing' then
+        return cc.timerDeepBreathingReadyColor or 0xE6FFFF33,
+               cc.timerDeepBreathingRecastColor or 0xD9FFFF99;
+    end
+    if name == 'Steady Wing' then
+        return cc.timerSteadyWingReadyColor or 0xE6CC66FF,
+               cc.timerSteadyWingRecastColor or 0xD9DD99FF;
+    end
+
+    -- PUP abilities
+    if name == 'Activate' then
+        return cc.timerActivateReadyColor or 0xE63399FF,
+               cc.timerActivateRecastColor or 0xD966BBFF;
+    end
+    if name == 'Repair' then
+        return cc.timerRepairReadyColor or 0xE633CC66,
+               cc.timerRepairRecastColor or 0xD966DD99;
+    end
+    if name == 'Deploy' then
+        return cc.timerDeployReadyColor or 0xE6FF9933,
+               cc.timerDeployRecastColor or 0xD9FFBB66;
+    end
+    if name == 'Deactivate' then
+        return cc.timerDeactivateReadyColor or 0xE6999999,
+               cc.timerDeactivateRecastColor or 0xD9BBBBBB;
+    end
+    if name == 'Retrieve' then
+        return cc.timerRetrieveReadyColor or 0xE666CCFF,
+               cc.timerRetrieveRecastColor or 0xD999DDFF;
+    end
+    if name == 'Deus Ex Automata' then
+        return cc.timerDeusExAutomataReadyColor or 0xE6FFCC33,
+               cc.timerDeusExAutomataRecastColor or 0xD9FFDD66;
     end
 
     -- Two-Hour abilities - Magenta
     if name == 'Astral Flow' or name == 'Familiar' or name == 'Spirit Surge' or name == 'Overdrive' then
-        local readyColor = (colorConfig and colorConfig.timer2hReadyColor) or 0xE6FF00FF;
-        local recastColor = (colorConfig and colorConfig.timer2hRecastColor) or 0xD9FF66FF;
-        return readyColor, recastColor;
+        return cc.timer2hReadyColor or 0xE6FF00FF,
+               cc.timer2hRecastColor or 0xD9FF66FF;
     end
 
-    -- Other abilities (utility) - Green/Yellow
-    local readyColor = (colorConfig and colorConfig.timerReadyColor) or 0xE600FF00;
-    local recastColor = (colorConfig and colorConfig.timerRecastColor) or 0xD9FFFF00;
-    return readyColor, recastColor;
+    -- Fallback for unknown abilities - use a neutral gray
+    return 0xE6AAAAAA, 0xD9CCCCCC;
 end
 
 -- ============================================
@@ -152,18 +236,22 @@ function display.DrawWindow(settings)
         windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
     end
 
+    -- Get per-pet-type settings and colors
+    local typeSettings = GetPetTypeSettings();
+    local colorConfig = GetPetTypeColors();
+
     -- Calculate dimensions (base values)
     local barWidth = settings.barWidth;
     local barHeight = settings.barHeight;
     local barSpacing = settings.barSpacing;
 
-    -- Individual bar scales
-    local hpScaleX = gConfig.petBarHpScaleX or 1.0;
-    local hpScaleY = gConfig.petBarHpScaleY or 1.0;
-    local mpScaleX = gConfig.petBarMpScaleX or 1.0;
-    local mpScaleY = gConfig.petBarMpScaleY or 1.0;
-    local tpScaleX = gConfig.petBarTpScaleX or 1.0;
-    local tpScaleY = gConfig.petBarTpScaleY or 1.0;
+    -- Individual bar scales (from per-type settings with legacy fallback)
+    local hpScaleX = typeSettings.hpScaleX or gConfig.petBarHpScaleX or 1.0;
+    local hpScaleY = typeSettings.hpScaleY or gConfig.petBarHpScaleY or 1.0;
+    local mpScaleX = typeSettings.mpScaleX or gConfig.petBarMpScaleX or 1.0;
+    local mpScaleY = typeSettings.mpScaleY or gConfig.petBarMpScaleY or 1.0;
+    local tpScaleX = typeSettings.tpScaleX or gConfig.petBarTpScaleX or 1.0;
+    local tpScaleY = typeSettings.tpScaleY or gConfig.petBarTpScaleY or 1.0;
 
     -- Calculate scaled bar dimensions
     -- HP bar is full width
@@ -175,9 +263,6 @@ function display.DrawWindow(settings)
     local mpBarHeight = barHeight * mpScaleY;
     local tpBarWidth = halfBarWidth * tpScaleX;
     local tpBarHeight = barHeight * tpScaleY;
-
-    -- Color config
-    local colorConfig = gConfig.colorCustomization and gConfig.colorCustomization.petBar or {};
 
     -- Total row width for proper window sizing (based on HP bar width)
     local totalRowWidth = hpBarWidth;
@@ -195,12 +280,16 @@ function display.DrawWindow(settings)
         local startX, startY = imgui.GetCursorScreenPos();
 
         -- Row 1: Pet Name (with optional level) (left) and HP% (right, same line)
-        local nameFontSize = gConfig.petBarNameFontSize or settings.name_font_settings.font_height;
-        local vitalsFontSize = gConfig.petBarVitalsFontSize or settings.vitals_font_settings.font_height;
+        local nameFontSize = typeSettings.nameFontSize or gConfig.petBarNameFontSize or settings.name_font_settings.font_height;
+        local hpFontSize = typeSettings.hpFontSize or typeSettings.vitalsFontSize or gConfig.petBarVitalsFontSize or settings.vitals_font_settings.font_height;
+        local mpFontSize = typeSettings.mpFontSize or typeSettings.vitalsFontSize or gConfig.petBarVitalsFontSize or settings.vitals_font_settings.font_height;
+        local tpFontSize = typeSettings.tpFontSize or typeSettings.vitalsFontSize or gConfig.petBarVitalsFontSize or settings.vitals_font_settings.font_height;
 
         -- Format name with level if available and enabled
+        local showLevel = typeSettings.showLevel;
+        if showLevel == nil then showLevel = gConfig.petBarShowLevel ~= false; end
         local displayName = petName;
-        if petLevel and gConfig.petBarShowLevel ~= false then
+        if petLevel and showLevel then
             displayName = string.format('Lv.%d %s', petLevel, petName);
         end
 
@@ -216,17 +305,22 @@ function display.DrawWindow(settings)
         data.nameText:set_visible(true);
 
         -- Distance text (absolute or next to pet name)
-        if gConfig.petBarShowDistance then
-            local distanceFontSize = gConfig.petBarDistanceFontSize or settings.distance_font_settings.font_height;
+        local showDistance = typeSettings.showDistance;
+        if showDistance == nil then showDistance = gConfig.petBarShowDistance; end
+        if showDistance then
+            local distanceFontSize = typeSettings.distanceFontSize or gConfig.petBarDistanceFontSize or settings.distance_font_settings.font_height;
+            local distanceAbsolute = typeSettings.distanceAbsolute;
+            if distanceAbsolute == nil then distanceAbsolute = gConfig.petBarDistanceAbsolute; end
+            local distanceOffsetX = typeSettings.distanceOffsetX or gConfig.petBarDistanceOffsetX or 0;
+            local distanceOffsetY = typeSettings.distanceOffsetY or gConfig.petBarDistanceOffsetY or 0;
+
             data.distanceText:set_font_height(distanceFontSize);
             data.distanceText:set_text(string.format('%.1f', petDistance));
 
-            if gConfig.petBarDistanceAbsolute then
+            if distanceAbsolute then
                 -- Absolute positioning: relative to window top-left
-                local offsetX = gConfig.petBarDistanceOffsetX or 0;
-                local offsetY = gConfig.petBarDistanceOffsetY or 0;
-                data.distanceText:set_position_x(windowPosX + offsetX);
-                data.distanceText:set_position_y(windowPosY + offsetY);
+                data.distanceText:set_position_x(windowPosX + distanceOffsetX);
+                data.distanceText:set_position_y(windowPosY + distanceOffsetY);
             else
                 -- Relative positioning: next to pet name
                 local nameWidth, _ = data.nameText:get_text_size();
@@ -244,26 +338,49 @@ function display.DrawWindow(settings)
             data.distanceText:set_visible(false);
         end
 
+        -- Per-type vitals toggles
+        local showHP = typeSettings.showHP;
+        if showHP == nil then showHP = gConfig.petBarShowVitals ~= false; end
+        local showMP = typeSettings.showMP;
+        if showMP == nil then showMP = gConfig.petBarShowVitals ~= false; end
+        local showTP = typeSettings.showTP;
+        if showTP == nil then showTP = gConfig.petBarShowVitals ~= false; end
+
         -- HP% text (right-aligned to HP bar width)
-        if gConfig.petBarShowVitals ~= false then
-            data.hpText:set_font_height(vitalsFontSize);
+        if showHP then
+            data.hpText:set_font_height(hpFontSize);
             data.hpText:set_text(tostring(petHpPercent) .. '%');
             data.hpText:set_position_x(startX + hpBarWidth);
-            data.hpText:set_position_y(startY + (nameFontSize - vitalsFontSize) / 2);
+            data.hpText:set_position_y(startY + (nameFontSize - hpFontSize) / 2);
             local hpColor = colorConfig.hpTextColor or 0xFFFFFFFF;
             if data.lastHpColor ~= hpColor then
                 data.hpText:set_font_color(hpColor);
                 data.lastHpColor = hpColor;
             end
             data.hpText:set_visible(true);
+        else
+            data.hpText:set_visible(false);
         end
 
         imgui.Dummy({totalRowWidth, nameFontSize + 4});
 
+        -- Get bookends setting (shared across all bars)
+        local showBookends = typeSettings.showBookends;
+        if showBookends == nil then showBookends = gConfig.petBarShowBookends; end
+
+        -- Combine pet capability (showMp from data) with user setting (showMP from config)
+        local displayMpBar = showMp and showMP;
+        local displayTpBar = showTP;
+
+        -- Track bar positions for text placement
+        local barsStartX, barsStartY = imgui.GetCursorScreenPos();
+        local mpBarX, mpBarY = barsStartX, barsStartY;
+        local tpBarX = barsStartX;
+        local textRowY = barsStartY;
+
         -- Row 2: HP Bar (full width) with interpolation
-        if gConfig.petBarShowVitals ~= false then
+        if showHP then
             local hpGradient = GetCustomGradient(colorConfig, 'hpGradient') or {'#e26c6c', '#fa9c9c'};
-            local hpBarX, hpBarY = imgui.GetCursorScreenPos();
 
             -- Use HP interpolation for damage/healing animations
             local currentTime = os.clock();
@@ -274,103 +391,126 @@ function display.DrawWindow(settings)
             progressbar.ProgressBar(
                 hpPercentData,
                 {hpBarWidth, hpBarHeight},
-                {decorate = gConfig.petBarShowBookends}
+                {decorate = showBookends}
             );
 
-            -- Row 3: MP and TP bars side by side (half width each)
-            local mpBarX, mpBarY = imgui.GetCursorScreenPos();
-            local tpBarX = mpBarX;
+            -- Update position for next row
+            mpBarX, mpBarY = imgui.GetCursorScreenPos();
+            tpBarX = mpBarX;
+        end
 
-            if showMp then
-                local mpGradient = GetCustomGradient(colorConfig, 'mpGradient') or {'#9abb5a', '#bfe07d'};
-                progressbar.ProgressBar(
-                    {{petMpPercent / 100, mpGradient}},
-                    {mpBarWidth, mpBarHeight},
-                    {decorate = gConfig.petBarShowBookends}
-                );
+        -- Row 3: MP and TP bars side by side (half width each)
+        -- Calculate actual widths based on what's displayed
+        local actualMpWidth = mpBarWidth;
+        local actualTpWidth = tpBarWidth;
+        if displayMpBar and not displayTpBar then
+            -- MP bar takes full width when no TP bar
+            actualMpWidth = hpBarWidth;
+        elseif not displayMpBar and displayTpBar then
+            -- TP bar takes full width when no MP bar
+            actualTpWidth = hpBarWidth;
+        end
 
+        if displayMpBar then
+            local mpGradient = GetCustomGradient(colorConfig, 'mpGradient') or {'#9abb5a', '#bfe07d'};
+            progressbar.ProgressBar(
+                {{petMpPercent / 100, mpGradient}},
+                {actualMpWidth, mpBarHeight},
+                {decorate = showBookends}
+            );
+
+            if displayTpBar then
                 imgui.SameLine(0, barSpacing);
                 tpBarX = imgui.GetCursorScreenPos();
             end
+        end
 
-            -- TP Bar
+        if displayTpBar then
             local tpGradient = GetCustomGradient(colorConfig, 'tpGradient') or {'#3898ce', '#78c4ee'};
-            -- When no MP bar, TP bar takes full HP bar width; otherwise use calculated tpBarWidth
-            local actualTpWidth = showMp and tpBarWidth or hpBarWidth;
-            local actualTpHeight = tpBarHeight;
-
             progressbar.ProgressBar(
                 {{petTpPercent, tpGradient}},
-                {actualTpWidth, actualTpHeight},
-                {decorate = gConfig.petBarShowBookends}
+                {actualTpWidth, tpBarHeight},
+                {decorate = showBookends}
             );
+        end
 
-            -- Row 4: MP% and TP text below their respective bars (right-aligned)
-            -- Position text 2px below the MP/TP bars
-            local textRowY = mpBarY + mpBarHeight + 2;
+        -- Calculate text Y positions based on respective bar heights
+        -- When both bars are shown, use max height for consistent text alignment
+        -- When only one bar is shown, use that bar's height
+        local mpTextRowY = mpBarY;
+        local tpTextRowY = mpBarY;
+        if displayMpBar and displayTpBar then
+            -- Both bars shown - align text at the same level using max height
+            local maxBarHeight = math.max(mpBarHeight, tpBarHeight);
+            mpTextRowY = mpBarY + maxBarHeight + 2;
+            tpTextRowY = mpBarY + maxBarHeight + 2;
+        elseif displayMpBar then
+            -- Only MP bar shown
+            mpTextRowY = mpBarY + mpBarHeight + 2;
+        elseif displayTpBar then
+            -- Only TP bar shown
+            tpTextRowY = mpBarY + tpBarHeight + 2;
+        end
 
-            if showMp then
-                data.mpText:set_font_height(vitalsFontSize);
-                data.mpText:set_text(tostring(petMpPercent) .. '%');
-                -- Right-align MP text under MP bar
-                data.mpText:set_position_x(mpBarX + mpBarWidth);
-                data.mpText:set_position_y(textRowY);
-                local mpColor = colorConfig.mpTextColor or 0xFFFFFFFF;
-                if data.lastMpColor ~= mpColor then
-                    data.mpText:set_font_color(mpColor);
-                    data.lastMpColor = mpColor;
-                end
-                data.mpText:set_visible(true);
-
-                data.tpText:set_font_height(vitalsFontSize);
-                data.tpText:set_text(tostring(petTp));
-                -- Right-align TP text under TP bar
-                data.tpText:set_position_x(tpBarX + actualTpWidth);
-                data.tpText:set_position_y(textRowY);
-                local tpColor = colorConfig.tpTextColor or 0xFFFFFFFF;
-                if data.lastTpColor ~= tpColor then
-                    data.tpText:set_font_color(tpColor);
-                    data.lastTpColor = tpColor;
-                end
-                data.tpText:set_visible(true);
-            else
-                data.mpText:set_visible(false);
-
-                data.tpText:set_font_height(vitalsFontSize);
-                data.tpText:set_text(tostring(petTp));
-                -- Right-align TP text under TP bar (full width when no MP)
-                data.tpText:set_position_x(mpBarX + actualTpWidth);
-                data.tpText:set_position_y(textRowY);
-                local tpColor = colorConfig.tpTextColor or 0xFFFFFFFF;
-                if data.lastTpColor ~= tpColor then
-                    data.tpText:set_font_color(tpColor);
-                    data.lastTpColor = tpColor;
-                end
-                data.tpText:set_visible(true);
+        -- MP text (independent of TP bar visibility)
+        if displayMpBar then
+            data.mpText:set_font_height(mpFontSize);
+            data.mpText:set_text(tostring(petMpPercent) .. '%');
+            -- Right-align MP text under MP bar
+            data.mpText:set_position_x(mpBarX + actualMpWidth);
+            data.mpText:set_position_y(mpTextRowY);
+            local mpColor = colorConfig.mpTextColor or 0xFFFFFFFF;
+            if data.lastMpColor ~= mpColor then
+                data.mpText:set_font_color(mpColor);
+                data.lastMpColor = mpColor;
             end
-
-            imgui.Dummy({totalRowWidth, vitalsFontSize + 2});
+            data.mpText:set_visible(true);
         else
-            data.hpText:set_visible(false);
             data.mpText:set_visible(false);
+        end
+
+        -- TP text (independent of MP bar visibility)
+        if displayTpBar then
+            data.tpText:set_font_height(tpFontSize);
+            data.tpText:set_text(tostring(petTp));
+            -- Right-align TP text under TP bar
+            data.tpText:set_position_x(tpBarX + actualTpWidth);
+            data.tpText:set_position_y(tpTextRowY);
+            local tpColor = colorConfig.tpTextColor or 0xFFFFFFFF;
+            if data.lastTpColor ~= tpColor then
+                data.tpText:set_font_color(tpColor);
+                data.lastTpColor = tpColor;
+            end
+            data.tpText:set_visible(true);
+        else
             data.tpText:set_visible(false);
         end
 
+        -- Add spacing for text row if any vitals text is shown
+        if displayMpBar or displayTpBar then
+            local maxVitalsFontSize = math.max(displayMpBar and mpFontSize or 0, displayTpBar and tpFontSize or 0);
+            imgui.Dummy({totalRowWidth, maxVitalsFontSize + 2});
+        end
+
         -- Row 4: Ability Icons (circular)
-        if gConfig.petBarShowTimers ~= false then
+        local showTimers = typeSettings.showTimers;
+        if showTimers == nil then showTimers = gConfig.petBarShowTimers ~= false; end
+        if showTimers then
             -- Get timers from data module (handles preview internally)
             local timers = data.GetPetAbilityTimers();
             if #timers > 0 then
-                local iconScale = gConfig.petBarIconsScale or 1.0;
-                local iconOffsetX = gConfig.petBarIconsOffsetX or 0;
-                local iconOffsetY = gConfig.petBarIconsOffsetY or 0;
+                local iconScale = typeSettings.iconsScale or gConfig.petBarIconsScale or 1.0;
+                local iconOffsetX = typeSettings.iconsOffsetX or gConfig.petBarIconsOffsetX or 0;
+                local iconOffsetY = typeSettings.iconsOffsetY or gConfig.petBarIconsOffsetY or 0;
+                local iconsAbsolute = typeSettings.iconsAbsolute;
+                if iconsAbsolute == nil then iconsAbsolute = gConfig.petBarIconsAbsolute; end
                 local scaledIconSize = data.ABILITY_ICON_SIZE * iconScale;
                 local iconSpacing = 4 * iconScale;
 
                 local iconX, iconY;
                 local drawList;
 
-                if gConfig.petBarIconsAbsolute then
+                if iconsAbsolute then
                     -- Absolute positioning: relative to window top-left
                     iconX = windowPosX + iconOffsetX;
                     iconY = windowPosY + iconOffsetY;
@@ -391,7 +531,7 @@ function display.DrawWindow(settings)
                     DrawAbilityIcon(drawList, posX, iconY, scaledIconSize, timerInfo, colorConfig);
                 end
 
-                if not gConfig.petBarIconsAbsolute then
+                if not iconsAbsolute then
                     imgui.Dummy({totalRowWidth, scaledIconSize});
                 end
             end

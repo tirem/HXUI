@@ -120,14 +120,8 @@ petbar.UpdateVisuals = function(settings)
     -- Clear cached colors
     data.ClearColorCache();
 
-    -- Update background textures if theme changed
-    local backgroundName = gConfig.petBarBackgroundTheme or 'Window1';
-    if data.loadedBgName ~= backgroundName then
-        data.loadedBgName = backgroundName;
-        -- Update using windowbackground library
-        windowBg.setBackgroundTheme(data.backgroundPrim, backgroundName, settings.bgScale);
-        windowBg.setBordersTheme(data.backgroundPrim, backgroundName);
-    end
+    -- Background theme changes are now handled dynamically in data.UpdateBackground()
+    -- based on per-pet-type settings
 
     -- Update pet target module
     pettarget.UpdateVisuals(settings);

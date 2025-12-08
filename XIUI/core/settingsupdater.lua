@@ -296,7 +296,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     -- Mob Info
     gAdjustedSettings.mobInfoSettings.level_font_settings.font_height = math.max(us.mobInfoFontSize, 8);
 
-    -- Pet Bar
+    -- Pet Bar (base dimensions from legacy flat settings)
     gAdjustedSettings.petBarSettings.barWidth = ds.petBarSettings.barWidth * us.petBarScaleX;
     gAdjustedSettings.petBarSettings.barHeight = ds.petBarSettings.barHeight * us.petBarScaleY;
     gAdjustedSettings.petBarSettings.barSpacing = ds.petBarSettings.barSpacing * us.petBarScaleY;
@@ -304,6 +304,24 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.petBarSettings.distance_font_settings.font_height = math.max(us.petBarDistanceFontSize, 8);
     gAdjustedSettings.petBarSettings.vitals_font_settings.font_height = math.max(us.petBarVitalsFontSize, 8);
     gAdjustedSettings.petBarSettings.timer_font_settings.font_height = math.max(us.petBarTimerFontSize, 8);
+
+    -- Per-pet-type settings (display module uses these based on active pet)
+    gAdjustedSettings.petBarSettings.petTypeSettings = {
+        avatar = us.petBarAvatar,
+        charm = us.petBarCharm,
+        jug = us.petBarJug,
+        automaton = us.petBarAutomaton,
+        wyvern = us.petBarWyvern,
+    };
+
+    -- Per-pet-type color settings
+    gAdjustedSettings.petBarSettings.petTypeColors = {
+        avatar = us.colorCustomization and us.colorCustomization.petBarAvatar,
+        charm = us.colorCustomization and us.colorCustomization.petBarCharm,
+        jug = us.colorCustomization and us.colorCustomization.petBarJug,
+        automaton = us.colorCustomization and us.colorCustomization.petBarAutomaton,
+        wyvern = us.colorCustomization and us.colorCustomization.petBarWyvern,
+    };
 end
 
 return M;

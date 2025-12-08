@@ -196,7 +196,7 @@ function pettarget.DrawWindow(settings)
 
         -- Distance text positioning
         targetDistanceText:set_font_height(distanceFontSize);
-        targetDistanceText:set_text(string.format('%.1fy', targetDistance));
+        targetDistanceText:set_text(string.format('%.1f', targetDistance));
 
         if distanceAbsolute then
             -- Absolute positioning: relative to window top-left
