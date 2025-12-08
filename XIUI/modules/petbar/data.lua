@@ -802,9 +802,16 @@ function data.HideBackground()
     -- Hide background and borders using windowbackground library
     windowBg.hide(data.backgroundPrim);
 
-    -- Hide all pet image primitives (petbar-specific)
+    -- Hide all pet image primitives (petbar-specific) - both layers
     if data.petImagePrims then
         for _, prim in pairs(data.petImagePrims) do
+            if prim then
+                prim.visible = false;
+            end
+        end
+    end
+    if data.petImagePrimsTop then
+        for _, prim in pairs(data.petImagePrimsTop) do
             if prim then
                 prim.visible = false;
             end
@@ -856,9 +863,16 @@ function data.UpdateBackground(x, y, width, height, settings)
     -- Clear clipped image info
     data.clippedPetImageInfo = nil;
 
-    -- First hide all pet image primitives
+    -- First hide all pet image primitives (both clipped and unclipped sets)
     if data.petImagePrims then
         for _, prim in pairs(data.petImagePrims) do
+            if prim then
+                prim.visible = false;
+            end
+        end
+    end
+    if data.petImagePrimsTop then
+        for _, prim in pairs(data.petImagePrimsTop) do
             if prim then
                 prim.visible = false;
             end
@@ -868,7 +882,11 @@ function data.UpdateBackground(x, y, width, height, settings)
     -- Show current pet's image if we have one and setting is enabled
     if gConfig.petBarShowImage and data.currentPetName and data.petImagePrims then
         local petKey = data.GetPetSettingsKey(data.currentPetName);
-        local prim = data.petImagePrims[petKey];
+        local primMiddle = data.petImagePrims[petKey];  -- Middle layer (for clipped)
+        local primTop = data.petImagePrimsTop and data.petImagePrimsTop[petKey];  -- Top layer (for unclipped)
+
+        -- Use middle layer prim for dimensions, but choose which to show based on clip setting
+        local prim = primMiddle;
         if prim and prim.exists then
             -- Get per-avatar settings, fall back to legacy global settings
             local avatarSettings = gConfig.petBarAvatarSettings and gConfig.petBarAvatarSettings[petKey];
@@ -894,15 +912,13 @@ function data.UpdateBackground(x, y, width, height, settings)
             local imgY = y + petImageOffsetY;
             local baseWidth = prim.baseWidth or 256;
             local baseHeight = prim.baseHeight or 256;
-            local imgWidth = baseWidth * petImageScale;
-            local imgHeight = baseHeight * petImageScale;
 
             -- Convert 0-1 opacity to alpha byte (0x00-0xFF), keep RGB as white
             local alphaByte = math.floor(petImageOpacity * 255);
-            local color = bit.bor(bit.lshift(alphaByte, 24), 0x00FFFFFF);
+            local primColor = bit.bor(bit.lshift(alphaByte, 24), 0x00FFFFFF);
 
             if clipToBackground then
-                -- Get clip bounds using windowbackground library
+                -- Use middle layer primitive (renders behind borders), clipped to background
                 local clipBounds = windowBg.getClipBounds(x, y, width, height, {
                     theme = bgTheme,
                     padding = settings.bgPadding or data.PADDING,
@@ -910,36 +926,34 @@ function data.UpdateBackground(x, y, width, height, settings)
                     bgOffset = settings.bgOffset or 1,
                 });
 
-                -- Clip image to background bounds
-                local clipped = windowBg.clipImageToBounds(imgX, imgY, imgWidth, imgHeight, clipBounds, petImageScale);
+                local clipped = windowBg.clipImageToBounds(imgX, imgY, baseWidth * petImageScale, baseHeight * petImageScale, clipBounds, petImageScale);
 
                 if clipped then
-                    prim.visible = true;
-                    prim.position_x = clipped.x;
-                    prim.position_y = clipped.y;
-                    prim.texture_offset_x = clipped.texOffsetX;
-                    prim.texture_offset_y = clipped.texOffsetY;
-                    prim.width = clipped.width;
-                    prim.height = clipped.height;
-                    prim.scale_x = clipped.scaleX;
-                    prim.scale_y = clipped.scaleY;
-                    prim.color = color;
-                else
-                    -- Image is completely outside background bounds
-                    prim.visible = false;
+                    primMiddle.visible = true;
+                    primMiddle.position_x = clipped.x;
+                    primMiddle.position_y = clipped.y;
+                    primMiddle.texture_offset_x = clipped.texOffsetX;
+                    primMiddle.texture_offset_y = clipped.texOffsetY;
+                    primMiddle.width = clipped.width;
+                    primMiddle.height = clipped.height;
+                    primMiddle.scale_x = clipped.scaleX;
+                    primMiddle.scale_y = clipped.scaleY;
+                    primMiddle.color = primColor;
                 end
             else
-                -- No clipping - show full image via primitive
-                prim.visible = true;
-                prim.position_x = imgX;
-                prim.position_y = imgY;
-                prim.texture_offset_x = 0;
-                prim.texture_offset_y = 0;
-                prim.width = baseWidth;
-                prim.height = baseHeight;
-                prim.scale_x = petImageScale;
-                prim.scale_y = petImageScale;
-                prim.color = color;
+                -- Use top layer primitive (renders on top of borders), no clipping
+                if primTop then
+                    primTop.visible = true;
+                    primTop.position_x = imgX;
+                    primTop.position_y = imgY;
+                    primTop.texture_offset_x = 0;
+                    primTop.texture_offset_y = 0;
+                    primTop.width = baseWidth;
+                    primTop.height = baseHeight;
+                    primTop.scale_x = petImageScale;
+                    primTop.scale_y = petImageScale;
+                    primTop.color = primColor;
+                end
             end
         end
     end
