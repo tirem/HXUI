@@ -391,6 +391,12 @@ function M.MigratePerPetTypeSettings(gConfig, defaults)
     gConfig.petBarJug = deep_copy_table(baseSettings);
     gConfig.petBarAutomaton = deep_copy_table(baseSettings);
     gConfig.petBarWyvern = deep_copy_table(baseSettings);
+
+    -- Apply pet-type-specific overrides
+    gConfig.petBarCharm.iconsOffsetX = 94;
+    gConfig.petBarJug.iconsOffsetX = 94;
+    gConfig.petBarAutomaton.iconsOffsetX = 60;
+    gConfig.petBarWyvern.iconsOffsetX = 94;
 end
 
 -- Migrate old petBar colors to per-pet-type color settings

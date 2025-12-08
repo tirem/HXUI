@@ -41,6 +41,27 @@ function components.CollapsingSection(label, defaultOpen)
     return isOpen;
 end
 
+-- Collapsing section with warning/danger styling (reddish border)
+function components.CollapsingSectionWarning(label, defaultOpen)
+    if defaultOpen == nil then defaultOpen = false; end
+    imgui.Spacing();
+
+    -- Push reddish border color
+    imgui.PushStyleColor(ImGuiCol_Border, {0.8, 0.3, 0.3, 0.8});
+    imgui.PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1);
+
+    local flags = defaultOpen and ImGuiTreeNodeFlags_DefaultOpen or 0;
+    local isOpen = imgui.CollapsingHeader(label, flags);
+
+    imgui.PopStyleVar();
+    imgui.PopStyleColor();
+
+    if isOpen then
+        imgui.Spacing();
+    end
+    return isOpen;
+end
+
 -- Draw a single gradient picker column (for horizontal layout)
 function components.DrawGradientPickerColumn(label, gradientTable, helpText)
     if not gradientTable then return; end

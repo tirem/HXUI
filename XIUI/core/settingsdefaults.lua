@@ -699,11 +699,11 @@ M.user_settings = T{
     petBarCharmIconSize = 16,
     petBarCharmTimerFontSize = 12,
     petBarCharmOffsetX = 0,
-    petBarCharmOffsetY = -20,
+    petBarCharmOffsetY = -16,
     petBarJugIconSize = 16,
     petBarJugTimerFontSize = 12,
-    petBarJugOffsetX = 0,
-    petBarJugOffsetY = -20,
+    petBarJugOffsetX = 5,
+    petBarJugOffsetY = -17,
 
     -- Pet ability icon toggles per job
     -- SMN abilities
@@ -793,10 +793,10 @@ M.user_settings = T{
 
     -- Per-pet-type settings (Avatar, Charm, Jug, Automaton, Wyvern each have independent visual settings)
     petBarAvatar = createPetBarTypeDefaults(),
-    petBarCharm = createPetBarTypeDefaults(),
-    petBarJug = createPetBarTypeDefaults(),
-    petBarAutomaton = createPetBarTypeDefaults(),
-    petBarWyvern = createPetBarTypeDefaults(),
+    petBarCharm = createPetBarTypeDefaults({ iconsOffsetX = 94 }),
+    petBarJug = createPetBarTypeDefaults({ iconsOffsetX = 94 }),
+    petBarAutomaton = createPetBarTypeDefaults({ iconsOffsetX = 60 }),
+    petBarWyvern = createPetBarTypeDefaults({ iconsOffsetX = 94 }),
 
     -- Bar Settings (global progress bar configuration)
     showBookends = false,            -- Global bookend visibility (overrides individual bookend settings)

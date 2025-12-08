@@ -61,11 +61,14 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
         return;
     end
 
-    if components.CollapsingSection('Display Options##' .. configKey) then
-        components.DrawPartyCheckbox(typeSettings, 'Show Pet Level##' .. configKey, 'showLevel');
-        imgui.ShowHelp('Show pet level before the name (e.g., "Lv.35 FunguarFamiliar").');
+    if components.CollapsingSection('Display Options##' .. configKey, false) then
+        -- Charmed pets don't have levels, so hide this option for Charm
+        if configKey ~= 'petBarCharm' then
+            components.DrawPartyCheckbox(typeSettings, 'Show Pet Level##' .. configKey, 'showLevel');
+            imgui.ShowHelp('Show pet level before the name (e.g., "Lv.35 FunguarFamiliar").');
+            imgui.Spacing();
+        end
 
-        imgui.Spacing();
         components.DrawPartyCheckbox(typeSettings, 'Show Distance##' .. configKey, 'showDistance');
         imgui.ShowHelp('Show distance from player to pet.');
 
@@ -94,7 +97,7 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
         end
     end
 
-    if components.CollapsingSection('Bar Settings##' .. configKey) then
+    if components.CollapsingSection('Bar Settings##' .. configKey, false) then
         -- HP Bar
         components.DrawPartyCheckbox(typeSettings, 'Show HP Bar##' .. configKey, 'showHP');
         imgui.ShowHelp('Show pet HP bar.');
@@ -124,7 +127,7 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
         end
     end
 
-    if components.CollapsingSection('Font Sizes##' .. configKey) then
+    if components.CollapsingSection('Font Sizes##' .. configKey, false) then
         components.DrawPartySlider(typeSettings, 'Pet Name##' .. configKey, 'nameFontSize', 8, 24);
         components.DrawPartySlider(typeSettings, 'Distance##' .. configKey, 'distanceFontSize', 6, 18);
         components.DrawPartySlider(typeSettings, 'HP Text##' .. configKey, 'hpFontSize', 6, 18);
@@ -132,7 +135,7 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
         components.DrawPartySlider(typeSettings, 'TP Text##' .. configKey, 'tpFontSize', 6, 18);
     end
 
-    if components.CollapsingSection('Background##' .. configKey) then
+    if components.CollapsingSection('Background##' .. configKey, false) then
         local bgThemes = {'-None-', 'Plain', 'Window1', 'Window2', 'Window3', 'Window4', 'Window5', 'Window6', 'Window7', 'Window8'};
         local currentTheme = typeSettings.backgroundTheme or 'Window1';
         components.DrawPartyComboBox(typeSettings, 'Theme##bg' .. configKey, 'backgroundTheme', bgThemes, DeferredUpdateVisuals);
@@ -143,7 +146,7 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
         imgui.ShowHelp('Opacity of the window borders (Window themes only).');
     end
 
-    if components.CollapsingSection('Ability Icons##' .. configKey) then
+    if components.CollapsingSection('Ability Icons##' .. configKey, false) then
         components.DrawPartyCheckbox(typeSettings, 'Show Ability Timers##' .. configKey, 'showTimers');
         imgui.ShowHelp('Show pet-related ability recast timers (Blood Pact, Ready, Sic, etc.).');
 
@@ -157,7 +160,13 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
             if imgui.BeginCombo('Position Mode##icons' .. configKey, currentMode) then
                 for _, mode in ipairs(positionModes) do
                     if imgui.Selectable(mode, mode == currentMode) then
+                        local wasAbsolute = typeSettings.iconsAbsolute;
                         typeSettings.iconsAbsolute = (mode == 'Absolute');
+                        -- Reset offsets when switching to inline
+                        if wasAbsolute and not typeSettings.iconsAbsolute then
+                            typeSettings.iconsOffsetX = 0;
+                            typeSettings.iconsOffsetY = 0;
+                        end
                         SaveSettingsOnly();
                     end
                 end
@@ -243,7 +252,7 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
 
     -- Avatar (SMN) specific settings
     if configKey == 'petBarAvatar' then
-        if components.CollapsingSection('Avatar Image##avatar') then
+        if components.CollapsingSection('Avatar Image##avatar', false) then
             components.DrawCheckbox('Show Avatar Image', 'petBarShowImage');
             imgui.ShowHelp('Show avatar image overlay on the pet bar.');
 
@@ -350,7 +359,7 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
 
     -- Charm (BST charmed pets) specific settings
     if configKey == 'petBarCharm' then
-        if components.CollapsingSection('Charm Indicator##charm') then
+        if components.CollapsingSection('Charm Indicator##charm', false) then
             components.DrawCheckbox('Show Charm Indicator', 'petBarShowCharmIndicator');
             imgui.ShowHelp('Show heart icon and elapsed timer for charmed pets.');
 
@@ -377,7 +386,7 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
 
     -- Jug (BST jug pets) specific settings
     if configKey == 'petBarJug' then
-        if components.CollapsingSection('Jug Pet Timer##jug') then
+        if components.CollapsingSection('Jug Pet Timer##jug', false) then
             components.DrawCheckbox('Show Jug Pet Timer', 'petBarShowJugTimer');
             imgui.ShowHelp('Show countdown timer for jug pet duration (time remaining).');
 
@@ -406,7 +415,7 @@ end
 
 -- Helper: Draw copy buttons for pet type settings
 local function DrawPetTypeCopyButtons(currentConfigKey, currentLabel, settingsType)
-    if components.CollapsingSection('Copy Settings##' .. currentConfigKey .. settingsType) then
+    if components.CollapsingSectionWarning('Copy Settings##' .. currentConfigKey .. settingsType) then
         imgui.TextColored({0.7, 0.7, 0.7, 1.0}, 'Copy ' .. settingsType .. ' from:');
         for _, petType in ipairs(PET_TYPES) do
             if petType.configKey ~= currentConfigKey then
@@ -433,7 +442,7 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
         return;
     end
 
-    if components.CollapsingSection('Bar Colors##' .. configKey .. 'color') then
+    if components.CollapsingSection('Bar Colors##' .. configKey .. 'color', false) then
         -- Column headers
         imgui.Text("HP Bar");
         imgui.SameLine(components.COLOR_COLUMN_SPACING);
@@ -461,7 +470,7 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
         end
     end
 
-    if components.CollapsingSection('Text Colors##' .. configKey .. 'color') then
+    if components.CollapsingSection('Text Colors##' .. configKey .. 'color', false) then
         components.DrawTextColorPicker("Pet Name##" .. configKey, colorConfig, 'nameTextColor', "Color of pet name text");
         components.DrawTextColorPicker("Distance##" .. configKey, colorConfig, 'distanceTextColor', "Color of distance text");
         components.DrawTextColorPicker("HP Text##" .. configKey, colorConfig, 'hpTextColor', "Color of HP value text");
@@ -475,12 +484,16 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
 
     -- Avatar (SMN) specific color settings
     if configKey == 'petBarAvatar' then
-        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color') then
+        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color', false) then
             -- Ensure timer colors exist
             if colorConfig.timerBPRageReadyColor == nil then colorConfig.timerBPRageReadyColor = 0xE6FF3333; end
             if colorConfig.timerBPRageRecastColor == nil then colorConfig.timerBPRageRecastColor = 0xD9FF6666; end
             if colorConfig.timerBPWardReadyColor == nil then colorConfig.timerBPWardReadyColor = 0xE600CCCC; end
             if colorConfig.timerBPWardRecastColor == nil then colorConfig.timerBPWardRecastColor = 0xD966DDDD; end
+            if colorConfig.timerApogeeReadyColor == nil then colorConfig.timerApogeeReadyColor = 0xE6FFCC00; end
+            if colorConfig.timerApogeeRecastColor == nil then colorConfig.timerApogeeRecastColor = 0xD9FFDD66; end
+            if colorConfig.timerManaCedeReadyColor == nil then colorConfig.timerManaCedeReadyColor = 0xE6009999; end
+            if colorConfig.timerManaCedeRecastColor == nil then colorConfig.timerManaCedeRecastColor = 0xD966BBBB; end
             if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
             if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
 
@@ -494,6 +507,16 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
             components.DrawTextColorPicker("Recast##ward" .. configKey, colorConfig, 'timerBPWardRecastColor', "Color when on cooldown");
 
             imgui.Spacing();
+            imgui.Text('Apogee');
+            components.DrawTextColorPicker("Ready##apogee" .. configKey, colorConfig, 'timerApogeeReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##apogee" .. configKey, colorConfig, 'timerApogeeRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Mana Cede');
+            components.DrawTextColorPicker("Ready##manacede" .. configKey, colorConfig, 'timerManaCedeReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##manacede" .. configKey, colorConfig, 'timerManaCedeRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
             imgui.Text('Two-Hour (Astral Flow)');
             components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
             components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
@@ -502,7 +525,7 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
 
     -- Charm (BST charmed pets) specific color settings
     if configKey == 'petBarCharm' then
-        if components.CollapsingSection('Charm Indicator Colors##' .. configKey .. 'color') then
+        if components.CollapsingSection('Charm Indicator Colors##' .. configKey .. 'color', false) then
             if colorConfig.charmHeartColor == nil then colorConfig.charmHeartColor = 0xFFFF6699; end
             if colorConfig.charmTimerColor == nil then colorConfig.charmTimerColor = 0xFFFFFFFF; end
             if colorConfig.durationWarningColor == nil then colorConfig.durationWarningColor = 0xFFFF6600; end
@@ -512,10 +535,24 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
             components.DrawTextColorPicker("Duration Warning##" .. configKey, colorConfig, 'durationWarningColor', "Color when charm is about to break");
         end
 
-        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color') then
+        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color', false) then
+            if colorConfig.timerReadyReadyColor == nil then colorConfig.timerReadyReadyColor = 0xE6FF6600; end
+            if colorConfig.timerReadyRecastColor == nil then colorConfig.timerReadyRecastColor = 0xD9FF9933; end
+            if colorConfig.timerRewardReadyColor == nil then colorConfig.timerRewardReadyColor = 0xE600CC66; end
+            if colorConfig.timerRewardRecastColor == nil then colorConfig.timerRewardRecastColor = 0xD966DD99; end
             if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
             if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
 
+            imgui.Text('Ready/Sic');
+            components.DrawTextColorPicker("Ready##ready" .. configKey, colorConfig, 'timerReadyReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##ready" .. configKey, colorConfig, 'timerReadyRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Reward');
+            components.DrawTextColorPicker("Ready##reward" .. configKey, colorConfig, 'timerRewardReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##reward" .. configKey, colorConfig, 'timerRewardRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
             imgui.Text('Two-Hour (Familiar)');
             components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
             components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
@@ -524,7 +561,7 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
 
     -- Jug (BST jug pets) specific color settings
     if configKey == 'petBarJug' then
-        if components.CollapsingSection('Jug Pet Indicator Colors##' .. configKey .. 'color') then
+        if components.CollapsingSection('Jug Pet Indicator Colors##' .. configKey .. 'color', false) then
             if colorConfig.jugIconColor == nil then colorConfig.jugIconColor = 0xFFFFFFFF; end
             if colorConfig.charmTimerColor == nil then colorConfig.charmTimerColor = 0xFFFFFFFF; end
             if colorConfig.durationWarningColor == nil then colorConfig.durationWarningColor = 0xFFFF6600; end
@@ -534,10 +571,38 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
             components.DrawTextColorPicker("Duration Warning##" .. configKey, colorConfig, 'durationWarningColor', "Color when jug pet duration is low");
         end
 
-        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color') then
+        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color', false) then
+            if colorConfig.timerReadyReadyColor == nil then colorConfig.timerReadyReadyColor = 0xE6FF6600; end
+            if colorConfig.timerReadyRecastColor == nil then colorConfig.timerReadyRecastColor = 0xD9FF9933; end
+            if colorConfig.timerRewardReadyColor == nil then colorConfig.timerRewardReadyColor = 0xE600CC66; end
+            if colorConfig.timerRewardRecastColor == nil then colorConfig.timerRewardRecastColor = 0xD966DD99; end
+            if colorConfig.timerCallBeastReadyColor == nil then colorConfig.timerCallBeastReadyColor = 0xE63399FF; end
+            if colorConfig.timerCallBeastRecastColor == nil then colorConfig.timerCallBeastRecastColor = 0xD966BBFF; end
+            if colorConfig.timerBestialLoyaltyReadyColor == nil then colorConfig.timerBestialLoyaltyReadyColor = 0xE69966FF; end
+            if colorConfig.timerBestialLoyaltyRecastColor == nil then colorConfig.timerBestialLoyaltyRecastColor = 0xD9BB99FF; end
             if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
             if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
 
+            imgui.Text('Ready/Sic');
+            components.DrawTextColorPicker("Ready##ready" .. configKey, colorConfig, 'timerReadyReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##ready" .. configKey, colorConfig, 'timerReadyRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Reward');
+            components.DrawTextColorPicker("Ready##reward" .. configKey, colorConfig, 'timerRewardReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##reward" .. configKey, colorConfig, 'timerRewardRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Call Beast');
+            components.DrawTextColorPicker("Ready##callbeast" .. configKey, colorConfig, 'timerCallBeastReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##callbeast" .. configKey, colorConfig, 'timerCallBeastRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Bestial Loyalty');
+            components.DrawTextColorPicker("Ready##bestialloyalty" .. configKey, colorConfig, 'timerBestialLoyaltyReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##bestialloyalty" .. configKey, colorConfig, 'timerBestialLoyaltyRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
             imgui.Text('Two-Hour (Familiar)');
             components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
             components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
@@ -546,10 +611,52 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
 
     -- Automaton (PUP) specific color settings
     if configKey == 'petBarAutomaton' then
-        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color') then
+        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color', false) then
+            if colorConfig.timerActivateReadyColor == nil then colorConfig.timerActivateReadyColor = 0xE633FF33; end
+            if colorConfig.timerActivateRecastColor == nil then colorConfig.timerActivateRecastColor = 0xD966FF66; end
+            if colorConfig.timerRepairReadyColor == nil then colorConfig.timerRepairReadyColor = 0xE6FF9933; end
+            if colorConfig.timerRepairRecastColor == nil then colorConfig.timerRepairRecastColor = 0xD9FFBB66; end
+            if colorConfig.timerDeusExAutomataReadyColor == nil then colorConfig.timerDeusExAutomataReadyColor = 0xE6FF33FF; end
+            if colorConfig.timerDeusExAutomataRecastColor == nil then colorConfig.timerDeusExAutomataRecastColor = 0xD9FF66FF; end
+            if colorConfig.timerDeployReadyColor == nil then colorConfig.timerDeployReadyColor = 0xE63399FF; end
+            if colorConfig.timerDeployRecastColor == nil then colorConfig.timerDeployRecastColor = 0xD966BBFF; end
+            if colorConfig.timerDeactivateReadyColor == nil then colorConfig.timerDeactivateReadyColor = 0xE6FF6666; end
+            if colorConfig.timerDeactivateRecastColor == nil then colorConfig.timerDeactivateRecastColor = 0xD9FF9999; end
+            if colorConfig.timerRetrieveReadyColor == nil then colorConfig.timerRetrieveReadyColor = 0xE6FFCC33; end
+            if colorConfig.timerRetrieveRecastColor == nil then colorConfig.timerRetrieveRecastColor = 0xD9FFDD66; end
             if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
             if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
 
+            imgui.Text('Activate');
+            components.DrawTextColorPicker("Ready##activate" .. configKey, colorConfig, 'timerActivateReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##activate" .. configKey, colorConfig, 'timerActivateRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Repair');
+            components.DrawTextColorPicker("Ready##repair" .. configKey, colorConfig, 'timerRepairReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##repair" .. configKey, colorConfig, 'timerRepairRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Deus Ex Automata');
+            components.DrawTextColorPicker("Ready##deusex" .. configKey, colorConfig, 'timerDeusExAutomataReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##deusex" .. configKey, colorConfig, 'timerDeusExAutomataRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Deploy');
+            components.DrawTextColorPicker("Ready##deploy" .. configKey, colorConfig, 'timerDeployReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##deploy" .. configKey, colorConfig, 'timerDeployRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Deactivate');
+            components.DrawTextColorPicker("Ready##deactivate" .. configKey, colorConfig, 'timerDeactivateReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##deactivate" .. configKey, colorConfig, 'timerDeactivateRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Retrieve');
+            components.DrawTextColorPicker("Ready##retrieve" .. configKey, colorConfig, 'timerRetrieveReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##retrieve" .. configKey, colorConfig, 'timerRetrieveRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
             imgui.Text('Two-Hour (Overdrive)');
             components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
             components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
@@ -558,17 +665,45 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
 
     -- Wyvern (DRG) specific color settings
     if configKey == 'petBarWyvern' then
-        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color') then
+        if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color', false) then
+            if colorConfig.timerCallWyvernReadyColor == nil then colorConfig.timerCallWyvernReadyColor = 0xE63366FF; end
+            if colorConfig.timerCallWyvernRecastColor == nil then colorConfig.timerCallWyvernRecastColor = 0xD96699FF; end
+            if colorConfig.timerSpiritLinkReadyColor == nil then colorConfig.timerSpiritLinkReadyColor = 0xE633CC33; end
+            if colorConfig.timerSpiritLinkRecastColor == nil then colorConfig.timerSpiritLinkRecastColor = 0xD966DD66; end
+            if colorConfig.timerDeepBreathingReadyColor == nil then colorConfig.timerDeepBreathingReadyColor = 0xE6FF9933; end
+            if colorConfig.timerDeepBreathingRecastColor == nil then colorConfig.timerDeepBreathingRecastColor = 0xD9FFBB66; end
+            if colorConfig.timerSteadyWingReadyColor == nil then colorConfig.timerSteadyWingReadyColor = 0xE6CCCC33; end
+            if colorConfig.timerSteadyWingRecastColor == nil then colorConfig.timerSteadyWingRecastColor = 0xD9DDDD66; end
             if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
             if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
 
+            imgui.Text('Call Wyvern');
+            components.DrawTextColorPicker("Ready##callwyvern" .. configKey, colorConfig, 'timerCallWyvernReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##callwyvern" .. configKey, colorConfig, 'timerCallWyvernRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Spirit Link');
+            components.DrawTextColorPicker("Ready##spiritlink" .. configKey, colorConfig, 'timerSpiritLinkReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##spiritlink" .. configKey, colorConfig, 'timerSpiritLinkRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Deep Breathing');
+            components.DrawTextColorPicker("Ready##deepbreathing" .. configKey, colorConfig, 'timerDeepBreathingReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##deepbreathing" .. configKey, colorConfig, 'timerDeepBreathingRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
+            imgui.Text('Steady Wing');
+            components.DrawTextColorPicker("Ready##steadywing" .. configKey, colorConfig, 'timerSteadyWingReadyColor', "Color when ability is ready");
+            components.DrawTextColorPicker("Recast##steadywing" .. configKey, colorConfig, 'timerSteadyWingRecastColor', "Color when on cooldown");
+
+            imgui.Spacing();
             imgui.Text('Two-Hour (Spirit Surge)');
             components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
             components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
         end
     end
 
-    if components.CollapsingSection('Background Colors##' .. configKey .. 'color') then
+    if components.CollapsingSection('Background Colors##' .. configKey .. 'color', false) then
         if colorConfig.bgColor == nil then colorConfig.bgColor = 0xFFFFFFFF; end
         if colorConfig.borderColor == nil then colorConfig.borderColor = 0xFFFFFFFF; end
 
@@ -590,7 +725,7 @@ local function DrawPetTargetSettingsContent()
     components.DrawCheckbox('Show Pet Target', 'petBarShowTarget');
     imgui.ShowHelp('Show information about what the pet is targeting in a separate window.');
 
-    if components.CollapsingSection('Display Options##petTarget') then
+    if components.CollapsingSection('Display Options##petTarget', false) then
         components.DrawSlider('Font Size', 'petBarTargetFontSize', 6, 24);
         imgui.ShowHelp('Font size for pet target text.');
 
@@ -676,14 +811,14 @@ local function DrawPetTargetSettingsContent()
         end
     end
 
-    if components.CollapsingSection('Bar Scale##petTarget') then
+    if components.CollapsingSection('Bar Scale##petTarget', false) then
         components.DrawSlider('Scale X##petTargetBar', 'petTargetBarScaleX', 0.5, 2.0, '%.1f');
         imgui.ShowHelp('Horizontal scale of the HP bar.');
         components.DrawSlider('Scale Y##petTargetBar', 'petTargetBarScaleY', 0.5, 2.0, '%.1f');
         imgui.ShowHelp('Vertical scale of the HP bar.');
     end
 
-    if components.CollapsingSection('Background##petTarget') then
+    if components.CollapsingSection('Background##petTarget', false) then
         local bgThemes = {'-None-', 'Plain', 'Window1', 'Window2', 'Window3', 'Window4', 'Window5', 'Window6', 'Window7', 'Window8'};
         local currentTheme = gConfig.petTargetBackgroundTheme or gConfig.petBarBackgroundTheme or 'Window1';
         components.DrawComboBox('Theme##petTargetBg', currentTheme, bgThemes, function(newValue)
@@ -890,7 +1025,7 @@ local function DrawPetBarColorSettingsContent()
         gConfig.colorCustomization.petBar.borderColor = 0xFFFFFFFF;
     end
 
-    if components.CollapsingSection('Bar Colors##petBarColor') then
+    if components.CollapsingSection('Bar Colors##petBarColor', false) then
         -- Column headers
         imgui.Text("HP Bar");
         imgui.SameLine(components.COLOR_COLUMN_SPACING);
@@ -912,7 +1047,7 @@ local function DrawPetBarColorSettingsContent()
         components.DrawGradientPickerColumn("TP Bar##petBar", gConfig.colorCustomization.petBar.tpGradient, "Pet TP bar color gradient");
     end
 
-    if components.CollapsingSection('Text Colors##petBarColor') then
+    if components.CollapsingSection('Text Colors##petBarColor', false) then
         components.DrawTextColorPicker("Pet Name", gConfig.colorCustomization.petBar, 'nameTextColor', "Color of pet name text");
         components.DrawTextColorPicker("Distance", gConfig.colorCustomization.petBar, 'distanceTextColor', "Color of distance text");
         components.DrawTextColorPicker("HP Text", gConfig.colorCustomization.petBar, 'hpTextColor', "Color of HP value text");
@@ -920,7 +1055,7 @@ local function DrawPetBarColorSettingsContent()
         components.DrawTextColorPicker("TP Text", gConfig.colorCustomization.petBar, 'tpTextColor', "Color of TP value text");
     end
 
-    if components.CollapsingSection('Background Colors##petBarColor') then
+    if components.CollapsingSection('Background Colors##petBarColor', false) then
         components.DrawTextColorPicker("Background Tint", gConfig.colorCustomization.petBar, 'bgColor', "Tint color for background");
         components.DrawTextColorPicker("Border Color", gConfig.colorCustomization.petBar, 'borderColor', "Color of window borders (Window themes only)");
     end
@@ -956,17 +1091,17 @@ local function DrawPetTargetColorSettingsContent()
         gConfig.colorCustomization.petTarget.distanceTextColor = 0xFFFFFFFF;
     end
 
-    if components.CollapsingSection('Bar Colors##petTargetColor') then
+    if components.CollapsingSection('Bar Colors##petTargetColor', false) then
         components.DrawGradientPickerColumn("HP Bar##petTarget", gConfig.colorCustomization.petTarget.hpGradient, "Pet target HP bar color gradient");
     end
 
-    if components.CollapsingSection('Text Colors##petTargetColor') then
+    if components.CollapsingSection('Text Colors##petTargetColor', false) then
         components.DrawTextColorPicker("Target Name", gConfig.colorCustomization.petTarget, 'targetTextColor', "Color of pet target name text");
         components.DrawTextColorPicker("HP%", gConfig.colorCustomization.petTarget, 'hpTextColor', "Color of HP percent text");
         components.DrawTextColorPicker("Distance", gConfig.colorCustomization.petTarget, 'distanceTextColor', "Color of distance text");
     end
 
-    if components.CollapsingSection('Background Colors##petTargetColor') then
+    if components.CollapsingSection('Background Colors##petTargetColor', false) then
         components.DrawTextColorPicker("Background Tint", gConfig.colorCustomization.petTarget, 'bgColor', "Tint color for background");
         components.DrawTextColorPicker("Border Color", gConfig.colorCustomization.petTarget, 'borderColor', "Color of window borders (Window themes only)");
     end
