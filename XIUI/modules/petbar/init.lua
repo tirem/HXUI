@@ -23,7 +23,6 @@ petbar.Initialize = function(settings)
     -- Create fonts
     data.nameText = FontManager.create(settings.name_font_settings);
     data.distanceText = FontManager.create(settings.distance_font_settings);
-    data.distanceText:set_font_alignment(gdi.Alignment.Right);
 
     data.hpText = FontManager.create(settings.vitals_font_settings);
     data.hpText:set_font_alignment(gdi.Alignment.Right);
@@ -123,7 +122,6 @@ petbar.UpdateVisuals = function(settings)
     -- Recreate fonts
     data.nameText = FontManager.recreate(data.nameText, settings.name_font_settings);
     data.distanceText = FontManager.recreate(data.distanceText, settings.distance_font_settings);
-    data.distanceText:set_font_alignment(gdi.Alignment.Right);
 
     data.hpText = FontManager.recreate(data.hpText, settings.vitals_font_settings);
     data.hpText:set_font_alignment(gdi.Alignment.Right);
