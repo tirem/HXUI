@@ -14,6 +14,57 @@ local M = {};
 -- Track selected avatar in config dropdown
 local selectedAvatarIndex = 1;
 
+-- ============================================
+-- Tab Styling Constants and Helpers
+-- ============================================
+local TAB_STYLE = {
+    height = 24,
+    smallHeight = 20,
+    padding = 12,
+    smallPadding = 8,
+    gold = {0.957, 0.855, 0.592, 1.0},
+    bgMedium = {0.098, 0.090, 0.075, 1.0},
+    bgLight = {0.137, 0.125, 0.106, 1.0},
+    bgLighter = {0.176, 0.161, 0.137, 1.0},
+};
+
+-- Helper: Draw a styled tab button with underline when selected
+-- Returns true if tab was clicked
+local function DrawStyledTab(label, id, isSelected, width, height, padding)
+    height = height or TAB_STYLE.height;
+    padding = padding or TAB_STYLE.padding;
+
+    local textWidth = imgui.CalcTextSize(label);
+    local tabWidth = width or (textWidth + padding * 2);
+    local tabPosX, tabPosY = imgui.GetCursorScreenPos();
+
+    if isSelected then
+        imgui.PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
+        imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0});
+        imgui.PushStyleColor(ImGuiCol_ButtonActive, {0, 0, 0, 0});
+    else
+        imgui.PushStyleColor(ImGuiCol_Button, TAB_STYLE.bgMedium);
+        imgui.PushStyleColor(ImGuiCol_ButtonHovered, TAB_STYLE.bgLight);
+        imgui.PushStyleColor(ImGuiCol_ButtonActive, TAB_STYLE.bgLighter);
+    end
+
+    local clicked = imgui.Button(label .. '##' .. id, { tabWidth, height });
+
+    if isSelected then
+        local draw_list = imgui.GetWindowDrawList();
+        local underlineInset = (height == TAB_STYLE.smallHeight) and 2 or 4;
+        draw_list:AddRectFilled(
+            {tabPosX + underlineInset, tabPosY + height - 2},
+            {tabPosX + tabWidth - underlineInset, tabPosY + height},
+            imgui.GetColorU32(TAB_STYLE.gold),
+            1.0
+        );
+    end
+    imgui.PopStyleColor(3);
+
+    return clicked, tabWidth;
+end
+
 -- Pet type definitions for sub-tabs
 -- previewType maps to data.PREVIEW_* constants: WYVERN=1, AVATAR=2, AUTOMATON=3, JUG=4, CHARM=5
 local PET_TYPES = {
@@ -106,6 +157,7 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
             components.DrawPartySlider(typeSettings, 'Scale X##tp' .. configKey, 'tpScaleX', 0.5, 2.0, '%.1f');
             components.DrawPartySlider(typeSettings, 'Scale Y##tp' .. configKey, 'tpScaleY', 0.5, 2.0, '%.1f');
         end
+
     end
 
     if components.CollapsingSection('Font Sizes##' .. configKey, false) then
@@ -140,25 +192,13 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
                 compact = 'Compact (Icons Only)',
                 full = 'Full (Name + Timer)'
             };
-            local currentDisplayStyle = typeSettings.abilityIconDisplayStyle or 'compact';
+            local currentDisplayStyle = typeSettings.recastDisplayStyle or 'compact';
 
             imgui.SetNextItemWidth(200);
             if imgui.BeginCombo('Display Style##icons' .. configKey, displayStyleLabels[currentDisplayStyle]) then
                 for _, style in ipairs(displayStyles) do
                     if imgui.Selectable(displayStyleLabels[style], style == currentDisplayStyle) then
-                        typeSettings.abilityIconDisplayStyle = style;
-                        -- Auto-switch position mode based on display style
-                        if style == 'compact' then
-                            -- Compact mode: use absolute positioning
-                            typeSettings.iconsAbsolute = true;
-                            typeSettings.iconsOffsetX = 8;
-                            typeSettings.iconsOffsetY = 78;
-                        else
-                            -- Full mode: use anchored positioning
-                            typeSettings.iconsAbsolute = false;
-                            typeSettings.iconsOffsetX = 0;
-                            typeSettings.iconsOffsetY = 0;
-                        end
+                        typeSettings.recastDisplayStyle = style;
                         SaveSettingsOnly();
                     end
                 end
@@ -173,53 +213,77 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
                 imgui.Indent(10);
 
                 -- Show/hide individual elements
-                local showName = {typeSettings.fullIconShowName ~= false};
-                if imgui.Checkbox('Show Name##fullIcon' .. configKey, showName) then
-                    typeSettings.fullIconShowName = showName[1];
+                local showName = {typeSettings.recastFullShowName ~= false};
+                if imgui.Checkbox('Show Name##recastFull' .. configKey, showName) then
+                    typeSettings.recastFullShowName = showName[1];
                     SaveSettingsOnly();
                 end
                 imgui.SameLine();
 
-                local showRecast = {typeSettings.fullIconShowRecast ~= false};
-                if imgui.Checkbox('Show Timer##fullIcon' .. configKey, showRecast) then
-                    typeSettings.fullIconShowRecast = showRecast[1];
+                local showRecast = {typeSettings.recastFullShowTimer ~= false};
+                if imgui.Checkbox('Show Timer##recastFull' .. configKey, showRecast) then
+                    typeSettings.recastFullShowTimer = showRecast[1];
                     SaveSettingsOnly();
                 end
 
-                -- Font size
-                local fontSize = {typeSettings.fullIconFontSize or 10};
+                -- Name font size (only show if name is enabled)
+                if showName[1] then
+                    local nameFontSize = {typeSettings.recastFullNameFontSize or 10};
+                    imgui.SetNextItemWidth(100);
+                    if imgui.SliderInt('Name Font Size##recastFull' .. configKey, nameFontSize, 8, 20) then
+                        typeSettings.recastFullNameFontSize = nameFontSize[1];
+                        SaveSettingsOnly();
+                    end
+                    imgui.ShowHelp('Font size for ability name text.');
+                end
+
+                -- Timer font size (only show if timer is enabled)
+                if showRecast[1] then
+                    local recastFontSize = {typeSettings.recastFullTimerFontSize or 10};
+                    imgui.SetNextItemWidth(100);
+                    if imgui.SliderInt('Timer Font Size##recastFull' .. configKey, recastFontSize, 8, 20) then
+                        typeSettings.recastFullTimerFontSize = recastFontSize[1];
+                        SaveSettingsOnly();
+                    end
+                    imgui.ShowHelp('Font size for recast timer text.');
+                end
+
+                -- Bar scale settings
+                local barScaleX = {typeSettings.recastScaleX or 1.0};
                 imgui.SetNextItemWidth(100);
-                if imgui.SliderInt('Font Size##fullIcon' .. configKey, fontSize, 8, 20) then
-                    typeSettings.fullIconFontSize = fontSize[1];
+                if imgui.SliderFloat('Bar Width##recast' .. configKey, barScaleX, 0.5, 2.0, '%.1f') then
+                    typeSettings.recastScaleX = barScaleX[1];
                     SaveSettingsOnly();
                 end
-                imgui.ShowHelp('Font size for ability name and timer text.');
+                imgui.ShowHelp('Horizontal scale for recast progress bars (based on HP bar width).');
+
+                local barScaleY = {typeSettings.recastScaleY or 0.5};
+                imgui.SetNextItemWidth(100);
+                if imgui.SliderFloat('Bar Height##recast' .. configKey, barScaleY, 0.5, 2.0, '%.1f') then
+                    typeSettings.recastScaleY = barScaleY[1];
+                    SaveSettingsOnly();
+                end
+                imgui.ShowHelp('Vertical scale for recast progress bars (based on bar height).');
 
                 -- Row spacing
-                local rowSpacing = {typeSettings.fullIconSpacing or 4};
+                local rowSpacing = {typeSettings.recastFullSpacing or 4};
                 imgui.SetNextItemWidth(100);
-                if imgui.SliderInt('Row Spacing##fullIcon' .. configKey, rowSpacing, 0, 50) then
-                    typeSettings.fullIconSpacing = rowSpacing[1];
+                if imgui.SliderInt('Row Spacing##recastFull' .. configKey, rowSpacing, -50, 50) then
+                    typeSettings.recastFullSpacing = rowSpacing[1];
                     SaveSettingsOnly();
                 end
-                imgui.ShowHelp('Vertical spacing between ability rows.');
+                imgui.ShowHelp('Vertical spacing between recast rows.');
 
-                -- Alignment
-                local alignments = {'left', 'right'};
-                local alignmentLabels = {left = 'Left', right = 'Right'};
-                local currentAlignment = typeSettings.fullIconAlignment or 'left';
-
-                imgui.SetNextItemWidth(100);
-                if imgui.BeginCombo('Alignment##fullIcon' .. configKey, alignmentLabels[currentAlignment]) then
-                    for _, align in ipairs(alignments) do
-                        if imgui.Selectable(alignmentLabels[align], align == currentAlignment) then
-                            typeSettings.fullIconAlignment = align;
-                            SaveSettingsOnly();
-                        end
+                -- Top spacing (anchored mode only) - space between vitals and recasts
+                if not typeSettings.iconsAbsolute then
+                    local topSpacing = {typeSettings.recastTopSpacing or 2};
+                    imgui.SetNextItemWidth(100);
+                    if imgui.SliderInt('Top Spacing##recastFull' .. configKey, topSpacing, -50, 50) then
+                        typeSettings.recastTopSpacing = topSpacing[1];
+                        SaveSettingsOnly();
                     end
-                    imgui.EndCombo();
+                    imgui.ShowHelp('Vertical spacing between vitals (HP/MP/TP) and ability recasts.');
                 end
-                imgui.ShowHelp('Layout alignment and element order.\nLeft: [Icon] Name Timer - extends right from position.\nRight: Timer Name [Icon] - extends left from position.');
 
                 imgui.Unindent(10);
                 imgui.Spacing();
@@ -611,41 +675,50 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
     -- Avatar (SMN) specific color settings
     if configKey == 'petBarAvatar' then
         if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color', false) then
-            -- Ensure timer colors exist
-            if colorConfig.timerBPRageReadyColor == nil then colorConfig.timerBPRageReadyColor = 0xE6FF3333; end
-            if colorConfig.timerBPRageRecastColor == nil then colorConfig.timerBPRageRecastColor = 0xD9FF6666; end
-            if colorConfig.timerBPWardReadyColor == nil then colorConfig.timerBPWardReadyColor = 0xE600CCCC; end
-            if colorConfig.timerBPWardRecastColor == nil then colorConfig.timerBPWardRecastColor = 0xD966DDDD; end
-            if colorConfig.timerApogeeReadyColor == nil then colorConfig.timerApogeeReadyColor = 0xE6FFCC00; end
-            if colorConfig.timerApogeeRecastColor == nil then colorConfig.timerApogeeRecastColor = 0xD9FFDD66; end
-            if colorConfig.timerManaCedeReadyColor == nil then colorConfig.timerManaCedeReadyColor = 0xE6009999; end
-            if colorConfig.timerManaCedeRecastColor == nil then colorConfig.timerManaCedeRecastColor = 0xD966BBBB; end
-            if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
-            if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
+            -- Ensure timer gradients exist
+            if colorConfig.timerBPRageReadyGradient == nil then colorConfig.timerBPRageReadyGradient = T{ enabled = true, start = '#ff3333e6', stop = '#ff6666e6' }; end
+            if colorConfig.timerBPRageRecastGradient == nil then colorConfig.timerBPRageRecastGradient = T{ enabled = true, start = '#ff6666d9', stop = '#ff9999d9' }; end
+            if colorConfig.timerBPWardReadyGradient == nil then colorConfig.timerBPWardReadyGradient = T{ enabled = true, start = '#00cccce6', stop = '#66dddde6' }; end
+            if colorConfig.timerBPWardRecastGradient == nil then colorConfig.timerBPWardRecastGradient = T{ enabled = true, start = '#66ddddd9', stop = '#99eeeed9' }; end
+            if colorConfig.timerApogeeReadyGradient == nil then colorConfig.timerApogeeReadyGradient = T{ enabled = true, start = '#ffcc00e6', stop = '#ffdd66e6' }; end
+            if colorConfig.timerApogeeRecastGradient == nil then colorConfig.timerApogeeRecastGradient = T{ enabled = true, start = '#ffdd66d9', stop = '#ffee99d9' }; end
+            if colorConfig.timerManaCedeReadyGradient == nil then colorConfig.timerManaCedeReadyGradient = T{ enabled = true, start = '#009999e6', stop = '#66bbbbe6' }; end
+            if colorConfig.timerManaCedeRecastGradient == nil then colorConfig.timerManaCedeRecastGradient = T{ enabled = true, start = '#66bbbbd9', stop = '#99ccccd9' }; end
+            if colorConfig.timer2hReadyGradient == nil then colorConfig.timer2hReadyGradient = T{ enabled = true, start = '#ff00ffe6', stop = '#ff66ffe6' }; end
+            if colorConfig.timer2hRecastGradient == nil then colorConfig.timer2hRecastGradient = T{ enabled = true, start = '#ff66ffd9', stop = '#ff99ffd9' }; end
+
+            -- Column headers
+            imgui.Text(''); imgui.SameLine(120); imgui.Text('Ready'); imgui.SameLine(120 + components.COLOR_COLUMN_SPACING); imgui.Text('Recast');
 
             imgui.Text('Blood Pact: Rage');
-            components.DrawTextColorPicker("Ready##rage" .. configKey, colorConfig, 'timerBPRageReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##rage" .. configKey, colorConfig, 'timerBPRageRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##rage" .. configKey, colorConfig.timerBPRageReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##rage" .. configKey, colorConfig.timerBPRageRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Blood Pact: Ward');
-            components.DrawTextColorPicker("Ready##ward" .. configKey, colorConfig, 'timerBPWardReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##ward" .. configKey, colorConfig, 'timerBPWardRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##ward" .. configKey, colorConfig.timerBPWardReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##ward" .. configKey, colorConfig.timerBPWardRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Apogee');
-            components.DrawTextColorPicker("Ready##apogee" .. configKey, colorConfig, 'timerApogeeReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##apogee" .. configKey, colorConfig, 'timerApogeeRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##apogee" .. configKey, colorConfig.timerApogeeReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##apogee" .. configKey, colorConfig.timerApogeeRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Mana Cede');
-            components.DrawTextColorPicker("Ready##manacede" .. configKey, colorConfig, 'timerManaCedeReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##manacede" .. configKey, colorConfig, 'timerManaCedeRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##manacede" .. configKey, colorConfig.timerManaCedeReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##manacede" .. configKey, colorConfig.timerManaCedeRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
-            imgui.Text('Two-Hour (Astral Flow)');
-            components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
+            imgui.Text('Astral Flow');
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##2h" .. configKey, colorConfig.timer2hReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##2h" .. configKey, colorConfig.timer2hRecastGradient, "Gradient when on cooldown");
         end
     end
 
@@ -662,26 +735,33 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
         end
 
         if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color', false) then
-            if colorConfig.timerReadyReadyColor == nil then colorConfig.timerReadyReadyColor = 0xE6FF6600; end
-            if colorConfig.timerReadyRecastColor == nil then colorConfig.timerReadyRecastColor = 0xD9FF9933; end
-            if colorConfig.timerRewardReadyColor == nil then colorConfig.timerRewardReadyColor = 0xE600CC66; end
-            if colorConfig.timerRewardRecastColor == nil then colorConfig.timerRewardRecastColor = 0xD966DD99; end
-            if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
-            if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
+            if colorConfig.timerReadyReadyGradient == nil then colorConfig.timerReadyReadyGradient = T{ enabled = true, start = '#ff6600e6', stop = '#ff9933e6' }; end
+            if colorConfig.timerReadyRecastGradient == nil then colorConfig.timerReadyRecastGradient = T{ enabled = true, start = '#ff9933d9', stop = '#ffbb66d9' }; end
+            if colorConfig.timerRewardReadyGradient == nil then colorConfig.timerRewardReadyGradient = T{ enabled = true, start = '#00cc66e6', stop = '#66dd99e6' }; end
+            if colorConfig.timerRewardRecastGradient == nil then colorConfig.timerRewardRecastGradient = T{ enabled = true, start = '#66dd99d9', stop = '#99eebbd9' }; end
+            if colorConfig.timer2hReadyGradient == nil then colorConfig.timer2hReadyGradient = T{ enabled = true, start = '#ff00ffe6', stop = '#ff66ffe6' }; end
+            if colorConfig.timer2hRecastGradient == nil then colorConfig.timer2hRecastGradient = T{ enabled = true, start = '#ff66ffd9', stop = '#ff99ffd9' }; end
+
+            -- Column headers
+            imgui.Text(''); imgui.SameLine(120); imgui.Text('Ready'); imgui.SameLine(120 + components.COLOR_COLUMN_SPACING); imgui.Text('Recast');
 
             imgui.Text('Ready/Sic');
-            components.DrawTextColorPicker("Ready##ready" .. configKey, colorConfig, 'timerReadyReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##ready" .. configKey, colorConfig, 'timerReadyRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##ready" .. configKey, colorConfig.timerReadyReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##ready" .. configKey, colorConfig.timerReadyRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Reward');
-            components.DrawTextColorPicker("Ready##reward" .. configKey, colorConfig, 'timerRewardReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##reward" .. configKey, colorConfig, 'timerRewardRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##reward" .. configKey, colorConfig.timerRewardReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##reward" .. configKey, colorConfig.timerRewardRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
-            imgui.Text('Two-Hour (Familiar)');
-            components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
+            imgui.Text('Familiar');
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##2h" .. configKey, colorConfig.timer2hReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##2h" .. configKey, colorConfig.timer2hRecastGradient, "Gradient when on cooldown");
         end
     end
 
@@ -698,134 +778,163 @@ local function DrawPetTypeColorSettings(configKey, petTypeLabel)
         end
 
         if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color', false) then
-            if colorConfig.timerReadyReadyColor == nil then colorConfig.timerReadyReadyColor = 0xE6FF6600; end
-            if colorConfig.timerReadyRecastColor == nil then colorConfig.timerReadyRecastColor = 0xD9FF9933; end
-            if colorConfig.timerRewardReadyColor == nil then colorConfig.timerRewardReadyColor = 0xE600CC66; end
-            if colorConfig.timerRewardRecastColor == nil then colorConfig.timerRewardRecastColor = 0xD966DD99; end
-            if colorConfig.timerCallBeastReadyColor == nil then colorConfig.timerCallBeastReadyColor = 0xE63399FF; end
-            if colorConfig.timerCallBeastRecastColor == nil then colorConfig.timerCallBeastRecastColor = 0xD966BBFF; end
-            if colorConfig.timerBestialLoyaltyReadyColor == nil then colorConfig.timerBestialLoyaltyReadyColor = 0xE69966FF; end
-            if colorConfig.timerBestialLoyaltyRecastColor == nil then colorConfig.timerBestialLoyaltyRecastColor = 0xD9BB99FF; end
-            if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
-            if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
+            if colorConfig.timerReadyReadyGradient == nil then colorConfig.timerReadyReadyGradient = T{ enabled = true, start = '#ff6600e6', stop = '#ff9933e6' }; end
+            if colorConfig.timerReadyRecastGradient == nil then colorConfig.timerReadyRecastGradient = T{ enabled = true, start = '#ff9933d9', stop = '#ffbb66d9' }; end
+            if colorConfig.timerRewardReadyGradient == nil then colorConfig.timerRewardReadyGradient = T{ enabled = true, start = '#00cc66e6', stop = '#66dd99e6' }; end
+            if colorConfig.timerRewardRecastGradient == nil then colorConfig.timerRewardRecastGradient = T{ enabled = true, start = '#66dd99d9', stop = '#99eebbd9' }; end
+            if colorConfig.timerCallBeastReadyGradient == nil then colorConfig.timerCallBeastReadyGradient = T{ enabled = true, start = '#3399ffe6', stop = '#66bbffe6' }; end
+            if colorConfig.timerCallBeastRecastGradient == nil then colorConfig.timerCallBeastRecastGradient = T{ enabled = true, start = '#66bbffd9', stop = '#99ccffd9' }; end
+            if colorConfig.timerBestialLoyaltyReadyGradient == nil then colorConfig.timerBestialLoyaltyReadyGradient = T{ enabled = true, start = '#9966ffe6', stop = '#bb99ffe6' }; end
+            if colorConfig.timerBestialLoyaltyRecastGradient == nil then colorConfig.timerBestialLoyaltyRecastGradient = T{ enabled = true, start = '#bb99ffd9', stop = '#ccaaffd9' }; end
+            if colorConfig.timer2hReadyGradient == nil then colorConfig.timer2hReadyGradient = T{ enabled = true, start = '#ff00ffe6', stop = '#ff66ffe6' }; end
+            if colorConfig.timer2hRecastGradient == nil then colorConfig.timer2hRecastGradient = T{ enabled = true, start = '#ff66ffd9', stop = '#ff99ffd9' }; end
+
+            -- Column headers
+            imgui.Text(''); imgui.SameLine(120); imgui.Text('Ready'); imgui.SameLine(120 + components.COLOR_COLUMN_SPACING); imgui.Text('Recast');
 
             imgui.Text('Ready/Sic');
-            components.DrawTextColorPicker("Ready##ready" .. configKey, colorConfig, 'timerReadyReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##ready" .. configKey, colorConfig, 'timerReadyRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##ready" .. configKey, colorConfig.timerReadyReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##ready" .. configKey, colorConfig.timerReadyRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Reward');
-            components.DrawTextColorPicker("Ready##reward" .. configKey, colorConfig, 'timerRewardReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##reward" .. configKey, colorConfig, 'timerRewardRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##reward" .. configKey, colorConfig.timerRewardReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##reward" .. configKey, colorConfig.timerRewardRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Call Beast');
-            components.DrawTextColorPicker("Ready##callbeast" .. configKey, colorConfig, 'timerCallBeastReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##callbeast" .. configKey, colorConfig, 'timerCallBeastRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##callbeast" .. configKey, colorConfig.timerCallBeastReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##callbeast" .. configKey, colorConfig.timerCallBeastRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Bestial Loyalty');
-            components.DrawTextColorPicker("Ready##bestialloyalty" .. configKey, colorConfig, 'timerBestialLoyaltyReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##bestialloyalty" .. configKey, colorConfig, 'timerBestialLoyaltyRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##bestialloyalty" .. configKey, colorConfig.timerBestialLoyaltyReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##bestialloyalty" .. configKey, colorConfig.timerBestialLoyaltyRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
-            imgui.Text('Two-Hour (Familiar)');
-            components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
+            imgui.Text('Familiar');
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##2h" .. configKey, colorConfig.timer2hReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##2h" .. configKey, colorConfig.timer2hRecastGradient, "Gradient when on cooldown");
         end
     end
 
     -- Automaton (PUP) specific color settings
     if configKey == 'petBarAutomaton' then
         if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color', false) then
-            if colorConfig.timerActivateReadyColor == nil then colorConfig.timerActivateReadyColor = 0xE633FF33; end
-            if colorConfig.timerActivateRecastColor == nil then colorConfig.timerActivateRecastColor = 0xD966FF66; end
-            if colorConfig.timerRepairReadyColor == nil then colorConfig.timerRepairReadyColor = 0xE6FF9933; end
-            if colorConfig.timerRepairRecastColor == nil then colorConfig.timerRepairRecastColor = 0xD9FFBB66; end
-            if colorConfig.timerDeusExAutomataReadyColor == nil then colorConfig.timerDeusExAutomataReadyColor = 0xE6FF33FF; end
-            if colorConfig.timerDeusExAutomataRecastColor == nil then colorConfig.timerDeusExAutomataRecastColor = 0xD9FF66FF; end
-            if colorConfig.timerDeployReadyColor == nil then colorConfig.timerDeployReadyColor = 0xE63399FF; end
-            if colorConfig.timerDeployRecastColor == nil then colorConfig.timerDeployRecastColor = 0xD966BBFF; end
-            if colorConfig.timerDeactivateReadyColor == nil then colorConfig.timerDeactivateReadyColor = 0xE6FF6666; end
-            if colorConfig.timerDeactivateRecastColor == nil then colorConfig.timerDeactivateRecastColor = 0xD9FF9999; end
-            if colorConfig.timerRetrieveReadyColor == nil then colorConfig.timerRetrieveReadyColor = 0xE6FFCC33; end
-            if colorConfig.timerRetrieveRecastColor == nil then colorConfig.timerRetrieveRecastColor = 0xD9FFDD66; end
-            if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
-            if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
+            if colorConfig.timerActivateReadyGradient == nil then colorConfig.timerActivateReadyGradient = T{ enabled = true, start = '#3399ffe6', stop = '#66bbffe6' }; end
+            if colorConfig.timerActivateRecastGradient == nil then colorConfig.timerActivateRecastGradient = T{ enabled = true, start = '#66bbffd9', stop = '#99ccffd9' }; end
+            if colorConfig.timerRepairReadyGradient == nil then colorConfig.timerRepairReadyGradient = T{ enabled = true, start = '#33cc66e6', stop = '#66dd99e6' }; end
+            if colorConfig.timerRepairRecastGradient == nil then colorConfig.timerRepairRecastGradient = T{ enabled = true, start = '#66dd99d9', stop = '#99eebbd9' }; end
+            if colorConfig.timerDeployReadyGradient == nil then colorConfig.timerDeployReadyGradient = T{ enabled = true, start = '#ff9933e6', stop = '#ffbb66e6' }; end
+            if colorConfig.timerDeployRecastGradient == nil then colorConfig.timerDeployRecastGradient = T{ enabled = true, start = '#ffbb66d9', stop = '#ffcc99d9' }; end
+            if colorConfig.timerDeactivateReadyGradient == nil then colorConfig.timerDeactivateReadyGradient = T{ enabled = true, start = '#999999e6', stop = '#bbbbbbe6' }; end
+            if colorConfig.timerDeactivateRecastGradient == nil then colorConfig.timerDeactivateRecastGradient = T{ enabled = true, start = '#bbbbbbd9', stop = '#ccccccd9' }; end
+            if colorConfig.timerRetrieveReadyGradient == nil then colorConfig.timerRetrieveReadyGradient = T{ enabled = true, start = '#66ccffe6', stop = '#99ddffe6' }; end
+            if colorConfig.timerRetrieveRecastGradient == nil then colorConfig.timerRetrieveRecastGradient = T{ enabled = true, start = '#99ddffd9', stop = '#bbeeffd9' }; end
+            if colorConfig.timerDeusExAutomataReadyGradient == nil then colorConfig.timerDeusExAutomataReadyGradient = T{ enabled = true, start = '#ffcc33e6', stop = '#ffdd66e6' }; end
+            if colorConfig.timerDeusExAutomataRecastGradient == nil then colorConfig.timerDeusExAutomataRecastGradient = T{ enabled = true, start = '#ffdd66d9', stop = '#ffee99d9' }; end
+            if colorConfig.timer2hReadyGradient == nil then colorConfig.timer2hReadyGradient = T{ enabled = true, start = '#ff00ffe6', stop = '#ff66ffe6' }; end
+            if colorConfig.timer2hRecastGradient == nil then colorConfig.timer2hRecastGradient = T{ enabled = true, start = '#ff66ffd9', stop = '#ff99ffd9' }; end
+
+            -- Column headers
+            imgui.Text(''); imgui.SameLine(120); imgui.Text('Ready'); imgui.SameLine(120 + components.COLOR_COLUMN_SPACING); imgui.Text('Recast');
 
             imgui.Text('Activate');
-            components.DrawTextColorPicker("Ready##activate" .. configKey, colorConfig, 'timerActivateReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##activate" .. configKey, colorConfig, 'timerActivateRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##activate" .. configKey, colorConfig.timerActivateReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##activate" .. configKey, colorConfig.timerActivateRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Repair');
-            components.DrawTextColorPicker("Ready##repair" .. configKey, colorConfig, 'timerRepairReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##repair" .. configKey, colorConfig, 'timerRepairRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##repair" .. configKey, colorConfig.timerRepairReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##repair" .. configKey, colorConfig.timerRepairRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
-            imgui.Text('Deus Ex Automata');
-            components.DrawTextColorPicker("Ready##deusex" .. configKey, colorConfig, 'timerDeusExAutomataReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##deusex" .. configKey, colorConfig, 'timerDeusExAutomataRecastColor', "Color when on cooldown");
-
-            imgui.Spacing();
             imgui.Text('Deploy');
-            components.DrawTextColorPicker("Ready##deploy" .. configKey, colorConfig, 'timerDeployReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##deploy" .. configKey, colorConfig, 'timerDeployRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##deploy" .. configKey, colorConfig.timerDeployReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##deploy" .. configKey, colorConfig.timerDeployRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Deactivate');
-            components.DrawTextColorPicker("Ready##deactivate" .. configKey, colorConfig, 'timerDeactivateReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##deactivate" .. configKey, colorConfig, 'timerDeactivateRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##deactivate" .. configKey, colorConfig.timerDeactivateReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##deactivate" .. configKey, colorConfig.timerDeactivateRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Retrieve');
-            components.DrawTextColorPicker("Ready##retrieve" .. configKey, colorConfig, 'timerRetrieveReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##retrieve" .. configKey, colorConfig, 'timerRetrieveRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##retrieve" .. configKey, colorConfig.timerRetrieveReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##retrieve" .. configKey, colorConfig.timerRetrieveRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
-            imgui.Text('Two-Hour (Overdrive)');
-            components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
+            imgui.Text('Deus Ex Automata');
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##deusex" .. configKey, colorConfig.timerDeusExAutomataReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##deusex" .. configKey, colorConfig.timerDeusExAutomataRecastGradient, "Gradient when on cooldown");
+
+            imgui.Text('Overdrive');
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##2h" .. configKey, colorConfig.timer2hReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##2h" .. configKey, colorConfig.timer2hRecastGradient, "Gradient when on cooldown");
         end
     end
 
     -- Wyvern (DRG) specific color settings
     if configKey == 'petBarWyvern' then
         if components.CollapsingSection('Ability Timer Colors##' .. configKey .. 'color', false) then
-            if colorConfig.timerCallWyvernReadyColor == nil then colorConfig.timerCallWyvernReadyColor = 0xE63366FF; end
-            if colorConfig.timerCallWyvernRecastColor == nil then colorConfig.timerCallWyvernRecastColor = 0xD96699FF; end
-            if colorConfig.timerSpiritLinkReadyColor == nil then colorConfig.timerSpiritLinkReadyColor = 0xE633CC33; end
-            if colorConfig.timerSpiritLinkRecastColor == nil then colorConfig.timerSpiritLinkRecastColor = 0xD966DD66; end
-            if colorConfig.timerDeepBreathingReadyColor == nil then colorConfig.timerDeepBreathingReadyColor = 0xE6FF9933; end
-            if colorConfig.timerDeepBreathingRecastColor == nil then colorConfig.timerDeepBreathingRecastColor = 0xD9FFBB66; end
-            if colorConfig.timerSteadyWingReadyColor == nil then colorConfig.timerSteadyWingReadyColor = 0xE6CCCC33; end
-            if colorConfig.timerSteadyWingRecastColor == nil then colorConfig.timerSteadyWingRecastColor = 0xD9DDDD66; end
-            if colorConfig.timer2hReadyColor == nil then colorConfig.timer2hReadyColor = 0xE6FF00FF; end
-            if colorConfig.timer2hRecastColor == nil then colorConfig.timer2hRecastColor = 0xD9FF66FF; end
+            if colorConfig.timerCallWyvernReadyGradient == nil then colorConfig.timerCallWyvernReadyGradient = T{ enabled = true, start = '#3366ffe6', stop = '#6699ffe6' }; end
+            if colorConfig.timerCallWyvernRecastGradient == nil then colorConfig.timerCallWyvernRecastGradient = T{ enabled = true, start = '#6699ffd9', stop = '#99bbffd9' }; end
+            if colorConfig.timerSpiritLinkReadyGradient == nil then colorConfig.timerSpiritLinkReadyGradient = T{ enabled = true, start = '#33cc33e6', stop = '#66dd66e6' }; end
+            if colorConfig.timerSpiritLinkRecastGradient == nil then colorConfig.timerSpiritLinkRecastGradient = T{ enabled = true, start = '#66dd66d9', stop = '#99ee99d9' }; end
+            if colorConfig.timerDeepBreathingReadyGradient == nil then colorConfig.timerDeepBreathingReadyGradient = T{ enabled = true, start = '#ffff33e6', stop = '#ffff99e6' }; end
+            if colorConfig.timerDeepBreathingRecastGradient == nil then colorConfig.timerDeepBreathingRecastGradient = T{ enabled = true, start = '#ffff99d9', stop = '#ffffc0d9' }; end
+            if colorConfig.timerSteadyWingReadyGradient == nil then colorConfig.timerSteadyWingReadyGradient = T{ enabled = true, start = '#cc66ffe6', stop = '#dd99ffe6' }; end
+            if colorConfig.timerSteadyWingRecastGradient == nil then colorConfig.timerSteadyWingRecastGradient = T{ enabled = true, start = '#dd99ffd9', stop = '#eeaaffd9' }; end
+            if colorConfig.timer2hReadyGradient == nil then colorConfig.timer2hReadyGradient = T{ enabled = true, start = '#ff00ffe6', stop = '#ff66ffe6' }; end
+            if colorConfig.timer2hRecastGradient == nil then colorConfig.timer2hRecastGradient = T{ enabled = true, start = '#ff66ffd9', stop = '#ff99ffd9' }; end
+
+            -- Column headers
+            imgui.Text(''); imgui.SameLine(120); imgui.Text('Ready'); imgui.SameLine(120 + components.COLOR_COLUMN_SPACING); imgui.Text('Recast');
 
             imgui.Text('Call Wyvern');
-            components.DrawTextColorPicker("Ready##callwyvern" .. configKey, colorConfig, 'timerCallWyvernReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##callwyvern" .. configKey, colorConfig, 'timerCallWyvernRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##callwyvern" .. configKey, colorConfig.timerCallWyvernReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##callwyvern" .. configKey, colorConfig.timerCallWyvernRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Spirit Link');
-            components.DrawTextColorPicker("Ready##spiritlink" .. configKey, colorConfig, 'timerSpiritLinkReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##spiritlink" .. configKey, colorConfig, 'timerSpiritLinkRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##spiritlink" .. configKey, colorConfig.timerSpiritLinkReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##spiritlink" .. configKey, colorConfig.timerSpiritLinkRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Deep Breathing');
-            components.DrawTextColorPicker("Ready##deepbreathing" .. configKey, colorConfig, 'timerDeepBreathingReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##deepbreathing" .. configKey, colorConfig, 'timerDeepBreathingRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##deepbreathing" .. configKey, colorConfig.timerDeepBreathingReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##deepbreathing" .. configKey, colorConfig.timerDeepBreathingRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
             imgui.Text('Steady Wing');
-            components.DrawTextColorPicker("Ready##steadywing" .. configKey, colorConfig, 'timerSteadyWingReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##steadywing" .. configKey, colorConfig, 'timerSteadyWingRecastColor', "Color when on cooldown");
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##steadywing" .. configKey, colorConfig.timerSteadyWingReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##steadywing" .. configKey, colorConfig.timerSteadyWingRecastGradient, "Gradient when on cooldown");
 
-            imgui.Spacing();
-            imgui.Text('Two-Hour (Spirit Surge)');
-            components.DrawTextColorPicker("Ready##2h" .. configKey, colorConfig, 'timer2hReadyColor', "Color when ability is ready");
-            components.DrawTextColorPicker("Recast##2h" .. configKey, colorConfig, 'timer2hRecastColor', "Color when on cooldown");
+            imgui.Text('Spirit Surge');
+            imgui.SameLine(120);
+            components.DrawGradientPickerColumn("Ready##2h" .. configKey, colorConfig.timer2hReadyGradient, "Gradient when ability is ready");
+            imgui.SameLine(120 + components.COLOR_COLUMN_SPACING);
+            components.DrawGradientPickerColumn("Recast##2h" .. configKey, colorConfig.timer2hRecastGradient, "Gradient when on cooldown");
         end
     end
 
@@ -851,16 +960,12 @@ local function DrawPetTargetSettingsContent()
     components.DrawCheckbox('Show Pet Target', 'petBarShowTarget');
     imgui.ShowHelp('Show information about what the pet is targeting in a separate window.');
 
-    if components.CollapsingSection('Snap to Pet Bar##petTarget', false) then
-        components.DrawCheckbox('Snap to Pet Bar', 'petTargetSnapToPetBar');
-        imgui.ShowHelp('Position the pet target window directly below the pet bar. When enabled, the pet target will follow the pet bar position.');
+    components.DrawCheckbox('Snap to Pet Bar', 'petTargetSnapToPetBar');
+    imgui.ShowHelp('Position the pet target window directly below the pet bar.');
 
-        if gConfig.petTargetSnapToPetBar then
-            components.DrawSlider('Offset X##petTargetSnap', 'petTargetSnapOffsetX', -200, 200);
-            imgui.ShowHelp('Horizontal offset from pet bar position.');
-            components.DrawSlider('Offset Y##petTargetSnap', 'petTargetSnapOffsetY', -200, 200);
-            imgui.ShowHelp('Vertical offset from pet bar bottom.');
-        end
+    if gConfig.petTargetSnapToPetBar then
+        components.DrawSlider('Snap Offset X##petTargetSnap', 'petTargetSnapOffsetX', -200, 200);
+        components.DrawSlider('Snap Offset Y##petTargetSnap', 'petTargetSnapOffsetY', -200, 200);
     end
 
     if components.CollapsingSection('Display Options##petTarget', false) then
@@ -984,70 +1089,14 @@ function M.DrawSettings(state)
         gConfig.petBarPreviewType = currentPetType.previewType;
     end
 
-    -- Tab styling colors
-    local tabHeight = 24;
-    local tabPadding = 12;
-    local gold = {0.957, 0.855, 0.592, 1.0};
-    local bgMedium = {0.098, 0.090, 0.075, 1.0};
-    local bgLight = {0.137, 0.125, 0.106, 1.0};
-    local bgLighter = {0.176, 0.161, 0.137, 1.0};
-
-    -- Calculate tab widths based on text size
-    local petBarTextWidth = imgui.CalcTextSize('Pet Bar');
-    local petTargetTextWidth = imgui.CalcTextSize('Pet Target');
-    local petBarTabWidth = petBarTextWidth + tabPadding * 2;
-    local petTargetTabWidth = petTargetTextWidth + tabPadding * 2;
-
-    -- Pet Bar tab button
-    local petBarPosX, petBarPosY = imgui.GetCursorScreenPos();
-    if selectedPetBarTab == 1 then
-        imgui.PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
-        imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0});
-        imgui.PushStyleColor(ImGuiCol_ButtonActive, {0, 0, 0, 0});
-    else
-        imgui.PushStyleColor(ImGuiCol_Button, bgMedium);
-        imgui.PushStyleColor(ImGuiCol_ButtonHovered, bgLight);
-        imgui.PushStyleColor(ImGuiCol_ButtonActive, bgLighter);
-    end
-    if imgui.Button('Pet Bar##petBarTab', { petBarTabWidth, tabHeight }) then
+    -- Pet Bar / Pet Target tabs
+    if DrawStyledTab('Pet Bar', 'petBarTab', selectedPetBarTab == 1) then
         selectedPetBarTab = 1;
     end
-    if selectedPetBarTab == 1 then
-        local draw_list = imgui.GetWindowDrawList();
-        draw_list:AddRectFilled(
-            {petBarPosX + 4, petBarPosY + tabHeight - 2},
-            {petBarPosX + petBarTabWidth - 4, petBarPosY + tabHeight},
-            imgui.GetColorU32(gold),
-            1.0
-        );
-    end
-    imgui.PopStyleColor(3);
-
-    -- Pet Target tab button
     imgui.SameLine();
-    local petTargetPosX, petTargetPosY = imgui.GetCursorScreenPos();
-    if selectedPetBarTab == 2 then
-        imgui.PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
-        imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0});
-        imgui.PushStyleColor(ImGuiCol_ButtonActive, {0, 0, 0, 0});
-    else
-        imgui.PushStyleColor(ImGuiCol_Button, bgMedium);
-        imgui.PushStyleColor(ImGuiCol_ButtonHovered, bgLight);
-        imgui.PushStyleColor(ImGuiCol_ButtonActive, bgLighter);
-    end
-    if imgui.Button('Pet Target##petBarTab', { petTargetTabWidth, tabHeight }) then
+    if DrawStyledTab('Pet Target', 'petBarTab', selectedPetBarTab == 2) then
         selectedPetBarTab = 2;
     end
-    if selectedPetBarTab == 2 then
-        local draw_list = imgui.GetWindowDrawList();
-        draw_list:AddRectFilled(
-            {petTargetPosX + 4, petTargetPosY + tabHeight - 2},
-            {petTargetPosX + petTargetTabWidth - 4, petTargetPosY + tabHeight},
-            imgui.GetColorU32(gold),
-            1.0
-        );
-    end
-    imgui.PopStyleColor(3);
 
     imgui.Spacing();
     imgui.Separator();
@@ -1063,45 +1112,16 @@ function M.DrawSettings(state)
         imgui.Spacing();
 
         -- Pet Type Sub-Tabs
-        imgui.TextColored({0.957, 0.855, 0.592, 1.0}, 'Per-Pet-Type Visual Settings');
+        imgui.TextColored(TAB_STYLE.gold, 'Per-Pet-Type Visual Settings');
         imgui.ShowHelp('Customize the appearance for each pet type independently.');
         imgui.Spacing();
 
         -- Draw pet type sub-tabs
-        local smallTabHeight = 20;
-        local smallTabPadding = 8;
         for i, petType in ipairs(PET_TYPES) do
-            local tabTextWidth = imgui.CalcTextSize(petType.label);
-            local tabWidth = tabTextWidth + smallTabPadding * 2;
-            local tabPosX, tabPosY = imgui.GetCursorScreenPos();
-
-            if selectedPetTypeTab == i then
-                imgui.PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
-                imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0});
-                imgui.PushStyleColor(ImGuiCol_ButtonActive, {0, 0, 0, 0});
-            else
-                imgui.PushStyleColor(ImGuiCol_Button, bgMedium);
-                imgui.PushStyleColor(ImGuiCol_ButtonHovered, bgLight);
-                imgui.PushStyleColor(ImGuiCol_ButtonActive, bgLighter);
-            end
-
-            if imgui.Button(petType.label .. '##petTypeTab', { tabWidth, smallTabHeight }) then
+            if DrawStyledTab(petType.label, 'petTypeTab', selectedPetTypeTab == i, nil, TAB_STYLE.smallHeight, TAB_STYLE.smallPadding) then
                 selectedPetTypeTab = i;
-                -- Update preview type to match selected tab
                 gConfig.petBarPreviewType = petType.previewType;
             end
-
-            if selectedPetTypeTab == i then
-                local draw_list = imgui.GetWindowDrawList();
-                draw_list:AddRectFilled(
-                    {tabPosX + 2, tabPosY + smallTabHeight - 2},
-                    {tabPosX + tabWidth - 2, tabPosY + smallTabHeight},
-                    imgui.GetColorU32(gold),
-                    1.0
-                );
-            end
-            imgui.PopStyleColor(3);
-
             if i < #PET_TYPES then
                 imgui.SameLine();
             end
@@ -1112,7 +1132,7 @@ function M.DrawSettings(state)
         imgui.Spacing();
 
         -- Draw per-type settings for selected pet type
-        local currentPetType = PET_TYPES[selectedPetTypeTab];
+        currentPetType = PET_TYPES[selectedPetTypeTab];
         if currentPetType then
             -- Copy buttons
             DrawPetTypeCopyButtons(currentPetType.configKey, currentPetType.label, 'Settings');
@@ -1258,70 +1278,14 @@ function M.DrawColorSettings(state)
         gConfig.petBarPreviewType = currentPetType.previewType;
     end
 
-    -- Tab styling colors
-    local tabHeight = 24;
-    local tabPadding = 12;
-    local gold = {0.957, 0.855, 0.592, 1.0};
-    local bgMedium = {0.098, 0.090, 0.075, 1.0};
-    local bgLight = {0.137, 0.125, 0.106, 1.0};
-    local bgLighter = {0.176, 0.161, 0.137, 1.0};
-
-    -- Calculate tab widths based on text size
-    local petBarTextWidth = imgui.CalcTextSize('Pet Bar');
-    local petTargetTextWidth = imgui.CalcTextSize('Pet Target');
-    local petBarTabWidth = petBarTextWidth + tabPadding * 2;
-    local petTargetTabWidth = petTargetTextWidth + tabPadding * 2;
-
-    -- Pet Bar tab button
-    local petBarPosX, petBarPosY = imgui.GetCursorScreenPos();
-    if selectedPetBarColorTab == 1 then
-        imgui.PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
-        imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0});
-        imgui.PushStyleColor(ImGuiCol_ButtonActive, {0, 0, 0, 0});
-    else
-        imgui.PushStyleColor(ImGuiCol_Button, bgMedium);
-        imgui.PushStyleColor(ImGuiCol_ButtonHovered, bgLight);
-        imgui.PushStyleColor(ImGuiCol_ButtonActive, bgLighter);
-    end
-    if imgui.Button('Pet Bar##petBarColorTab', { petBarTabWidth, tabHeight }) then
+    -- Pet Bar / Pet Target tabs
+    if DrawStyledTab('Pet Bar', 'petBarColorTab', selectedPetBarColorTab == 1) then
         selectedPetBarColorTab = 1;
     end
-    if selectedPetBarColorTab == 1 then
-        local draw_list = imgui.GetWindowDrawList();
-        draw_list:AddRectFilled(
-            {petBarPosX + 4, petBarPosY + tabHeight - 2},
-            {petBarPosX + petBarTabWidth - 4, petBarPosY + tabHeight},
-            imgui.GetColorU32(gold),
-            1.0
-        );
-    end
-    imgui.PopStyleColor(3);
-
-    -- Pet Target tab button
     imgui.SameLine();
-    local petTargetPosX, petTargetPosY = imgui.GetCursorScreenPos();
-    if selectedPetBarColorTab == 2 then
-        imgui.PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
-        imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0});
-        imgui.PushStyleColor(ImGuiCol_ButtonActive, {0, 0, 0, 0});
-    else
-        imgui.PushStyleColor(ImGuiCol_Button, bgMedium);
-        imgui.PushStyleColor(ImGuiCol_ButtonHovered, bgLight);
-        imgui.PushStyleColor(ImGuiCol_ButtonActive, bgLighter);
-    end
-    if imgui.Button('Pet Target##petBarColorTab', { petTargetTabWidth, tabHeight }) then
+    if DrawStyledTab('Pet Target', 'petBarColorTab', selectedPetBarColorTab == 2) then
         selectedPetBarColorTab = 2;
     end
-    if selectedPetBarColorTab == 2 then
-        local draw_list = imgui.GetWindowDrawList();
-        draw_list:AddRectFilled(
-            {petTargetPosX + 4, petTargetPosY + tabHeight - 2},
-            {petTargetPosX + petTargetTabWidth - 4, petTargetPosY + tabHeight},
-            imgui.GetColorU32(gold),
-            1.0
-        );
-    end
-    imgui.PopStyleColor(3);
 
     imgui.Spacing();
     imgui.Separator();
@@ -1330,40 +1294,11 @@ function M.DrawColorSettings(state)
     -- Draw color settings based on selected tab
     if selectedPetBarColorTab == 1 then
         -- Draw pet type sub-tabs
-        local smallTabHeight = 20;
-        local smallTabPadding = 8;
         for i, petType in ipairs(PET_TYPES) do
-            local tabTextWidth = imgui.CalcTextSize(petType.label);
-            local tabWidth = tabTextWidth + smallTabPadding * 2;
-            local tabPosX, tabPosY = imgui.GetCursorScreenPos();
-
-            if selectedPetTypeColorTab == i then
-                imgui.PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
-                imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0});
-                imgui.PushStyleColor(ImGuiCol_ButtonActive, {0, 0, 0, 0});
-            else
-                imgui.PushStyleColor(ImGuiCol_Button, bgMedium);
-                imgui.PushStyleColor(ImGuiCol_ButtonHovered, bgLight);
-                imgui.PushStyleColor(ImGuiCol_ButtonActive, bgLighter);
-            end
-
-            if imgui.Button(petType.label .. '##petTypeColorTab', { tabWidth, smallTabHeight }) then
+            if DrawStyledTab(petType.label, 'petTypeColorTab', selectedPetTypeColorTab == i, nil, TAB_STYLE.smallHeight, TAB_STYLE.smallPadding) then
                 selectedPetTypeColorTab = i;
-                -- Update preview type to match selected tab
                 gConfig.petBarPreviewType = petType.previewType;
             end
-
-            if selectedPetTypeColorTab == i then
-                local draw_list = imgui.GetWindowDrawList();
-                draw_list:AddRectFilled(
-                    {tabPosX + 2, tabPosY + smallTabHeight - 2},
-                    {tabPosX + tabWidth - 2, tabPosY + smallTabHeight},
-                    imgui.GetColorU32(gold),
-                    1.0
-                );
-            end
-            imgui.PopStyleColor(3);
-
             if i < #PET_TYPES then
                 imgui.SameLine();
             end
@@ -1374,7 +1309,7 @@ function M.DrawColorSettings(state)
         imgui.Spacing();
 
         -- Draw per-type color settings for selected pet type
-        local currentPetType = PET_TYPES[selectedPetTypeColorTab];
+        currentPetType = PET_TYPES[selectedPetTypeColorTab];
         if currentPetType then
             -- Copy buttons
             DrawPetTypeCopyButtons(currentPetType.configKey, currentPetType.label, 'Colors');

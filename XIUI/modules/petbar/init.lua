@@ -38,19 +38,19 @@ petbar.Initialize = function(settings)
     -- BST timer fonts (jug countdown, charm elapsed)
     data.bstTimerText = FontManager.create(settings.vitals_font_settings);
 
-    -- Full display mode fonts (ability name + recast timer for each slot)
-    data.abilityNameFonts = {};
-    data.abilityRecastFonts = {};
-    for i = 1, data.MAX_ABILITY_ICONS do
-        data.abilityNameFonts[i] = FontManager.create(settings.vitals_font_settings);
-        data.abilityRecastFonts[i] = FontManager.create(settings.vitals_font_settings);
+    -- Full display mode fonts (recast name + timer for each slot)
+    data.recastNameFonts = {};
+    data.recastTimerFonts = {};
+    for i = 1, data.MAX_RECAST_SLOTS do
+        data.recastNameFonts[i] = FontManager.create(settings.vitals_font_settings);
+        data.recastTimerFonts[i] = FontManager.create(settings.vitals_font_settings);
     end
 
     data.allFonts = {data.nameText, data.distanceText, data.hpText, data.mpText, data.tpText, data.bstTimerText};
-    -- Add ability fonts to allFonts for batch visibility control
-    for i = 1, data.MAX_ABILITY_ICONS do
-        table.insert(data.allFonts, data.abilityNameFonts[i]);
-        table.insert(data.allFonts, data.abilityRecastFonts[i]);
+    -- Add recast fonts to allFonts for batch visibility control
+    for i = 1, data.MAX_RECAST_SLOTS do
+        table.insert(data.allFonts, data.recastNameFonts[i]);
+        table.insert(data.allFonts, data.recastTimerFonts[i]);
     end
 
     -- Load jug icon texture
@@ -164,15 +164,15 @@ petbar.UpdateVisuals = function(settings)
     data.bstTimerText = FontManager.recreate(data.bstTimerText, settings.vitals_font_settings);
 
     -- Full display mode fonts
-    for i = 1, data.MAX_ABILITY_ICONS do
-        data.abilityNameFonts[i] = FontManager.recreate(data.abilityNameFonts[i], settings.vitals_font_settings);
-        data.abilityRecastFonts[i] = FontManager.recreate(data.abilityRecastFonts[i], settings.vitals_font_settings);
+    for i = 1, data.MAX_RECAST_SLOTS do
+        data.recastNameFonts[i] = FontManager.recreate(data.recastNameFonts[i], settings.vitals_font_settings);
+        data.recastTimerFonts[i] = FontManager.recreate(data.recastTimerFonts[i], settings.vitals_font_settings);
     end
 
     data.allFonts = {data.nameText, data.distanceText, data.hpText, data.mpText, data.tpText, data.bstTimerText};
-    for i = 1, data.MAX_ABILITY_ICONS do
-        table.insert(data.allFonts, data.abilityNameFonts[i]);
-        table.insert(data.allFonts, data.abilityRecastFonts[i]);
+    for i = 1, data.MAX_RECAST_SLOTS do
+        table.insert(data.allFonts, data.recastNameFonts[i]);
+        table.insert(data.allFonts, data.recastTimerFonts[i]);
     end
 
     -- Clear cached colors
@@ -223,17 +223,17 @@ petbar.Cleanup = function()
     data.bstTimerText = FontManager.destroy(data.bstTimerText);
 
     -- Cleanup full display mode fonts
-    if data.abilityNameFonts then
-        for i = 1, data.MAX_ABILITY_ICONS do
-            data.abilityNameFonts[i] = FontManager.destroy(data.abilityNameFonts[i]);
+    if data.recastNameFonts then
+        for i = 1, data.MAX_RECAST_SLOTS do
+            data.recastNameFonts[i] = FontManager.destroy(data.recastNameFonts[i]);
         end
-        data.abilityNameFonts = nil;
+        data.recastNameFonts = nil;
     end
-    if data.abilityRecastFonts then
-        for i = 1, data.MAX_ABILITY_ICONS do
-            data.abilityRecastFonts[i] = FontManager.destroy(data.abilityRecastFonts[i]);
+    if data.recastTimerFonts then
+        for i = 1, data.MAX_RECAST_SLOTS do
+            data.recastTimerFonts[i] = FontManager.destroy(data.recastTimerFonts[i]);
         end
-        data.abilityRecastFonts = nil;
+        data.recastTimerFonts = nil;
     end
 
     data.allFonts = nil;

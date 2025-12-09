@@ -107,6 +107,8 @@ local function createPetBarTypeDefaults(overrides)
         mpScaleY = 1.0,
         tpScaleX = 1.0,
         tpScaleY = 1.0,
+        recastScaleX = 1.0,
+        recastScaleY = 0.8,
         -- Font sizes
         nameFontSize = 12,
         distanceFontSize = 10,
@@ -118,22 +120,24 @@ local function createPetBarTypeDefaults(overrides)
         backgroundOpacity = 1.0,
         borderOpacity = 1.0,
         showBookends = false,
-        -- Ability icon positioning (absolute for compact mode, anchored for full mode)
-        iconsAbsolute = true,
+        -- Recast icon positioning (absolute for compact mode, anchored for full mode)
+        iconsAbsolute = false,
         iconsScale = 0.6,
-        iconsOffsetX = 8,
-        iconsOffsetY = 78,
-        -- Ability icon fill style: 'square', 'circle', or 'clock'
+        iconsOffsetX = 0,
+        iconsOffsetY = 0,
+        -- Recast icon fill style: 'square', 'circle', or 'clock'
         timerFillStyle = 'square',
-        -- Ability icon display style: 'compact' or 'full'
-        abilityIconDisplayStyle = 'compact',
+        -- Recast display style: 'compact' or 'full'
+        recastDisplayStyle = 'full',
         -- Full display style settings
-        fullIconShowIcon = true,
-        fullIconShowName = true,
-        fullIconShowRecast = true,
-        fullIconFontSize = 10,
-        fullIconAlignment = 'left',
-        fullIconSpacing = 4,
+        recastFullShowName = true,
+        recastFullShowTimer = true,
+        recastFullNameFontSize = 10,
+        recastFullTimerFontSize = 10,
+        recastFullAlignment = 'left',
+        recastFullSpacing = 4,
+        -- Spacing between vitals and recast section (anchored mode only)
+        recastTopSpacing = 2,
         -- Distance text positioning
         distanceOffsetX = 0,
         distanceOffsetY = 0,
@@ -160,49 +164,49 @@ local function createPetBarTypeColorDefaults()
         mpTextColor = 0xFFD4FF97,
         tpTextColor = 0xFF8DC7FF,
         targetTextColor = 0xFFFFFFFF,
-        -- SMN ability colors
-        timerBPRageReadyColor = 0xE6FF3333,
-        timerBPRageRecastColor = 0xD9FF6666,
-        timerBPWardReadyColor = 0xE600CCCC,
-        timerBPWardRecastColor = 0xD966DDDD,
-        timerApogeeReadyColor = 0xE6FFCC00,
-        timerApogeeRecastColor = 0xD9FFDD66,
-        timerManaCedeReadyColor = 0xE6009999,
-        timerManaCedeRecastColor = 0xD966BBBB,
-        -- BST ability colors
-        timerReadyReadyColor = 0xE6FF6600,
-        timerReadyRecastColor = 0xD9FF9933,
-        timerRewardReadyColor = 0xE600CC66,
-        timerRewardRecastColor = 0xD966DD99,
-        timerCallBeastReadyColor = 0xE63399FF,
-        timerCallBeastRecastColor = 0xD966BBFF,
-        timerBestialLoyaltyReadyColor = 0xE69966FF,
-        timerBestialLoyaltyRecastColor = 0xD9BB99FF,
-        -- DRG ability colors
-        timerCallWyvernReadyColor = 0xE63366FF,
-        timerCallWyvernRecastColor = 0xD96699FF,
-        timerSpiritLinkReadyColor = 0xE633CC33,
-        timerSpiritLinkRecastColor = 0xD966DD66,
-        timerDeepBreathingReadyColor = 0xE6FFFF33,
-        timerDeepBreathingRecastColor = 0xD9FFFF99,
-        timerSteadyWingReadyColor = 0xE6CC66FF,
-        timerSteadyWingRecastColor = 0xD9DD99FF,
-        -- PUP ability colors
-        timerActivateReadyColor = 0xE63399FF,
-        timerActivateRecastColor = 0xD966BBFF,
-        timerRepairReadyColor = 0xE633CC66,
-        timerRepairRecastColor = 0xD966DD99,
-        timerDeployReadyColor = 0xE6FF9933,
-        timerDeployRecastColor = 0xD9FFBB66,
-        timerDeactivateReadyColor = 0xE6999999,
-        timerDeactivateRecastColor = 0xD9BBBBBB,
-        timerRetrieveReadyColor = 0xE666CCFF,
-        timerRetrieveRecastColor = 0xD999DDFF,
-        timerDeusExAutomataReadyColor = 0xE6FFCC33,
-        timerDeusExAutomataRecastColor = 0xD9FFDD66,
-        -- 2-Hour timer colors
-        timer2hReadyColor = 0xE6FF00FF,
-        timer2hRecastColor = 0xD9FF66FF,
+        -- SMN ability gradients
+        timerBPRageReadyGradient = T{ enabled = true, start = '#ff3333e6', stop = '#ff6666e6' },
+        timerBPRageRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerBPWardReadyGradient = T{ enabled = true, start = '#00cccce6', stop = '#66dddde6' },
+        timerBPWardRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerApogeeReadyGradient = T{ enabled = true, start = '#ffcc00e6', stop = '#ffdd66e6' },
+        timerApogeeRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerManaCedeReadyGradient = T{ enabled = true, start = '#009999e6', stop = '#66bbbbe6' },
+        timerManaCedeRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        -- BST ability gradients
+        timerReadyReadyGradient = T{ enabled = true, start = '#ff6600e6', stop = '#ff9933e6' },
+        timerReadyRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerRewardReadyGradient = T{ enabled = true, start = '#00cc66e6', stop = '#66dd99e6' },
+        timerRewardRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerCallBeastReadyGradient = T{ enabled = true, start = '#3399ffe6', stop = '#66bbffe6' },
+        timerCallBeastRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerBestialLoyaltyReadyGradient = T{ enabled = true, start = '#9966ffe6', stop = '#bb99ffe6' },
+        timerBestialLoyaltyRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        -- DRG ability gradients
+        timerCallWyvernReadyGradient = T{ enabled = true, start = '#3366ffe6', stop = '#6699ffe6' },
+        timerCallWyvernRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerSpiritLinkReadyGradient = T{ enabled = true, start = '#33cc33e6', stop = '#66dd66e6' },
+        timerSpiritLinkRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerDeepBreathingReadyGradient = T{ enabled = true, start = '#ffff33e6', stop = '#ffff99e6' },
+        timerDeepBreathingRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerSteadyWingReadyGradient = T{ enabled = true, start = '#cc66ffe6', stop = '#dd99ffe6' },
+        timerSteadyWingRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        -- PUP ability gradients
+        timerActivateReadyGradient = T{ enabled = true, start = '#3399ffe6', stop = '#66bbffe6' },
+        timerActivateRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerRepairReadyGradient = T{ enabled = true, start = '#33cc66e6', stop = '#66dd99e6' },
+        timerRepairRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerDeployReadyGradient = T{ enabled = true, start = '#ff9933e6', stop = '#ffbb66e6' },
+        timerDeployRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerDeactivateReadyGradient = T{ enabled = true, start = '#999999e6', stop = '#bbbbbbbe6' },
+        timerDeactivateRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerRetrieveReadyGradient = T{ enabled = true, start = '#66ccffe6', stop = '#99ddffe6' },
+        timerRetrieveRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerDeusExAutomataReadyGradient = T{ enabled = true, start = '#ffcc33e6', stop = '#ffdd66e6' },
+        timerDeusExAutomataRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        -- 2-Hour timer gradients
+        timer2hReadyGradient = T{ enabled = true, start = '#ff00ffe6', stop = '#ff66ffe6' },
+        timer2hRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
         -- BST specific
         durationWarningColor = 0xFFFF6600,
         charmHeartColor = 0xFFFF6699,
@@ -807,7 +811,7 @@ M.user_settings = T{
     petTargetDistanceOffsetY = 44,
 
     -- Pet Target snap to petbar (positions pet target directly below petbar)
-    petTargetSnapToPetBar = false,       -- When enabled, pet target snaps below petbar
+    petTargetSnapToPetBar = true,        -- When enabled, pet target snaps below petbar
     petTargetSnapOffsetX = 0,            -- Horizontal offset from petbar position
     petTargetSnapOffsetY = 16,           -- Vertical offset below petbar (accounts for background border)
 

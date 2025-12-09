@@ -480,35 +480,31 @@ end
 
     Use this to calculate the visible area for content rendered between
     the background and borders. Content outside these bounds should be
-    clipped or hidden.
+    clipped or hidden. The clip region matches the background bounds exactly,
+    keeping content within the background area.
 
     @param x number: Window content X position
     @param y number: Window content Y position
     @param width number: Window content width
     @param height number: Window content height
     @param options table: {
-        theme = string,     -- Theme name (required for border offset calculation)
+        theme = string,     -- Theme name (unused, kept for API compatibility)
         padding = number,   -- Horizontal padding (default 8)
         paddingY = number,  -- Vertical padding (defaults to padding)
-        bgOffset = number,  -- Border offset (default 1, only applies to Window themes)
     }
     @return table: { left, top, right, bottom } - clip bounds in screen coordinates
 ]]--
 function M.getClipBounds(x, y, width, height, options)
     options = options or {};
-    local theme = options.theme or 'Window1';
     local padding = options.padding or DEFAULT_PADDING;
     local paddingY = options.paddingY or padding;
-    local bgOffset = options.bgOffset or DEFAULT_BG_OFFSET;
 
-    -- For Window themes, extend clip bounds to include border area
-    local borderOffset = IsWindowTheme(theme) and bgOffset or 0;
-
+    -- Clip bounds match background bounds exactly (no border offset extension)
     return {
-        left = x - padding - borderOffset,
-        top = y - paddingY - borderOffset,
-        right = x + width + padding + borderOffset,
-        bottom = y + height + paddingY + borderOffset,
+        left = x - padding,
+        top = y - paddingY,
+        right = x + width + padding,
+        bottom = y + height + paddingY,
     };
 end
 

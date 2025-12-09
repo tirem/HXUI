@@ -6,6 +6,7 @@
 require('common');
 require('handlers.helpers');
 local windowBg = require('libs.windowbackground');
+local packets = require('libs.packets');
 
 local data = {};
 
@@ -18,8 +19,8 @@ data.JOB_BST = 9;
 data.JOB_DRG = 14;
 data.JOB_PUP = 18;
 
-data.MAX_ABILITY_ICONS = 6;
-data.ABILITY_ICON_SIZE = 24;
+data.MAX_RECAST_SLOTS = 6;
+data.RECAST_ICON_SIZE = 24;
 
 data.bgImageKeys = { 'bg', 'tl', 'tr', 'br', 'bl' };
 
@@ -379,8 +380,8 @@ data.petImageTextures = {};
 -- Clipped pet image render info (set by UpdateBackground, rendered by display)
 data.clippedPetImageInfo = nil;
 
--- Ability timer tracking
-data.abilityMaxTimers = {};
+-- Recast timer tracking
+data.recastMaxTimers = {};
 
 -- Window positioning (shared with pet target)
 data.lastMainWindowPosX = 0;
@@ -422,16 +423,12 @@ function data.GetPetEntity()
     return GetEntity(playerEntity.PetTargetIndex);
 end
 
--- Get entity by server ID
+-- Get entity by server ID (optimized using packets.GetIndexFromId)
 function data.GetEntityByServerId(sid)
     if sid == nil or sid == 0 then return nil; end
-    for x = 0, 2303 do
-        local ent = GetEntity(x);
-        if ent ~= nil and ent.ServerId == sid then
-            return ent;
-        end
-    end
-    return nil;
+    local index = packets.GetIndexFromId(sid);
+    if index == 0 then return nil; end
+    return GetEntity(index);
 end
 
 -- Get primary pet job (main takes precedence)
@@ -560,16 +557,17 @@ function data.GetPetData()
     };
 end
 
--- Format timer from frames to readable string
-function data.FormatTimer(frames)
-    if frames <= 0 then return 'Ready'; end
-    local seconds = frames / 60;
-    if seconds >= 60 then
-        local mins = math.floor(seconds / 60);
-        local secs = math.floor(seconds % 60);
+-- Format timer from raw recast value to readable string (mm:ss format)
+-- Raw recast values are in 60ths of a second (60 units = 1 second)
+function data.FormatTimer(rawTimer)
+    if rawTimer <= 0 then return 'Ready'; end
+    local totalSeconds = math.floor(rawTimer / 60);
+    local mins = math.floor(totalSeconds / 60);
+    local secs = totalSeconds % 60;
+    if mins > 0 then
         return string.format('%d:%02d', mins, secs);
     else
-        return string.format('%ds', math.floor(seconds));
+        return string.format('%ds', secs);
     end
 end
 
@@ -667,7 +665,6 @@ local function InitAbilityRecastPointer()
     end
 
     AbilityRecastPointer = ashita.memory.read_uint32(pointer);
-    print('[PetBar] AbilityRecastPointer initialized: ' .. string.format('0x%X', AbilityRecastPointer));
     return true;
 end
 
@@ -701,9 +698,9 @@ local function GetPreviewJob(previewType)
     end
 end
 
--- Get pet ability timers - single entry point for both preview and real data
+-- Get pet recasts - single entry point for both preview and real data
 -- This follows the partylist pattern where preview is handled inside the data function
-function data.GetPetAbilityTimers()
+function data.GetPetRecasts()
     local timers = {};
 
     -- Preview check FIRST (before getting real job) - like partylist's GetMemberInformation
@@ -771,12 +768,12 @@ function data.GetPetAbilityTimers()
             if timer ~= nil then
                 local maxTimer = abilityInfo.maxTimer;
                 if timer > 0 then
-                    if data.abilityMaxTimers[name] == nil or timer > data.abilityMaxTimers[name] then
-                        data.abilityMaxTimers[name] = timer;
+                    if data.recastMaxTimers[name] == nil or timer > data.recastMaxTimers[name] then
+                        data.recastMaxTimers[name] = timer;
                     end
-                    maxTimer = data.abilityMaxTimers[name] or maxTimer;
+                    maxTimer = data.recastMaxTimers[name] or maxTimer;
                 else
-                    data.abilityMaxTimers[name] = nil;
+                    data.recastMaxTimers[name] = nil;
                 end
 
                 table.insert(timers, {
@@ -1082,7 +1079,7 @@ function data.Reset()
     data.clippedPetImageInfo = nil;
     data.petTargetServerId = nil;
     data.currentPetName = nil;
-    data.abilityMaxTimers = {};
+    data.recastMaxTimers = {};
     data.loadedBgName = nil;
     -- Pet timer tracking reset
     data.petSummonTime = nil;

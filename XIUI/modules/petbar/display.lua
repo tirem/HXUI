@@ -51,116 +51,128 @@ local function GetPetBarSetting(settingName, defaultValue)
 end
 
 -- ============================================
--- Get Timer Colors Based on Individual Ability
+-- Get Timer Gradients Based on Individual Ability
 -- ============================================
--- Each ability has its own unique color for better visual distinction
-local function GetTimerColors(abilityName, colorConfig)
+-- Each ability has its own unique gradient for better visual distinction
+-- Returns: readyGradient, recastGradient (each is {start, stop} hex strings)
+local function GetTimerGradients(abilityName, colorConfig)
     local name = abilityName or '';
     local cc = colorConfig or {};
+
+    -- Default gradients
+    local defaultReadyGradient = {'#aaaaaae6', '#cccccce6'};
+    local defaultRecastGradient = {'#ccccccd9', '#ddddddd9'};
+
+    -- Helper to get gradient as table
+    local function getGradient(gradient, default)
+        if gradient and gradient.start and gradient.stop then
+            return {gradient.start, gradient.stop};
+        end
+        return default;
+    end
 
     -- SMN abilities
     if name:find('Blood Pact') then
         if name:find('Rage') then
-            return cc.timerBPRageReadyColor or 0xE6FF3333,
-                   cc.timerBPRageRecastColor or 0xD9FF6666;
+            return getGradient(cc.timerBPRageReadyGradient, {'#ff3333e6', '#ff6666e6'}),
+                   getGradient(cc.timerBPRageRecastGradient, {'#ff6666d9', '#ff9999d9'});
         elseif name:find('Ward') then
-            return cc.timerBPWardReadyColor or 0xE600CCCC,
-                   cc.timerBPWardRecastColor or 0xD966DDDD;
+            return getGradient(cc.timerBPWardReadyGradient, {'#00cccce6', '#66dddde6'}),
+                   getGradient(cc.timerBPWardRecastGradient, {'#66ddddd9', '#99eeeed9'});
         end
-        -- Generic Blood Pact - default to Rage colors
-        return cc.timerBPRageReadyColor or 0xE6FF3333,
-               cc.timerBPRageRecastColor or 0xD9FF6666;
+        return getGradient(cc.timerBPRageReadyGradient, {'#ff3333e6', '#ff6666e6'}),
+               getGradient(cc.timerBPRageRecastGradient, {'#ff6666d9', '#ff9999d9'});
     end
     if name == 'Apogee' then
-        return cc.timerApogeeReadyColor or 0xE6FFCC00,
-               cc.timerApogeeRecastColor or 0xD9FFDD66;
+        return getGradient(cc.timerApogeeReadyGradient, {'#ffcc00e6', '#ffdd66e6'}),
+               getGradient(cc.timerApogeeRecastGradient, {'#ffdd66d9', '#ffee99d9'});
     end
     if name == 'Mana Cede' then
-        return cc.timerManaCedeReadyColor or 0xE6009999,
-               cc.timerManaCedeRecastColor or 0xD966BBBB;
+        return getGradient(cc.timerManaCedeReadyGradient, {'#009999e6', '#66bbbbe6'}),
+               getGradient(cc.timerManaCedeRecastGradient, {'#66bbbbd9', '#99ccccd9'});
     end
 
     -- BST abilities
     if name == 'Ready' then
-        return cc.timerReadyReadyColor or 0xE6FF6600,
-               cc.timerReadyRecastColor or 0xD9FF9933;
+        return getGradient(cc.timerReadyReadyGradient, {'#ff6600e6', '#ff9933e6'}),
+               getGradient(cc.timerReadyRecastGradient, {'#ff9933d9', '#ffbb66d9'});
     end
     if name == 'Reward' then
-        return cc.timerRewardReadyColor or 0xE600CC66,
-               cc.timerRewardRecastColor or 0xD966DD99;
+        return getGradient(cc.timerRewardReadyGradient, {'#00cc66e6', '#66dd99e6'}),
+               getGradient(cc.timerRewardRecastGradient, {'#66dd99d9', '#99eebbd9'});
     end
     if name == 'Call Beast' then
-        return cc.timerCallBeastReadyColor or 0xE63399FF,
-               cc.timerCallBeastRecastColor or 0xD966BBFF;
+        return getGradient(cc.timerCallBeastReadyGradient, {'#3399ffe6', '#66bbffe6'}),
+               getGradient(cc.timerCallBeastRecastGradient, {'#66bbffd9', '#99ccffd9'});
     end
     if name == 'Bestial Loyalty' then
-        return cc.timerBestialLoyaltyReadyColor or 0xE69966FF,
-               cc.timerBestialLoyaltyRecastColor or 0xD9BB99FF;
+        return getGradient(cc.timerBestialLoyaltyReadyGradient, {'#9966ffe6', '#bb99ffe6'}),
+               getGradient(cc.timerBestialLoyaltyRecastGradient, {'#bb99ffd9', '#ccaaffd9'});
     end
 
     -- DRG abilities
     if name == 'Call Wyvern' then
-        return cc.timerCallWyvernReadyColor or 0xE63366FF,
-               cc.timerCallWyvernRecastColor or 0xD96699FF;
+        return getGradient(cc.timerCallWyvernReadyGradient, {'#3366ffe6', '#6699ffe6'}),
+               getGradient(cc.timerCallWyvernRecastGradient, {'#6699ffd9', '#99bbffd9'});
     end
     if name == 'Spirit Link' then
-        return cc.timerSpiritLinkReadyColor or 0xE633CC33,
-               cc.timerSpiritLinkRecastColor or 0xD966DD66;
+        return getGradient(cc.timerSpiritLinkReadyGradient, {'#33cc33e6', '#66dd66e6'}),
+               getGradient(cc.timerSpiritLinkRecastGradient, {'#66dd66d9', '#99ee99d9'});
     end
     if name == 'Deep Breathing' then
-        return cc.timerDeepBreathingReadyColor or 0xE6FFFF33,
-               cc.timerDeepBreathingRecastColor or 0xD9FFFF99;
+        return getGradient(cc.timerDeepBreathingReadyGradient, {'#ffff33e6', '#ffff99e6'}),
+               getGradient(cc.timerDeepBreathingRecastGradient, {'#ffff99d9', '#ffffc0d9'});
     end
     if name == 'Steady Wing' then
-        return cc.timerSteadyWingReadyColor or 0xE6CC66FF,
-               cc.timerSteadyWingRecastColor or 0xD9DD99FF;
+        return getGradient(cc.timerSteadyWingReadyGradient, {'#cc66ffe6', '#dd99ffe6'}),
+               getGradient(cc.timerSteadyWingRecastGradient, {'#dd99ffd9', '#eeaaffd9'});
     end
 
     -- PUP abilities
     if name == 'Activate' then
-        return cc.timerActivateReadyColor or 0xE63399FF,
-               cc.timerActivateRecastColor or 0xD966BBFF;
+        return getGradient(cc.timerActivateReadyGradient, {'#3399ffe6', '#66bbffe6'}),
+               getGradient(cc.timerActivateRecastGradient, {'#66bbffd9', '#99ccffd9'});
     end
     if name == 'Repair' then
-        return cc.timerRepairReadyColor or 0xE633CC66,
-               cc.timerRepairRecastColor or 0xD966DD99;
+        return getGradient(cc.timerRepairReadyGradient, {'#33cc66e6', '#66dd99e6'}),
+               getGradient(cc.timerRepairRecastGradient, {'#66dd99d9', '#99eebbd9'});
     end
     if name == 'Deploy' then
-        return cc.timerDeployReadyColor or 0xE6FF9933,
-               cc.timerDeployRecastColor or 0xD9FFBB66;
+        return getGradient(cc.timerDeployReadyGradient, {'#ff9933e6', '#ffbb66e6'}),
+               getGradient(cc.timerDeployRecastGradient, {'#ffbb66d9', '#ffcc99d9'});
     end
     if name == 'Deactivate' then
-        return cc.timerDeactivateReadyColor or 0xE6999999,
-               cc.timerDeactivateRecastColor or 0xD9BBBBBB;
+        return getGradient(cc.timerDeactivateReadyGradient, {'#999999e6', '#bbbbbbbe6'}),
+               getGradient(cc.timerDeactivateRecastGradient, {'#bbbbbbd9', '#ccccccd9'});
     end
     if name == 'Retrieve' then
-        return cc.timerRetrieveReadyColor or 0xE666CCFF,
-               cc.timerRetrieveRecastColor or 0xD999DDFF;
+        return getGradient(cc.timerRetrieveReadyGradient, {'#66ccffe6', '#99ddffe6'}),
+               getGradient(cc.timerRetrieveRecastGradient, {'#99ddffd9', '#bbeeffd9'});
     end
     if name == 'Deus Ex Automata' then
-        return cc.timerDeusExAutomataReadyColor or 0xE6FFCC33,
-               cc.timerDeusExAutomataRecastColor or 0xD9FFDD66;
+        return getGradient(cc.timerDeusExAutomataReadyGradient, {'#ffcc33e6', '#ffdd66e6'}),
+               getGradient(cc.timerDeusExAutomataRecastGradient, {'#ffdd66d9', '#ffee99d9'});
     end
 
-    -- Two-Hour abilities - Magenta
+    -- Two-Hour abilities
     if name == 'Astral Flow' or name == 'Familiar' or name == 'Spirit Surge' or name == 'Overdrive' then
-        return cc.timer2hReadyColor or 0xE6FF00FF,
-               cc.timer2hRecastColor or 0xD9FF66FF;
+        return getGradient(cc.timer2hReadyGradient, {'#ff00ffe6', '#ff66ffe6'}),
+               getGradient(cc.timer2hRecastGradient, {'#ff66ffd9', '#ff99ffd9'});
     end
 
-    -- Fallback for unknown abilities - use a neutral gray
-    return 0xE6AAAAAA, 0xD9CCCCCC;
+    -- Fallback for unknown abilities
+    return defaultReadyGradient, defaultRecastGradient;
 end
 
 -- ============================================
--- Draw Ability Icon with configurable fill style
+-- Draw Recast Icon with configurable fill style (compact mode)
 -- Styles: 'square' (vertical fill), 'circle' (radial fill), 'clock' (arc sweep, 4.3+ only)
 -- ============================================
-local function DrawAbilityIcon(drawList, x, y, size, timerInfo, colorConfig, fillStyle)
+local function DrawRecastIcon(drawList, x, y, size, timerInfo, colorConfig, fillStyle)
     fillStyle = fillStyle or 'square';
 
-    -- Get colors based on ability category
-    local readyHex, recastHex = GetTimerColors(timerInfo.name, colorConfig);
+    -- Get gradients based on ability category (use start color for compact mode)
+    local readyGradient, recastGradient = GetTimerGradients(timerInfo.name, colorConfig);
     local bgColor = imgui.GetColorU32({0.01, 0.07, 0.17, 1.0});
     local borderColor = imgui.GetColorU32({0.01, 0.05, 0.12, 1.0});
 
@@ -173,8 +185,8 @@ local function DrawAbilityIcon(drawList, x, y, size, timerInfo, colorConfig, fil
     end
 
     local fillColor = isOnCooldown
-        and imgui.GetColorU32(color.ARGBToImGui(recastHex))
-        or imgui.GetColorU32(color.ARGBToImGui(readyHex));
+        and imgui.GetColorU32(color.HexToImGui(recastGradient[1]))
+        or imgui.GetColorU32(color.HexToImGui(readyGradient[1]));
 
     if fillStyle == 'circle' or fillStyle == 'clock' then
         -- Circle-based styles
@@ -240,8 +252,10 @@ end
 
 -- ============================================
 -- Format recast time for display
+-- rawTimer is in 60ths of a second (60 units = 1 second)
 -- ============================================
-local function FormatRecastTime(seconds)
+local function FormatRecastTime(rawTimer)
+    local seconds = rawTimer / 60;
     if seconds <= 0 then
         return 'Ready';
     elseif seconds < 60 then
@@ -258,31 +272,40 @@ local function FormatRecastTime(seconds)
 end
 
 -- ============================================
--- Draw Ability Icon - Full Display Mode
--- Shows icon, name, and recast timer in a row using GdiFonts
+-- Draw Recast - Full Display Mode
+-- Shows name and recast timer with progress bar using GdiFonts
 -- fontIndex: 1-based index for which font slot to use
 -- ============================================
-local function DrawAbilityIconFull(drawList, x, y, timerInfo, colorConfig, fullSettings, fontIndex)
+local function DrawRecastFull(drawList, x, y, timerInfo, colorConfig, fullSettings, fontIndex)
     local showName = fullSettings.showName;
     local showRecast = fullSettings.showRecast;
-    local fontSize = fullSettings.fontSize or 10;
-    local alignment = fullSettings.alignment or 'left';
-    local iconSize = fullSettings.iconSize or 20;  -- Used for row height
+    local nameFontSize = fullSettings.nameFontSize or 10;
+    local recastFontSize = fullSettings.recastFontSize or 10;
 
     -- Get font objects from data module
-    local nameFont = data.abilityNameFonts and data.abilityNameFonts[fontIndex];
-    local recastFont = data.abilityRecastFonts and data.abilityRecastFonts[fontIndex];
+    local nameFont = data.recastNameFonts and data.recastNameFonts[fontIndex];
+    local recastFont = data.recastTimerFonts and data.recastTimerFonts[fontIndex];
 
-    -- Get colors based on ability category (ARGB format for GdiFonts)
-    local readyHex, recastHex = GetTimerColors(timerInfo.name, colorConfig);
-    local textColorHex = timerInfo.isReady and readyHex or recastHex;
+    -- Get gradients based on ability category
+    local readyGradient, recastGradient = GetTimerGradients(timerInfo.name, colorConfig);
+    local barGradient = timerInfo.isReady and readyGradient or recastGradient;
+
+    -- Get text color from gradient start (convert hex to ARGB for GdiFonts)
+    local textColorHex = color.HexToARGB(barGradient[1]:gsub('#', ''):sub(1, 6),
+        tonumber(barGradient[1]:gsub('#', ''):sub(7, 8) or 'ff', 16));
 
     -- Prepare text content
     local nameText = timerInfo.name or 'Unknown';
     local recastText = FormatRecastTime(timerInfo.timer or 0);
 
-    -- Calculate text Y position (vertically centered with icon, nudged up slightly)
-    local textY = y + (iconSize - fontSize) / 2 - 2;
+    -- Calculate the max font size for vertical positioning
+    local maxFontSize = 0;
+    if showName then maxFontSize = math.max(maxFontSize, nameFontSize); end
+    if showRecast then maxFontSize = math.max(maxFontSize, recastFontSize); end
+    if maxFontSize == 0 then maxFontSize = 10; end
+
+    -- Text Y position at top of row
+    local textY = y;
 
     -- Hide fonts by default, will show if needed
     if nameFont then nameFont:set_visible(false); end
@@ -295,105 +318,52 @@ local function DrawAbilityIconFull(drawList, x, y, timerInfo, colorConfig, fullS
         progress = math.max(0, math.min(1, progress));
     end
 
-    -- Progress bar settings (fixed width to match HP bar default)
-    local barHeight = 4;
-    local barWidth = 150;
-    local barY = textY + fontSize + 2;  -- Position below the text
+    -- Progress bar settings (configurable)
+    local barHeight = fullSettings.barHeight or 4;
+    local barWidth = fullSettings.barWidth or 150;
+    local barY = textY + maxFontSize + 2;  -- Position below the text
 
     -- Track where text/bar should start
     local barStartX = x;
 
-    if alignment == 'right' then
-        -- Right alignment: Timer Name - positioned from right edge
-        barStartX = x - barWidth;
-
-        -- Name - left-aligned at start of bar
-        if showName and nameFont then
-            nameFont:set_font_height(fontSize);
-            nameFont:set_text(nameText);
-            nameFont:set_position_x(barStartX);
-            nameFont:set_position_y(textY);
-            nameFont:set_font_color(textColorHex);
-            nameFont:set_font_alignment(0); -- Left alignment
-            nameFont:set_visible(true);
-        end
-
-        -- Recast timer - right-aligned at far right of progress bar
-        if showRecast and recastFont then
-            recastFont:set_font_height(fontSize);
-            recastFont:set_text(recastText);
-            recastFont:set_position_x(x);  -- Right edge of bar
-            recastFont:set_position_y(textY);
-            recastFont:set_font_color(textColorHex);
-            recastFont:set_font_alignment(2); -- Right alignment
-            recastFont:set_visible(true);
-        end
-    else
-        -- Left alignment: Name Timer - positioned from left edge
-        barStartX = x;
-
-        -- Name - left-aligned at start of bar
-        if showName and nameFont then
-            nameFont:set_font_height(fontSize);
-            nameFont:set_text(nameText);
-            nameFont:set_position_x(barStartX);
-            nameFont:set_position_y(textY);
-            nameFont:set_font_color(textColorHex);
-            nameFont:set_font_alignment(0); -- Left alignment
-            nameFont:set_visible(true);
-        end
-
-        -- Recast timer - right-aligned at far right of progress bar
-        if showRecast and recastFont then
-            recastFont:set_font_height(fontSize);
-            recastFont:set_text(recastText);
-            recastFont:set_position_x(barStartX + barWidth);  -- Right edge of bar
-            recastFont:set_position_y(textY);
-            recastFont:set_font_color(textColorHex);
-            recastFont:set_font_alignment(2); -- Right alignment
-            recastFont:set_visible(true);
-        end
+    -- Name - left-aligned at start of bar
+    if showName and nameFont then
+        nameFont:set_font_height(nameFontSize);
+        nameFont:set_text(nameText);
+        nameFont:set_position_x(barStartX);
+        nameFont:set_position_y(textY);
+        nameFont:set_font_color(textColorHex);
+        nameFont:set_font_alignment(0); -- Left alignment
+        nameFont:set_visible(true);
     end
 
-    -- Draw progress bar under text (styled like HP/TP bars, fixed width)
-    local rounding = 2;
-    local padding = 1;
-
-    -- Background gradient colors (match main bar style)
-    local bgStartColor = 0xFF1a1a2e;  -- Dark blue-gray
-    local bgEndColor = 0xFF2d2d44;    -- Slightly lighter
-
-    -- Check for custom background gradient from config
-    if gConfig and gConfig.colorCustomization and gConfig.colorCustomization.shared and gConfig.colorCustomization.shared.backgroundGradient then
-        local bgSettings = gConfig.colorCustomization.shared.backgroundGradient;
-        if bgSettings.start then
-            bgStartColor = color.HexToARGB(bgSettings.start) or bgStartColor;
-        end
-        if bgSettings.enabled and bgSettings.stop then
-            bgEndColor = color.HexToARGB(bgSettings.stop) or bgEndColor;
-        else
-            bgEndColor = bgStartColor;
-        end
+    -- Recast timer - right-aligned at far right of progress bar
+    if showRecast and recastFont then
+        recastFont:set_font_height(recastFontSize);
+        recastFont:set_text(recastText);
+        recastFont:set_position_x(barStartX + barWidth);  -- Right edge of bar
+        recastFont:set_position_y(textY);
+        recastFont:set_font_color(textColorHex);
+        recastFont:set_font_alignment(2); -- Right alignment
+        recastFont:set_visible(true);
     end
 
-    -- Draw background (outer)
-    local bgColorU32 = imgui.GetColorU32(color.ARGBToImGui(bgStartColor));
-    drawList:AddRectFilled({barStartX, barY}, {barStartX + barWidth, barY + barHeight}, bgColorU32, rounding);
+    -- Draw progress bar using the progressbar library with custom drawList
+    local showBookends = fullSettings.showBookends;
+    if showBookends == nil then showBookends = false; end
 
-    -- Draw fill (inner, with padding)
-    if progress > 0 then
-        local fillColor = imgui.GetColorU32(color.ARGBToImGui(textColorHex));
-        local innerX = barStartX + padding;
-        local innerY = barY + padding;
-        local innerWidth = (barWidth - padding * 2) * progress;
-        local innerHeight = barHeight - padding * 2;
-        if innerHeight > 0 and innerWidth > 0 then
-            drawList:AddRectFilled({innerX, innerY}, {innerX + innerWidth, innerY + innerHeight}, fillColor, math.max(0, rounding - 1));
-        end
-    end
+    progressbar.ProgressBar(
+        {{progress, barGradient}},
+        {barWidth, barHeight},
+        {
+            decorate = showBookends,
+            absolutePosition = {barStartX, barY},
+            drawList = drawList,
+        }
+    )
 
-    -- Return the total height for layout purposes
-    return iconSize;
+    -- Return the bar height for layout purposes
+    return barHeight;
 end
 
 -- ============================================
@@ -453,6 +423,8 @@ function display.DrawWindow(settings)
     local mpScaleY = typeSettings.mpScaleY or gConfig.petBarMpScaleY or 1.0;
     local tpScaleX = typeSettings.tpScaleX or gConfig.petBarTpScaleX or 1.0;
     local tpScaleY = typeSettings.tpScaleY or gConfig.petBarTpScaleY or 1.0;
+    local recastScaleX = typeSettings.recastScaleX or 1.0;
+    local recastScaleY = typeSettings.recastScaleY or 0.5;  -- Default to half height for recast bars
 
     -- Calculate scaled bar dimensions
     -- HP bar is full width
@@ -464,6 +436,9 @@ function display.DrawWindow(settings)
     local mpBarHeight = barHeight * mpScaleY;
     local tpBarWidth = halfBarWidth * tpScaleX;
     local tpBarHeight = barHeight * tpScaleY;
+    -- Recast bars use full HP bar width by default, scaled height
+    local recastBarWidth = hpBarWidth * recastScaleX;
+    local recastBarHeight = barHeight * recastScaleY;
 
     -- Total row width for proper window sizing (based on HP bar width)
     local totalRowWidth = hpBarWidth;
@@ -573,11 +548,17 @@ function display.DrawWindow(settings)
         if showHP then
             local hpGradient = GetCustomGradient(colorConfig, 'hpGradient') or {'#e26c6c', '#fa9c9c'};
 
-            -- Use HP interpolation for damage/healing animations
-            local currentTime = os.clock();
-            local petEntity = data.GetPetEntity();
-            local petIndex = petEntity and petEntity.TargetIndex or 0;
-            local hpPercentData = HpInterpolation.update('petbar', petHpPercent, petIndex, settings, currentTime, hpGradient);
+            -- Use HP interpolation for damage/healing animations (with nil check)
+            local hpPercentData;
+            if HpInterpolation and HpInterpolation.update then
+                local currentTime = os.clock();
+                local petEntity = data.GetPetEntity();
+                local petIndex = petEntity and petEntity.TargetIndex or 0;
+                hpPercentData = HpInterpolation.update('petbar', petHpPercent, petIndex, settings, currentTime, hpGradient);
+            else
+                -- Fallback: no interpolation
+                hpPercentData = {{petHpPercent / 100, hpGradient}};
+            end
 
             progressbar.ProgressBar(
                 hpPercentData,
@@ -678,41 +659,43 @@ function display.DrawWindow(settings)
         end
 
         -- Add spacing for text row if any vitals text is shown
+        -- recastTopSpacing controls the gap between vitals text and recast section (anchored mode)
+        local recastTopSpacing = typeSettings.recastTopSpacing or 2;
         if displayMpBar or displayTpBar then
             local maxVitalsFontSize = math.max(displayMpBar and mpFontSize or 0, displayTpBar and tpFontSize or 0);
-            imgui.Dummy({totalRowWidth, maxVitalsFontSize + 2});
+            imgui.Dummy({totalRowWidth, maxVitalsFontSize + recastTopSpacing});
         end
 
         -- Row 4: Ability Icons
         local showTimers = typeSettings.showTimers;
         if showTimers == nil then showTimers = gConfig.petBarShowTimers ~= false; end
 
-        -- Helper to hide all ability fonts
-        local function hideAllAbilityFonts()
-            for i = 1, data.MAX_ABILITY_ICONS do
-                if data.abilityNameFonts and data.abilityNameFonts[i] then
-                    data.abilityNameFonts[i]:set_visible(false);
+        -- Helper to hide all recast fonts
+        local function hideAllRecastFonts()
+            for i = 1, data.MAX_RECAST_SLOTS do
+                if data.recastNameFonts and data.recastNameFonts[i] then
+                    data.recastNameFonts[i]:set_visible(false);
                 end
-                if data.abilityRecastFonts and data.abilityRecastFonts[i] then
-                    data.abilityRecastFonts[i]:set_visible(false);
+                if data.recastTimerFonts and data.recastTimerFonts[i] then
+                    data.recastTimerFonts[i]:set_visible(false);
                 end
             end
         end
 
         if showTimers then
-            -- Get timers from data module (handles preview internally)
-            local timers = data.GetPetAbilityTimers();
+            -- Get recasts from data module (handles preview internally)
+            local timers = data.GetPetRecasts();
             if #timers > 0 then
                 local iconOffsetX = typeSettings.iconsOffsetX or gConfig.petBarIconsOffsetX or 0;
                 local iconOffsetY = typeSettings.iconsOffsetY or gConfig.petBarIconsOffsetY or 0;
                 local iconsAbsolute = typeSettings.iconsAbsolute;
                 if iconsAbsolute == nil then iconsAbsolute = gConfig.petBarIconsAbsolute; end
                 local fillStyle = typeSettings.timerFillStyle or 'square';
-                local displayStyle = typeSettings.abilityIconDisplayStyle or 'compact';
+                local displayStyle = typeSettings.recastDisplayStyle or 'compact';
                 -- Scale only applies to compact mode; full mode always uses 1.0
                 local iconScale = (displayStyle == 'full') and 1.0 or (typeSettings.iconsScale or gConfig.petBarIconsScale or 1.0);
-                local scaledIconSize = data.ABILITY_ICON_SIZE * iconScale;
-                local iconSpacing = typeSettings.fullIconSpacing or 4;
+                local scaledIconSize = data.RECAST_ICON_SIZE * iconScale;
+                local iconSpacing = typeSettings.recastFullSpacing or 4;
 
                 local iconX, iconY;
                 local drawList;
@@ -721,68 +704,96 @@ function display.DrawWindow(settings)
                     -- Absolute positioning: relative to window top-left
                     iconX = windowPosX + iconOffsetX;
                     iconY = windowPosY + iconOffsetY;
-                    drawList = imgui.GetForegroundDrawList();
+                    -- Use background draw list: renders behind config menu but not clipped to window bounds
+                    drawList = imgui.GetBackgroundDrawList();
                 else
                     -- Anchored: flow within the pet bar container
-                    imgui.Dummy({0, 2});
+                    -- Use recastTopSpacing for vertical offset, no X offset in anchored mode
+                    local topSpacing = typeSettings.recastTopSpacing or 2;
                     iconX, iconY = imgui.GetCursorScreenPos();
-                    iconX = iconX + iconOffsetX;
-                    iconY = iconY + iconOffsetY;
-                    drawList = imgui.GetWindowDrawList();
+                    iconY = iconY + topSpacing;
+                    -- Use background draw list for consistency (anchored may also use offsets outside content area)
+                    drawList = imgui.GetBackgroundDrawList();
                 end
 
                 if displayStyle == 'full' then
-                    -- Full display: vertical list with icon, name, and recast
+                    -- Full display: vertical list with name and recast timer
+                    -- Note: Alignment is forced to 'left' for full mode - right alignment
+                    -- doesn't work properly with the stacked vertical layout
+                    local recastShowBookends = typeSettings.recastShowBookends;
+                    if recastShowBookends == nil then recastShowBookends = true; end
+
                     local fullSettings = {
-                        showName = typeSettings.fullIconShowName ~= false,
-                        showRecast = typeSettings.fullIconShowRecast ~= false,
-                        fontSize = typeSettings.fullIconFontSize or 10,
-                        alignment = typeSettings.fullIconAlignment or 'left',
+                        showName = typeSettings.recastFullShowName ~= false,
+                        showRecast = typeSettings.recastFullShowTimer ~= false,
+                        nameFontSize = typeSettings.recastFullNameFontSize or 10,
+                        recastFontSize = typeSettings.recastFullTimerFontSize or 10,
+                        alignment = 'left',
                         iconSize = scaledIconSize,
+                        barWidth = recastBarWidth,
+                        barHeight = recastBarHeight,
+                        showBookends = recastShowBookends,
                     };
-                    local rowHeight = scaledIconSize + iconSpacing;
+
+                    -- Calculate row height based on what's visible
+                    -- Text row height
+                    local textRowHeight = 0;
+                    if fullSettings.showName then
+                        textRowHeight = math.max(textRowHeight, fullSettings.nameFontSize);
+                    end
+                    if fullSettings.showRecast then
+                        textRowHeight = math.max(textRowHeight, fullSettings.recastFontSize);
+                    end
+                    -- Entry height = text row + gap + bar height
+                    local textBarGap = 2;
+                    local contentHeight = textRowHeight + textBarGap + recastBarHeight;
+                    -- If nothing visible (no text), just use bar height
+                    if textRowHeight == 0 then
+                        contentHeight = recastBarHeight;
+                    end
+                    local rowHeight = contentHeight + iconSpacing;
 
                     for i, timerInfo in ipairs(timers) do
-                        if i > data.MAX_ABILITY_ICONS then break; end
+                        if i > data.MAX_RECAST_SLOTS then break; end
 
                         local posY = iconY + (i - 1) * rowHeight;
-                        DrawAbilityIconFull(drawList, iconX, posY, timerInfo, colorConfig, fullSettings, i);
+                        DrawRecastFull(drawList, iconX, posY, timerInfo, colorConfig, fullSettings, i);
                     end
 
                     -- Hide unused font slots
-                    for i = #timers + 1, data.MAX_ABILITY_ICONS do
-                        if data.abilityNameFonts and data.abilityNameFonts[i] then
-                            data.abilityNameFonts[i]:set_visible(false);
+                    for i = #timers + 1, data.MAX_RECAST_SLOTS do
+                        if data.recastNameFonts and data.recastNameFonts[i] then
+                            data.recastNameFonts[i]:set_visible(false);
                         end
-                        if data.abilityRecastFonts and data.abilityRecastFonts[i] then
-                            data.abilityRecastFonts[i]:set_visible(false);
+                        if data.recastTimerFonts and data.recastTimerFonts[i] then
+                            data.recastTimerFonts[i]:set_visible(false);
                         end
                     end
 
                     if not iconsAbsolute then
                         -- Only add spacing between rows, not after the last row
-                        local totalHeight = #timers * scaledIconSize + math.max(0, #timers - 1) * iconSpacing;
+                        local totalHeight = #timers * contentHeight + math.max(0, #timers - 1) * iconSpacing;
                         imgui.Dummy({totalRowWidth, totalHeight});
                     end
                 else
                     -- Compact display: horizontal row of icons only
                     -- Hide all full display fonts when in compact mode
-                    for i = 1, data.MAX_ABILITY_ICONS do
-                        if data.abilityNameFonts and data.abilityNameFonts[i] then
-                            data.abilityNameFonts[i]:set_visible(false);
+                    for i = 1, data.MAX_RECAST_SLOTS do
+                        if data.recastNameFonts and data.recastNameFonts[i] then
+                            data.recastNameFonts[i]:set_visible(false);
                         end
-                        if data.abilityRecastFonts and data.abilityRecastFonts[i] then
-                            data.abilityRecastFonts[i]:set_visible(false);
+                        if data.recastTimerFonts and data.recastTimerFonts[i] then
+                            data.recastTimerFonts[i]:set_visible(false);
                         end
                     end
 
                     local compactSpacing = 4 * iconScale;
 
                     for i, timerInfo in ipairs(timers) do
-                        if i > data.MAX_ABILITY_ICONS then break; end
+                        if i > data.MAX_RECAST_SLOTS then break; end
 
                         local posX = iconX + (i - 1) * (scaledIconSize + compactSpacing);
-                        DrawAbilityIcon(drawList, posX, iconY, scaledIconSize, timerInfo, colorConfig, fillStyle);
+                        DrawRecastIcon(drawList, posX, iconY, scaledIconSize, timerInfo, colorConfig, fillStyle);
                     end
 
                     if not iconsAbsolute then
@@ -791,11 +802,11 @@ function display.DrawWindow(settings)
                 end
             else
                 -- No timers to display, hide all fonts
-                hideAllAbilityFonts();
+                hideAllRecastFonts();
             end
         else
             -- Timers disabled, hide all fonts
-            hideAllAbilityFonts();
+            hideAllRecastFonts();
         end
 
         -- BST Pet Timer Display (Jug countdown or Charm elapsed)

@@ -87,6 +87,22 @@ function pettarget.DrawWindow(settings)
         return;
     end
 
+    -- Check if pet is targeting itself (e.g., after self-buff like Aerial Armor)
+    local petEntity = data.GetPetEntity();
+    if petEntity and petEntity.ServerId and data.petTargetServerId == petEntity.ServerId then
+        if targetNameText then
+            targetNameText:set_visible(false);
+        end
+        if targetHpText then
+            targetHpText:set_visible(false);
+        end
+        if targetDistanceText then
+            targetDistanceText:set_visible(false);
+        end
+        HideBackground();
+        return;
+    end
+
     local targetEnt = data.GetEntityByServerId(data.petTargetServerId);
     if targetEnt == nil or targetEnt.ActorPointer == 0 or targetEnt.HPPercent <= 0 then
         if targetNameText then

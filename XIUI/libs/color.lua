@@ -223,6 +223,7 @@ function M.HexToARGB(hexString, alpha)
     );
 end
 
+
 -- ========================================
 -- Settings Color Accessors
 -- ========================================
