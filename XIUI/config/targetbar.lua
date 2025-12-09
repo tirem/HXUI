@@ -45,7 +45,15 @@ local function DrawTargetBarSettingsContent()
         components.DrawSlider('Scale Y', 'targetBarScaleY', 0.1, 3.0, '%.1f');
         components.DrawSlider('Name Font Size', 'targetBarNameFontSize', 8, 36);
         components.DrawSlider('Distance Font Size', 'targetBarDistanceFontSize', 8, 36);
+        components.DrawSlider('Distance Offset X', 'targetBarDistanceOffsetX', -100, 100);
+        imgui.ShowHelp('Horizontal offset for distance text position.');
+        components.DrawSlider('Distance Offset Y', 'targetBarDistanceOffsetY', -50, 50);
+        imgui.ShowHelp('Vertical offset for distance text position.');
         components.DrawSlider('HP% Font Size', 'targetBarPercentFontSize', 8, 36);
+        components.DrawSlider('HP% Offset X', 'targetBarPercentOffsetX', -100, 100);
+        imgui.ShowHelp('Horizontal offset for HP% text position.');
+        components.DrawSlider('HP% Offset Y', 'targetBarPercentOffsetY', -50, 50);
+        imgui.ShowHelp('Vertical offset for HP% text position.');
     end
 
     -- Cast bar settings (only show if cast bar is enabled)
@@ -85,6 +93,12 @@ end
 local function DrawMobInfoSettingsContent(githubTexture)
     components.DrawCheckbox('Enabled', 'showMobInfo', CheckVisibility);
     imgui.ShowHelp('Show mob information window when targeting monsters.');
+
+    components.DrawCheckbox('Snap to Target Bar', 'mobInfoSnapToTargetBar');
+    imgui.ShowHelp('Position mob info directly after the target name in the target bar.');
+
+    components.DrawCheckbox('Single Row Layout', 'mobInfoSingleRow');
+    imgui.ShowHelp('Display all mob info on a single horizontal line with pipe separators.');
 
     -- Attribution for Thorny's MobDB (on same line as Enabled)
     imgui.SameLine();
@@ -152,11 +166,6 @@ local function DrawMobInfoSettingsContent(githubTexture)
     end
     if imgui.IsItemClicked() then
         ashita.misc.open_url('https://github.com/ThornyFFXI/mobdb');
-    end
-
-    if components.CollapsingSection('Layout##mobInfo') then
-        components.DrawCheckbox('Single Row Layout', 'mobInfoSingleRow');
-        imgui.ShowHelp('Display all mob info on a single horizontal line with pipe separators.');
     end
 
     if components.CollapsingSection('Display Options##mobInfo') then

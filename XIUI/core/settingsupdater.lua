@@ -104,7 +104,11 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.targetBarSettings.name_font_settings.font_height = math.max(us.targetBarNameFontSize, 8);
     gAdjustedSettings.targetBarSettings.totName_font_settings.font_height = math.max(us.targetBarNameFontSize, 8);
     gAdjustedSettings.targetBarSettings.distance_font_settings.font_height = math.max(us.targetBarDistanceFontSize, 8);
+    gAdjustedSettings.targetBarSettings.distanceOffsetX = us.targetBarDistanceOffsetX or 0;
+    gAdjustedSettings.targetBarSettings.distanceOffsetY = us.targetBarDistanceOffsetY or 0;
     gAdjustedSettings.targetBarSettings.percent_font_settings.font_height = math.max(us.targetBarPercentFontSize, 8);
+    gAdjustedSettings.targetBarSettings.percentOffsetX = us.targetBarPercentOffsetX or 0;
+    gAdjustedSettings.targetBarSettings.percentOffsetY = us.targetBarPercentOffsetY or 0;
     gAdjustedSettings.targetBarSettings.cast_font_settings.font_height = math.max(us.targetBarCastFontSize, 8);
     gAdjustedSettings.targetBarSettings.iconSize = ds.targetBarSettings.iconSize * us.targetBarIconScale;
     gAdjustedSettings.targetBarSettings.arrowSize = ds.targetBarSettings.arrowSize * us.targetBarScaleY;

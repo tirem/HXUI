@@ -38,7 +38,20 @@ petbar.Initialize = function(settings)
     -- BST timer fonts (jug countdown, charm elapsed)
     data.bstTimerText = FontManager.create(settings.vitals_font_settings);
 
+    -- Full display mode fonts (ability name + recast timer for each slot)
+    data.abilityNameFonts = {};
+    data.abilityRecastFonts = {};
+    for i = 1, data.MAX_ABILITY_ICONS do
+        data.abilityNameFonts[i] = FontManager.create(settings.vitals_font_settings);
+        data.abilityRecastFonts[i] = FontManager.create(settings.vitals_font_settings);
+    end
+
     data.allFonts = {data.nameText, data.distanceText, data.hpText, data.mpText, data.tpText, data.bstTimerText};
+    -- Add ability fonts to allFonts for batch visibility control
+    for i = 1, data.MAX_ABILITY_ICONS do
+        table.insert(data.allFonts, data.abilityNameFonts[i]);
+        table.insert(data.allFonts, data.abilityRecastFonts[i]);
+    end
 
     -- Load jug icon texture
     data.jugIconTexture = LoadTextureWithExt('pets/jug', 'png');
@@ -150,7 +163,17 @@ petbar.UpdateVisuals = function(settings)
     -- BST timer fonts
     data.bstTimerText = FontManager.recreate(data.bstTimerText, settings.vitals_font_settings);
 
+    -- Full display mode fonts
+    for i = 1, data.MAX_ABILITY_ICONS do
+        data.abilityNameFonts[i] = FontManager.recreate(data.abilityNameFonts[i], settings.vitals_font_settings);
+        data.abilityRecastFonts[i] = FontManager.recreate(data.abilityRecastFonts[i], settings.vitals_font_settings);
+    end
+
     data.allFonts = {data.nameText, data.distanceText, data.hpText, data.mpText, data.tpText, data.bstTimerText};
+    for i = 1, data.MAX_ABILITY_ICONS do
+        table.insert(data.allFonts, data.abilityNameFonts[i]);
+        table.insert(data.allFonts, data.abilityRecastFonts[i]);
+    end
 
     -- Clear cached colors
     data.ClearColorCache();
@@ -198,6 +221,20 @@ petbar.Cleanup = function()
     data.mpText = FontManager.destroy(data.mpText);
     data.tpText = FontManager.destroy(data.tpText);
     data.bstTimerText = FontManager.destroy(data.bstTimerText);
+
+    -- Cleanup full display mode fonts
+    if data.abilityNameFonts then
+        for i = 1, data.MAX_ABILITY_ICONS do
+            data.abilityNameFonts[i] = FontManager.destroy(data.abilityNameFonts[i]);
+        end
+        data.abilityNameFonts = nil;
+    end
+    if data.abilityRecastFonts then
+        for i = 1, data.MAX_ABILITY_ICONS do
+            data.abilityRecastFonts[i] = FontManager.destroy(data.abilityRecastFonts[i]);
+        end
+        data.abilityRecastFonts = nil;
+    end
 
     data.allFonts = nil;
     data.jugIconTexture = nil;

@@ -24,7 +24,13 @@ local castText;
 local allFonts; -- Table for batch visibility operations
 local targetbar = {
 	interpolation = {},
-	enemyCasts = {} -- Track enemy casting: [serverId] = {spellName, timestamp}
+	enemyCasts = {}, -- Track enemy casting: [serverId] = {spellName, timestamp}
+	-- Exported name text position for mob info snap feature
+	nameTextInfo = {
+		x = 0,        -- X position after name text ends
+		y = 0,        -- Y position of name text
+		visible = false, -- Whether target bar is currently visible
+	},
 };
 
 -- Cache last set colors to avoid expensive SetColor() calls every frame
@@ -45,6 +51,7 @@ targetbar.DrawWindow = function(settings)
 	local player = GetPlayerSafe();
     if (playerEnt == nil or player == nil) then
 		SetFontsVisible(allFonts, false);
+		targetbar.nameTextInfo.visible = false;
         return;
     end
 
@@ -58,6 +65,7 @@ targetbar.DrawWindow = function(settings)
 	end
     if (targetEntity == nil or targetEntity.Name == nil) then
 		SetFontsVisible(allFonts, false);
+		targetbar.nameTextInfo.visible = false;
         for i=1,32 do
             local textObjName = "debuffText" .. tostring(i)
             textObj = debuffTable[textObjName]
@@ -376,8 +384,9 @@ targetbar.DrawWindow = function(settings)
 
 		-- Left-aligned text position (target name) - 8px from left edge (after bookend) + lock icon offset
 		local leftTextX = startX + bookendWidth + textPadding + lockIconOffset;
+		local nameTextY = startY - settings.topTextYOffset - settings.name_font_settings.font_height;
 		nameText:set_position_x(leftTextX);
-		nameText:set_position_y(startY - settings.topTextYOffset - settings.name_font_settings.font_height);
+		nameText:set_position_y(nameTextY);
 		-- Only call set_font_color if the color has changed (expensive operation for GDI fonts)
 		if (lastNameTextColor ~= color) then
 			nameText:set_font_color(color);
@@ -385,6 +394,12 @@ targetbar.DrawWindow = function(settings)
 		end
 		nameText:set_text(targetNameText);
 		nameText:set_visible(gConfig.showTargetName);
+
+		-- Export name text position for mob info snap feature
+		local nameTextWidth, nameTextHeight = nameText:get_text_size();
+		targetbar.nameTextInfo.x = leftTextX + nameTextWidth + 8; -- 8px spacing after name
+		targetbar.nameTextInfo.y = nameTextY;
+		targetbar.nameTextInfo.visible = true;
 
 		-- Right-aligned text positioning for distance and HP%
 		local rightTextX = startX + settings.barWidth - bookendWidth - textPadding;
@@ -402,8 +417,10 @@ targetbar.DrawWindow = function(settings)
 			percentText:set_font_height(settings.percent_font_settings.font_height);
 			percentText:set_text(targetHpPercent);
 			local percentWidth, _ = percentText:get_text_size();
-			percentText:set_position_x(currentRightX);
-			percentText:set_position_y(topTextY - settings.percent_font_settings.font_height);
+			local percentOffsetX = settings.percentOffsetX or 0;
+			local percentOffsetY = settings.percentOffsetY or 0;
+			percentText:set_position_x(currentRightX + percentOffsetX);
+			percentText:set_position_y(topTextY - settings.percent_font_settings.font_height + percentOffsetY);
 
 			-- HP% color based on HP amount
 			local desiredPercentColor, _ = GetHpColors(targetEntity.HPPercent / 100);
@@ -424,8 +441,10 @@ targetbar.DrawWindow = function(settings)
 			distText:set_font_height(settings.distance_font_settings.font_height);
 			distText:set_text(tostring(dist));
 			local distWidth, _ = distText:get_text_size();
-			distText:set_position_x(currentRightX);
-			distText:set_position_y(topTextY - settings.distance_font_settings.font_height);
+			local distanceOffsetX = settings.distanceOffsetX or 0;
+			local distanceOffsetY = settings.distanceOffsetY or 0;
+			distText:set_position_x(currentRightX + distanceOffsetX);
+			distText:set_position_y(topTextY - settings.distance_font_settings.font_height + distanceOffsetY);
 
 			-- Distance uses configured color
 			local desiredDistColor = gConfig.colorCustomization.targetBar.distanceTextColor;

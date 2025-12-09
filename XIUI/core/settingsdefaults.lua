@@ -118,15 +118,25 @@ local function createPetBarTypeDefaults(overrides)
         backgroundOpacity = 1.0,
         borderOpacity = 1.0,
         showBookends = false,
-        -- Ability icon positioning
+        -- Ability icon positioning (absolute for compact mode, anchored for full mode)
         iconsAbsolute = true,
         iconsScale = 0.6,
-        iconsOffsetX = 128,
+        iconsOffsetX = 8,
         iconsOffsetY = 78,
+        -- Ability icon fill style: 'square', 'circle', or 'clock'
+        timerFillStyle = 'square',
+        -- Ability icon display style: 'compact' or 'full'
+        abilityIconDisplayStyle = 'compact',
+        -- Full display style settings
+        fullIconShowIcon = true,
+        fullIconShowName = true,
+        fullIconShowRecast = true,
+        fullIconFontSize = 10,
+        fullIconAlignment = 'left',
+        fullIconSpacing = 4,
         -- Distance text positioning
-        distanceAbsolute = true,
-        distanceOffsetX = 11,
-        distanceOffsetY = 79,
+        distanceOffsetX = 0,
+        distanceOffsetY = 0,
     };
     if overrides then
         for k, v in pairs(overrides) do
@@ -297,7 +307,11 @@ M.user_settings = T{
     targetBarScaleY = 1,
     targetBarNameFontSize = 12,
     targetBarDistanceFontSize = 12,
+    targetBarDistanceOffsetX = 0,
+    targetBarDistanceOffsetY = 0,
     targetBarPercentFontSize = 12,
+    targetBarPercentOffsetX = 0,
+    targetBarPercentOffsetY = 0,
     targetBarCastFontSize = 12,
     targetBarIconScale = 1,
     targetBarIconFontSize = 10,
@@ -413,6 +427,7 @@ M.user_settings = T{
 
     -- Mob Info settings
     showMobInfo = true,
+    mobInfoSnapToTargetBar = false,
     mobInfoShowLevel = true,
     mobInfoShowDetection = true,
     mobInfoShowLink = true,
@@ -673,7 +688,7 @@ M.user_settings = T{
     petBarScaleX = 1.0,
     petBarScaleY = 1.0,
     petBarHideDuringEvents = true,
-    petBarPreview = false,
+    petBarPreview = true,
     petBarPreviewType = 2, -- Avatar (SMN)
     petBarShowDistance = true,
     petBarShowTarget = true,
@@ -777,19 +792,24 @@ M.user_settings = T{
     petTargetBarScaleX = 1.0,
     petTargetBarScaleY = 1.0,
 
-    -- Pet Target text positioning (absolute = relative to window top-left, inline = flow with layout)
+    -- Pet Target text positioning (absolute = relative to window top-left, anchored = flow with layout)
     -- Target Name positioning
-    petTargetNameAbsolute = false,       -- Inline by default (in row with HP%)
+    petTargetNameAbsolute = false,       -- Anchored by default (in row with HP%)
     petTargetNameOffsetX = 0,
     petTargetNameOffsetY = 0,
     -- HP% text positioning
-    petTargetHpAbsolute = false,         -- Inline by default (right side of name row)
+    petTargetHpAbsolute = false,         -- Anchored by default (right side of name row)
     petTargetHpOffsetX = 0,
     petTargetHpOffsetY = 0,
     -- Distance text positioning
     petTargetDistanceAbsolute = true,    -- Absolute by default
     petTargetDistanceOffsetX = 11,
     petTargetDistanceOffsetY = 44,
+
+    -- Pet Target snap to petbar (positions pet target directly below petbar)
+    petTargetSnapToPetBar = false,       -- When enabled, pet target snaps below petbar
+    petTargetSnapOffsetX = 0,            -- Horizontal offset from petbar position
+    petTargetSnapOffsetY = 16,           -- Vertical offset below petbar (accounts for background border)
 
     -- Per-pet-type settings (Avatar, Charm, Jug, Automaton, Wyvern each have independent visual settings)
     petBarAvatar = createPetBarTypeDefaults(),

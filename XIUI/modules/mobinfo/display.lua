@@ -13,6 +13,7 @@ local imgui = require('imgui');
 local gdi = require('submodules.gdifonts.include');
 local ffi = require("ffi");
 local mobdata = require('modules.mobinfo.data');
+local targetbar = require('modules.targetbar');
 
 local mobinfo = {};
 
@@ -486,8 +487,23 @@ mobinfo.DrawWindow = function(settings)
     local fontHeight = settings.level_font_settings.font_height;
     local textColor = gConfig.colorCustomization.mobInfo.levelTextColor;
 
+    -- Check if we should snap to target bar
+    local snapToTargetBar = gConfig.mobInfoSnapToTargetBar and targetbar.nameTextInfo.visible;
+
     -- Setup window
     imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
+
+    -- If snapping to target bar, position the window at the target name end position
+    if snapToTargetBar then
+        -- Calculate Y offset: mob info text is vertically centered within iconSize,
+        -- so we need to offset to align text baselines with target name
+        local textCenterOffset = (iconSize - fontHeight) / 2;
+        local snapY = targetbar.nameTextInfo.y - textCenterOffset;
+        imgui.SetNextWindowPos({targetbar.nameTextInfo.x, snapY}, ImGuiCond_Always);
+        -- Remove window padding to align precisely with target name
+        imgui.PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
+    end
+
     local windowFlags = bit.bor(
         ImGuiWindowFlags_NoDecoration,
         ImGuiWindowFlags_AlwaysAutoResize,
@@ -497,7 +513,8 @@ mobinfo.DrawWindow = function(settings)
         ImGuiWindowFlags_NoBringToFrontOnFocus,
         ImGuiWindowFlags_NoDocking
     );
-    if gConfig.lockPositions then
+    -- Lock position if global lock is on OR if snapping to target bar
+    if gConfig.lockPositions or snapToTargetBar then
         windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
     end
 
@@ -773,6 +790,11 @@ mobinfo.DrawWindow = function(settings)
         end
     end
     imgui.End();
+
+    -- Pop window padding style if we pushed it for snap mode
+    if snapToTargetBar then
+        imgui.PopStyleVar(1);
+    end
 end
 
 mobinfo.Initialize = function(settings)

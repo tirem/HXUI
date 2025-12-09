@@ -153,53 +153,247 @@ local function GetTimerColors(abilityName, colorConfig)
 end
 
 -- ============================================
--- Draw Ability Icon with Clockwise Fill
+-- Draw Ability Icon with configurable fill style
+-- Styles: 'square' (vertical fill), 'circle' (radial fill), 'clock' (arc sweep, 4.3+ only)
 -- ============================================
-local function DrawAbilityIcon(drawList, x, y, size, timerInfo, colorConfig)
-    local radius = size / 2;
-    local centerX = x + radius;
-    local centerY = y + radius;
-    local innerRadius = radius - 2;
+local function DrawAbilityIcon(drawList, x, y, size, timerInfo, colorConfig, fillStyle)
+    fillStyle = fillStyle or 'square';
 
     -- Get colors based on ability category
     local readyHex, recastHex = GetTimerColors(timerInfo.name, colorConfig);
-
-    -- Background circle (dark blue)
     local bgColor = imgui.GetColorU32({0.01, 0.07, 0.17, 1.0});
-    drawList:AddCircleFilled({centerX, centerY}, radius, bgColor, 32);
+    local borderColor = imgui.GetColorU32({0.01, 0.05, 0.12, 1.0});
 
-    if not timerInfo.isReady and timerInfo.timer > 0 and timerInfo.maxTimer and timerInfo.maxTimer > 0 then
-        -- Calculate progress (0 = just started cooldown, 1 = ready)
-        local progress = 1.0 - (timerInfo.timer / timerInfo.maxTimer);
+    -- Calculate progress
+    local progress = 1.0;
+    local isOnCooldown = not timerInfo.isReady and timerInfo.timer > 0 and timerInfo.maxTimer and timerInfo.maxTimer > 0;
+    if isOnCooldown then
+        progress = 1.0 - (timerInfo.timer / timerInfo.maxTimer);
         progress = math.max(0, math.min(1, progress));
-
-        if progress > 0 then
-            local fillColor = imgui.GetColorU32(color.ARGBToImGui(recastHex));
-
-            -- Check if Path methods are available (Ashita 4.3+)
-            if drawList.PathClear then
-                -- Draw clockwise fill arc (from 12 o'clock position)
-                local startAngle = -math.pi / 2;
-                local endAngle = startAngle + (progress * 2 * math.pi);
-
-                drawList:PathClear();
-                drawList:PathLineTo({centerX, centerY});
-                local numSegments = math.max(3, math.floor(32 * progress));
-                drawList:PathArcTo({centerX, centerY}, innerRadius, startAngle, endAngle, numSegments);
-                drawList:PathFillConvex(fillColor);
-            else
-                -- Fallback for Ashita 4.0: draw simple filled circle for progress
-                drawList:AddCircleFilled({centerX, centerY}, innerRadius * progress, fillColor, 32);
-            end
-        end
-    else
-        local readyColor = imgui.GetColorU32(color.ARGBToImGui(readyHex));
-        drawList:AddCircleFilled({centerX, centerY}, innerRadius, readyColor, 32);
     end
 
-    -- Border (darker blue)
-    local borderColor = imgui.GetColorU32({0.01, 0.05, 0.12, 1.0});
-    drawList:AddCircle({centerX, centerY}, radius, borderColor, 32, 2);
+    local fillColor = isOnCooldown
+        and imgui.GetColorU32(color.ARGBToImGui(recastHex))
+        or imgui.GetColorU32(color.ARGBToImGui(readyHex));
+
+    if fillStyle == 'circle' or fillStyle == 'clock' then
+        -- Circle-based styles
+        local radius = size / 2;
+        local centerX = x + radius;
+        local centerY = y + radius;
+        local innerRadius = radius - 2;
+
+        -- Background circle
+        drawList:AddCircleFilled({centerX, centerY}, radius, bgColor, 32);
+
+        if isOnCooldown then
+            if progress > 0 then
+                if fillStyle == 'clock' and drawList.PathClear then
+                    -- Clock sweep (arc) - only available on Ashita 4.3+
+                    local startAngle = -math.pi / 2;
+                    local endAngle = startAngle + (progress * 2 * math.pi);
+                    drawList:PathClear();
+                    drawList:PathLineTo({centerX, centerY});
+                    local numSegments = math.max(3, math.floor(32 * progress));
+                    drawList:PathArcTo({centerX, centerY}, innerRadius, startAngle, endAngle, numSegments);
+                    drawList:PathFillConvex(fillColor);
+                else
+                    -- Circle fill (fallback for clock on 4.0, or explicit circle style)
+                    drawList:AddCircleFilled({centerX, centerY}, innerRadius * progress, fillColor, 32);
+                end
+            end
+        else
+            -- Ready state - full circle
+            drawList:AddCircleFilled({centerX, centerY}, innerRadius, fillColor, 32);
+        end
+
+        -- Border circle
+        drawList:AddCircle({centerX, centerY}, radius, borderColor, 32, 2);
+    else
+        -- Square style (vertical fill from bottom to top)
+        local rounding = 4;
+        local padding = 2;
+
+        -- Background
+        drawList:AddRectFilled({x, y}, {x + size, y + size}, bgColor, rounding);
+
+        -- Inner area
+        local innerX = x + padding;
+        local innerY = y + padding;
+        local innerSize = size - (padding * 2);
+
+        if isOnCooldown then
+            if progress > 0 then
+                local fillHeight = innerSize * progress;
+                local fillTop = innerY + innerSize - fillHeight;
+                drawList:AddRectFilled({innerX, fillTop}, {innerX + innerSize, innerY + innerSize}, fillColor, rounding - 1);
+            end
+        else
+            -- Ready state - full square
+            drawList:AddRectFilled({innerX, innerY}, {innerX + innerSize, innerY + innerSize}, fillColor, rounding - 1);
+        end
+
+        -- Border
+        drawList:AddRect({x, y}, {x + size, y + size}, borderColor, rounding, nil, 1.5);
+    end
+end
+
+-- ============================================
+-- Format recast time for display
+-- ============================================
+local function FormatRecastTime(seconds)
+    if seconds <= 0 then
+        return 'Ready';
+    elseif seconds < 60 then
+        return string.format('%ds', math.ceil(seconds));
+    else
+        local mins = math.floor(seconds / 60);
+        local secs = math.ceil(seconds % 60);
+        if secs == 60 then
+            mins = mins + 1;
+            secs = 0;
+        end
+        return string.format('%d:%02d', mins, secs);
+    end
+end
+
+-- ============================================
+-- Draw Ability Icon - Full Display Mode
+-- Shows icon, name, and recast timer in a row using GdiFonts
+-- fontIndex: 1-based index for which font slot to use
+-- ============================================
+local function DrawAbilityIconFull(drawList, x, y, timerInfo, colorConfig, fullSettings, fontIndex)
+    local showName = fullSettings.showName;
+    local showRecast = fullSettings.showRecast;
+    local fontSize = fullSettings.fontSize or 10;
+    local alignment = fullSettings.alignment or 'left';
+    local iconSize = fullSettings.iconSize or 20;  -- Used for row height
+
+    -- Get font objects from data module
+    local nameFont = data.abilityNameFonts and data.abilityNameFonts[fontIndex];
+    local recastFont = data.abilityRecastFonts and data.abilityRecastFonts[fontIndex];
+
+    -- Get colors based on ability category (ARGB format for GdiFonts)
+    local readyHex, recastHex = GetTimerColors(timerInfo.name, colorConfig);
+    local textColorHex = timerInfo.isReady and readyHex or recastHex;
+
+    -- Prepare text content
+    local nameText = timerInfo.name or 'Unknown';
+    local recastText = FormatRecastTime(timerInfo.timer or 0);
+
+    -- Calculate text Y position (vertically centered with icon, nudged up slightly)
+    local textY = y + (iconSize - fontSize) / 2 - 2;
+
+    -- Hide fonts by default, will show if needed
+    if nameFont then nameFont:set_visible(false); end
+    if recastFont then recastFont:set_visible(false); end
+
+    -- Calculate progress for bar (0 = just started cooldown, 1 = ready)
+    local progress = 1.0;
+    if not timerInfo.isReady and timerInfo.timer > 0 and timerInfo.maxTimer and timerInfo.maxTimer > 0 then
+        progress = 1.0 - (timerInfo.timer / timerInfo.maxTimer);
+        progress = math.max(0, math.min(1, progress));
+    end
+
+    -- Progress bar settings (fixed width to match HP bar default)
+    local barHeight = 4;
+    local barWidth = 150;
+    local barY = textY + fontSize + 2;  -- Position below the text
+
+    -- Track where text/bar should start
+    local barStartX = x;
+
+    if alignment == 'right' then
+        -- Right alignment: Timer Name - positioned from right edge
+        barStartX = x - barWidth;
+
+        -- Name - left-aligned at start of bar
+        if showName and nameFont then
+            nameFont:set_font_height(fontSize);
+            nameFont:set_text(nameText);
+            nameFont:set_position_x(barStartX);
+            nameFont:set_position_y(textY);
+            nameFont:set_font_color(textColorHex);
+            nameFont:set_font_alignment(0); -- Left alignment
+            nameFont:set_visible(true);
+        end
+
+        -- Recast timer - right-aligned at far right of progress bar
+        if showRecast and recastFont then
+            recastFont:set_font_height(fontSize);
+            recastFont:set_text(recastText);
+            recastFont:set_position_x(x);  -- Right edge of bar
+            recastFont:set_position_y(textY);
+            recastFont:set_font_color(textColorHex);
+            recastFont:set_font_alignment(2); -- Right alignment
+            recastFont:set_visible(true);
+        end
+    else
+        -- Left alignment: Name Timer - positioned from left edge
+        barStartX = x;
+
+        -- Name - left-aligned at start of bar
+        if showName and nameFont then
+            nameFont:set_font_height(fontSize);
+            nameFont:set_text(nameText);
+            nameFont:set_position_x(barStartX);
+            nameFont:set_position_y(textY);
+            nameFont:set_font_color(textColorHex);
+            nameFont:set_font_alignment(0); -- Left alignment
+            nameFont:set_visible(true);
+        end
+
+        -- Recast timer - right-aligned at far right of progress bar
+        if showRecast and recastFont then
+            recastFont:set_font_height(fontSize);
+            recastFont:set_text(recastText);
+            recastFont:set_position_x(barStartX + barWidth);  -- Right edge of bar
+            recastFont:set_position_y(textY);
+            recastFont:set_font_color(textColorHex);
+            recastFont:set_font_alignment(2); -- Right alignment
+            recastFont:set_visible(true);
+        end
+    end
+
+    -- Draw progress bar under text (styled like HP/TP bars, fixed width)
+    local rounding = 2;
+    local padding = 1;
+
+    -- Background gradient colors (match main bar style)
+    local bgStartColor = 0xFF1a1a2e;  -- Dark blue-gray
+    local bgEndColor = 0xFF2d2d44;    -- Slightly lighter
+
+    -- Check for custom background gradient from config
+    if gConfig and gConfig.colorCustomization and gConfig.colorCustomization.shared and gConfig.colorCustomization.shared.backgroundGradient then
+        local bgSettings = gConfig.colorCustomization.shared.backgroundGradient;
+        if bgSettings.start then
+            bgStartColor = color.HexToARGB(bgSettings.start) or bgStartColor;
+        end
+        if bgSettings.enabled and bgSettings.stop then
+            bgEndColor = color.HexToARGB(bgSettings.stop) or bgEndColor;
+        else
+            bgEndColor = bgStartColor;
+        end
+    end
+
+    -- Draw background (outer)
+    local bgColorU32 = imgui.GetColorU32(color.ARGBToImGui(bgStartColor));
+    drawList:AddRectFilled({barStartX, barY}, {barStartX + barWidth, barY + barHeight}, bgColorU32, rounding);
+
+    -- Draw fill (inner, with padding)
+    if progress > 0 then
+        local fillColor = imgui.GetColorU32(color.ARGBToImGui(textColorHex));
+        local innerX = barStartX + padding;
+        local innerY = barY + padding;
+        local innerWidth = (barWidth - padding * 2) * progress;
+        local innerHeight = barHeight - padding * 2;
+        if innerHeight > 0 and innerWidth > 0 then
+            drawList:AddRectFilled({innerX, innerY}, {innerX + innerWidth, innerY + innerHeight}, fillColor, math.max(0, rounding - 1));
+        end
+    end
+
+    -- Return the total height for layout purposes
+    return iconSize;
 end
 
 -- ============================================
@@ -311,29 +505,19 @@ function display.DrawWindow(settings)
         end
         data.nameText:set_visible(true);
 
-        -- Distance text (absolute or next to pet name)
+        -- Distance text (anchored to top right edge of background)
         local showDistance = typeSettings.showDistance;
         if showDistance == nil then showDistance = gConfig.petBarShowDistance; end
         if showDistance then
             local distanceFontSize = typeSettings.distanceFontSize or gConfig.petBarDistanceFontSize or settings.distance_font_settings.font_height;
-            local distanceAbsolute = typeSettings.distanceAbsolute;
-            if distanceAbsolute == nil then distanceAbsolute = gConfig.petBarDistanceAbsolute; end
             local distanceOffsetX = typeSettings.distanceOffsetX or gConfig.petBarDistanceOffsetX or 0;
             local distanceOffsetY = typeSettings.distanceOffsetY or gConfig.petBarDistanceOffsetY or 0;
 
             data.distanceText:set_font_height(distanceFontSize);
             data.distanceText:set_text(string.format('%.1f', petDistance));
-
-            if distanceAbsolute then
-                -- Absolute positioning: relative to window top-left
-                data.distanceText:set_position_x(windowPosX + distanceOffsetX);
-                data.distanceText:set_position_y(windowPosY + distanceOffsetY);
-            else
-                -- Relative positioning: next to pet name
-                local nameWidth, _ = data.nameText:get_text_size();
-                data.distanceText:set_position_x(startX + nameWidth + 4);
-                data.distanceText:set_position_y(startY + (nameFontSize - distanceFontSize) / 2);
-            end
+            data.distanceText:set_position_x(startX + totalRowWidth + distanceOffsetX);
+            data.distanceText:set_position_y(windowPosY - 13 + distanceOffsetY);
+            data.distanceText:set_font_alignment(2); -- Right alignment (text grows left)
 
             local distColor = colorConfig.distanceTextColor or 0xFFFFFFFF;
             if data.lastDistanceColor ~= distColor then
@@ -499,20 +683,36 @@ function display.DrawWindow(settings)
             imgui.Dummy({totalRowWidth, maxVitalsFontSize + 2});
         end
 
-        -- Row 4: Ability Icons (circular)
+        -- Row 4: Ability Icons
         local showTimers = typeSettings.showTimers;
         if showTimers == nil then showTimers = gConfig.petBarShowTimers ~= false; end
+
+        -- Helper to hide all ability fonts
+        local function hideAllAbilityFonts()
+            for i = 1, data.MAX_ABILITY_ICONS do
+                if data.abilityNameFonts and data.abilityNameFonts[i] then
+                    data.abilityNameFonts[i]:set_visible(false);
+                end
+                if data.abilityRecastFonts and data.abilityRecastFonts[i] then
+                    data.abilityRecastFonts[i]:set_visible(false);
+                end
+            end
+        end
+
         if showTimers then
             -- Get timers from data module (handles preview internally)
             local timers = data.GetPetAbilityTimers();
             if #timers > 0 then
-                local iconScale = typeSettings.iconsScale or gConfig.petBarIconsScale or 1.0;
                 local iconOffsetX = typeSettings.iconsOffsetX or gConfig.petBarIconsOffsetX or 0;
                 local iconOffsetY = typeSettings.iconsOffsetY or gConfig.petBarIconsOffsetY or 0;
                 local iconsAbsolute = typeSettings.iconsAbsolute;
                 if iconsAbsolute == nil then iconsAbsolute = gConfig.petBarIconsAbsolute; end
+                local fillStyle = typeSettings.timerFillStyle or 'square';
+                local displayStyle = typeSettings.abilityIconDisplayStyle or 'compact';
+                -- Scale only applies to compact mode; full mode always uses 1.0
+                local iconScale = (displayStyle == 'full') and 1.0 or (typeSettings.iconsScale or gConfig.petBarIconsScale or 1.0);
                 local scaledIconSize = data.ABILITY_ICON_SIZE * iconScale;
-                local iconSpacing = 4 * iconScale;
+                local iconSpacing = typeSettings.fullIconSpacing or 4;
 
                 local iconX, iconY;
                 local drawList;
@@ -523,25 +723,79 @@ function display.DrawWindow(settings)
                     iconY = windowPosY + iconOffsetY;
                     drawList = imgui.GetForegroundDrawList();
                 else
-                    -- In container: flow within the pet bar
-                    imgui.Dummy({0, barSpacing + 4});
+                    -- Anchored: flow within the pet bar container
+                    imgui.Dummy({0, 2});
                     iconX, iconY = imgui.GetCursorScreenPos();
                     iconX = iconX + iconOffsetX;
                     iconY = iconY + iconOffsetY;
                     drawList = imgui.GetWindowDrawList();
                 end
 
-                for i, timerInfo in ipairs(timers) do
-                    if i > data.MAX_ABILITY_ICONS then break; end
+                if displayStyle == 'full' then
+                    -- Full display: vertical list with icon, name, and recast
+                    local fullSettings = {
+                        showName = typeSettings.fullIconShowName ~= false,
+                        showRecast = typeSettings.fullIconShowRecast ~= false,
+                        fontSize = typeSettings.fullIconFontSize or 10,
+                        alignment = typeSettings.fullIconAlignment or 'left',
+                        iconSize = scaledIconSize,
+                    };
+                    local rowHeight = scaledIconSize + iconSpacing;
 
-                    local posX = iconX + (i - 1) * (scaledIconSize + iconSpacing);
-                    DrawAbilityIcon(drawList, posX, iconY, scaledIconSize, timerInfo, colorConfig);
-                end
+                    for i, timerInfo in ipairs(timers) do
+                        if i > data.MAX_ABILITY_ICONS then break; end
 
-                if not iconsAbsolute then
-                    imgui.Dummy({totalRowWidth, scaledIconSize});
+                        local posY = iconY + (i - 1) * rowHeight;
+                        DrawAbilityIconFull(drawList, iconX, posY, timerInfo, colorConfig, fullSettings, i);
+                    end
+
+                    -- Hide unused font slots
+                    for i = #timers + 1, data.MAX_ABILITY_ICONS do
+                        if data.abilityNameFonts and data.abilityNameFonts[i] then
+                            data.abilityNameFonts[i]:set_visible(false);
+                        end
+                        if data.abilityRecastFonts and data.abilityRecastFonts[i] then
+                            data.abilityRecastFonts[i]:set_visible(false);
+                        end
+                    end
+
+                    if not iconsAbsolute then
+                        -- Only add spacing between rows, not after the last row
+                        local totalHeight = #timers * scaledIconSize + math.max(0, #timers - 1) * iconSpacing;
+                        imgui.Dummy({totalRowWidth, totalHeight});
+                    end
+                else
+                    -- Compact display: horizontal row of icons only
+                    -- Hide all full display fonts when in compact mode
+                    for i = 1, data.MAX_ABILITY_ICONS do
+                        if data.abilityNameFonts and data.abilityNameFonts[i] then
+                            data.abilityNameFonts[i]:set_visible(false);
+                        end
+                        if data.abilityRecastFonts and data.abilityRecastFonts[i] then
+                            data.abilityRecastFonts[i]:set_visible(false);
+                        end
+                    end
+
+                    local compactSpacing = 4 * iconScale;
+
+                    for i, timerInfo in ipairs(timers) do
+                        if i > data.MAX_ABILITY_ICONS then break; end
+
+                        local posX = iconX + (i - 1) * (scaledIconSize + compactSpacing);
+                        DrawAbilityIcon(drawList, posX, iconY, scaledIconSize, timerInfo, colorConfig, fillStyle);
+                    end
+
+                    if not iconsAbsolute then
+                        imgui.Dummy({totalRowWidth, scaledIconSize});
+                    end
                 end
+            else
+                -- No timers to display, hide all fonts
+                hideAllAbilityFonts();
             end
+        else
+            -- Timers disabled, hide all fonts
+            hideAllAbilityFonts();
         end
 
         -- BST Pet Timer Display (Jug countdown or Charm elapsed)

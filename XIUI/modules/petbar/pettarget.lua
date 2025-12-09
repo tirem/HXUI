@@ -111,7 +111,17 @@ function pettarget.DrawWindow(settings)
     -- Get pet target specific color config
     local colorConfig = gConfig.colorCustomization and gConfig.colorCustomization.petTarget or {};
 
-    if gConfig.lockPositions then
+    -- Handle snap to petbar positioning
+    local snapEnabled = gConfig.petTargetSnapToPetBar;
+    if snapEnabled and data.lastMainWindowPosX and data.lastMainWindowBottom then
+        local snapOffsetX = gConfig.petTargetSnapOffsetX or 0;
+        local snapOffsetY = gConfig.petTargetSnapOffsetY or 4;
+        local snapX = data.lastMainWindowPosX + snapOffsetX;
+        local snapY = data.lastMainWindowBottom + snapOffsetY;
+        imgui.SetNextWindowPos({snapX, snapY}, ImGuiCond_Always);
+    end
+
+    if gConfig.lockPositions or snapEnabled then
         windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
     end
 

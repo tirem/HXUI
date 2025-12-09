@@ -73,27 +73,8 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
         imgui.ShowHelp('Show distance from player to pet.');
 
         if typeSettings.showDistance then
-            -- Position mode
-            local positionModes = {'Next to Name', 'Absolute'};
-            local currentMode = typeSettings.distanceAbsolute and 'Absolute' or 'Next to Name';
-            imgui.SetNextItemWidth(150);
-            if imgui.BeginCombo('Position Mode##dist' .. configKey, currentMode) then
-                for _, mode in ipairs(positionModes) do
-                    if imgui.Selectable(mode, mode == currentMode) then
-                        typeSettings.distanceAbsolute = (mode == 'Absolute');
-                        SaveSettingsOnly();
-                    end
-                end
-                imgui.EndCombo();
-            end
-            imgui.ShowHelp('Next to Name: Distance appears after pet name.\nAbsolute: Distance positioned relative to window.');
-
-            if typeSettings.distanceAbsolute then
-                components.DrawPartySlider(typeSettings, 'Offset X##dist' .. configKey, 'distanceOffsetX', -200, 200);
-                imgui.ShowHelp('Horizontal offset from window left.');
-                components.DrawPartySlider(typeSettings, 'Offset Y##dist' .. configKey, 'distanceOffsetY', -200, 200);
-                imgui.ShowHelp('Vertical offset from window top.');
-            end
+            components.DrawPartySlider(typeSettings, 'Offset X##dist' .. configKey, 'distanceOffsetX', -200, 200);
+            components.DrawPartySlider(typeSettings, 'Offset Y##dist' .. configKey, 'distanceOffsetY', -200, 200);
         end
     end
 
@@ -146,24 +127,35 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
         imgui.ShowHelp('Opacity of the window borders (Window themes only).');
     end
 
-    if components.CollapsingSection('Ability Icons##' .. configKey, false) then
+    if components.CollapsingSection('Ability Recasts##' .. configKey, false) then
         components.DrawPartyCheckbox(typeSettings, 'Show Ability Timers##' .. configKey, 'showTimers');
         imgui.ShowHelp('Show pet-related ability recast timers (Blood Pact, Ready, Sic, etc.).');
 
         if typeSettings.showTimers then
             imgui.Spacing();
 
-            -- Position mode
-            local positionModes = {'In Container', 'Absolute'};
-            local currentMode = typeSettings.iconsAbsolute and 'Absolute' or 'In Container';
-            imgui.SetNextItemWidth(150);
-            if imgui.BeginCombo('Position Mode##icons' .. configKey, currentMode) then
-                for _, mode in ipairs(positionModes) do
-                    if imgui.Selectable(mode, mode == currentMode) then
-                        local wasAbsolute = typeSettings.iconsAbsolute;
-                        typeSettings.iconsAbsolute = (mode == 'Absolute');
-                        -- Reset offsets when switching to inline
-                        if wasAbsolute and not typeSettings.iconsAbsolute then
+            -- Display style selection (Compact vs Full)
+            local displayStyles = {'compact', 'full'};
+            local displayStyleLabels = {
+                compact = 'Compact (Icons Only)',
+                full = 'Full (Name + Timer)'
+            };
+            local currentDisplayStyle = typeSettings.abilityIconDisplayStyle or 'compact';
+
+            imgui.SetNextItemWidth(200);
+            if imgui.BeginCombo('Display Style##icons' .. configKey, displayStyleLabels[currentDisplayStyle]) then
+                for _, style in ipairs(displayStyles) do
+                    if imgui.Selectable(displayStyleLabels[style], style == currentDisplayStyle) then
+                        typeSettings.abilityIconDisplayStyle = style;
+                        -- Auto-switch position mode based on display style
+                        if style == 'compact' then
+                            -- Compact mode: use absolute positioning
+                            typeSettings.iconsAbsolute = true;
+                            typeSettings.iconsOffsetX = 8;
+                            typeSettings.iconsOffsetY = 78;
+                        else
+                            -- Full mode: use anchored positioning
+                            typeSettings.iconsAbsolute = false;
                             typeSettings.iconsOffsetX = 0;
                             typeSettings.iconsOffsetY = 0;
                         end
@@ -172,14 +164,148 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
                 end
                 imgui.EndCombo();
             end
-            imgui.ShowHelp('In Container: Icons flow within the pet bar.\nAbsolute: Icons positioned independently.');
+            imgui.ShowHelp('Compact: Shows only the icon indicators in a horizontal row.\nFull: Shows icon, ability name, and recast timer in a vertical list.');
 
-            components.DrawPartySlider(typeSettings, 'Scale##icons' .. configKey, 'iconsScale', 0.5, 2.0, '%.1f');
-            imgui.ShowHelp('Scale of the ability icons.');
-            components.DrawPartySlider(typeSettings, 'Offset X##icons' .. configKey, 'iconsOffsetX', -200, 200);
-            imgui.ShowHelp('Horizontal offset for ability icons.');
-            components.DrawPartySlider(typeSettings, 'Offset Y##icons' .. configKey, 'iconsOffsetY', -200, 200);
-            imgui.ShowHelp('Vertical offset for ability icons.');
+            imgui.Spacing();
+
+            -- Full display style options (only show when full mode is selected)
+            if currentDisplayStyle == 'full' then
+                imgui.Indent(10);
+
+                -- Show/hide individual elements
+                local showName = {typeSettings.fullIconShowName ~= false};
+                if imgui.Checkbox('Show Name##fullIcon' .. configKey, showName) then
+                    typeSettings.fullIconShowName = showName[1];
+                    SaveSettingsOnly();
+                end
+                imgui.SameLine();
+
+                local showRecast = {typeSettings.fullIconShowRecast ~= false};
+                if imgui.Checkbox('Show Timer##fullIcon' .. configKey, showRecast) then
+                    typeSettings.fullIconShowRecast = showRecast[1];
+                    SaveSettingsOnly();
+                end
+
+                -- Font size
+                local fontSize = {typeSettings.fullIconFontSize or 10};
+                imgui.SetNextItemWidth(100);
+                if imgui.SliderInt('Font Size##fullIcon' .. configKey, fontSize, 8, 20) then
+                    typeSettings.fullIconFontSize = fontSize[1];
+                    SaveSettingsOnly();
+                end
+                imgui.ShowHelp('Font size for ability name and timer text.');
+
+                -- Row spacing
+                local rowSpacing = {typeSettings.fullIconSpacing or 4};
+                imgui.SetNextItemWidth(100);
+                if imgui.SliderInt('Row Spacing##fullIcon' .. configKey, rowSpacing, 0, 50) then
+                    typeSettings.fullIconSpacing = rowSpacing[1];
+                    SaveSettingsOnly();
+                end
+                imgui.ShowHelp('Vertical spacing between ability rows.');
+
+                -- Alignment
+                local alignments = {'left', 'right'};
+                local alignmentLabels = {left = 'Left', right = 'Right'};
+                local currentAlignment = typeSettings.fullIconAlignment or 'left';
+
+                imgui.SetNextItemWidth(100);
+                if imgui.BeginCombo('Alignment##fullIcon' .. configKey, alignmentLabels[currentAlignment]) then
+                    for _, align in ipairs(alignments) do
+                        if imgui.Selectable(alignmentLabels[align], align == currentAlignment) then
+                            typeSettings.fullIconAlignment = align;
+                            SaveSettingsOnly();
+                        end
+                    end
+                    imgui.EndCombo();
+                end
+                imgui.ShowHelp('Layout alignment and element order.\nLeft: [Icon] Name Timer - extends right from position.\nRight: Timer Name [Icon] - extends left from position.');
+
+                imgui.Unindent(10);
+                imgui.Spacing();
+            end
+
+            -- Fill style selection (icon shape) - only show for compact mode
+            if currentDisplayStyle ~= 'full' then
+                local fillStyles = {'square', 'circle', 'clock'};
+                local fillStyleLabels = {
+                    square = 'Square (Vertical Fill)',
+                    circle = 'Circle (Radial Fill)',
+                    clock = 'Clock (Arc Sweep)'
+                };
+                local currentFillStyle = typeSettings.timerFillStyle or 'square';
+
+                -- Check if clock fill is available (requires Ashita 4.3+)
+                local clockAvailable = imgui.GetForegroundDrawList().PathClear ~= nil;
+
+                imgui.SetNextItemWidth(180);
+                if imgui.BeginCombo('Icon Shape##icons' .. configKey, fillStyleLabels[currentFillStyle]) then
+                    for _, style in ipairs(fillStyles) do
+                        local isDisabled = (style == 'clock' and not clockAvailable);
+                        local label = fillStyleLabels[style];
+                        if isDisabled then
+                            label = label .. ' (Ashita 4.3+)';
+                        end
+
+                        if isDisabled then
+                            imgui.PushStyleColor(ImGuiCol_Text, {0.5, 0.5, 0.5, 1.0});
+                        end
+
+                        if imgui.Selectable(label, style == currentFillStyle, isDisabled and ImGuiSelectableFlags_Disabled or 0) then
+                            typeSettings.timerFillStyle = style;
+                            SaveSettingsOnly();
+                        end
+
+                        if isDisabled then
+                            imgui.PopStyleColor();
+                        end
+                    end
+                    imgui.EndCombo();
+                end
+                imgui.ShowHelp('Shape and fill animation for the icon indicator.\nSquare: Fills vertically from bottom to top.\nCircle: Grows outward from center.\nClock: Sweeps clockwise like a clock (requires Ashita 4.3+).');
+                imgui.Spacing();
+            end
+
+            -- Position mode
+            local positionModes = {'Anchored', 'Absolute'};
+            local currentMode = typeSettings.iconsAbsolute and 'Absolute' or 'Anchored';
+            imgui.SetNextItemWidth(150);
+            if imgui.BeginCombo('Position Mode##icons' .. configKey, currentMode) then
+                for _, mode in ipairs(positionModes) do
+                    if imgui.Selectable(mode, mode == currentMode) then
+                        local wasAbsolute = typeSettings.iconsAbsolute;
+                        typeSettings.iconsAbsolute = (mode == 'Absolute');
+                        -- Reset offsets when switching modes
+                        if wasAbsolute and not typeSettings.iconsAbsolute then
+                            -- Switching to anchored: reset to 0,0 (flows within container)
+                            typeSettings.iconsOffsetX = 0;
+                            typeSettings.iconsOffsetY = 0;
+                        elseif not wasAbsolute and typeSettings.iconsAbsolute then
+                            -- Switching to absolute: set reasonable defaults
+                            typeSettings.iconsOffsetX = 8;
+                            typeSettings.iconsOffsetY = 78;
+                        end
+                        SaveSettingsOnly();
+                    end
+                end
+                imgui.EndCombo();
+            end
+            imgui.ShowHelp('Anchored: Icons flow within the pet bar container.\nAbsolute: Icons positioned independently.');
+
+            -- Scale only applies in compact mode
+            if currentDisplayStyle ~= 'full' then
+                components.DrawPartySlider(typeSettings, 'Scale##icons' .. configKey, 'iconsScale', 0.5, 2.0, '%.1f');
+                imgui.ShowHelp('Scale of the ability icons.');
+            end
+
+            -- Offsets only apply when not in anchored + full mode
+            local isAnchoredFull = not typeSettings.iconsAbsolute and currentDisplayStyle == 'full';
+            if not isAnchoredFull then
+                components.DrawPartySlider(typeSettings, 'Offset X##icons' .. configKey, 'iconsOffsetX', -200, 200);
+                imgui.ShowHelp('Horizontal offset for ability icons.');
+                components.DrawPartySlider(typeSettings, 'Offset Y##icons' .. configKey, 'iconsOffsetY', -200, 200);
+                imgui.ShowHelp('Vertical offset for ability icons.');
+            end
 
             -- Pet-type specific ability toggles
             if configKey == 'petBarAvatar' then
@@ -725,6 +851,18 @@ local function DrawPetTargetSettingsContent()
     components.DrawCheckbox('Show Pet Target', 'petBarShowTarget');
     imgui.ShowHelp('Show information about what the pet is targeting in a separate window.');
 
+    if components.CollapsingSection('Snap to Pet Bar##petTarget', false) then
+        components.DrawCheckbox('Snap to Pet Bar', 'petTargetSnapToPetBar');
+        imgui.ShowHelp('Position the pet target window directly below the pet bar. When enabled, the pet target will follow the pet bar position.');
+
+        if gConfig.petTargetSnapToPetBar then
+            components.DrawSlider('Offset X##petTargetSnap', 'petTargetSnapOffsetX', -200, 200);
+            imgui.ShowHelp('Horizontal offset from pet bar position.');
+            components.DrawSlider('Offset Y##petTargetSnap', 'petTargetSnapOffsetY', -200, 200);
+            imgui.ShowHelp('Vertical offset from pet bar bottom.');
+        end
+    end
+
     if components.CollapsingSection('Display Options##petTarget', false) then
         components.DrawSlider('Font Size', 'petBarTargetFontSize', 6, 24);
         imgui.ShowHelp('Font size for pet target text.');
@@ -735,8 +873,8 @@ local function DrawPetTargetSettingsContent()
         imgui.Text('Target Name');
         imgui.SameLine();
         imgui.SetNextItemWidth(120);
-        local namePositionModes = {'Inline', 'Absolute'};
-        local nameCurrentMode = gConfig.petTargetNameAbsolute and 'Absolute' or 'Inline';
+        local namePositionModes = {'Anchored', 'Absolute'};
+        local nameCurrentMode = gConfig.petTargetNameAbsolute and 'Absolute' or 'Anchored';
         components.DrawComboBox('Position Mode##petTargetName', nameCurrentMode, namePositionModes, function(newValue)
             local wasAbsolute = gConfig.petTargetNameAbsolute;
             gConfig.petTargetNameAbsolute = (newValue == 'Absolute');
@@ -747,7 +885,7 @@ local function DrawPetTargetSettingsContent()
             end
             SaveSettingsOnly();
         end);
-        imgui.ShowHelp('Inline: Name flows within layout.\nAbsolute: Name positioned relative to window top-left.');
+        imgui.ShowHelp('Anchored: Name flows within layout.\nAbsolute: Name positioned relative to window top-left.');
 
         if gConfig.petTargetNameAbsolute then
             components.DrawSlider('Offset X##petTargetName', 'petTargetNameOffsetX', -200, 200);
@@ -762,8 +900,8 @@ local function DrawPetTargetSettingsContent()
         imgui.Text('HP%');
         imgui.SameLine();
         imgui.SetNextItemWidth(120);
-        local hpPositionModes = {'Inline', 'Absolute'};
-        local hpCurrentMode = gConfig.petTargetHpAbsolute and 'Absolute' or 'Inline';
+        local hpPositionModes = {'Anchored', 'Absolute'};
+        local hpCurrentMode = gConfig.petTargetHpAbsolute and 'Absolute' or 'Anchored';
         components.DrawComboBox('Position Mode##petTargetHp', hpCurrentMode, hpPositionModes, function(newValue)
             local wasAbsolute = gConfig.petTargetHpAbsolute;
             gConfig.petTargetHpAbsolute = (newValue == 'Absolute');
@@ -774,7 +912,7 @@ local function DrawPetTargetSettingsContent()
             end
             SaveSettingsOnly();
         end);
-        imgui.ShowHelp('Inline: HP% right-aligned on name row.\nAbsolute: HP% positioned relative to window top-left.');
+        imgui.ShowHelp('Anchored: HP% right-aligned on name row.\nAbsolute: HP% positioned relative to window top-left.');
 
         if gConfig.petTargetHpAbsolute then
             components.DrawSlider('Offset X##petTargetHp', 'petTargetHpOffsetX', -200, 200);
@@ -789,8 +927,8 @@ local function DrawPetTargetSettingsContent()
         imgui.Text('Distance');
         imgui.SameLine();
         imgui.SetNextItemWidth(120);
-        local distPositionModes = {'Inline', 'Absolute'};
-        local distCurrentMode = gConfig.petTargetDistanceAbsolute and 'Absolute' or 'Inline';
+        local distPositionModes = {'Anchored', 'Absolute'};
+        local distCurrentMode = gConfig.petTargetDistanceAbsolute and 'Absolute' or 'Anchored';
         components.DrawComboBox('Position Mode##petTargetDistance', distCurrentMode, distPositionModes, function(newValue)
             local wasAbsolute = gConfig.petTargetDistanceAbsolute;
             gConfig.petTargetDistanceAbsolute = (newValue == 'Absolute');
@@ -801,7 +939,7 @@ local function DrawPetTargetSettingsContent()
             end
             SaveSettingsOnly();
         end);
-        imgui.ShowHelp('Inline: Distance below HP bar.\nAbsolute: Distance positioned relative to window top-left.');
+        imgui.ShowHelp('Anchored: Distance below HP bar.\nAbsolute: Distance positioned relative to window top-left.');
 
         if gConfig.petTargetDistanceAbsolute then
             components.DrawSlider('Offset X##petTargetDistance', 'petTargetDistanceOffsetX', -200, 200);
