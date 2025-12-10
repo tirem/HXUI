@@ -27,6 +27,7 @@ local fastcastLib = require('libs.fastcast');
 local formatLib = require('libs.format');
 local colorLib = require('libs.color');
 local statusIconsLib = require('libs.statusicons');
+local windowBackgroundLib = require('libs.windowbackground');
 
 -- Handler imports (still in handlers/)
 local statusHandler = require('handlers.statushandler');
@@ -55,10 +56,13 @@ GetTargetSafe = memoryLib.GetTargetSafe;
 GetInventorySafe = memoryLib.GetInventorySafe;
 GetCastBarSafe = memoryLib.GetCastBarSafe;
 GetRecastSafe = memoryLib.GetRecastSafe;
+GetPetSafe = memoryLib.GetPetSafe;
 
 -- Entity Utilities (from entity.lua)
 GetIsMob = entityLib.GetIsMob;
 GetIsMobByIndex = entityLib.GetIsMobByIndex;
+JobHasMP = entityLib.JobHasMP;
+JOBS_WITH_MP = entityLib.JOBS_WITH_MP;
 
 -- Wrappers for entity color functions that inject dependencies
 function GetEntityNameColorRGBA(targetEntity, targetIndex, colorConfig)
@@ -115,6 +119,7 @@ valid_server_id = packetsLib.valid_server_id;
 
 -- Texture Utilities (from textures.lua)
 LoadTexture = texturesLib.LoadTexture;
+LoadTextureWithExt = texturesLib.LoadTextureWithExt;
 
 -- HP Utilities (from hp.lua)
 HpInterpolation = hpLib.HpInterpolation;
@@ -163,3 +168,6 @@ ClearDebuffFontCache = statusIconsLib.ClearDebuffFontCache;
 
 -- Legacy debuffTable global (for backwards compatibility)
 debuffTable = statusIconsLib.GetDebuffTable();
+
+-- Window Background Utilities (from windowbackground.lua)
+WindowBackground = windowBackgroundLib;

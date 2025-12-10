@@ -7,6 +7,7 @@ Contains the following elements:
 * Party List (w/ Buffs & Debuffs)
 * Enemy List (w/ Buffs & Debuffs)
 * Cast Bar
+* Pet Bar
 * Exp Bar
 * Inventory Tracker
 * Gil Tracker

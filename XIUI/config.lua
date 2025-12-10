@@ -19,8 +19,12 @@ local expbarModule = require('config.expbar');
 local giltrackerModule = require('config.giltracker');
 local inventoryModule = require('config.inventory');
 local castbarModule = require('config.castbar');
+local petbarModule = require('config.petbar');
 
 local config = {};
+
+-- Global modal state (accessible by other modules to know when to dim foreground elements)
+_XIUI_MODAL_OPEN = false;
 
 -- State for confirmation dialogs
 local showRestoreDefaultsConfirm = false;
@@ -43,6 +47,10 @@ local selectedInventoryTab = 1;  -- 1 = Inventory, 2 = Satchel
 local selectedInventoryColorTab = 1;  -- 1 = Inventory, 2 = Satchel (for color settings)
 local selectedTargetBarTab = 1;  -- 1 = Target Bar, 2 = Mob Info
 local selectedTargetBarColorTab = 1;  -- 1 = Target Bar, 2 = Mob Info (for color settings)
+local selectedPetBarTab = 1;  -- 1 = Pet Bar, 2 = Pet Target
+local selectedPetTypeTab = 1;  -- 1 = Avatar, 2 = Charm, 3 = Jug, 4 = Automaton, 5 = Wyvern
+local selectedPetTypeColorTab = 1;  -- Pet type color sub-tab
+local selectedPetBarColorTab = 1;  -- 1 = Pet Bar, 2 = Pet Target (for color settings)
 
 -- Category definitions
 local categories = {
@@ -55,6 +63,7 @@ local categories = {
     { name = 'gilTracker', label = 'Gil Tracker' },
     { name = 'inventory', label = 'Inventory' },
     { name = 'castBar', label = 'Cast Bar' },
+    { name = 'petBar', label = 'Pet Bar' },
 };
 
 -- Build state object for modules that need tab state
@@ -66,6 +75,10 @@ local function buildState()
         selectedInventoryColorTab = selectedInventoryColorTab,
         selectedTargetBarTab = selectedTargetBarTab,
         selectedTargetBarColorTab = selectedTargetBarColorTab,
+        selectedPetBarTab = selectedPetBarTab,
+        selectedPetBarColorTab = selectedPetBarColorTab,
+        selectedPetTypeTab = selectedPetTypeTab,
+        selectedPetTypeColorTab = selectedPetTypeColorTab,
         githubTexture = githubTexture,
     };
 end
@@ -76,6 +89,8 @@ local function applySettingsState(newState)
         if newState.selectedPartyTab then selectedPartyTab = newState.selectedPartyTab; end
         if newState.selectedInventoryTab then selectedInventoryTab = newState.selectedInventoryTab; end
         if newState.selectedTargetBarTab then selectedTargetBarTab = newState.selectedTargetBarTab; end
+        if newState.selectedPetBarTab then selectedPetBarTab = newState.selectedPetBarTab; end
+        if newState.selectedPetTypeTab then selectedPetTypeTab = newState.selectedPetTypeTab; end
     end
 end
 
@@ -84,6 +99,8 @@ local function applyColorState(newState)
         if newState.selectedPartyColorTab then selectedPartyColorTab = newState.selectedPartyColorTab; end
         if newState.selectedInventoryColorTab then selectedInventoryColorTab = newState.selectedInventoryColorTab; end
         if newState.selectedTargetBarColorTab then selectedTargetBarColorTab = newState.selectedTargetBarColorTab; end
+        if newState.selectedPetBarColorTab then selectedPetBarColorTab = newState.selectedPetBarColorTab; end
+        if newState.selectedPetTypeColorTab then selectedPetTypeColorTab = newState.selectedPetTypeColorTab; end
     end
 end
 
@@ -127,6 +144,11 @@ local function DrawCastBarSettings()
     castbarModule.DrawSettings();
 end
 
+local function DrawPetBarSettings()
+    local newState = petbarModule.DrawSettings(buildState());
+    applySettingsState(newState);
+end
+
 -- Color settings draw functions with state handling
 local function DrawGlobalColorSettings()
     globalModule.DrawColorSettings();
@@ -167,6 +189,11 @@ local function DrawCastBarColorSettings()
     castbarModule.DrawColorSettings();
 end
 
+local function DrawPetBarColorSettings()
+    local newState = petbarModule.DrawColorSettings(buildState());
+    applyColorState(newState);
+end
+
 -- Dispatch tables for settings and color settings
 local settingsDrawFunctions = {
     DrawGlobalSettings,
@@ -178,6 +205,7 @@ local settingsDrawFunctions = {
     DrawGilTrackerSettings,
     DrawInventorySettings,
     DrawCastBarSettings,
+    DrawPetBarSettings,
 };
 
 local colorSettingsDrawFunctions = {
@@ -190,6 +218,7 @@ local colorSettingsDrawFunctions = {
     DrawGilTrackerColorSettings,
     DrawInventoryColorSettings,
     DrawCastBarColorSettings,
+    DrawPetBarColorSettings,
 };
 
 config.DrawWindow = function(us)
@@ -427,6 +456,9 @@ config.DrawWindow = function(us)
             end
         end
 
+        -- Track modal state for foreground elements dimming
+        local anyModalOpen = false;
+
         -- Credits popup
         if showCreditsPopup then
             imgui.OpenPopup("Attributions");
@@ -434,6 +466,7 @@ config.DrawWindow = function(us)
         end
 
         if imgui.BeginPopupModal("Attributions", true, ImGuiWindowFlags_AlwaysAutoResize) then
+            anyModalOpen = true;
             imgui.Text("XIUI - A UI Addon for Final Fantasy XI");
             imgui.Separator();
 
@@ -457,6 +490,7 @@ config.DrawWindow = function(us)
         end
 
         if (imgui.BeginPopupModal("Confirm Reset Settings", true, ImGuiWindowFlags_AlwaysAutoResize)) then
+            anyModalOpen = true;
             imgui.Text("Are you sure you want to reset all settings to defaults?");
             imgui.Text("This will reset all your customizations including:");
             imgui.BulletText("UI positions, scales, and visibility");
@@ -483,6 +517,7 @@ config.DrawWindow = function(us)
         end
 
         if (imgui.BeginPopupModal("Confirm Reset Colors", true, ImGuiWindowFlags_AlwaysAutoResize)) then
+            anyModalOpen = true;
             imgui.Text("Are you sure you want to restore all colors to defaults?");
             imgui.Text("This will reset all your custom colors.");
             imgui.NewLine();
@@ -499,6 +534,9 @@ config.DrawWindow = function(us)
 
             imgui.EndPopup();
         end
+
+        -- Update global modal state for other modules
+        _XIUI_MODAL_OPEN = anyModalOpen;
 
         imgui.Spacing();
 

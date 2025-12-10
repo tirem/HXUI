@@ -28,9 +28,13 @@ local function createPartyDefaults(overrides)
         showSubJob = true,
         showSubJobLevel = true,
         showCastBars = true,
+        castBarStyle = 'name', -- 'name' = replace name, 'mp' = use MP bar
+        alwaysShowMpBar = true, -- Show MP bar even for jobs without MP
         castBarScaleX = 1.0,
         castBarScaleY = 0.6,
-        showBookends = true,
+        castBarOffsetX = 0,
+        castBarOffsetY = 0,
+        showBookends = false,
         showTitle = true,
         flashTP = false,
         showTP = true,
@@ -87,6 +91,137 @@ local function createPartyDefaults(overrides)
     return defaults;
 end
 
+-- Factory function to create per-pet-type settings with overrides
+-- Each pet type (Avatar, Charm, Jug, Automaton, Wyvern) can have independent visual settings
+local function createPetBarTypeDefaults(overrides)
+    local defaults = T{
+        -- Display toggles
+        showLevel = false,
+        showDistance = true,
+        showHP = true,
+        showMP = true,
+        showTP = true,
+        showTimers = true,
+        -- Scale settings
+        scaleX = 1.0,
+        scaleY = 1.0,
+        hpScaleX = 1.0,
+        hpScaleY = 1.0,
+        mpScaleX = 1.0,
+        mpScaleY = 1.0,
+        tpScaleX = 1.0,
+        tpScaleY = 1.0,
+        recastScaleX = 1.0,
+        recastScaleY = 0.8,
+        -- Font sizes
+        nameFontSize = 12,
+        distanceFontSize = 10,
+        hpFontSize = 10,
+        mpFontSize = 10,
+        tpFontSize = 10,
+        -- Background settings
+        backgroundTheme = 'Window1',
+        backgroundOpacity = 1.0,
+        borderOpacity = 1.0,
+        showBookends = false,
+        -- Recast icon positioning (absolute for compact mode, anchored for full mode)
+        iconsAbsolute = false,
+        iconsScale = 0.6,
+        iconsOffsetX = 0,
+        iconsOffsetY = 0,
+        -- Recast icon fill style: 'square', 'circle', or 'clock'
+        timerFillStyle = 'square',
+        -- Recast display style: 'compact' or 'full'
+        recastDisplayStyle = 'full',
+        -- Full display style settings
+        recastFullShowName = true,
+        recastFullShowTimer = true,
+        recastFullNameFontSize = 10,
+        recastFullTimerFontSize = 10,
+        recastFullAlignment = 'left',
+        recastFullSpacing = 4,
+        -- Spacing between vitals and recast section (anchored mode only)
+        recastTopSpacing = 2,
+        -- Distance text positioning
+        distanceOffsetX = 0,
+        distanceOffsetY = 0,
+    };
+    if overrides then
+        for k, v in pairs(overrides) do
+            defaults[k] = v;
+        end
+    end
+    return defaults;
+end
+
+-- Factory function to create per-pet-type color settings
+local function createPetBarTypeColorDefaults()
+    return T{
+        -- Bar gradients
+        hpGradient = T{ enabled = true, start = '#e26c6c', stop = '#fa9c9c' },
+        mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
+        tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' },
+        -- Text colors
+        nameTextColor = 0xFFFFFFFF,
+        distanceTextColor = 0xFFFFFFFF,
+        hpTextColor = 0xFFFFA7A7,
+        mpTextColor = 0xFFD4FF97,
+        tpTextColor = 0xFF8DC7FF,
+        targetTextColor = 0xFFFFFFFF,
+        -- SMN ability gradients
+        timerBPRageReadyGradient = T{ enabled = true, start = '#ff3333e6', stop = '#ff6666e6' },
+        timerBPRageRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerBPWardReadyGradient = T{ enabled = true, start = '#00cccce6', stop = '#66dddde6' },
+        timerBPWardRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerApogeeReadyGradient = T{ enabled = true, start = '#ffcc00e6', stop = '#ffdd66e6' },
+        timerApogeeRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerManaCedeReadyGradient = T{ enabled = true, start = '#009999e6', stop = '#66bbbbe6' },
+        timerManaCedeRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        -- BST ability gradients
+        timerReadyReadyGradient = T{ enabled = true, start = '#ff6600e6', stop = '#ff9933e6' },
+        timerReadyRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerRewardReadyGradient = T{ enabled = true, start = '#00cc66e6', stop = '#66dd99e6' },
+        timerRewardRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerCallBeastReadyGradient = T{ enabled = true, start = '#3399ffe6', stop = '#66bbffe6' },
+        timerCallBeastRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerBestialLoyaltyReadyGradient = T{ enabled = true, start = '#9966ffe6', stop = '#bb99ffe6' },
+        timerBestialLoyaltyRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        -- DRG ability gradients
+        timerCallWyvernReadyGradient = T{ enabled = true, start = '#3366ffe6', stop = '#6699ffe6' },
+        timerCallWyvernRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerSpiritLinkReadyGradient = T{ enabled = true, start = '#33cc33e6', stop = '#66dd66e6' },
+        timerSpiritLinkRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerDeepBreathingReadyGradient = T{ enabled = true, start = '#ffff33e6', stop = '#ffff99e6' },
+        timerDeepBreathingRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerSteadyWingReadyGradient = T{ enabled = true, start = '#cc66ffe6', stop = '#dd99ffe6' },
+        timerSteadyWingRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        -- PUP ability gradients
+        timerActivateReadyGradient = T{ enabled = true, start = '#3399ffe6', stop = '#66bbffe6' },
+        timerActivateRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerRepairReadyGradient = T{ enabled = true, start = '#33cc66e6', stop = '#66dd99e6' },
+        timerRepairRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerDeployReadyGradient = T{ enabled = true, start = '#ff9933e6', stop = '#ffbb66e6' },
+        timerDeployRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerDeactivateReadyGradient = T{ enabled = true, start = '#999999e6', stop = '#bbbbbbbe6' },
+        timerDeactivateRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerRetrieveReadyGradient = T{ enabled = true, start = '#66ccffe6', stop = '#99ddffe6' },
+        timerRetrieveRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        timerDeusExAutomataReadyGradient = T{ enabled = true, start = '#ffcc33e6', stop = '#ffdd66e6' },
+        timerDeusExAutomataRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        -- 2-Hour timer gradients
+        timer2hReadyGradient = T{ enabled = true, start = '#ff00ffe6', stop = '#ff66ffe6' },
+        timer2hRecastGradient = T{ enabled = true, start = '#888888d9', stop = '#aaaaaad9' },
+        -- BST specific
+        durationWarningColor = 0xFFFF6600,
+        charmHeartColor = 0xFFFF6699,
+        jugIconColor = 0xFFFFFFFF,
+        charmTimerColor = 0xFFFFFFFF,
+        -- Background
+        bgColor = 0xFFFFFFFF,
+        borderColor = 0xFFFFFFFF,
+    };
+end
+
 -- Factory function to create party color settings
 local function createPartyColorDefaults(includeTP)
     local colors = T{
@@ -100,10 +235,10 @@ local function createPartyColorDefaults(includeTP)
         barBackgroundOverride = T{ active = false, enabled = true, start = '#01122b', stop = '#061c39' },
         barBorderOverride = T{ active = false, color = '#01122b' },
         nameTextColor = 0xFFFFFFFF,
-        hpTextColor = 0xFFFFFFFF,
-        mpTextColor = 0xFFFFFFFF,
-        tpEmptyTextColor = 0xFF9acce8,
-        tpFullTextColor = 0xFF2fa9ff,
+        hpTextColor = 0xFFFFA7A7,
+        mpTextColor = 0xFFD4FF97,
+        tpEmptyTextColor = 0xFF8DC7FF,
+        tpFullTextColor = 0xFF8DC7FF,
         tpFlashColor = 0xFF3ECE00,
         bgColor = 0xFFFFFFFF,
         borderColor = 0xFFFFFFFF,
@@ -111,10 +246,11 @@ local function createPartyColorDefaults(includeTP)
         selectionBorderColor = 0xFF78C0ED,
         subtargetGradient = T{ enabled = true, start = '#d9a54d', stop = '#edcf78' },
         subtargetBorderColor = 0xFFfdd017,
+        castBarGradient = T{ enabled = true, start = '#ffaa00', stop = '#ffcc44' },
+        castTextColor = 0xFFFFCC44,
     };
     if includeTP then
         colors.tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' };
-        colors.castBarGradient = T{ enabled = true, start = '#ffaa00', stop = '#ffcc44' };
     end
     return colors;
 end
@@ -133,6 +269,7 @@ M.user_settings = T{
     showInventoryTracker = true,
     showPartyList = true,
     showCastBar = true,
+    showPetBar = true,
 
     statusIconTheme = 'XIView',
     jobIconTheme = 'FFXI',
@@ -157,7 +294,7 @@ M.user_settings = T{
     playerBarScaleX = 1,
     playerBarScaleY = 1,
     playerBarFontSize = 12,
-    showPlayerBarBookends = true,
+    showPlayerBarBookends = false,
     alwaysShowMpBar = true,
     playerBarTpFlashEnabled = true,
     playerBarHideDuringEvents = true,
@@ -179,7 +316,11 @@ M.user_settings = T{
     targetBarScaleY = 1,
     targetBarNameFontSize = 12,
     targetBarDistanceFontSize = 12,
+    targetBarDistanceOffsetX = 0,
+    targetBarDistanceOffsetY = 0,
     targetBarPercentFontSize = 12,
+    targetBarPercentOffsetX = 0,
+    targetBarPercentOffsetY = 0,
     targetBarCastFontSize = 12,
     targetBarIconScale = 1,
     targetBarIconFontSize = 10,
@@ -191,7 +332,7 @@ M.user_settings = T{
     showTargetHpPercent = true,
     showTargetHpPercentAllTargets = false,
     showTargetName = true,
-    showTargetBarBookends = true,
+    showTargetBarBookends = false,
     showTargetBarLockOnBorder = true,
     showTargetBarCastBar = true,
     showEnemyId = false,
@@ -209,11 +350,11 @@ M.user_settings = T{
     enemyListIconScale = 1,
     showEnemyDistance = false,
     showEnemyHPPText = true,
-    showEnemyListBookends = true,
+    showEnemyListBookends = false,
 
     expBarScaleX = 1,
     expBarScaleY = 1,
-    showExpBarBookends = true,
+    showExpBarBookends = false,
     expBarFontSize = 12,
     expBarShowText = true,
     expBarShowPercent = true,
@@ -295,6 +436,7 @@ M.user_settings = T{
 
     -- Mob Info settings
     showMobInfo = true,
+    mobInfoSnapToTargetBar = false,
     mobInfoShowLevel = true,
     mobInfoShowDetection = true,
     mobInfoShowLink = true,
@@ -378,7 +520,7 @@ M.user_settings = T{
     partyListStatusTheme = 0,
     partyListTheme = 0,
     partyListFlashTP = false,
-    showPartyListBookends = true,
+    showPartyListBookends = false,
     showPartyJobIcon = true,
     showPartyListTitle = true,
     showPartyListDistance = false,
@@ -520,7 +662,7 @@ M.user_settings = T{
 
     castBarScaleX = 1,
     castBarScaleY = 1,
-    showCastBarBookends = true,
+    showCastBarBookends = false,
     castBarFontSize = 12,
     castBarFastCastEnabled = false,
     castBarFastCastRDMSJ = 0.17,
@@ -551,8 +693,151 @@ M.user_settings = T{
         [22] = 0.02, -- RUN
     },
 
+    -- Pet Bar settings
+    petBarScaleX = 1.0,
+    petBarScaleY = 1.0,
+    petBarHideDuringEvents = true,
+    petBarPreview = true,
+    petBarPreviewType = 2, -- Avatar (SMN)
+    petBarShowDistance = true,
+    petBarShowTarget = true,
+    petBarShowVitals = true,
+    petBarShowTimers = true,
+    petBarShow2HourAbility = false,
+    petBarShowImage = true,
+    petBarShowBookends = false,
+    petBarShowLevel = true, -- Show pet level in name
+    petBarIconsAbsolute = true,
+    petBarIconsScale = 0.6,
+    petBarIconsOffsetX = 128,
+    petBarIconsOffsetY = 78,
+    -- Distance text positioning (absolute = relative to window top-left)
+    petBarDistanceAbsolute = true,
+    petBarDistanceOffsetX = 11,
+    petBarDistanceOffsetY = 79,
+    petBarBackgroundTheme = 'Window1',
+    petBarBackgroundOpacity = 1.0,
+    -- BST Charm indicator settings (absolute positioned relative to window)
+    petBarShowCharmIndicator = true,
+    petBarShowJugTimer = true,
+    petBarCharmIconSize = 16,
+    petBarCharmTimerFontSize = 12,
+    petBarCharmOffsetX = 0,
+    petBarCharmOffsetY = -16,
+    petBarJugIconSize = 16,
+    petBarJugTimerFontSize = 12,
+    petBarJugOffsetX = 5,
+    petBarJugOffsetY = -17,
+
+    -- Pet ability icon toggles per job
+    -- SMN abilities
+    petBarSmnShowBPRage = true,
+    petBarSmnShowBPWard = true,
+    petBarSmnShowApogee = false,
+    petBarSmnShowManaCede = false,
+    -- BST abilities (Ready and Sic share same timer ID 102, tracked as Ready)
+    petBarBstShowReady = true,
+    petBarBstShowReward = true,
+    petBarBstShowCallBeast = false,
+    petBarBstShowBestialLoyalty = false,
+    -- DRG abilities
+    petBarDrgShowCallWyvern = true,
+    petBarDrgShowSpiritLink = true,
+    petBarDrgShowDeepBreathing = true,
+    petBarDrgShowSteadyWing = true,
+    -- PUP abilities
+    petBarPupShowActivate = true,
+    petBarPupShowRepair = true,
+    petBarPupShowDeusExAutomata = true,
+    petBarPupShowDeploy = true,
+    petBarPupShowDeactivate = true,
+    petBarPupShowRetrieve = true,
+    -- Legacy global pet image settings (kept for migration)
+    petBarImageScale = 0.4,
+    petBarImageOpacity = 0.3,
+    petBarImageOffsetX = 0,
+    petBarImageOffsetY = 0,
+
+    -- Per-avatar image settings
+    petBarAvatarSettings = T{
+        carbuncle = T{ scale = 0.5, opacity = 0.3, offsetX = 70, offsetY = -135, clipToBackground = true },
+        ifrit = T{ scale = 0.4, opacity = 0.3, offsetX = -40, offsetY = -60, clipToBackground = true },
+        shiva = T{ scale = 0.4, opacity = 0.3, offsetX = -70, offsetY = -40, clipToBackground = true },
+        garuda = T{ scale = 0.6, opacity = 0.3, offsetX = -35, offsetY = -194, clipToBackground = true },
+        titan = T{ scale = 0.44, opacity = 0.3, offsetX = -24, offsetY = -88, clipToBackground = true },
+        ramuh = T{ scale = 0.44, opacity = 0.3, offsetX = -96, offsetY = -24, clipToBackground = true },
+        leviathan = T{ scale = 0.4, opacity = 0.3, offsetX = -200, offsetY = -102, clipToBackground = true },
+        fenrir = T{ scale = 0.2, opacity = 0.35, offsetX = 49, offsetY = -60, clipToBackground = true },
+        diabolos = T{ scale = 0.4, opacity = 0.3, offsetX = 0, offsetY = 0, clipToBackground = true },
+        atomos = T{ scale = 0.4, opacity = 0.3, offsetX = 0, offsetY = 0, clipToBackground = true },
+        odin = T{ scale = 0.4, opacity = 0.3, offsetX = 0, offsetY = 0, clipToBackground = true },
+        alexander = T{ scale = 0.4, opacity = 0.3, offsetX = 0, offsetY = 0, clipToBackground = true },
+        caitsith = T{ scale = 0.63, opacity = 0.3, offsetX = 21, offsetY = -180, clipToBackground = true },
+        siren = T{ scale = 0.66, opacity = 0.3, offsetX = -263, offsetY = -113, clipToBackground = true },
+        firespirit = T{ scale = 0.4, opacity = 0.3, offsetX = 0, offsetY = 0, clipToBackground = true },
+        icespirit = T{ scale = 0.4, opacity = 0.3, offsetX = 0, offsetY = 0, clipToBackground = true },
+        airspirit = T{ scale = 0.4, opacity = 0.3, offsetX = 0, offsetY = 0, clipToBackground = true },
+        earthspirit = T{ scale = 0.4, opacity = 0.3, offsetX = 0, offsetY = 0, clipToBackground = true },
+        thunderspirit = T{ scale = 0.4, opacity = 0.3, offsetX = 0, offsetY = 0, clipToBackground = true },
+        waterspirit = T{ scale = 0.4, opacity = 0.3, offsetX = 0, offsetY = 0, clipToBackground = true },
+        lightspirit = T{ scale = 0.4, opacity = 0.3, offsetX = 0, offsetY = 0, clipToBackground = true },
+        darkspirit = T{ scale = 0.4, opacity = 0.3, offsetX = 0, offsetY = 0, clipToBackground = true },
+    },
+    petBarHpScaleX = 1.0,
+    petBarHpScaleY = 1.0,
+    petBarMpScaleX = 1.0,
+    petBarMpScaleY = 1.0,
+    petBarTpScaleX = 1.0,
+    petBarTpScaleY = 1.0,
+    petBarNameFontSize = 12,
+    petBarDistanceFontSize = 10,
+    petBarVitalsFontSize = 10,
+    petBarTimerFontSize = 10,
+    petBarHpDisplayMode = 'percent', -- 'percent', 'number'
+    petBarTargetFontSize = 10,
+    petTargetBackgroundTheme = nil,  -- Uses petBarBackgroundTheme by default
+    petTargetBackgroundOpacity = 1.0,
+    petTargetBorderOpacity = 1.0,
+    petTargetBarScaleX = 1.0,
+    petTargetBarScaleY = 1.0,
+
+    -- Pet Target text positioning (absolute = relative to window top-left, anchored = flow with layout)
+    -- Target Name positioning
+    petTargetNameAbsolute = false,       -- Anchored by default (in row with HP%)
+    petTargetNameOffsetX = 0,
+    petTargetNameOffsetY = 0,
+    -- HP% text positioning
+    petTargetHpAbsolute = false,         -- Anchored by default (right side of name row)
+    petTargetHpOffsetX = 0,
+    petTargetHpOffsetY = 0,
+    -- Distance text positioning
+    petTargetDistanceAbsolute = true,    -- Absolute by default
+    petTargetDistanceOffsetX = 11,
+    petTargetDistanceOffsetY = 44,
+
+    -- Pet Target snap to petbar (positions pet target directly below petbar)
+    petTargetSnapToPetBar = true,        -- When enabled, pet target snaps below petbar
+    petTargetSnapOffsetX = 0,            -- Horizontal offset from petbar position
+    petTargetSnapOffsetY = 16,           -- Vertical offset below petbar (accounts for background border)
+
+    -- Per-pet-type settings (Avatar, Charm, Jug, Automaton, Wyvern each have independent visual settings)
+    petBarAvatar = createPetBarTypeDefaults(),
+    petBarCharm = createPetBarTypeDefaults({ iconsOffsetX = 94 }),
+    petBarJug = createPetBarTypeDefaults({ iconsOffsetX = 94 }),
+    petBarAutomaton = createPetBarTypeDefaults({ iconsOffsetX = 60 }),
+    petBarWyvern = createPetBarTypeDefaults({
+        iconsOffsetX = 94,
+        -- Wyvern image settings
+        showImage = true,
+        imageScale = 0.69,
+        imageOpacity = 0.40,
+        imageOffsetX = -99,
+        imageOffsetY = -46,
+        imageClipToBackground = true,
+    }),
+
     -- Bar Settings (global progress bar configuration)
-    showBookends = true,            -- Global bookend visibility (overrides individual bookend settings)
+    showBookends = false,            -- Global bookend visibility (overrides individual bookend settings)
     bookendSize = 10,               -- Minimum bookend width in pixels (5-20)
     healthBarFlashEnabled = true,   -- Flash effect when taking damage
     noBookendRounding = 4,          -- Bar roundness for bars without bookends (0-10)
@@ -571,10 +856,10 @@ M.user_settings = T{
             mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },
             tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' },
             tpOverlayGradient = T{ enabled = true, start = '#0078CC', stop = '#0078CC' },  -- TP overlay bar (1000+ stored)
-            hpTextColor = 0xFFFFFFFF,
-            mpTextColor = 0xFFdef2db,
-            tpEmptyTextColor = 0xFF9acce8,  -- TP < 1000
-            tpFullTextColor = 0xFF2fa9ff,   -- TP >= 1000
+            hpTextColor = 0xFFFFA7A7,
+            mpTextColor = 0xFFD4FF97,
+            tpEmptyTextColor = 0xFF8DC7FF,  -- TP < 1000
+            tpFullTextColor = 0xFF8DC7FF,   -- TP >= 1000
             tpFlashColor = 0xFF2fa9ff,      -- TP flash effect color
         },
 
@@ -681,6 +966,84 @@ M.user_settings = T{
             spellTextColor = 0xFFFFFFFF,
             percentTextColor = 0xFFFFFFFF,
         },
+
+        -- Pet Bar
+        petBar = T{
+            hpGradient = T{ enabled = true, start = '#e26c6c', stop = '#fa9c9c' },  -- Match playerBar high HP
+            mpGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' },  -- Match playerBar MP
+            tpGradient = T{ enabled = true, start = '#3898ce', stop = '#78c4ee' },  -- Match playerBar TP
+            nameTextColor = 0xFFFFFFFF,
+            distanceTextColor = 0xFFFFFFFF,
+            hpTextColor = 0xFFFFA7A7,
+            mpTextColor = 0xFFD4FF97,
+            tpTextColor = 0xFF8DC7FF,
+            targetTextColor = 0xFFFFFFFF,
+            -- SMN ability colors (individual)
+            timerBPRageReadyColor = 0xE6FF3333,     -- Red - Blood Pact: Rage ready
+            timerBPRageRecastColor = 0xD9FF6666,    -- Light red - Blood Pact: Rage recast
+            timerBPWardReadyColor = 0xE600CCCC,     -- Teal - Blood Pact: Ward ready
+            timerBPWardRecastColor = 0xD966DDDD,    -- Light teal - Blood Pact: Ward recast
+            timerApogeeReadyColor = 0xE6FFCC00,     -- Gold - Apogee ready
+            timerApogeeRecastColor = 0xD9FFDD66,    -- Light gold - Apogee recast
+            timerManaCedeReadyColor = 0xE6009999,   -- Dark teal - Mana Cede ready
+            timerManaCedeRecastColor = 0xD966BBBB,  -- Light dark teal - Mana Cede recast
+            -- BST ability colors (individual)
+            timerReadyReadyColor = 0xE6FF6600,      -- Orange - Ready ready
+            timerReadyRecastColor = 0xD9FF9933,     -- Light orange - Ready recast
+            timerRewardReadyColor = 0xE600CC66,     -- Green - Reward ready
+            timerRewardRecastColor = 0xD966DD99,    -- Light green - Reward recast
+            timerCallBeastReadyColor = 0xE63399FF,  -- Blue - Call Beast ready
+            timerCallBeastRecastColor = 0xD966BBFF, -- Light blue - Call Beast recast
+            timerBestialLoyaltyReadyColor = 0xE69966FF,  -- Purple - Bestial Loyalty ready
+            timerBestialLoyaltyRecastColor = 0xD9BB99FF, -- Light purple - Bestial Loyalty recast
+            -- DRG ability colors (individual)
+            timerCallWyvernReadyColor = 0xE63366FF,     -- Blue - Call Wyvern ready
+            timerCallWyvernRecastColor = 0xD96699FF,    -- Light blue - Call Wyvern recast
+            timerSpiritLinkReadyColor = 0xE633CC33,     -- Green - Spirit Link ready
+            timerSpiritLinkRecastColor = 0xD966DD66,    -- Light green - Spirit Link recast
+            timerDeepBreathingReadyColor = 0xE6FFFF33,  -- Yellow - Deep Breathing ready
+            timerDeepBreathingRecastColor = 0xD9FFFF99, -- Light yellow - Deep Breathing recast
+            timerSteadyWingReadyColor = 0xE6CC66FF,     -- Purple - Steady Wing ready
+            timerSteadyWingRecastColor = 0xD9DD99FF,    -- Light purple - Steady Wing recast
+            -- PUP ability colors (individual)
+            timerActivateReadyColor = 0xE63399FF,       -- Blue - Activate ready
+            timerActivateRecastColor = 0xD966BBFF,      -- Light blue - Activate recast
+            timerRepairReadyColor = 0xE633CC66,         -- Green - Repair ready
+            timerRepairRecastColor = 0xD966DD99,        -- Light green - Repair recast
+            timerDeployReadyColor = 0xE6FF9933,         -- Orange - Deploy ready
+            timerDeployRecastColor = 0xD9FFBB66,        -- Light orange - Deploy recast
+            timerDeactivateReadyColor = 0xE6999999,     -- Gray - Deactivate ready
+            timerDeactivateRecastColor = 0xD9BBBBBB,    -- Light gray - Deactivate recast
+            timerRetrieveReadyColor = 0xE666CCFF,       -- Light blue - Retrieve ready
+            timerRetrieveRecastColor = 0xD999DDFF,      -- Lighter blue - Retrieve recast
+            timerDeusExAutomataReadyColor = 0xE6FFCC33, -- Gold - Deus Ex Automata ready
+            timerDeusExAutomataRecastColor = 0xD9FFDD66,-- Light gold - Deus Ex Automata recast
+            -- 2-Hour timer colors (Astral Flow, Familiar, Spirit Surge, Overdrive)
+            timer2hReadyColor = 0xE6FF00FF,     -- Magenta
+            timer2hRecastColor = 0xD9FF66FF,    -- Light magenta
+            durationWarningColor = 0xFFFF6600, -- Charm/Jug about to expire (orange)
+            charmHeartColor = 0xFFFF6699,      -- BST charm heart icon (pink)
+            jugIconColor = 0xFFFFFFFF,         -- BST jug pet icon
+            charmTimerColor = 0xFFFFFFFF,      -- BST pet timer text (charm/jug)
+            bgColor = 0xFFFFFFFF,              -- Background tint (for Plain theme)
+        },
+
+        -- Pet Target
+        petTarget = T{
+            hpGradient = T{ enabled = true, start = '#e26c6c', stop = '#fb9494' },
+            bgColor = 0xFFFF8D8D,              -- Background tint (for Plain theme)
+            targetTextColor = 0xFFFFFFFF,
+            hpTextColor = 0xFFFFA7A7,          -- HP% text color
+            distanceTextColor = 0xFFFFFFFF,    -- Distance text color
+            borderColor = 0xFFFF8D8D,
+        },
+
+        -- Per-pet-type color settings (Avatar, Charm, Jug, Automaton, Wyvern)
+        petBarAvatar = createPetBarTypeColorDefaults(),
+        petBarCharm = createPetBarTypeColorDefaults(),
+        petBarJug = createPetBarTypeColorDefaults(),
+        petBarAutomaton = createPetBarTypeColorDefaults(),
+        petBarWyvern = createPetBarTypeColorDefaults(),
 
         -- Mob Info
         mobInfo = T{
@@ -1176,6 +1539,65 @@ M.default_settings = T{
             font_family = 'Consolas',
             font_height = 15,
             font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+    },
+
+    -- settings for pet bar
+    petBarSettings = T{
+        barWidth = 150,
+        barHeight = 12,
+        barSpacing = 4,
+        bgPadding = 8,
+        bgPaddingY = 8,
+        bgOffset = 1,
+        bgScale = 1.0,
+        borderSize = 21,
+        -- HP interpolation settings
+        hitInterpolationDecayPercentPerSecond = 150,
+        hitDelayDuration = 0.5,
+        hitFlashDuration = 0.4,
+        prim_data = T{
+            visible = false,
+            can_focus = false,
+            locked = true,
+            width = 100,
+            height = 100,
+        },
+        name_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 12,
+            font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        distance_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 10,
+            font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        vitals_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 10,
+            font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        timer_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 10,
+            font_color = 0xFFFFFF00,
             font_flags = gdi.FontFlags.None,
             outline_color = 0xFF000000,
             outline_width = 2,

@@ -91,6 +91,12 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     -- Mob Info fonts
     applyGlobalFontSettings(gAdjustedSettings.mobInfoSettings.level_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
 
+    -- Pet Bar fonts
+    applyGlobalFontSettings(gAdjustedSettings.petBarSettings.name_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    applyGlobalFontSettings(gAdjustedSettings.petBarSettings.distance_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    applyGlobalFontSettings(gAdjustedSettings.petBarSettings.vitals_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    applyGlobalFontSettings(gAdjustedSettings.petBarSettings.timer_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+
     -- Target Bar dimensions and settings
     gAdjustedSettings.targetBarSettings.barWidth = ds.targetBarSettings.barWidth * us.targetBarScaleX;
     gAdjustedSettings.targetBarSettings.barHeight = ds.targetBarSettings.barHeight * us.targetBarScaleY;
@@ -98,7 +104,11 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.targetBarSettings.name_font_settings.font_height = math.max(us.targetBarNameFontSize, 8);
     gAdjustedSettings.targetBarSettings.totName_font_settings.font_height = math.max(us.targetBarNameFontSize, 8);
     gAdjustedSettings.targetBarSettings.distance_font_settings.font_height = math.max(us.targetBarDistanceFontSize, 8);
+    gAdjustedSettings.targetBarSettings.distanceOffsetX = us.targetBarDistanceOffsetX or 0;
+    gAdjustedSettings.targetBarSettings.distanceOffsetY = us.targetBarDistanceOffsetY or 0;
     gAdjustedSettings.targetBarSettings.percent_font_settings.font_height = math.max(us.targetBarPercentFontSize, 8);
+    gAdjustedSettings.targetBarSettings.percentOffsetX = us.targetBarPercentOffsetX or 0;
+    gAdjustedSettings.targetBarSettings.percentOffsetY = us.targetBarPercentOffsetY or 0;
     gAdjustedSettings.targetBarSettings.cast_font_settings.font_height = math.max(us.targetBarCastFontSize, 8);
     gAdjustedSettings.targetBarSettings.iconSize = ds.targetBarSettings.iconSize * us.targetBarIconScale;
     gAdjustedSettings.targetBarSettings.arrowSize = ds.targetBarSettings.arrowSize * us.targetBarScaleY;
@@ -289,6 +299,33 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
 
     -- Mob Info
     gAdjustedSettings.mobInfoSettings.level_font_settings.font_height = math.max(us.mobInfoFontSize, 8);
+
+    -- Pet Bar (base dimensions from legacy flat settings)
+    gAdjustedSettings.petBarSettings.barWidth = ds.petBarSettings.barWidth * us.petBarScaleX;
+    gAdjustedSettings.petBarSettings.barHeight = ds.petBarSettings.barHeight * us.petBarScaleY;
+    gAdjustedSettings.petBarSettings.barSpacing = ds.petBarSettings.barSpacing * us.petBarScaleY;
+    gAdjustedSettings.petBarSettings.name_font_settings.font_height = math.max(us.petBarNameFontSize, 8);
+    gAdjustedSettings.petBarSettings.distance_font_settings.font_height = math.max(us.petBarDistanceFontSize, 8);
+    gAdjustedSettings.petBarSettings.vitals_font_settings.font_height = math.max(us.petBarVitalsFontSize, 8);
+    gAdjustedSettings.petBarSettings.timer_font_settings.font_height = math.max(us.petBarTimerFontSize, 8);
+
+    -- Per-pet-type settings (display module uses these based on active pet)
+    gAdjustedSettings.petBarSettings.petTypeSettings = {
+        avatar = us.petBarAvatar,
+        charm = us.petBarCharm,
+        jug = us.petBarJug,
+        automaton = us.petBarAutomaton,
+        wyvern = us.petBarWyvern,
+    };
+
+    -- Per-pet-type color settings
+    gAdjustedSettings.petBarSettings.petTypeColors = {
+        avatar = us.colorCustomization and us.colorCustomization.petBarAvatar,
+        charm = us.colorCustomization and us.colorCustomization.petBarCharm,
+        jug = us.colorCustomization and us.colorCustomization.petBarJug,
+        automaton = us.colorCustomization and us.colorCustomization.petBarAutomaton,
+        wyvern = us.colorCustomization and us.colorCustomization.petBarWyvern,
+    };
 end
 
 return M;
