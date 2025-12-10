@@ -606,6 +606,38 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
         end
     end
 
+    -- Wyvern (DRG) specific settings
+    if configKey == 'petBarWyvern' then
+        if components.CollapsingSection('Wyvern Image##wyvern', false) then
+            components.DrawPartyCheckbox(typeSettings, 'Show Wyvern Image##wyvern', 'showImage');
+            imgui.ShowHelp('Show wyvern image overlay on the pet bar.');
+
+            if typeSettings.showImage then
+                imgui.Spacing();
+
+                -- Scale slider
+                components.DrawPartySlider(typeSettings, 'Scale##wyvernImage', 'imageScale', 0.1, 2.0, '%.2f');
+                imgui.ShowHelp('Scale of the wyvern image overlay.');
+
+                -- Opacity slider
+                components.DrawPartySlider(typeSettings, 'Opacity##wyvernImage', 'imageOpacity', 0.0, 1.0, '%.2f');
+                imgui.ShowHelp('Opacity of the wyvern image overlay.');
+
+                -- Offset X slider
+                components.DrawPartySlider(typeSettings, 'Offset X##wyvernImage', 'imageOffsetX', -600, 600);
+                imgui.ShowHelp('Horizontal offset for the wyvern image.');
+
+                -- Offset Y slider
+                components.DrawPartySlider(typeSettings, 'Offset Y##wyvernImage', 'imageOffsetY', -600, 600);
+                imgui.ShowHelp('Vertical offset for the wyvern image.');
+
+                -- Clip to Background checkbox
+                components.DrawPartyCheckbox(typeSettings, 'Clip to Background##wyvernImage', 'imageClipToBackground');
+                imgui.ShowHelp('Clip the wyvern image to the pet bar background bounds.');
+            end
+        end
+    end
+
 end
 
 -- Helper: Draw copy buttons for pet type settings

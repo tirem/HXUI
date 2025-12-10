@@ -68,14 +68,20 @@ function M.GetIsTargetLockedOn()
         return false;
     end
 
-    -- Check if the target window is locked on using GetLockedOnFlags
-    if (playerTarget.GetLockedOnFlags ~= nil) then
-        local flags = playerTarget:GetLockedOnFlags();
-        -- flags > 0 indicates target is locked on
-        return flags > 0;
+    -- Primary: Use GetIsLockedOn which returns 1 if locked on, 0 otherwise
+    -- This is the cleaner API that directly returns lock state
+    if (playerTarget.GetIsLockedOn ~= nil) then
+        return playerTarget:GetIsLockedOn() == 1;
     end
 
-    -- Fallback: method not available
+    -- Fallback: Use GetLockedOnFlags and check the low bit (0x01)
+    -- LockedOnFlags uses bit 0 to indicate lock status per SDK docs
+    if (playerTarget.GetLockedOnFlags ~= nil) then
+        local flags = playerTarget:GetLockedOnFlags();
+        return bit.band(flags, 0x01) == 0x01;
+    end
+
+    -- Method not available
     return false;
 end
 

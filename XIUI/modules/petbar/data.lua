@@ -71,15 +71,27 @@ data.petImageMap = {
     ['Water Spirit'] = 'spirits/waterspirit.png',
     ['Light Spirit'] = 'spirits/lightspirit.png',
     ['Dark Spirit'] = 'spirits/darkspirit.png',
+    -- DRG Wyvern
+    ['Wyvern'] = 'drg_wyvern.png',
 };
 
--- Ordered list of avatars for config dropdown
+-- Ordered list of avatars/spirits for config dropdown (SMN pets only)
 data.avatarList = {
     'Carbuncle', 'Ifrit', 'Shiva', 'Garuda', 'Titan', 'Ramuh',
     'Leviathan', 'Fenrir', 'Diabolos', 'Atomos', 'Odin', 'Alexander',
     'Cait Sith', 'Siren',
     'Fire Spirit', 'Ice Spirit', 'Air Spirit', 'Earth Spirit',
     'Thunder Spirit', 'Water Spirit', 'Light Spirit', 'Dark Spirit',
+};
+
+-- Full list of all pets with images (used for primitive creation)
+data.allPetsWithImages = {
+    'Carbuncle', 'Ifrit', 'Shiva', 'Garuda', 'Titan', 'Ramuh',
+    'Leviathan', 'Fenrir', 'Diabolos', 'Atomos', 'Odin', 'Alexander',
+    'Cait Sith', 'Siren',
+    'Fire Spirit', 'Ice Spirit', 'Air Spirit', 'Earth Spirit',
+    'Thunder Spirit', 'Water Spirit', 'Light Spirit', 'Dark Spirit',
+    'Wyvern',
 };
 
 -- ============================================
@@ -902,18 +914,27 @@ function data.UpdateBackground(x, y, width, height, settings)
         end
     end
 
-    -- Show current pet's image if we have one and setting is enabled
-    if gConfig.petBarShowImage and data.currentPetName and data.petImagePrims then
-        local petKey = data.GetPetSettingsKey(data.currentPetName);
-        local primMiddle = data.petImagePrims[petKey];  -- Middle layer (for clipped)
-        local primTop = data.petImagePrimsTop and data.petImagePrimsTop[petKey];  -- Top layer (for unclipped)
+    -- Show current pet's image if we have one
+    -- Check if image should be shown based on pet type settings
+    local showImage = false;
+    local petImageScale, petImageOpacity, petImageOffsetX, petImageOffsetY, clipToBackground;
 
-        -- Use middle layer prim for dimensions, but choose which to show based on clip setting
-        local prim = primMiddle;
-        if prim and prim.exists then
-            -- Get per-avatar settings, fall back to legacy global settings
+    if data.currentPetName and data.petImagePrims then
+        local petKey = data.GetPetSettingsKey(data.currentPetName);
+
+        -- For wyvern, use wyvern-specific settings from petBarWyvern
+        if petKey == 'wyvern' then
+            local wyvernSettings = gConfig.petBarWyvern or {};
+            showImage = wyvernSettings.showImage or false;
+            petImageScale = wyvernSettings.imageScale or 0.4;
+            petImageOpacity = wyvernSettings.imageOpacity or 0.3;
+            petImageOffsetX = wyvernSettings.imageOffsetX or 0;
+            petImageOffsetY = wyvernSettings.imageOffsetY or 0;
+            clipToBackground = wyvernSettings.imageClipToBackground or false;
+        else
+            -- For avatars/spirits, use the existing avatar settings system
+            showImage = gConfig.petBarShowImage or false;
             local avatarSettings = gConfig.petBarAvatarSettings and gConfig.petBarAvatarSettings[petKey];
-            local petImageScale, petImageOpacity, petImageOffsetX, petImageOffsetY, clipToBackground;
 
             if avatarSettings then
                 petImageScale = avatarSettings.scale or 0.4;
@@ -929,6 +950,17 @@ function data.UpdateBackground(x, y, width, height, settings)
                 petImageOffsetY = gConfig.petBarImageOffsetY or 0;
                 clipToBackground = false;
             end
+        end
+    end
+
+    if showImage and data.currentPetName and data.petImagePrims then
+        local petKey = data.GetPetSettingsKey(data.currentPetName);
+        local primMiddle = data.petImagePrims[petKey];  -- Middle layer (for clipped)
+        local primTop = data.petImagePrimsTop and data.petImagePrimsTop[petKey];  -- Top layer (for unclipped)
+
+        -- Use middle layer prim for dimensions, but choose which to show based on clip setting
+        local prim = primMiddle;
+        if prim and prim.exists then
 
             -- Calculate base image position and dimensions
             local imgX = x + petImageOffsetX;

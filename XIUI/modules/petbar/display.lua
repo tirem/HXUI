@@ -1054,7 +1054,7 @@ function display.DrawWindow(settings)
         local showCharmTimer = isCharmed and gConfig.petBarShowCharmIndicator ~= false;
 
         if showJugTimer or showCharmTimer then
-            local drawList = imgui.GetForegroundDrawList();
+            local drawList = imgui.GetBackgroundDrawList();
 
             -- Get timer text for positioning
             local timerStr = nil;

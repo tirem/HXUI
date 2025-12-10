@@ -825,7 +825,16 @@ M.user_settings = T{
     petBarCharm = createPetBarTypeDefaults({ iconsOffsetX = 94 }),
     petBarJug = createPetBarTypeDefaults({ iconsOffsetX = 94 }),
     petBarAutomaton = createPetBarTypeDefaults({ iconsOffsetX = 60 }),
-    petBarWyvern = createPetBarTypeDefaults({ iconsOffsetX = 94 }),
+    petBarWyvern = createPetBarTypeDefaults({
+        iconsOffsetX = 94,
+        -- Wyvern image settings
+        showImage = true,
+        imageScale = 0.69,
+        imageOpacity = 0.40,
+        imageOffsetX = -99,
+        imageOffsetY = -46,
+        imageClipToBackground = true,
+    }),
 
     -- Bar Settings (global progress bar configuration)
     showBookends = false,            -- Global bookend visibility (overrides individual bookend settings)

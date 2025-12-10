@@ -76,7 +76,7 @@ petbar.Initialize = function(settings)
     -- 2. Create pet image primitives (render in middle - petbar specific)
     data.petImagePrims = {};
     data.petImageTextures = {};
-    for _, petName in ipairs(data.avatarList) do
+    for _, petName in ipairs(data.allPetsWithImages) do
         local key = data.GetPetSettingsKey(petName);
         local imagePath = data.GetPetImagePath(petName);
         if imagePath then
@@ -117,7 +117,7 @@ petbar.Initialize = function(settings)
 
     -- 4. Create pet image primitives for TOP layer (render on top of borders - for unclipped mode)
     data.petImagePrimsTop = {};
-    for _, petName in ipairs(data.avatarList) do
+    for _, petName in ipairs(data.allPetsWithImages) do
         local key = data.GetPetSettingsKey(petName);
         local imagePath = data.GetPetImagePath(petName);
         if imagePath then
