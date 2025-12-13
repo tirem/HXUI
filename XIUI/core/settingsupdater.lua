@@ -224,6 +224,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.inventoryTrackerSettings.showText = us.inventoryShowCount;
     gAdjustedSettings.inventoryTrackerSettings.showDots = us.inventoryShowDots;
     gAdjustedSettings.inventoryTrackerSettings.showLabels = us.inventoryShowLabels;
+    gAdjustedSettings.inventoryTrackerSettings.textUseThresholdColor = us.inventoryTextUseThresholdColor;
 
     -- Satchel Tracker
     gAdjustedSettings.satchelTrackerSettings.dotRadius = ds.satchelTrackerSettings.dotRadius * us.satchelTrackerScale;
@@ -235,6 +236,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.satchelTrackerSettings.showText = us.satchelShowCount;
     gAdjustedSettings.satchelTrackerSettings.showDots = us.satchelShowDots;
     gAdjustedSettings.satchelTrackerSettings.showLabels = us.satchelShowLabels;
+    gAdjustedSettings.satchelTrackerSettings.textUseThresholdColor = us.satchelTextUseThresholdColor;
 
     -- Locker Tracker
     gAdjustedSettings.lockerTrackerSettings.dotRadius = ds.lockerTrackerSettings.dotRadius * us.lockerTrackerScale;
@@ -246,6 +248,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.lockerTrackerSettings.showText = us.lockerShowCount;
     gAdjustedSettings.lockerTrackerSettings.showDots = us.lockerShowDots;
     gAdjustedSettings.lockerTrackerSettings.showLabels = us.lockerShowLabels;
+    gAdjustedSettings.lockerTrackerSettings.textUseThresholdColor = us.lockerTextUseThresholdColor;
 
     -- Safe Tracker
     gAdjustedSettings.safeTrackerSettings.dotRadius = ds.safeTrackerSettings.dotRadius * us.safeTrackerScale;
@@ -258,6 +261,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.safeTrackerSettings.showDots = us.safeShowDots;
     gAdjustedSettings.safeTrackerSettings.showPerContainer = us.safeShowPerContainer;
     gAdjustedSettings.safeTrackerSettings.showLabels = us.safeShowLabels;
+    gAdjustedSettings.safeTrackerSettings.textUseThresholdColor = us.safeTextUseThresholdColor;
 
     -- Storage Tracker
     gAdjustedSettings.storageTrackerSettings.dotRadius = ds.storageTrackerSettings.dotRadius * us.storageTrackerScale;
@@ -269,6 +273,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.storageTrackerSettings.showText = us.storageShowCount;
     gAdjustedSettings.storageTrackerSettings.showDots = us.storageShowDots;
     gAdjustedSettings.storageTrackerSettings.showLabels = us.storageShowLabels;
+    gAdjustedSettings.storageTrackerSettings.textUseThresholdColor = us.storageTextUseThresholdColor;
 
     -- Wardrobe Tracker
     gAdjustedSettings.wardrobeTrackerSettings.dotRadius = ds.wardrobeTrackerSettings.dotRadius * us.wardrobeTrackerScale;
@@ -281,6 +286,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.wardrobeTrackerSettings.showDots = us.wardrobeShowDots;
     gAdjustedSettings.wardrobeTrackerSettings.showPerContainer = us.wardrobeShowPerContainer;
     gAdjustedSettings.wardrobeTrackerSettings.showLabels = us.wardrobeShowLabels;
+    gAdjustedSettings.wardrobeTrackerSettings.textUseThresholdColor = us.wardrobeTextUseThresholdColor;
 
     -- Enemy List
     gAdjustedSettings.enemyListSettings.barWidth = ds.enemyListSettings.barWidth * us.enemyListScaleX;

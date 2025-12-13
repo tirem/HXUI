@@ -948,8 +948,8 @@ function display.DrawWindow(settings)
                     -- Full display: vertical list with name and recast timer
                     -- Note: Alignment is forced to 'left' for full mode - right alignment
                     -- doesn't work properly with the stacked vertical layout
-                    local recastShowBookends = typeSettings.recastShowBookends;
-                    if recastShowBookends == nil then recastShowBookends = true; end
+                    local recastShowBookends = typeSettings.showBookends;
+                    if recastShowBookends == nil then recastShowBookends = gConfig.petBarShowBookends; end
 
                     local fullSettings = {
                         showName = typeSettings.recastFullShowName ~= false,

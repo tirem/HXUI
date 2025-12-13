@@ -215,8 +215,31 @@ local function DrawMobInfoSettingsContent(githubTexture)
     end
 
     if components.CollapsingSection('Appearance##mobInfo') then
-        components.DrawCheckbox('Disable Icon Tints', 'mobInfoDisableIconTints');
-        imgui.ShowHelp('Show icons without color overlays. Useful if you prefer the original icon colors.');
+        -- Separator style dropdown
+        local separatorStyles = { 'space', 'pipe', 'dot' };
+        local separatorLabels = { 'Space (none)', 'Pipe |', 'Dot \194\183' };
+        local currentStyle = gConfig.mobInfoSeparatorStyle or 'space';
+        local currentIndex = 1;
+        for i, style in ipairs(separatorStyles) do
+            if style == currentStyle then
+                currentIndex = i;
+                break;
+            end
+        end
+
+        if imgui.BeginCombo('Separator Style', separatorLabels[currentIndex]) then
+            for i, label in ipairs(separatorLabels) do
+                local isSelected = (i == currentIndex);
+                if imgui.Selectable(label, isSelected) then
+                    gConfig.mobInfoSeparatorStyle = separatorStyles[i];
+                end
+                if isSelected then
+                    imgui.SetItemDefaultFocus();
+                end
+            end
+            imgui.EndCombo();
+        end
+        imgui.ShowHelp('Style of separator between sections in single-row mode.');
 
         components.DrawSlider('Icon Scale', 'mobInfoIconScale', 0.5, 3.0, '%.1f');
         imgui.ShowHelp('Scale multiplier for mob info icons.');
@@ -340,12 +363,6 @@ end
 local function DrawMobInfoColorSettingsContent()
     if components.CollapsingSection('Text Colors##mobInfoColor') then
         components.DrawTextColorPicker("Level Text", gConfig.colorCustomization.mobInfo, 'levelTextColor', "Color of level text");
-    end
-
-    if components.CollapsingSection('Icon Tints##mobInfoColor') then
-        components.DrawTextColorPicker("Weakness Tint", gConfig.colorCustomization.mobInfo, 'weaknessColor', "Tint color for weakness icons (green recommended)");
-        components.DrawTextColorPicker("Resistance Tint", gConfig.colorCustomization.mobInfo, 'resistanceColor', "Tint color for resistance icons (red recommended)");
-        components.DrawTextColorPicker("Immunity Tint", gConfig.colorCustomization.mobInfo, 'immunityColor', "Tint color for immunity icons (yellow recommended)");
     end
 end
 

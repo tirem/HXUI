@@ -377,6 +377,7 @@ M.user_settings = T{
     inventoryShowCount = true,
     inventoryShowDots = true,
     inventoryShowLabels = false,
+    inventoryTextUseThresholdColor = false,
 
     showSatchelTracker = false,
     satchelTrackerScale = 1,
@@ -388,6 +389,7 @@ M.user_settings = T{
     satchelShowCount = true,
     satchelShowDots = true,
     satchelShowLabels = false,
+    satchelTextUseThresholdColor = false,
 
     showLockerTracker = false,
     lockerTrackerScale = 1,
@@ -399,6 +401,7 @@ M.user_settings = T{
     lockerShowCount = true,
     lockerShowDots = true,
     lockerShowLabels = false,
+    lockerTextUseThresholdColor = false,
 
     showSafeTracker = false,
     safeTrackerScale = 1,
@@ -411,6 +414,7 @@ M.user_settings = T{
     safeShowDots = true,
     safeShowPerContainer = false,
     safeShowLabels = true,
+    safeTextUseThresholdColor = false,
 
     showStorageTracker = false,
     storageTrackerScale = 1,
@@ -422,6 +426,7 @@ M.user_settings = T{
     storageShowCount = true,
     storageShowDots = true,
     storageShowLabels = false,
+    storageTextUseThresholdColor = false,
 
     showWardrobeTracker = false,
     wardrobeTrackerScale = 1,
@@ -434,6 +439,7 @@ M.user_settings = T{
     wardrobeShowDots = true,
     wardrobeShowPerContainer = false,
     wardrobeShowLabels = true,
+    wardrobeTextUseThresholdColor = false,
 
     -- Mob Info settings
     showMobInfo = true,
@@ -450,8 +456,8 @@ M.user_settings = T{
     mobInfoSingleRow = false, -- false = stacked layout, true = single row layout
     mobInfoHideWhenEngaged = false, -- hide mob info when engaged in combat
     mobInfoShowJob = true, -- show mob's job type (WAR, MNK, etc.)
-    mobInfoDisableIconTints = false, -- show icons without color overlays
     mobInfoShowModifierText = false, -- show +25%/-50% next to icons
+    mobInfoSeparatorStyle = 'space', -- separator style: 'space', 'pipe', 'dot'
     mobInfoShowServerId = false, -- show target's server ID
     mobInfoServerIdHex = true, -- true = hex format (0x1C0), false = decimal
 
@@ -1049,9 +1055,6 @@ M.user_settings = T{
         -- Mob Info
         mobInfo = T{
             levelTextColor = 0xFFFFFFFF,
-            resistanceColor = 0xFFFF6666,   -- Red tint for resistances
-            weaknessColor = 0xFF66FF66,     -- Green tint for weaknesses
-            immunityColor = 0xFFFFFF66,     -- Yellow tint for immunities
         },
 
         -- Global/Shared

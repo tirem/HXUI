@@ -15,36 +15,42 @@ local M = {};
 local TABS = {
     { id = 1, name = 'Inventory', configKey = 'showInventoryTracker', showCountKey = 'inventoryShowCount',
       showDotsKey = 'inventoryShowDots', showLabelsKey = 'inventoryShowLabels',
+      textUseThresholdColorKey = 'inventoryTextUseThresholdColor',
       columnCountKey = 'inventoryTrackerColumnCount', rowCountKey = 'inventoryTrackerRowCount',
       scaleKey = 'inventoryTrackerScale', fontSizeKey = 'inventoryTrackerFontSize',
       colorKey = 'inventoryTracker', threshold1Key = 'inventoryTrackerColorThreshold1', threshold2Key = 'inventoryTrackerColorThreshold2',
       hasMultipleContainers = false },
     { id = 2, name = 'Satchel', configKey = 'showSatchelTracker', showCountKey = 'satchelShowCount',
       showDotsKey = 'satchelShowDots', showLabelsKey = 'satchelShowLabels',
+      textUseThresholdColorKey = 'satchelTextUseThresholdColor',
       columnCountKey = 'satchelTrackerColumnCount', rowCountKey = 'satchelTrackerRowCount',
       scaleKey = 'satchelTrackerScale', fontSizeKey = 'satchelTrackerFontSize',
       colorKey = 'satchelTracker', threshold1Key = 'satchelTrackerColorThreshold1', threshold2Key = 'satchelTrackerColorThreshold2',
       hasMultipleContainers = false },
     { id = 3, name = 'Locker', configKey = 'showLockerTracker', showCountKey = 'lockerShowCount',
       showDotsKey = 'lockerShowDots', showLabelsKey = 'lockerShowLabels',
+      textUseThresholdColorKey = 'lockerTextUseThresholdColor',
       columnCountKey = 'lockerTrackerColumnCount', rowCountKey = 'lockerTrackerRowCount',
       scaleKey = 'lockerTrackerScale', fontSizeKey = 'lockerTrackerFontSize',
       colorKey = 'lockerTracker', threshold1Key = 'lockerTrackerColorThreshold1', threshold2Key = 'lockerTrackerColorThreshold2',
       hasMultipleContainers = false },
     { id = 4, name = 'Safe', configKey = 'showSafeTracker', showCountKey = 'safeShowCount',
       showDotsKey = 'safeShowDots', showPerContainerKey = 'safeShowPerContainer', showLabelsKey = 'safeShowLabels',
+      textUseThresholdColorKey = 'safeTextUseThresholdColor',
       columnCountKey = 'safeTrackerColumnCount', rowCountKey = 'safeTrackerRowCount',
       scaleKey = 'safeTrackerScale', fontSizeKey = 'safeTrackerFontSize',
       colorKey = 'safeTracker', threshold1Key = 'safeTrackerColorThreshold1', threshold2Key = 'safeTrackerColorThreshold2',
       hasMultipleContainers = true, containerLabel = 'Show Safe 1 & 2 Separately' },
     { id = 5, name = 'Storage', configKey = 'showStorageTracker', showCountKey = 'storageShowCount',
       showDotsKey = 'storageShowDots', showLabelsKey = 'storageShowLabels',
+      textUseThresholdColorKey = 'storageTextUseThresholdColor',
       columnCountKey = 'storageTrackerColumnCount', rowCountKey = 'storageTrackerRowCount',
       scaleKey = 'storageTrackerScale', fontSizeKey = 'storageTrackerFontSize',
       colorKey = 'storageTracker', threshold1Key = 'storageTrackerColorThreshold1', threshold2Key = 'storageTrackerColorThreshold2',
       hasMultipleContainers = false },
     { id = 6, name = 'Wardrobe', configKey = 'showWardrobeTracker', showCountKey = 'wardrobeShowCount',
       showDotsKey = 'wardrobeShowDots', showPerContainerKey = 'wardrobeShowPerContainer', showLabelsKey = 'wardrobeShowLabels',
+      textUseThresholdColorKey = 'wardrobeTextUseThresholdColor',
       columnCountKey = 'wardrobeTrackerColumnCount', rowCountKey = 'wardrobeTrackerRowCount',
       scaleKey = 'wardrobeTrackerScale', fontSizeKey = 'wardrobeTrackerFontSize',
       colorKey = 'wardrobeTracker', threshold1Key = 'wardrobeTrackerColorThreshold1', threshold2Key = 'wardrobeTrackerColorThreshold2',
@@ -102,6 +108,10 @@ local function DrawTrackerSettings(tab)
         if (imgui.IsItemDeactivatedAfterEdit()) then
             SaveSettingsOnly();
         end
+
+        -- Text threshold color option
+        components.DrawCheckbox('Text Uses Threshold Color', tab.textUseThresholdColorKey);
+        imgui.ShowHelp('When enabled, count text changes color based on dot thresholds');
     end
 
     -- Show per-container option for multi-container trackers

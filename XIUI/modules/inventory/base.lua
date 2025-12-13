@@ -28,6 +28,25 @@ local function GetUsedSlotColor(usedSlots, colorConfig, threshold1, threshold2)
     end
 end
 
+-- Helper function to convert dot color (RGBA table) to ARGB hex for font
+local function DotColorToFontColor(dotColor)
+    local a = math.floor(dotColor.a * 255);
+    local r = math.floor(dotColor.r * 255);
+    local g = math.floor(dotColor.g * 255);
+    local b = math.floor(dotColor.b * 255);
+    return bit.bor(bit.lshift(a, 24), bit.lshift(r, 16), bit.lshift(g, 8), b);
+end
+
+-- Helper function to get text color based on thresholds (returns ARGB hex)
+local function GetTextColor(usedSlots, colorConfig, threshold1, threshold2, useThresholdColor)
+    if useThresholdColor then
+        local dotColor = GetUsedSlotColor(usedSlots, colorConfig, threshold1, threshold2);
+        return DotColorToFontColor(dotColor);
+    else
+        return colorConfig.textColor;
+    end
+end
+
 -- Draw dots for a single container
 local function DrawContainerDots(locX, locY, framePaddingX, usedSlots, maxSlots, settings, colorConfig, threshold1, threshold2)
     local emptyColor = colorConfig.emptySlotColor;
@@ -79,7 +98,8 @@ end
 
 -- Draw a single container window (used for both combined and per-container modes)
 -- label: optional prefix like "W1" or "S2" for per-container mode
-local function DrawSingleContainerWindow(windowName, usedSlots, maxSlots, settings, colorConfig, threshold1, threshold2, textFont, lastTextColorRef, showDots, showText, label)
+-- textUseThresholdColor: if true, text color follows dot threshold colors
+local function DrawSingleContainerWindow(windowName, usedSlots, maxSlots, settings, colorConfig, threshold1, threshold2, textFont, lastTextColorRef, showDots, showText, label, textUseThresholdColor)
     imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
 
     local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus, ImGuiWindowFlags_NoDocking);
@@ -135,9 +155,10 @@ local function DrawSingleContainerWindow(windowName, usedSlots, maxSlots, settin
                 textFont:set_position_x(locX + framePaddingX + dotsWidth);
                 textFont:set_position_y(locY);
 
-                if (lastTextColorRef.color ~= colorConfig.textColor) then
-                    textFont:set_font_color(colorConfig.textColor);
-                    lastTextColorRef.color = colorConfig.textColor;
+                local textColor = GetTextColor(usedSlots, colorConfig, threshold1, threshold2, textUseThresholdColor);
+                if (lastTextColorRef.color ~= textColor) then
+                    textFont:set_font_color(textColor);
+                    lastTextColorRef.color = textColor;
                 end
                 fontVisible = true;
             end
@@ -166,9 +187,10 @@ local function DrawSingleContainerWindow(windowName, usedSlots, maxSlots, settin
             textFont:set_position_x(cursorX + textWidth);
             textFont:set_position_y(cursorY);
 
-            if (lastTextColorRef.color ~= colorConfig.textColor) then
-                textFont:set_font_color(colorConfig.textColor);
-                lastTextColorRef.color = colorConfig.textColor;
+            local textColor = GetTextColor(usedSlots, colorConfig, threshold1, threshold2, textUseThresholdColor);
+            if (lastTextColorRef.color ~= textColor) then
+                textFont:set_font_color(textColor);
+                lastTextColorRef.color = textColor;
             end
             fontVisible = true;
         end
@@ -251,6 +273,7 @@ function BaseTracker.Create(config)
         local showDots = settings.showDots;
         local showText = settings.showText;
         local showPerContainer = settings.showPerContainer;
+        local textUseThresholdColor = settings.textUseThresholdColor;
 
         local showLabels = settings.showLabels;
 
@@ -273,7 +296,8 @@ function BaseTracker.Create(config)
                         lastTextColors[fontIndex],
                         showDots,
                         showText,
-                        label
+                        label,
+                        textUseThresholdColor
                     );
                     if fonts[fontIndex] then
                         fonts[fontIndex]:set_visible(fontVisible);
@@ -301,7 +325,8 @@ function BaseTracker.Create(config)
                 lastTextColors[1],
                 showDots,
                 showText,
-                label
+                label,
+                textUseThresholdColor
             );
             if fonts[1] then
                 fonts[1]:set_visible(fontVisible);
