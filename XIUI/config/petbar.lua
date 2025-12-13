@@ -120,6 +120,10 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
             imgui.Spacing();
         end
 
+        components.DrawPartyCheckbox(typeSettings, 'Align Bottom##' .. configKey, 'alignBottom');
+        imgui.ShowHelp('Anchor the pet bar to its bottom edge. When the window height changes, it expands upward.');
+        imgui.Spacing();
+
         components.DrawPartyCheckbox(typeSettings, 'Show Distance##' .. configKey, 'showDistance');
         imgui.ShowHelp('Show distance from player to pet.');
 

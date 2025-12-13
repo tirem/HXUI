@@ -259,6 +259,17 @@ function components.DrawHexColorPicker(label, parentTable, key, helpText)
     if helpText then imgui.ShowHelp(helpText); end
 end
 
+-- Float slider for nested tables (like colorCustomization.castCost.mpCostPreviewPulseSpeed)
+function components.DrawNestedSliderFloat(label, parentTable, key, min, max, format, helpText)
+    if not parentTable then return; end
+    local value = { parentTable[key] or min };
+    if imgui.SliderFloat(label, value, min, max, format or '%.1f') then
+        parentTable[key] = value[1];
+    end
+    if (imgui.IsItemDeactivatedAfterEdit()) then SaveSettingsOnly(); end
+    if helpText then imgui.ShowHelp(helpText); end
+end
+
 function components.DrawThreeStepGradientPicker(label, gradientTable, helpText)
     if not gradientTable then return; end
 

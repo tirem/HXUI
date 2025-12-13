@@ -13,6 +13,7 @@ local progressbar = require('libs.progressbar');
 local windowBg = require('libs.windowbackground');
 local encoding = require('submodules.gdifonts.encoding');
 local ashita_settings = require('settings');
+local castcostShared = require('modules.castcost.shared');
 
 local data = require('modules.partylist.data');
 
@@ -726,7 +727,58 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                     end
                 else
                     local mpGradient = GetCustomGradient(cache.colors, 'mpGradient') or {'#9abb5a', '#bfe07d'};
-                    progressbar.ProgressBar({{memInfo.mpp, mpGradient}}, {mpBarWidth, mpBarHeight}, {decorate = cache.showBookends, backgroundGradientOverride = data.getBarBackgroundOverride(partyIndex), borderColorOverride = data.getBarBorderOverride(partyIndex)});
+
+                    -- Check for spell cost preview (only for player - memIdx 0)
+                    local mpPercentData;
+                    if memIdx == 0 and gConfig.showMpCostPreview ~= false then
+                        local spellMpCost, hasEnoughMp, isSpellActive = castcostShared.GetMpCost();
+                        if isSpellActive and spellMpCost > 0 and memInfo.maxmp > 0 then
+                            local costPercent = spellMpCost / memInfo.maxmp;
+                            local remainingMpPercent = math.max(0, memInfo.mpp - costPercent);
+
+                            -- Get cost preview colors from castCost settings
+                            local castCostColors = gConfig.colorCustomization.castCost;
+                            local costGradient;
+                            local costColorSetting = castCostColors and castCostColors.mpCostPreviewGradient;
+                            if costColorSetting then
+                                if costColorSetting.enabled and costColorSetting.start and costColorSetting.stop then
+                                    costGradient = {costColorSetting.start, costColorSetting.stop};
+                                elseif costColorSetting.start then
+                                    costGradient = {costColorSetting.start, costColorSetting.start};
+                                else
+                                    costGradient = {'#9abb5a', '#bfe07d'};
+                                end
+                            else
+                                costGradient = {'#9abb5a', '#bfe07d'};
+                            end
+
+                            -- Calculate pulsing overlay for cost preview
+                            local costOverlay = nil;
+                            local flashColor = castCostColors and castCostColors.mpCostPreviewFlashColor or '#FFFFFF';
+                            local pulseSpeed = castCostColors and castCostColors.mpCostPreviewPulseSpeed or 1.0;
+                            if pulseSpeed > 0 then
+                                local pulseTime = os.clock();
+                                local phase = pulseTime % pulseSpeed;
+                                local pulseAlpha = (2 / pulseSpeed) * phase;
+                                if pulseAlpha > 1 then
+                                    pulseAlpha = 2 - pulseAlpha;
+                                end
+                                pulseAlpha = pulseAlpha * 0.6;
+                                costOverlay = {flashColor, pulseAlpha};
+                            end
+
+                            mpPercentData = {
+                                {remainingMpPercent, mpGradient},
+                                {costPercent, costGradient, costOverlay},
+                            };
+                        else
+                            mpPercentData = {{memInfo.mpp, mpGradient}};
+                        end
+                    else
+                        mpPercentData = {{memInfo.mpp, mpGradient}};
+                    end
+
+                    progressbar.ProgressBar(mpPercentData, {mpBarWidth, mpBarHeight}, {decorate = cache.showBookends, backgroundGradientOverride = data.getBarBackgroundOverride(partyIndex), borderColorOverride = data.getBarBorderOverride(partyIndex)});
                     if (data.memberTextColorCache[memIdx].mp ~= cache.colors.mpTextColor) then
                         data.memberText[memIdx].mp:set_font_color(cache.colors.mpTextColor);
                         data.memberTextColorCache[memIdx].mp = cache.colors.mpTextColor;
@@ -758,7 +810,58 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                     end
                 else
                     local mpGradient = GetCustomGradient(cache.colors, 'mpGradient') or {'#9abb5a', '#bfe07d'};
-                    progressbar.ProgressBar({{memInfo.mpp, mpGradient}}, {mpBarWidth, mpBarHeight}, {decorate = cache.showBookends, backgroundGradientOverride = data.getBarBackgroundOverride(partyIndex), borderColorOverride = data.getBarBorderOverride(partyIndex)});
+
+                    -- Check for spell cost preview (only for player - memIdx 0)
+                    local mpPercentData;
+                    if memIdx == 0 and gConfig.showMpCostPreview ~= false then
+                        local spellMpCost, hasEnoughMp, isSpellActive = castcostShared.GetMpCost();
+                        if isSpellActive and spellMpCost > 0 and memInfo.maxmp > 0 then
+                            local costPercent = spellMpCost / memInfo.maxmp;
+                            local remainingMpPercent = math.max(0, memInfo.mpp - costPercent);
+
+                            -- Get cost preview colors from castCost settings
+                            local castCostColors = gConfig.colorCustomization.castCost;
+                            local costGradient;
+                            local costColorSetting = castCostColors and castCostColors.mpCostPreviewGradient;
+                            if costColorSetting then
+                                if costColorSetting.enabled and costColorSetting.start and costColorSetting.stop then
+                                    costGradient = {costColorSetting.start, costColorSetting.stop};
+                                elseif costColorSetting.start then
+                                    costGradient = {costColorSetting.start, costColorSetting.start};
+                                else
+                                    costGradient = {'#9abb5a', '#bfe07d'};
+                                end
+                            else
+                                costGradient = {'#9abb5a', '#bfe07d'};
+                            end
+
+                            -- Calculate pulsing overlay for cost preview
+                            local costOverlay = nil;
+                            local flashColor = castCostColors and castCostColors.mpCostPreviewFlashColor or '#FFFFFF';
+                            local pulseSpeed = castCostColors and castCostColors.mpCostPreviewPulseSpeed or 1.0;
+                            if pulseSpeed > 0 then
+                                local pulseTime = os.clock();
+                                local phase = pulseTime % pulseSpeed;
+                                local pulseAlpha = (2 / pulseSpeed) * phase;
+                                if pulseAlpha > 1 then
+                                    pulseAlpha = 2 - pulseAlpha;
+                                end
+                                pulseAlpha = pulseAlpha * 0.6;
+                                costOverlay = {flashColor, pulseAlpha};
+                            end
+
+                            mpPercentData = {
+                                {remainingMpPercent, mpGradient},
+                                {costPercent, costGradient, costOverlay},
+                            };
+                        else
+                            mpPercentData = {{memInfo.mpp, mpGradient}};
+                        end
+                    else
+                        mpPercentData = {{memInfo.mpp, mpGradient}};
+                    end
+
+                    progressbar.ProgressBar(mpPercentData, {mpBarWidth, mpBarHeight}, {decorate = cache.showBookends, backgroundGradientOverride = data.getBarBackgroundOverride(partyIndex), borderColorOverride = data.getBarBorderOverride(partyIndex)});
                     if (data.memberTextColorCache[memIdx].mp ~= cache.colors.mpTextColor) then
                         data.memberText[memIdx].mp:set_font_color(cache.colors.mpTextColor);
                         data.memberTextColorCache[memIdx].mp = cache.colors.mpTextColor;

@@ -4,6 +4,7 @@ local imgui = require('imgui');
 local gdi = require('submodules.gdifonts.include');
 local progressbar = require('libs.progressbar');
 local buffTable = require('libs.bufftable');
+local castcostShared = require('modules.castcost.shared');
 
 local hpText;
 local mpText;
@@ -323,7 +324,59 @@ playerbar.DrawWindow = function(settings)
 			-- Capture MP bar start position
 			mpBarStartX, mpBarStartY = imgui.GetCursorScreenPos();
 			local mpGradient = GetCustomGradient(gConfig.colorCustomization.playerBar, 'mpGradient') or {'#9abb5a', '#bfe07d'};
-			progressbar.ProgressBar({{SelfMPPercent / 100, mpGradient}}, {barSize, settings.barHeight}, {decorate = gConfig.showPlayerBarBookends});
+
+			-- Check for spell cost preview from castcost module
+			local mpPercentData;
+			local spellMpCost, hasEnoughMp, isSpellActive = castcostShared.GetMpCost();
+			if isSpellActive and spellMpCost > 0 and SelfMPMax > 0 and gConfig.showMpCostPreview ~= false then
+				-- Calculate the cost as a percentage of max MP
+				local costPercent = spellMpCost / SelfMPMax;
+				-- Calculate remaining MP after cast
+				local remainingMpPercent = math.max(0, (SelfMPPercent / 100) - costPercent);
+
+				-- Get cost preview colors from castCost settings
+				local castCostColors = gConfig.colorCustomization.castCost;
+				local costGradient;
+				local costColorSetting = castCostColors and castCostColors.mpCostPreviewGradient;
+				if costColorSetting then
+					if costColorSetting.enabled and costColorSetting.start and costColorSetting.stop then
+						costGradient = {costColorSetting.start, costColorSetting.stop};
+					elseif costColorSetting.start then
+						costGradient = {costColorSetting.start, costColorSetting.start};
+					else
+						costGradient = {'#9abb5a', '#bfe07d'};
+					end
+				else
+					costGradient = {'#9abb5a', '#bfe07d'};
+				end
+
+				-- Calculate pulsing overlay for cost preview
+				local costOverlay = nil;
+				local flashColor = castCostColors and castCostColors.mpCostPreviewFlashColor or '#FFFFFF';
+				local pulseSpeed = castCostColors and castCostColors.mpCostPreviewPulseSpeed or 1.0;
+				if pulseSpeed > 0 then
+					local pulseTime = os.clock();
+					local phase = pulseTime % pulseSpeed;
+					local pulseAlpha = (2 / pulseSpeed) * phase;
+					if pulseAlpha > 1 then
+						pulseAlpha = 2 - pulseAlpha;
+					end
+					-- Scale alpha to be subtle (max 0.6)
+					pulseAlpha = pulseAlpha * 0.6;
+					costOverlay = {flashColor, pulseAlpha};
+				end
+
+				-- Build MP bar with cost preview: [remaining MP][cost segment with pulse]
+				mpPercentData = {
+					{remainingMpPercent, mpGradient},
+					{costPercent, costGradient, costOverlay},
+				};
+			else
+				-- Normal MP bar without cost preview
+				mpPercentData = {{SelfMPPercent / 100, mpGradient}};
+			end
+
+			progressbar.ProgressBar(mpPercentData, {barSize, settings.barHeight}, {decorate = gConfig.showPlayerBarBookends});
 			imgui.SameLine();
 		end
 

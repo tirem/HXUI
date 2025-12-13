@@ -19,6 +19,8 @@ function M.DrawSettings()
         components.DrawCheckbox('Spell/Ability Name', 'castCostShowName');
         components.DrawCheckbox('MP Cost', 'castCostShowMpCost');
         components.DrawCheckbox('Recast Time', 'castCostShowRecast');
+        components.DrawCheckbox('MP Cost Preview', 'showMpCostPreview');
+        imgui.ShowHelp('Shows spell MP cost on your MP bar when hovering over spells');
 
         imgui.Spacing();
         imgui.Text('Font Sizes:');
@@ -89,6 +91,12 @@ function M.DrawColorSettings()
         components.DrawTextColorPicker("Ready Text", gConfig.colorCustomization.castCost, 'readyTextColor', "Color of 'Next: ready' text");
         components.DrawGradientPicker("Cooldown Bar", gConfig.colorCustomization.castCost.cooldownBarGradient, "Cooldown bar gradient (fills as spell comes off cooldown)");
         components.DrawTextColorPicker("Cooldown Timer", gConfig.colorCustomization.castCost, 'cooldownTextColor', "Color of countdown timer text on cooldown bar");
+    end
+
+    if components.CollapsingSection('MP Cost Preview##castCostColor') then
+        components.DrawGradientPicker("Cost Bar", gConfig.colorCustomization.castCost.mpCostPreviewGradient, "Base gradient for the cost preview segment");
+        components.DrawHexColorPicker("Flash Color", gConfig.colorCustomization.castCost, 'mpCostPreviewFlashColor', "Pulsing flash color overlay");
+        components.DrawNestedSliderFloat("Pulse Speed", gConfig.colorCustomization.castCost, 'mpCostPreviewPulseSpeed', 0.1, 3.0, '%.1f', "Speed of the pulsing effect (seconds per pulse)");
     end
 
     if components.CollapsingSection('Background Colors##castCostColor') then

@@ -9,6 +9,7 @@ local imgui = require('imgui');
 local gdi = require('submodules.gdifonts.include');
 local windowBg = require('libs.windowbackground');
 local progressbar = require('libs.progressbar');
+local shared = require('modules.castcost.shared');
 
 local M = {};
 
@@ -117,6 +118,8 @@ function M.SetHidden(hidden)
         windowState.x = nil;
         windowState.y = nil;
         windowState.height = nil;
+        -- Clear shared state when hidden
+        shared.Clear();
     end
 end
 
@@ -176,6 +179,8 @@ function M.Render(itemInfo, itemType, settings, colors)
         if bgHandle then
             windowBg.hide(bgHandle);
         end
+        -- Clear shared state when no selection
+        shared.Clear();
         return;
     end
 
@@ -194,6 +199,9 @@ function M.Render(itemInfo, itemType, settings, colors)
     if party then
         playerMp = party:GetMemberMP(0) or 0;
     end
+
+    -- Update shared state for other modules (playerbar, partylist) to consume
+    shared.Update(itemInfo, itemType, playerMp);
 
     -- Check if on cooldown (currentRecast > 0 means spell/ability is on cooldown)
     local isOnCooldown = itemInfo.currentRecast and itemInfo.currentRecast > 0;

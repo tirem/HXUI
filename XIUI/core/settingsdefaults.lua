@@ -102,6 +102,8 @@ local function createPetBarTypeDefaults(overrides)
         showMP = true,
         showTP = true,
         showTimers = true,
+        -- Positioning
+        alignBottom = false,
         -- Scale settings
         scaleX = 1.0,
         scaleY = 1.0,
@@ -321,6 +323,7 @@ M.user_settings = T{
     playerBarHideDuringEvents = true,
     playerBarHpDisplayMode = 'number', -- 'number', 'percent', 'both', 'both_percent_first', 'current_max'
     playerBarMpDisplayMode = 'number', -- 'number', 'percent', 'both', 'both_percent_first', 'current_max'
+    showMpCostPreview = true, -- Show spell MP cost preview on MP bars when hovering spells
 
     -- Text positioning settings for player bar (per stat)
     playerBarHpTextOffsetX = 0,
@@ -1015,6 +1018,10 @@ M.user_settings = T{
             cooldownBarGradient = T{ enabled = false, start = '#FFFFFF', stop = '#44CC44' },
             bgColor = 0xFFFFFFFF,
             borderColor = 0xFFFFFFFF,
+            -- MP Cost Preview on Player/Party MP bars
+            mpCostPreviewGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' }, -- Base: MP green
+            mpCostPreviewFlashColor = '#FFFFFF',  -- Pulse flash color (white)
+            mpCostPreviewPulseSpeed = 1.0,        -- Pulse duration in seconds
         },
 
         -- Pet Bar
