@@ -20,7 +20,7 @@ local statusOffMes = T{64, 159, 168, 204, 206, 321, 322, 341, 342, 343, 344, 350
 local deathMes = T{6, 20, 97, 113, 406, 605, 646};
 local spellDamageMes = T{2, 252, 264, 265};
 local additionalEffectJobAbilities = T{22, 45, 46, 77}; --energy drain, mug, shield bash, weapon bash
-local additionalEffectMes = T{160};
+local additionalEffectMes = T{160, 164};
 
 local function ApplyMessage(debuffs, action)
 
