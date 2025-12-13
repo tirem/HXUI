@@ -121,29 +121,27 @@ local function UpdateFontColor(font, color)
 end
 
 -- Draw a single icon with tooltip, returns width
-local function DrawIconWithTooltip(texture, size, tooltipText, tintColor)
+local function DrawIconWithTooltip(texture, size, tooltipText)
     local posX, posY = imgui.GetCursorScreenPos();
 
     if texture == nil or texture.image == nil then
         -- Draw a placeholder square if texture is missing
         local draw_list = imgui.GetWindowDrawList();
-        local placeholderColor = tintColor and ARGBToABGR(tintColor) or 0xFF888888;
         draw_list:AddRectFilled(
             {posX, posY},
             {posX + size, posY + size},
-            placeholderColor,
+            0xFF888888, -- Gray placeholder
             2.0
         );
     else
-        -- Use draw list AddImage for proper tint color support
+        -- Draw icon with no tint (white = original colors)
         local draw_list = imgui.GetWindowDrawList();
-        local imageColor = tintColor and ARGBToABGR(tintColor) or IM_COL32_WHITE;
         draw_list:AddImage(
             tonumber(ffi.cast("uint32_t", texture.image)),
             {posX, posY},
             {posX + size, posY + size},
             {0, 0}, {1, 1},
-            imageColor
+            0xFFFFFFFF -- White (no tint)
         );
     end
 
@@ -161,14 +159,22 @@ end
 local function BuildDetectionIcons(mobInfo)
     local detectionIcons = {};
     local methods = mobdata.GetDetectionMethods(mobInfo);
-    local disableTints = gConfig.mobInfoDisableIconTints;
+    local isNM = mobInfo.Notorious;
 
-    -- Aggro indicator first
+    -- Aggro/Passive indicator first (always show one or the other)
     if mobInfo.Aggro then
+        -- Aggressive: use HQ icon for NMs, NQ for normal mobs
+        local aggroTexture = isNM and textures.detection.aggroHQ or textures.detection.aggroNQ;
         table.insert(detectionIcons, {
-            texture = textures.detection.aggro,
-            tooltip = 'Aggressive',
-            tint = disableTints and nil or 0xFFFF4444
+            texture = aggroTexture,
+            tooltip = isNM and 'Aggressive (NM)' or 'Aggressive'
+        });
+    else
+        -- Passive: use HQ icon for NMs, NQ for normal mobs
+        local passiveTexture = isNM and textures.detection.passiveHQ or textures.detection.passiveNQ;
+        table.insert(detectionIcons, {
+            texture = passiveTexture,
+            tooltip = isNM and 'Passive (NM)' or 'Passive'
         });
     end
 
@@ -176,8 +182,7 @@ local function BuildDetectionIcons(mobInfo)
     if gConfig.mobInfoShowLink and mobInfo.Link then
         table.insert(detectionIcons, {
             texture = textures.detection.link,
-            tooltip = 'Links with nearby mobs',
-            tint = disableTints and nil or 0xFFFFAA44
+            tooltip = 'Links with nearby mobs'
         });
     end
 
@@ -194,24 +199,22 @@ local function BuildDetectionIcons(mobInfo)
     return detectionIcons;
 end
 
--- Build weakness icons array
+-- Build weakness icons array (sorted by percentage, grouped for display)
 local function BuildWeaknessIcons(mobInfo)
     local weaknessIcons = {};
     local weaknesses = mobdata.GetWeaknesses(mobInfo);
-    local disableTints = gConfig.mobInfoDisableIconTints;
-    local tintColor = disableTints and nil or gConfig.colorCustomization.mobInfo.weaknessColor;
+
+    -- Collect all weaknesses with their raw modifier value
+    local allWeaknesses = {};
 
     -- Elements
     for _, elem in ipairs(elements) do
         if weaknesses[elem.key] then
             local modifier = weaknesses[elem.key];
-            local percent = math.floor((modifier - 1) * 100);
-            table.insert(weaknessIcons, {
+            table.insert(allWeaknesses, {
                 texture = textures.elements[string.lower(elem.key)],
-                -- Use %% to escape % for imgui.SetTooltip (printf-style function)
-                tooltip = elem.name .. ' Weakness (+' .. tostring(percent) .. '%% damage)',
-                tint = tintColor,
-                modifierText = '+' .. percent .. '%'
+                name = elem.name,
+                modifier = modifier
             });
         end
     end
@@ -220,38 +223,59 @@ local function BuildWeaknessIcons(mobInfo)
     for _, phys in ipairs(physicalTypes) do
         if weaknesses[phys.key] then
             local modifier = weaknesses[phys.key];
-            local percent = math.floor((modifier - 1) * 100);
-            table.insert(weaknessIcons, {
+            table.insert(allWeaknesses, {
                 texture = textures.physical[string.lower(phys.key)],
-                -- Use %% to escape % for imgui.SetTooltip (printf-style function)
-                tooltip = phys.name .. ' Weakness (+' .. tostring(percent) .. '%% damage)',
-                tint = tintColor,
-                modifierText = '+' .. percent .. '%'
+                name = phys.name,
+                modifier = modifier
             });
         end
+    end
+
+    -- Sort by modifier value (highest weakness first, like MobDB)
+    table.sort(allWeaknesses, function(a, b)
+        return a.modifier > b.modifier;
+    end);
+
+    -- Build final icon list with showPercent flag
+    local groupModifiers = gConfig.mobInfoGroupModifiers;
+    for i, item in ipairs(allWeaknesses) do
+        local percent = math.floor((item.modifier - 1) * 100);
+        -- When grouping: show percent only if this is the last icon OR the next icon has a different percentage
+        -- When not grouping: always show percent for each icon
+        local showPercent = true;
+        if groupModifiers then
+            local nextItem = allWeaknesses[i + 1];
+            showPercent = (nextItem == nil) or (math.floor((nextItem.modifier - 1) * 100) ~= percent);
+        end
+
+        table.insert(weaknessIcons, {
+            texture = item.texture,
+            -- Use %% to escape % for imgui.SetTooltip (printf-style function)
+            tooltip = item.name .. ' Weakness (+' .. tostring(percent) .. '%% damage)',
+            modifierText = '+' .. percent .. '%',
+            showPercent = showPercent
+        });
     end
 
     return weaknessIcons;
 end
 
--- Build resistance icons array
+-- Build resistance icons array (sorted by percentage, grouped for display)
 local function BuildResistanceIcons(mobInfo)
     local resistanceIcons = {};
     local resistances = mobdata.GetResistances(mobInfo);
-    local disableTints = gConfig.mobInfoDisableIconTints;
-    local tintColor = disableTints and nil or gConfig.colorCustomization.mobInfo.resistanceColor;
+
+    -- Collect all resistances with their raw modifier value
+    local allResistances = {};
 
     -- Elements
     for _, elem in ipairs(elements) do
         if resistances[elem.key] then
             local modifier = resistances[elem.key];
-            local percent = math.floor((1 - modifier) * 100);
-            table.insert(resistanceIcons, {
+            table.insert(allResistances, {
                 texture = textures.elements[string.lower(elem.key)],
-                -- Use %% to escape % for imgui.SetTooltip (printf-style function)
-                tooltip = elem.name .. ' Resistance (-' .. tostring(percent) .. '%% damage)',
-                tint = tintColor,
-                modifierText = '-' .. percent .. '%'
+                name = elem.name,
+                modifier = modifier
             });
         end
     end
@@ -260,15 +284,38 @@ local function BuildResistanceIcons(mobInfo)
     for _, phys in ipairs(physicalTypes) do
         if resistances[phys.key] then
             local modifier = resistances[phys.key];
-            local percent = math.floor((1 - modifier) * 100);
-            table.insert(resistanceIcons, {
+            table.insert(allResistances, {
                 texture = textures.physical[string.lower(phys.key)],
-                -- Use %% to escape % for imgui.SetTooltip (printf-style function)
-                tooltip = phys.name .. ' Resistance (-' .. tostring(percent) .. '%% damage)',
-                tint = tintColor,
-                modifierText = '-' .. percent .. '%'
+                name = phys.name,
+                modifier = modifier
             });
         end
+    end
+
+    -- Sort by modifier value (lowest/strongest resistance first, like MobDB)
+    table.sort(allResistances, function(a, b)
+        return a.modifier < b.modifier;
+    end);
+
+    -- Build final icon list with showPercent flag
+    local groupModifiers = gConfig.mobInfoGroupModifiers;
+    for i, item in ipairs(allResistances) do
+        local percent = math.floor((1 - item.modifier) * 100);
+        -- When grouping: show percent only if this is the last icon OR the next icon has a different percentage
+        -- When not grouping: always show percent for each icon
+        local showPercent = true;
+        if groupModifiers then
+            local nextItem = allResistances[i + 1];
+            showPercent = (nextItem == nil) or (math.floor((1 - nextItem.modifier) * 100) ~= percent);
+        end
+
+        table.insert(resistanceIcons, {
+            texture = item.texture,
+            -- Use %% to escape % for imgui.SetTooltip (printf-style function)
+            tooltip = item.name .. ' Resistance (-' .. tostring(percent) .. '%% damage)',
+            modifierText = '-' .. percent .. '%',
+            showPercent = showPercent
+        });
     end
 
     return resistanceIcons;
@@ -278,15 +325,12 @@ end
 local function BuildImmunityIcons(mobInfo)
     local immunityIcons = {};
     local immunities = mobdata.GetImmunities(mobInfo);
-    local disableTints = gConfig.mobInfoDisableIconTints;
-    local tintColor = disableTints and nil or gConfig.colorCustomization.mobInfo.immunityColor;
 
     for _, imm in ipairs(immunityTypes) do
         if immunities[imm.key] then
             table.insert(immunityIcons, {
                 texture = textures.immunities[string.lower(imm.key)],
-                tooltip = 'Immune to ' .. imm.name,
-                tint = tintColor
+                tooltip = 'Immune to ' .. imm.name
             });
         end
     end
@@ -300,6 +344,7 @@ local function HideAllFonts()
 end
 
 -- Calculate width of icons with modifiers (for positioning)
+-- Only counts modifier text width for icons where showPercent is true (grouped display)
 local function CalculateIconsWidth(icons, iconSize, spacing, fontHeight, modifierFontPool, modifierIndex)
     local totalWidth = 0;
     local usedModifiers = modifierIndex;
@@ -310,8 +355,8 @@ local function CalculateIconsWidth(icons, iconSize, spacing, fontHeight, modifie
         end
         totalWidth = totalWidth + iconSize;
 
-        -- Add modifier text width if enabled
-        if iconData.modifierText and gConfig.mobInfoShowModifierText then
+        -- Add modifier text width if enabled and this is the last icon in a percentage group
+        if iconData.modifierText and gConfig.mobInfoShowModifierText and iconData.showPercent then
             local modFont = modifierFontPool[usedModifiers];
             if modFont then
                 modFont:set_font_height(fontHeight);
@@ -329,6 +374,7 @@ end
 -- Draw icons with optional modifier text using GDI fonts
 -- baseX is the absolute X position where this section starts
 -- Returns the total width consumed and new modifier index
+-- Icons are grouped by percentage - only shows % after last icon in each group (when showPercent is true)
 local function DrawIconsWithModifiers(icons, iconSize, spacing, fontHeight, textColor, modifierFontPool, modifierIndex, baseX, baseY)
     local offsetX = 0;
     local usedModifiers = modifierIndex;
@@ -339,11 +385,12 @@ local function DrawIconsWithModifiers(icons, iconSize, spacing, fontHeight, text
             offsetX = offsetX + spacing;
         end
 
-        DrawIconWithTooltip(iconData.texture, iconSize, iconData.tooltip, iconData.tint);
+        DrawIconWithTooltip(iconData.texture, iconSize, iconData.tooltip);
         offsetX = offsetX + iconSize;
 
-        -- Draw modifier text if enabled and available
-        if iconData.modifierText and gConfig.mobInfoShowModifierText then
+        -- Draw modifier text if enabled, available, and this is the last icon in the percentage group
+        -- showPercent is set during icon building to group same-percentage modifiers
+        if iconData.modifierText and gConfig.mobInfoShowModifierText and iconData.showPercent then
             local modFont = modifierFontPool[usedModifiers];
             if modFont then
                 modFont:set_font_height(fontHeight);
@@ -374,14 +421,28 @@ end
 
 -- Draw a separator using GDI font at absolute position
 -- Returns the total width consumed (including padding) and the next separator index
+-- Separator style is controlled by gConfig.mobInfoSeparatorStyle: 'space', 'pipe', 'dot'
 local function DrawGdiSeparator(separatorPool, sepIndex, fontHeight, textColor, posX, posY, iconSize)
+    local separatorStyle = gConfig.mobInfoSeparatorStyle or 'space';
+
+    -- Space separator: just return spacing, don't draw anything
+    if separatorStyle == 'space' then
+        return 8, sepIndex; -- 8px spacing between sections
+    end
+
     local sepFont = separatorPool[sepIndex];
     if not sepFont then
         return 0, sepIndex;
     end
 
+    -- Determine separator character
+    local sepChar = '|';
+    if separatorStyle == 'dot' then
+        sepChar = '\194\183'; -- UTF-8 encoding of middle dot (·)
+    end
+
     sepFont:set_font_height(fontHeight);
-    sepFont:set_text('|');
+    sepFont:set_text(sepChar);
     UpdateFontColor(sepFont, textColor);
 
     local textW, textH = sepFont:get_text_size();
@@ -404,7 +465,7 @@ local function DrawIconsSimple(icons, iconSize, spacing)
             imgui.SameLine(0, spacing);
             totalWidth = totalWidth + spacing;
         end
-        DrawIconWithTooltip(iconData.texture, iconSize, iconData.tooltip, iconData.tint);
+        DrawIconWithTooltip(iconData.texture, iconSize, iconData.tooltip);
         totalWidth = totalWidth + iconSize;
     end
     return totalWidth;
@@ -471,8 +532,8 @@ mobinfo.DrawWindow = function(settings)
         return;
     end
 
-    -- Get mob info from database
-    local mobInfo = mobdata.GetMobInfo(targetEntity.Name);
+    -- Get mob info from database (pass index for spawn-specific job data)
+    local mobInfo = mobdata.GetMobInfo(targetEntity.Name, targetIndex);
 
     -- If no data and we don't want to show "no data" window, hide
     if mobInfo == nil and not gConfig.mobInfoShowNoData then
@@ -723,7 +784,7 @@ mobinfo.DrawWindow = function(settings)
                         if i > 1 then
                             imgui.SameLine(0, spacing);
                         end
-                        DrawIconWithTooltip(iconData.texture, iconSize, iconData.tooltip, iconData.tint);
+                        DrawIconWithTooltip(iconData.texture, iconSize, iconData.tooltip);
                     end
                     hasContent = true;
                 end
@@ -759,7 +820,7 @@ mobinfo.DrawWindow = function(settings)
                         if i > 1 then
                             imgui.SameLine(0, spacing);
                         end
-                        DrawIconWithTooltip(iconData.texture, iconSize, iconData.tooltip, iconData.tint);
+                        DrawIconWithTooltip(iconData.texture, iconSize, iconData.tooltip);
                     end
                     hasContent = true;
                 end
@@ -823,8 +884,11 @@ mobinfo.Initialize = function(settings)
         table.insert(allFonts, font);
     end
 
-    -- Load detection icons
-    textures.detection.aggro = LoadMobInfoTexture('AggroHQ');
+    -- Load detection icons (HQ for NMs, NQ for normal mobs)
+    textures.detection.aggroHQ = LoadMobInfoTexture('AggroHQ');
+    textures.detection.aggroNQ = LoadMobInfoTexture('AggroNQ');
+    textures.detection.passiveHQ = LoadMobInfoTexture('PassiveHQ');
+    textures.detection.passiveNQ = LoadMobInfoTexture('PassiveNQ');
     textures.detection.link = LoadMobInfoTexture('Link');
     textures.detection.sight = LoadMobInfoTexture('Sight');
     textures.detection.truesight = LoadMobInfoTexture('TrueSight');

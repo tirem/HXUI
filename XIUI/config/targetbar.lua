@@ -92,13 +92,6 @@ end
 -- Helper: Draw Mob Info specific settings (used in tab)
 local function DrawMobInfoSettingsContent(githubTexture)
     components.DrawCheckbox('Enabled', 'showMobInfo', CheckVisibility);
-    imgui.ShowHelp('Show mob information window when targeting monsters.');
-
-    components.DrawCheckbox('Snap to Target Bar', 'mobInfoSnapToTargetBar');
-    imgui.ShowHelp('Position mob info directly after the target name in the target bar.');
-
-    components.DrawCheckbox('Single Row Layout', 'mobInfoSingleRow');
-    imgui.ShowHelp('Display all mob info on a single horizontal line with pipe separators.');
 
     -- Attribution for Thorny's MobDB (on same line as Enabled)
     imgui.SameLine();
@@ -168,6 +161,12 @@ local function DrawMobInfoSettingsContent(githubTexture)
         ashita.misc.open_url('https://github.com/ThornyFFXI/mobdb');
     end
 
+    components.DrawCheckbox('Snap to Target Bar', 'mobInfoSnapToTargetBar');
+    imgui.ShowHelp('Position mob info directly after the target name in the target bar.');
+
+    components.DrawCheckbox('Single Row Layout', 'mobInfoSingleRow');
+    imgui.ShowHelp('Display all mob info on a single horizontal line with pipe separators.');
+
     if components.CollapsingSection('Display Options##mobInfo') then
         components.DrawCheckbox('Show Job', 'mobInfoShowJob');
         imgui.ShowHelp('Display the mob\'s job type (WAR, MNK, BLM, etc.).');
@@ -197,6 +196,13 @@ local function DrawMobInfoSettingsContent(githubTexture)
         components.DrawCheckbox('Show Modifier Percentages', 'mobInfoShowModifierText');
         imgui.ShowHelp('Show +25%/-50% text next to weakness/resistance icons.');
 
+        if gConfig.mobInfoShowModifierText then
+            imgui.Indent(20);
+            components.DrawCheckbox('Group by Percentage', 'mobInfoGroupModifiers');
+            imgui.ShowHelp('Group icons with the same percentage together (Wind Earth Water -25%%) vs showing each individually (Wind -25%% Earth -25%%).');
+            imgui.Unindent(20);
+        end
+
         components.DrawCheckbox('Show Server ID', 'mobInfoShowServerId');
         imgui.ShowHelp('Display the target\'s server ID.');
 
@@ -215,8 +221,31 @@ local function DrawMobInfoSettingsContent(githubTexture)
     end
 
     if components.CollapsingSection('Appearance##mobInfo') then
-        components.DrawCheckbox('Disable Icon Tints', 'mobInfoDisableIconTints');
-        imgui.ShowHelp('Show icons without color overlays. Useful if you prefer the original icon colors.');
+        -- Separator style dropdown
+        local separatorStyles = { 'space', 'pipe', 'dot' };
+        local separatorLabels = { 'Space (none)', 'Pipe |', 'Dot \194\183' };
+        local currentStyle = gConfig.mobInfoSeparatorStyle or 'space';
+        local currentIndex = 1;
+        for i, style in ipairs(separatorStyles) do
+            if style == currentStyle then
+                currentIndex = i;
+                break;
+            end
+        end
+
+        if imgui.BeginCombo('Separator Style', separatorLabels[currentIndex]) then
+            for i, label in ipairs(separatorLabels) do
+                local isSelected = (i == currentIndex);
+                if imgui.Selectable(label, isSelected) then
+                    gConfig.mobInfoSeparatorStyle = separatorStyles[i];
+                end
+                if isSelected then
+                    imgui.SetItemDefaultFocus();
+                end
+            end
+            imgui.EndCombo();
+        end
+        imgui.ShowHelp('Style of separator between sections in single-row mode.');
 
         components.DrawSlider('Icon Scale', 'mobInfoIconScale', 0.5, 3.0, '%.1f');
         imgui.ShowHelp('Scale multiplier for mob info icons.');
@@ -340,12 +369,6 @@ end
 local function DrawMobInfoColorSettingsContent()
     if components.CollapsingSection('Text Colors##mobInfoColor') then
         components.DrawTextColorPicker("Level Text", gConfig.colorCustomization.mobInfo, 'levelTextColor', "Color of level text");
-    end
-
-    if components.CollapsingSection('Icon Tints##mobInfoColor') then
-        components.DrawTextColorPicker("Weakness Tint", gConfig.colorCustomization.mobInfo, 'weaknessColor', "Tint color for weakness icons (green recommended)");
-        components.DrawTextColorPicker("Resistance Tint", gConfig.colorCustomization.mobInfo, 'resistanceColor', "Tint color for resistance icons (red recommended)");
-        components.DrawTextColorPicker("Immunity Tint", gConfig.colorCustomization.mobInfo, 'immunityColor', "Tint color for immunity icons (yellow recommended)");
     end
 end
 

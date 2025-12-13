@@ -462,9 +462,6 @@ function M.MigrateIndividualSettings(gConfig, defaults)
     if gConfig.mobInfoShowJob == nil then
         gConfig.mobInfoShowJob = defaults.mobInfoShowJob;
     end
-    if gConfig.mobInfoDisableIconTints == nil then
-        gConfig.mobInfoDisableIconTints = defaults.mobInfoDisableIconTints;
-    end
     if gConfig.mobInfoShowModifierText == nil then
         gConfig.mobInfoShowModifierText = defaults.mobInfoShowModifierText;
     end
@@ -476,6 +473,12 @@ function M.MigrateIndividualSettings(gConfig, defaults)
     end
     if gConfig.mobInfoSingleRow == nil then
         gConfig.mobInfoSingleRow = defaults.mobInfoSingleRow;
+    end
+    if gConfig.mobInfoSeparatorStyle == nil then
+        gConfig.mobInfoSeparatorStyle = defaults.mobInfoSeparatorStyle;
+    end
+    if gConfig.mobInfoGroupModifiers == nil then
+        gConfig.mobInfoGroupModifiers = defaults.mobInfoGroupModifiers;
     end
 
     -- Migrate party text position offsets (add to all parties if missing)

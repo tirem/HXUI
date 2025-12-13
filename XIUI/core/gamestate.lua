@@ -48,6 +48,22 @@ function M.IsMapOpen()
     return string.match(M.GetMenuName(), 'map') ~= nil;
 end
 
+-- Check if Ashita's FontManager has been hidden (e.g., by autohide addon)
+function M.GetFontManagerHidden()
+    local fontManager = AshitaCore:GetFontManager();
+    if fontManager then
+        -- Try GetVisible first (matches SetVisible used by autohide)
+        if fontManager.GetVisible then
+            return not fontManager:GetVisible();
+        end
+        -- Fallback to GetHideObjects (per Ashita wiki documentation)
+        if fontManager.GetHideObjects then
+            return fontManager:GetHideObjects();
+        end
+    end
+    return false;
+end
+
 function M.CheckLoggedIn()
     local playerIndex = AshitaCore:GetMemoryManager():GetParty():GetMemberTargetIndex(0);
     if playerIndex == 0 then
@@ -74,6 +90,10 @@ function M.ShouldHideUI(hideDuringEvents, isLoggedIn)
         return true;
     end
     if not isLoggedIn then
+        return true;
+    end
+    -- Respect autohide and similar addons that hide Ashita's FontManager
+    if M.GetFontManagerHidden() then
         return true;
     end
     return false;

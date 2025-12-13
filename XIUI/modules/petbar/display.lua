@@ -14,6 +14,13 @@ local color = require('libs.color');
 
 local display = {};
 
+-- Window state for bottom alignment
+local windowState = {
+    x = nil,
+    y = nil,
+    height = nil,
+};
+
 -- ============================================
 -- Per-Pet-Type Settings Helpers
 -- ============================================
@@ -605,6 +612,10 @@ function display.DrawWindow(settings)
         data.currentPetName = nil;
         data.SetAllFontsVisible(false);
         data.HideBackground();
+        -- Reset window state when hidden so bottom alignment starts fresh
+        windowState.x = nil;
+        windowState.y = nil;
+        windowState.height = nil;
         return false;
     end
 
@@ -948,8 +959,8 @@ function display.DrawWindow(settings)
                     -- Full display: vertical list with name and recast timer
                     -- Note: Alignment is forced to 'left' for full mode - right alignment
                     -- doesn't work properly with the stacked vertical layout
-                    local recastShowBookends = typeSettings.recastShowBookends;
-                    if recastShowBookends == nil then recastShowBookends = true; end
+                    local recastShowBookends = typeSettings.showBookends;
+                    if recastShowBookends == nil then recastShowBookends = gConfig.petBarShowBookends; end
 
                     local fullSettings = {
                         showName = typeSettings.recastFullShowName ~= false,
@@ -1149,6 +1160,21 @@ function display.DrawWindow(settings)
 
         -- Get final window size for background
         local windowWidth, windowHeight = imgui.GetWindowSize();
+
+        -- Handle bottom alignment
+        if typeSettings.alignBottom then
+            if windowState.height ~= nil and windowState.height ~= windowHeight then
+                -- Height changed, adjust Y to keep bottom edge fixed
+                local newPosY = windowState.y + windowState.height - windowHeight;
+                imgui.SetWindowPos('PetBar', { windowPosX, newPosY });
+                windowPosY = newPosY;
+            end
+
+            -- Save current state
+            windowState.x = windowPosX;
+            windowState.y = windowPosY;
+            windowState.height = windowHeight;
+        end
 
         -- Store main window position for pet target window
         data.lastMainWindowPosX = windowPosX;

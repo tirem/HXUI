@@ -15,5 +15,6 @@ modules.inventory = require('modules.inventory.init');
 modules.partylist = require('modules.partylist.init');
 modules.castbar = require('modules.castbar');
 modules.petbar = require('modules.petbar.init');
+modules.castcost = require('modules.castcost.init');
 
 return modules;

@@ -271,13 +271,8 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 		options = {};
 	end
 
-	-- Decorate by default
+	-- Default to false if not specified
 	if options.decorate == nil then
-		options.decorate = true;
-	end
-
-	-- Apply global showBookends setting (master switch)
-	if gConfig and gConfig.showBookends == false then
 		options.decorate = false;
 	end
 

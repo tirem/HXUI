@@ -28,7 +28,7 @@ local function createPartyDefaults(overrides)
         showSubJob = true,
         showSubJobLevel = true,
         showCastBars = true,
-        castBarStyle = 'name', -- 'name' = replace name, 'mp' = use MP bar
+        castBarStyle = 'name', -- 'name' = replace name, 'mp' = use MP bar, 'tp' = use TP bar
         alwaysShowMpBar = true, -- Show MP bar even for jobs without MP
         castBarScaleX = 1.0,
         castBarScaleY = 0.6,
@@ -102,6 +102,8 @@ local function createPetBarTypeDefaults(overrides)
         showMP = true,
         showTP = true,
         showTimers = true,
+        -- Positioning
+        alignBottom = false,
         -- Scale settings
         scaleX = 1.0,
         scaleY = 1.0,
@@ -270,6 +272,27 @@ M.user_settings = T{
     showPartyList = true,
     showCastBar = true,
     showPetBar = true,
+    showCastCost = true,
+
+    -- Cast Cost settings
+    castCostScaleX = 1.0,
+    castCostScaleY = 1.0,
+    castCostBackgroundTheme = 'Window1',
+    castCostBackgroundOpacity = 1.0,
+    castCostBorderOpacity = 1.0,
+    castCostShowName = true,
+    castCostShowMpCost = true,
+    castCostShowRecast = false,
+    castCostNameFontSize = 12,
+    castCostCostFontSize = 12,
+    castCostTimeFontSize = 10,
+    castCostMinWidth = 100,
+    castCostPadding = 8,
+    castCostPaddingY = 8,
+    castCostAlignBottom = false,
+    castCostShowCooldown = true,
+    castCostBarScaleY = 1.0,
+    castCostRecastFontSize = 10,
 
     statusIconTheme = 'XIView',
     jobIconTheme = 'FFXI',
@@ -283,13 +306,13 @@ M.user_settings = T{
     enemyListMaxColumns = 1,
     enemyListRowSpacing = 5,
     enemyListColumnSpacing = 10,
-    enemyListDebuffOffsetX = 0,
+    enemyListDebuffOffsetX = 131,
     enemyListDebuffOffsetY = 0,
     showEnemyListDebuffs = true,
     enemyListDebuffsRightAlign = false,
-    showEnemyListTargets = false,
+    showEnemyListTargets = true,
     enableEnemyListClickTarget = true,
-    enemyListPreview = false,
+    enemyListPreview = true,
 
     playerBarScaleX = 1,
     playerBarScaleY = 1,
@@ -300,6 +323,7 @@ M.user_settings = T{
     playerBarHideDuringEvents = true,
     playerBarHpDisplayMode = 'number', -- 'number', 'percent', 'both', 'both_percent_first', 'current_max'
     playerBarMpDisplayMode = 'number', -- 'number', 'percent', 'both', 'both_percent_first', 'current_max'
+    showMpCostPreview = true, -- Show spell MP cost preview on MP bars when hovering spells
 
     -- Text positioning settings for player bar (per stat)
     playerBarHpTextOffsetX = 0,
@@ -344,13 +368,18 @@ M.user_settings = T{
 
     enemyListScaleX = 1,
     enemyListScaleY = 1,
-    enemyListNameFontSize = 12,
-    enemyListDistanceFontSize = 12,
-    enemyListPercentFontSize = 12,
+    enemyListNameFontSize = 10,
+    enemyListDistanceFontSize = 8,
+    enemyListPercentFontSize = 8,
     enemyListIconScale = 1,
-    showEnemyDistance = false,
+    showEnemyDistance = true,
     showEnemyHPPText = true,
     showEnemyListBookends = false,
+    -- Enemy target container settings
+    enemyListTargetOffsetX = 0,
+    enemyListTargetOffsetY = 43,
+    enemyListTargetWidth = 64,
+    enemyListTargetFontSize = 8,
 
     expBarScaleX = 1,
     expBarScaleY = 1,
@@ -364,6 +393,7 @@ M.user_settings = T{
     gilTrackerScale = 1,
     gilTrackerFontSize = 12,
     gilTrackerRightAlign = false,
+    gilTrackerIconRight = true,
     gilTrackerShowIcon = true,
 
     inventoryTrackerScale = 1,
@@ -376,6 +406,7 @@ M.user_settings = T{
     inventoryShowCount = true,
     inventoryShowDots = true,
     inventoryShowLabels = false,
+    inventoryTextUseThresholdColor = false,
 
     showSatchelTracker = false,
     satchelTrackerScale = 1,
@@ -387,6 +418,7 @@ M.user_settings = T{
     satchelShowCount = true,
     satchelShowDots = true,
     satchelShowLabels = false,
+    satchelTextUseThresholdColor = false,
 
     showLockerTracker = false,
     lockerTrackerScale = 1,
@@ -398,6 +430,7 @@ M.user_settings = T{
     lockerShowCount = true,
     lockerShowDots = true,
     lockerShowLabels = false,
+    lockerTextUseThresholdColor = false,
 
     showSafeTracker = false,
     safeTrackerScale = 1,
@@ -410,6 +443,7 @@ M.user_settings = T{
     safeShowDots = true,
     safeShowPerContainer = false,
     safeShowLabels = true,
+    safeTextUseThresholdColor = false,
 
     showStorageTracker = false,
     storageTrackerScale = 1,
@@ -421,6 +455,7 @@ M.user_settings = T{
     storageShowCount = true,
     storageShowDots = true,
     storageShowLabels = false,
+    storageTextUseThresholdColor = false,
 
     showWardrobeTracker = false,
     wardrobeTrackerScale = 1,
@@ -433,24 +468,26 @@ M.user_settings = T{
     wardrobeShowDots = true,
     wardrobeShowPerContainer = false,
     wardrobeShowLabels = true,
+    wardrobeTextUseThresholdColor = false,
 
     -- Mob Info settings
     showMobInfo = true,
-    mobInfoSnapToTargetBar = false,
+    mobInfoSnapToTargetBar = true,
     mobInfoShowLevel = true,
     mobInfoShowDetection = true,
     mobInfoShowLink = true,
-    mobInfoShowResistances = true,
-    mobInfoShowWeaknesses = true,
-    mobInfoShowImmunities = true,
+    mobInfoShowResistances = false,
+    mobInfoShowWeaknesses = false,
+    mobInfoShowImmunities = false,
     mobInfoIconScale = 1.0,
     mobInfoShowNoData = false,
     mobInfoFontSize = 12,
-    mobInfoSingleRow = false, -- false = stacked layout, true = single row layout
+    mobInfoSingleRow = true, -- false = stacked layout, true = single row layout
     mobInfoHideWhenEngaged = false, -- hide mob info when engaged in combat
-    mobInfoShowJob = true, -- show mob's job type (WAR, MNK, etc.)
-    mobInfoDisableIconTints = false, -- show icons without color overlays
+    mobInfoShowJob = false, -- show mob's job type (WAR, MNK, etc.)
     mobInfoShowModifierText = false, -- show +25%/-50% next to icons
+    mobInfoGroupModifiers = true, -- group icons by percentage (Wind Earth Water -25%) vs individual (Wind -25% Earth -25%)
+    mobInfoSeparatorStyle = 'space', -- separator style: 'space', 'pipe', 'dot'
     mobInfoShowServerId = false, -- show target's server ID
     mobInfoServerIdHex = true, -- true = hex format (0x1C0), false = decimal
 
@@ -837,7 +874,7 @@ M.user_settings = T{
     }),
 
     -- Bar Settings (global progress bar configuration)
-    showBookends = false,            -- Global bookend visibility (overrides individual bookend settings)
+    showBookends = false,            -- Global toggle that sets all module bookend settings
     bookendSize = 10,               -- Minimum bookend width in pixels (5-20)
     healthBarFlashEnabled = true,   -- Flash effect when taking damage
     noBookendRounding = 4,          -- Bar roundness for bars without bookends (0-10)
@@ -885,6 +922,7 @@ M.user_settings = T{
             percentTextColor = 0xFFFFFFFF,
             targetBorderColor = 0xFFFFFFFF,      -- white - border for main target
             subtargetBorderColor = 0xFF8080FF,   -- blue - border for subtarget
+            targetNameTextColor = 0xFFFFAA00,    -- orange - enemy's target name
             -- Note: Entity name colors are in shared section
         },
 
@@ -965,6 +1003,25 @@ M.user_settings = T{
             barGradient = T{ enabled = true, start = '#3798ce', stop = '#78c5ee' },
             spellTextColor = 0xFFFFFFFF,
             percentTextColor = 0xFFFFFFFF,
+        },
+
+        -- Cast Cost
+        castCost = T{
+            nameTextColor = 0xFFFFFFFF,
+            nameOnCooldownColor = 0xFF888888, -- Grey when spell is on cooldown
+            mpCostTextColor = 0xFFD4FF97,   -- Green (matches MP color)
+            mpNotEnoughColor = 0xFFFF6666,  -- Red when not enough MP
+            tpCostTextColor = 0xFF8DC7FF,   -- Blue (matches TP color)
+            timeTextColor = 0xFFCCCCCC,     -- Light gray for cast/recast times
+            readyTextColor = 0xFF44CC44,    -- Green when spell is ready
+            cooldownTextColor = 0xFFFFFFFF, -- White text on cooldown bar
+            cooldownBarGradient = T{ enabled = false, start = '#FFFFFF', stop = '#44CC44' },
+            bgColor = 0xFFFFFFFF,
+            borderColor = 0xFFFFFFFF,
+            -- MP Cost Preview on Player/Party MP bars
+            mpCostPreviewGradient = T{ enabled = true, start = '#9abb5a', stop = '#bfe07d' }, -- Base: MP green
+            mpCostPreviewFlashColor = '#FFFFFF',  -- Pulse flash color (white)
+            mpCostPreviewPulseSpeed = 1.0,        -- Pulse duration in seconds
         },
 
         -- Pet Bar
@@ -1048,9 +1105,6 @@ M.user_settings = T{
         -- Mob Info
         mobInfo = T{
             levelTextColor = 0xFFFFFFFF,
-            resistanceColor = 0xFFFF6666,   -- Red tint for resistances
-            weaknessColor = 0xFF66FF66,     -- Green tint for weaknesses
-            immunityColor = 0xFFFFFF66,     -- Yellow tint for immunities
         },
 
         -- Global/Shared
@@ -1193,7 +1247,7 @@ M.default_settings = T{
         name_font_settings = T{
             font_alignment = gdi.Alignment.Left,
             font_family = 'Consolas',
-            font_height = 11,
+            font_height = 10,
             font_color = 0xFFFFFFFF,
             font_flags = gdi.FontFlags.None,
             outline_color = 0xFF000000,
@@ -1202,7 +1256,7 @@ M.default_settings = T{
         distance_font_settings = T{
             font_alignment = gdi.Alignment.Left,
             font_family = 'Consolas',
-            font_height = 9,
+            font_height = 8,
             font_color = 0xFFFFFFFF,
             font_flags = gdi.FontFlags.None,
             outline_color = 0xFF000000,
@@ -1211,8 +1265,17 @@ M.default_settings = T{
         percent_font_settings = T{
             font_alignment = gdi.Alignment.Right,
             font_family = 'Consolas',
-            font_height = 9,
+            font_height = 8,
             font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        target_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 8,
+            font_color = 0xFFFFAA00,
             font_flags = gdi.FontFlags.None,
             outline_color = 0xFF000000,
             outline_width = 2,
@@ -1542,6 +1605,77 @@ M.default_settings = T{
             font_flags = gdi.FontFlags.None,
             outline_color = 0xFF000000,
             outline_width = 2,
+        },
+    },
+
+    -- settings for cast cost
+    castCostSettings = T{
+        minWidth = 100,
+        alignBottom = false,
+        showCooldown = true,
+        barScaleY = 1.0,
+        bgPadding = 8,
+        bgPaddingY = 8,
+        borderSize = 21,
+        bgOffset = 1,
+        bgScale = 1.0,
+        backgroundTheme = 'Window1',
+        backgroundOpacity = 1.0,
+        borderOpacity = 1.0,
+        showName = true,
+        showMpCost = true,
+        showRecast = true,
+        name_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 12,
+            font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        cost_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 12,
+            font_color = 0xFFD4FF97,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        time_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 10,
+            font_color = 0xFFCCCCCC,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        recast_font_settings = T{
+            font_alignment = gdi.Alignment.Right,
+            font_family = 'Consolas',
+            font_height = 10,
+            font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        cooldown_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 10,
+            font_color = 0xFF44CC44,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        prim_data = T{
+            visible = false,
+            can_focus = false,
+            locked = true,
+            width = 100,
+            height = 100,
         },
     },
 

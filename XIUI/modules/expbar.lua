@@ -9,6 +9,7 @@ local expText;
 local percentText;
 local allFonts; -- Table for batch visibility operations
 
+-- Thank you @onimitch for the help with tons of the EXPbar module!
 -- Cached colors to avoid expensive set_font_color calls every frame
 local lastJobTextColor;
 local lastExpTextColor;
@@ -20,6 +21,49 @@ local expbar = {
     capacityPoints = {},
     jobPoints = {},
 };
+
+-- Helper functions to generate text strings (eliminates duplication)
+local function buildJobString(player, jobLevel, masteryEnabled, mlJobLevel)
+    local mainJobString = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', player:GetMainJob());
+    local subJobString = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', player:GetSubJob());
+
+    local jobLevelString = tostring(jobLevel);
+    if masteryEnabled then
+        jobLevelString = 'ML' .. mlJobLevel;
+    end
+
+    return mainJobString .. ' ' .. jobLevelString .. ' / ' .. subJobString .. ' ' .. player:GetSubJobLevel();
+end
+
+local function buildExpString(separator, masteryEnabled, meritMode, jobLevel, jobPoints, meritPoints, limitPoints, capPoints, expPoints, mastery)
+    if masteryEnabled then
+        return separator .. 'JP (' .. jobPoints[1] .. ' / ' .. jobPoints[2] .. ')' .. '  MP (' .. meritPoints[1] .. ' / ' .. meritPoints[2] .. ')' .. '  EXP (' .. mastery[1] .. ' / ' .. mastery[2] .. ')';
+    elseif meritMode then
+        if jobLevel >= 99 then
+            return separator .. 'JP (' .. jobPoints[1] .. '/' .. jobPoints[2] .. ') MP (' .. meritPoints[1] .. '/' .. meritPoints[2] .. ') LP (' .. limitPoints[1] .. '/' .. limitPoints[2] .. ')';
+        else
+            return separator .. 'MP (' .. meritPoints[1] .. '/' .. meritPoints[2] .. ') LP (' .. limitPoints[1] .. '/' .. limitPoints[2] .. ')';
+        end
+    elseif jobLevel >= 99 then
+        return separator .. 'JP (' .. jobPoints[1] .. '/' .. jobPoints[2] .. ') MP (' .. meritPoints[1] .. '/' .. meritPoints[2] .. ') CP (' .. capPoints[1] .. '/' .. capPoints[2] .. ')';
+    else
+        return separator .. 'EXP (' .. expPoints[1] .. '/' .. expPoints[2] .. ')';
+    end
+end
+
+local function buildPercentString(progressBarProgress, showText)
+    local expPercentString = ('%.f'):fmt(progressBarProgress * 100);
+    local percentSeparator = showText and ' - ' or '';
+    return percentSeparator .. expPercentString .. '%';
+end
+
+function GetKeyItemFromName(name)
+    local findKI = AshitaCore:GetResourceManager():GetString('keyitems.names', name, 2);
+    if (findKI ~= nil) then
+        return findKI;
+    end
+    return -1;
+end
 
 --[[
 * event: d3d_present
@@ -57,6 +101,18 @@ expbar.DrawWindow = function(settings)
     local capPointsProgress = expbar.capacityPoints[1] / expbar.capacityPoints[2];
     local jobPoints = expbar.jobPoints;
 
+    local mastered = player:GetJobPointsSpent(mainJob) == 2100;
+    local masteryEnabled = jobLevel >= 99 and mastered and player:HasKeyItem(expbar.mlBreakerItemId);
+    local masteryProgress = 0;
+    local mlJobLevel = 0;
+    if masteryEnabled then
+        expbar.mastery = { player:GetMasteryExp(), player:GetMasteryExpNeeded() };
+        if expbar.mastery[2] > 0 then
+            masteryProgress = expbar.mastery[1] / expbar.mastery[2];
+        end
+        mlJobLevel = player:GetMasteryJobLevel();
+    end
+
     local meritMode = gConfig.expBarLimitPointsMode and (expPoints[1] == 55999 or ((player:GetIsLimitModeEnabled() or player:GetIsExperiencePointsLocked()) and jobLevel >= 75));
     -- If player is a max level then only enable meritMode in the xp bar if limit mode is specifically enabled
     -- this is so we display capacity points by default
@@ -65,7 +121,9 @@ expbar.DrawWindow = function(settings)
         meritMode = false
     end
     local progressBarProgress = 0
-    if meritMode then
+    if masteryEnabled then
+        progressBarProgress = masteryProgress;
+    elseif meritMode then
         progressBarProgress = limitPointsProgress;
     elseif jobLevel >= 99 then
         progressBarProgress = capPointsProgress;
@@ -74,43 +132,32 @@ expbar.DrawWindow = function(settings)
     end
 
     local inlineMode = gConfig.expBarInlineMode;
+    local expBarTextMargin = 10;
+
+    -- Build text strings once, reuse for both measuring and rendering
+    -- Note: In inline mode we use ' - ' separator, in non-inline mode we use ''
+    -- All text (including percent) requires expBarShowText to be enabled
+    local expStringSeparator = inlineMode and ' - ' or '';
+    local jobString = gConfig.expBarShowText and buildJobString(player, jobLevel, masteryEnabled, mlJobLevel) or nil;
+    local expString = gConfig.expBarShowText and buildExpString(expStringSeparator, masteryEnabled, meritMode, jobLevel, jobPoints, meritPoints, limitPoints, capPoints, expPoints, expbar.mastery) or nil;
+    local percentString = (gConfig.expBarShowText and gConfig.expBarShowPercent) and buildPercentString(progressBarProgress, true) or nil;
 
     -- Calculate text width for inline mode positioning
     local actualTextWidth = 0;
     if inlineMode then
-        -- Pre-calculate text sizes to determine actual width needed
-        if gConfig.expBarShowText then
-            local mainJobString = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', player:GetMainJob());
-            local subJobString = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', player:GetSubJob());
-            local jobString = mainJobString .. ' ' .. player:GetMainJobLevel() .. ' / ' .. subJobString .. ' ' .. player:GetSubJobLevel();
+        if jobString then
             jobText:set_text(jobString);
             local jobWidth = jobText:get_text_size();
             actualTextWidth = actualTextWidth + jobWidth;
-
-            -- Calculate exp text width
-            local separator = ' - ';
-            local expTestString;
-            if meritMode then
-                if player:GetMainJobLevel() >= 99 then
-                    expTestString = separator .. 'JP (' .. jobPoints[1] .. '/' .. jobPoints[2] .. ') MP (' .. meritPoints[1] .. '/' .. meritPoints[2] .. ') LP (' .. limitPoints[1] .. '/' .. limitPoints[2] .. ')';
-                else
-                    expTestString = separator .. 'MP (' .. meritPoints[1] .. '/' .. meritPoints[2] .. ') LP (' .. limitPoints[1] .. '/' .. limitPoints[2] .. ')';
-                end
-            elseif player:GetMainJobLevel() >= 99 then
-                expTestString = separator .. 'JP (' .. jobPoints[1] .. '/' .. jobPoints[2] .. ') MP (' .. meritPoints[1] .. '/' .. meritPoints[2] .. ') CP (' .. capPoints[1] .. '/' .. capPoints[2] .. ')';
-            else
-                expTestString = separator .. 'EXP (' .. expPoints[1] .. '/' .. expPoints[2] .. ')';
-            end
-            expText:set_text(expTestString);
-            local expWidth = expText:get_text_size();
-            actualTextWidth = actualTextWidth + expWidth;
         end
 
-        if gConfig.expBarShowPercent then
-            local expPercentString = ('%.f'):fmt(progressBarProgress * 100);
-            -- Only add separator if text is also shown
-            local percentSeparator = gConfig.expBarShowText and ' - ' or '';
-            local percentString = percentSeparator .. expPercentString .. '%';
+        if expString then
+            expText:set_text(expString);
+            local expWidth = expText:get_text_size();
+            actualTextWidth = actualTextWidth + expWidth + expBarTextMargin;
+        end
+
+        if percentString then
             percentText:set_text(percentString);
             local percentWidth = percentText:get_text_size();
             actualTextWidth = actualTextWidth + percentWidth;
@@ -172,13 +219,8 @@ expbar.DrawWindow = function(settings)
         end
 
         -- Pre-calculate percent text width for layout purposes (needed before expText positioning)
-        local percentString = '';
         local percentTextWidth = 0;
-        if gConfig.expBarShowPercent then
-            local expPercentString = ('%.f'):fmt(progressBarProgress * 100);
-            -- Add separator when on same line as exp text (non-inline mode with text shown, or inline mode with text shown)
-            local percentSeparator = gConfig.expBarShowText and ' - ' or '';
-            percentString = percentSeparator .. expPercentString .. '%';
+        if percentString then
             percentText:set_text(percentString);
             percentTextWidth = percentText:get_text_size();
         end
@@ -194,11 +236,8 @@ expbar.DrawWindow = function(settings)
         local textWidth, textHeight = 0, 0;
         local expTextWidth, expTextHeight = 0, 0;
 
-        if gConfig.expBarShowText then
-            -- Job Text
-            local mainJobString = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', mainJob);
-            local subJobString = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', subJob);
-            local jobString = mainJobString .. ' ' .. jobLevel .. ' / ' .. subJobString .. ' ' .. subJobLevel;
+        if jobString then
+            -- Job Text (string already built above)
             jobText:set_text(jobString);
             textWidth, textHeight = jobText:get_text_size();
             jobText:set_position_x(leftTextX);
@@ -209,20 +248,7 @@ expbar.DrawWindow = function(settings)
                 lastJobTextColor = gConfig.colorCustomization.expBar.jobTextColor;
             end
 
-            -- Exp Text (with separator in inline mode)
-            local expString;
-            local separator = inlineMode and ' - ' or '';
-            if meritMode then
-                if jobLevel >= 99 then
-                    expString = separator .. 'JP (' .. jobPoints[1] .. '/' .. jobPoints[2] .. ') MP (' .. meritPoints[1] .. '/' .. meritPoints[2] .. ') LP (' .. limitPoints[1] .. '/' .. limitPoints[2] .. ')';
-                else
-                    expString = separator .. 'MP (' .. meritPoints[1] .. '/' .. meritPoints[2] .. ') LP (' .. limitPoints[1] .. '/' .. limitPoints[2] .. ')';
-                end
-            elseif jobLevel >= 99 then
-                expString = separator .. 'JP (' .. jobPoints[1] .. '/' .. jobPoints[2] .. ') MP (' .. meritPoints[1] .. '/' .. meritPoints[2] .. ') CP (' .. capPoints[1] .. '/' .. capPoints[2] .. ')';
-            else
-                expString = separator .. 'EXP (' .. expPoints[1] .. '/' .. expPoints[2] .. ')';
-            end
+            -- Exp Text (string already built above with correct separator)
             expText:set_text(expString);
             expTextWidth, expTextHeight = expText:get_text_size();
 
@@ -230,7 +256,7 @@ expbar.DrawWindow = function(settings)
             if inlineMode then
                 -- Exp text is right-aligned, so X position is the RIGHT edge
                 -- Position it so the right edge is at: leftTextX + jobWidth + expWidth
-                expText:set_position_x(leftTextX + textWidth + expTextWidth);
+                expText:set_position_x(leftTextX + textWidth + expTextWidth + expBarTextMargin);
             else
                 -- In non-inline mode, if percent is shown, leave room for it on the right
                 if gConfig.expBarShowPercent then
@@ -249,14 +275,12 @@ expbar.DrawWindow = function(settings)
             jobText:set_visible(true);
             expText:set_visible(true);
         else
-            jobText:set_text('');
             jobText:set_visible(false);
-            expText:set_text('');
             expText:set_visible(false);
         end
 
         -- Percent Text
-        if gConfig.expBarShowPercent then
+        if percentString then
             -- percentString and percentTextWidth already calculated above for layout purposes
             local _, percentTextHeight = percentText:get_text_size();
 
@@ -295,7 +319,6 @@ expbar.DrawWindow = function(settings)
 
             percentText:set_visible(true);
         else
-            percentText:set_text('');
             percentText:set_visible(false);
         end
 
@@ -318,8 +341,9 @@ expbar.Initialize = function(settings)
         local currJob = player:GetMainJob();
         expbar.capacityPoints = { player:GetCapacityPoints(currJob), 30000 };
         expbar.jobPoints = { player:GetJobPoints(currJob), 500 };
+        expbar.mastery = { player:GetMasteryExp(), player:GetMasteryExpNeeded() };
+        expbar.mlBreakerItemId = GetKeyItemFromName('master breaker')
     end
-    -- expbar.mastery = { player:GetMasteryExp(), player:GetMasteryExpNeeded() };
 end
 
 expbar.UpdateVisuals = function(settings)
@@ -366,8 +390,13 @@ expbar.HandlePacket = function(e)
                 -- print('Merit points: ' .. expbar.meritPoints[1] .. ' / ' .. expbar.meritPoints[2] .. ' #' .. msgId);
             elseif msgId == 719 then
                 expbar.jobPoints[1] = val;
+            elseif msgId == 809 or msgId == 810 then
+                expbar.mastery[1] = expbar.mastery[1] + val;
             end
         end
+    elseif e.id == 0x061 then
+        expbar.mastery[1] = struct.unpack('I', e.data_modified, 0x69);
+        expbar.mastery[2] = struct.unpack('I', e.data_modified, 0x6D);
     elseif e.id == 0x063 then
         if e.data_modified:byte(5) == 2 then
             expbar.limitPoints[1] = struct.unpack('H', e.data_modified, 0x08 + 1);

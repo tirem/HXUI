@@ -83,10 +83,18 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     applyGlobalFontSettings(gAdjustedSettings.castBarSettings.spell_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
     applyGlobalFontSettings(gAdjustedSettings.castBarSettings.percent_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
 
+    -- Cast Cost fonts
+    applyGlobalFontSettings(gAdjustedSettings.castCostSettings.name_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    applyGlobalFontSettings(gAdjustedSettings.castCostSettings.cost_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    applyGlobalFontSettings(gAdjustedSettings.castCostSettings.time_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    applyGlobalFontSettings(gAdjustedSettings.castCostSettings.recast_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    applyGlobalFontSettings(gAdjustedSettings.castCostSettings.cooldown_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+
     -- Enemy List fonts
     applyGlobalFontSettings(gAdjustedSettings.enemyListSettings.name_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
     applyGlobalFontSettings(gAdjustedSettings.enemyListSettings.distance_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
     applyGlobalFontSettings(gAdjustedSettings.enemyListSettings.percent_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    applyGlobalFontSettings(gAdjustedSettings.enemyListSettings.target_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
 
     -- Mob Info fonts
     applyGlobalFontSettings(gAdjustedSettings.mobInfoSettings.level_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
@@ -209,8 +217,9 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     -- Gil Tracker
     gAdjustedSettings.gilTrackerSettings.iconScale = ds.gilTrackerSettings.iconScale * us.gilTrackerScale;
     gAdjustedSettings.gilTrackerSettings.font_settings.font_height = math.max(us.gilTrackerFontSize, 8);
-    gAdjustedSettings.gilTrackerSettings.font_settings.font_alignment = gdi.Alignment.Right;
+    gAdjustedSettings.gilTrackerSettings.font_settings.font_alignment = us.gilTrackerRightAlign and gdi.Alignment.Right or gdi.Alignment.Left;
     gAdjustedSettings.gilTrackerSettings.rightAlign = us.gilTrackerRightAlign;
+    gAdjustedSettings.gilTrackerSettings.iconRight = us.gilTrackerIconRight;
     gAdjustedSettings.gilTrackerSettings.showIcon = us.gilTrackerShowIcon;
 
     -- Inventory Tracker
@@ -223,6 +232,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.inventoryTrackerSettings.showText = us.inventoryShowCount;
     gAdjustedSettings.inventoryTrackerSettings.showDots = us.inventoryShowDots;
     gAdjustedSettings.inventoryTrackerSettings.showLabels = us.inventoryShowLabels;
+    gAdjustedSettings.inventoryTrackerSettings.textUseThresholdColor = us.inventoryTextUseThresholdColor;
 
     -- Satchel Tracker
     gAdjustedSettings.satchelTrackerSettings.dotRadius = ds.satchelTrackerSettings.dotRadius * us.satchelTrackerScale;
@@ -234,6 +244,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.satchelTrackerSettings.showText = us.satchelShowCount;
     gAdjustedSettings.satchelTrackerSettings.showDots = us.satchelShowDots;
     gAdjustedSettings.satchelTrackerSettings.showLabels = us.satchelShowLabels;
+    gAdjustedSettings.satchelTrackerSettings.textUseThresholdColor = us.satchelTextUseThresholdColor;
 
     -- Locker Tracker
     gAdjustedSettings.lockerTrackerSettings.dotRadius = ds.lockerTrackerSettings.dotRadius * us.lockerTrackerScale;
@@ -245,6 +256,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.lockerTrackerSettings.showText = us.lockerShowCount;
     gAdjustedSettings.lockerTrackerSettings.showDots = us.lockerShowDots;
     gAdjustedSettings.lockerTrackerSettings.showLabels = us.lockerShowLabels;
+    gAdjustedSettings.lockerTrackerSettings.textUseThresholdColor = us.lockerTextUseThresholdColor;
 
     -- Safe Tracker
     gAdjustedSettings.safeTrackerSettings.dotRadius = ds.safeTrackerSettings.dotRadius * us.safeTrackerScale;
@@ -257,6 +269,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.safeTrackerSettings.showDots = us.safeShowDots;
     gAdjustedSettings.safeTrackerSettings.showPerContainer = us.safeShowPerContainer;
     gAdjustedSettings.safeTrackerSettings.showLabels = us.safeShowLabels;
+    gAdjustedSettings.safeTrackerSettings.textUseThresholdColor = us.safeTextUseThresholdColor;
 
     -- Storage Tracker
     gAdjustedSettings.storageTrackerSettings.dotRadius = ds.storageTrackerSettings.dotRadius * us.storageTrackerScale;
@@ -268,6 +281,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.storageTrackerSettings.showText = us.storageShowCount;
     gAdjustedSettings.storageTrackerSettings.showDots = us.storageShowDots;
     gAdjustedSettings.storageTrackerSettings.showLabels = us.storageShowLabels;
+    gAdjustedSettings.storageTrackerSettings.textUseThresholdColor = us.storageTextUseThresholdColor;
 
     -- Wardrobe Tracker
     gAdjustedSettings.wardrobeTrackerSettings.dotRadius = ds.wardrobeTrackerSettings.dotRadius * us.wardrobeTrackerScale;
@@ -280,6 +294,7 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.wardrobeTrackerSettings.showDots = us.wardrobeShowDots;
     gAdjustedSettings.wardrobeTrackerSettings.showPerContainer = us.wardrobeShowPerContainer;
     gAdjustedSettings.wardrobeTrackerSettings.showLabels = us.wardrobeShowLabels;
+    gAdjustedSettings.wardrobeTrackerSettings.textUseThresholdColor = us.wardrobeTextUseThresholdColor;
 
     -- Enemy List
     gAdjustedSettings.enemyListSettings.barWidth = ds.enemyListSettings.barWidth * us.enemyListScaleX;
@@ -290,12 +305,36 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.enemyListSettings.name_font_settings.font_height = math.max(us.enemyListNameFontSize, 8);
     gAdjustedSettings.enemyListSettings.distance_font_settings.font_height = math.max(us.enemyListDistanceFontSize, 8);
     gAdjustedSettings.enemyListSettings.percent_font_settings.font_height = math.max(us.enemyListPercentFontSize, 8);
+    gAdjustedSettings.enemyListSettings.target_font_settings.font_height = math.max(us.enemyListTargetFontSize or 12, 8);
 
     -- Cast Bar
     gAdjustedSettings.castBarSettings.barWidth = ds.castBarSettings.barWidth * us.castBarScaleX;
     gAdjustedSettings.castBarSettings.barHeight = ds.castBarSettings.barHeight * us.castBarScaleY;
     gAdjustedSettings.castBarSettings.spell_font_settings.font_height = math.max(us.castBarFontSize, 8);
     gAdjustedSettings.castBarSettings.percent_font_settings.font_height = math.max(us.castBarFontSize, 8);
+
+    -- Cast Cost
+    gAdjustedSettings.castCostSettings.bgScale = us.castCostScaleX or 1.0;
+    gAdjustedSettings.castCostSettings.backgroundTheme = us.castCostBackgroundTheme or 'Window1';
+    gAdjustedSettings.castCostSettings.backgroundOpacity = us.castCostBackgroundOpacity or 1.0;
+    gAdjustedSettings.castCostSettings.borderOpacity = us.castCostBorderOpacity or 1.0;
+    gAdjustedSettings.castCostSettings.showName = us.castCostShowName;
+    gAdjustedSettings.castCostSettings.showMpCost = us.castCostShowMpCost;
+    gAdjustedSettings.castCostSettings.showRecast = us.castCostShowRecast;
+    gAdjustedSettings.castCostSettings.name_font_settings.font_height = math.max(us.castCostNameFontSize or 12, 8);
+    gAdjustedSettings.castCostSettings.cost_font_settings.font_height = math.max(us.castCostCostFontSize or 12, 8);
+    gAdjustedSettings.castCostSettings.time_font_settings.font_height = math.max(us.castCostTimeFontSize or 10, 8);
+    gAdjustedSettings.castCostSettings.minWidth = us.castCostMinWidth or 100;
+    gAdjustedSettings.castCostSettings.bgPadding = us.castCostPadding or 8;
+    gAdjustedSettings.castCostSettings.bgPaddingY = us.castCostPaddingY or 8;
+    gAdjustedSettings.castCostSettings.alignBottom = us.castCostAlignBottom or false;
+    gAdjustedSettings.castCostSettings.showCooldown = us.castCostShowCooldown;
+    if gAdjustedSettings.castCostSettings.showCooldown == nil then
+        gAdjustedSettings.castCostSettings.showCooldown = true;
+    end
+    gAdjustedSettings.castCostSettings.barScaleY = us.castCostBarScaleY or 1.0;
+    gAdjustedSettings.castCostSettings.recast_font_settings.font_height = math.max(us.castCostRecastFontSize or 10, 8);
+    gAdjustedSettings.castCostSettings.cooldown_font_settings.font_height = math.max(us.castCostRecastFontSize or 10, 8);
 
     -- Mob Info
     gAdjustedSettings.mobInfoSettings.level_font_settings.font_height = math.max(us.mobInfoFontSize, 8);
