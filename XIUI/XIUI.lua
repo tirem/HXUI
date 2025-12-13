@@ -59,6 +59,7 @@ local wardrobeTracker = uiMods.inventory.wardrobe;
 local partyList = uiMods.partylist;
 local castBar = uiMods.castbar;
 local petBar = uiMods.petbar;
+local castCost = uiMods.castcost;
 local configMenu = require('config');
 local debuffHandler = require('handlers.debuffhandler');
 local actionTracker = require('handlers.actiontracker');
@@ -198,6 +199,12 @@ uiModules.Register('castBar', {
     configKey = 'showCastBar',
     hasSetHidden = true,
 });
+uiModules.Register('castCost', {
+    module = castCost,
+    settingsKey = 'castCostSettings',
+    configKey = 'showCastCost',
+    hasSetHidden = true,
+});
 uiModules.Register('mobInfo', {
     module = mobInfo.display,
     settingsKey = 'mobInfoSettings',
@@ -298,6 +305,7 @@ UpdateEnemyListVisuals = uiModules.CreateVisualUpdater('enemyList', SaveSettings
 UpdateExpBarVisuals = uiModules.CreateVisualUpdater('expBar', SaveSettingsOnly, gAdjustedSettings);
 UpdateInventoryTrackerVisuals = uiModules.CreateVisualUpdater('inventoryTracker', SaveSettingsOnly, gAdjustedSettings);
 UpdateCastBarVisuals = uiModules.CreateVisualUpdater('castBar', SaveSettingsOnly, gAdjustedSettings);
+UpdateCastCostVisuals = uiModules.CreateVisualUpdater('castCost', SaveSettingsOnly, gAdjustedSettings);
 
 function UpdateGilTrackerVisuals()
     UpdateUserSettings();

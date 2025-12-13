@@ -270,6 +270,18 @@ M.user_settings = T{
     showPartyList = true,
     showCastBar = true,
     showPetBar = true,
+    showCastCost = true,
+
+    -- Cast Cost settings
+    castCostScaleX = 1.0,
+    castCostScaleY = 1.0,
+    castCostFontSize = 12,
+    castCostBackgroundTheme = 'Window1',
+    castCostBackgroundOpacity = 1.0,
+    castCostBorderOpacity = 1.0,
+    castCostShowMpCost = true,
+    castCostShowCastTime = true,
+    castCostShowRecast = true,
 
     statusIconTheme = 'XIView',
     jobIconTheme = 'FFXI',
@@ -981,6 +993,16 @@ M.user_settings = T{
             percentTextColor = 0xFFFFFFFF,
         },
 
+        -- Cast Cost
+        castCost = T{
+            nameTextColor = 0xFFFFFFFF,
+            mpCostTextColor = 0xFFD4FF97,   -- Green (matches MP color)
+            tpCostTextColor = 0xFF8DC7FF,   -- Blue (matches TP color)
+            timeTextColor = 0xFFCCCCCC,     -- Light gray for cast/recast times
+            bgColor = 0xFFFFFFFF,
+            borderColor = 0xFFFFFFFF,
+        },
+
         -- Pet Bar
         petBar = T{
             hpGradient = T{ enabled = true, start = '#e26c6c', stop = '#fa9c9c' },  -- Match playerBar high HP
@@ -1562,6 +1584,55 @@ M.default_settings = T{
             font_flags = gdi.FontFlags.None,
             outline_color = 0xFF000000,
             outline_width = 2,
+        },
+    },
+
+    -- settings for cast cost
+    castCostSettings = T{
+        bgPadding = 8,
+        bgPaddingY = 8,
+        borderSize = 21,
+        bgOffset = 1,
+        bgScale = 1.0,
+        backgroundTheme = 'Window1',
+        backgroundOpacity = 1.0,
+        borderOpacity = 1.0,
+        showMpCost = true,
+        showCastTime = true,
+        showRecast = true,
+        name_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 12,
+            font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        cost_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 12,
+            font_color = 0xFFD4FF97,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        time_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 10,
+            font_color = 0xFFCCCCCC,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        prim_data = T{
+            visible = false,
+            can_focus = false,
+            locked = true,
+            width = 100,
+            height = 100,
         },
     },
 

@@ -83,6 +83,11 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     applyGlobalFontSettings(gAdjustedSettings.castBarSettings.spell_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
     applyGlobalFontSettings(gAdjustedSettings.castBarSettings.percent_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
 
+    -- Cast Cost fonts
+    applyGlobalFontSettings(gAdjustedSettings.castCostSettings.name_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    applyGlobalFontSettings(gAdjustedSettings.castCostSettings.cost_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    applyGlobalFontSettings(gAdjustedSettings.castCostSettings.time_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+
     -- Enemy List fonts
     applyGlobalFontSettings(gAdjustedSettings.enemyListSettings.name_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
     applyGlobalFontSettings(gAdjustedSettings.enemyListSettings.distance_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
@@ -305,6 +310,18 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.castBarSettings.barHeight = ds.castBarSettings.barHeight * us.castBarScaleY;
     gAdjustedSettings.castBarSettings.spell_font_settings.font_height = math.max(us.castBarFontSize, 8);
     gAdjustedSettings.castBarSettings.percent_font_settings.font_height = math.max(us.castBarFontSize, 8);
+
+    -- Cast Cost
+    gAdjustedSettings.castCostSettings.bgScale = us.castCostScaleX or 1.0;
+    gAdjustedSettings.castCostSettings.backgroundTheme = us.castCostBackgroundTheme or 'Window1';
+    gAdjustedSettings.castCostSettings.backgroundOpacity = us.castCostBackgroundOpacity or 1.0;
+    gAdjustedSettings.castCostSettings.borderOpacity = us.castCostBorderOpacity or 1.0;
+    gAdjustedSettings.castCostSettings.showMpCost = us.castCostShowMpCost;
+    gAdjustedSettings.castCostSettings.showCastTime = us.castCostShowCastTime;
+    gAdjustedSettings.castCostSettings.showRecast = us.castCostShowRecast;
+    gAdjustedSettings.castCostSettings.name_font_settings.font_height = math.max(us.castCostFontSize, 8);
+    gAdjustedSettings.castCostSettings.cost_font_settings.font_height = math.max(us.castCostFontSize, 8);
+    gAdjustedSettings.castCostSettings.time_font_settings.font_height = math.max(us.castCostFontSize - 2, 8);
 
     -- Mob Info
     gAdjustedSettings.mobInfoSettings.level_font_settings.font_height = math.max(us.mobInfoFontSize, 8);
