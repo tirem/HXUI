@@ -364,6 +364,7 @@ M.user_settings = T{
     gilTrackerScale = 1,
     gilTrackerFontSize = 12,
     gilTrackerRightAlign = false,
+    gilTrackerIconRight = true,
     gilTrackerShowIcon = true,
 
     inventoryTrackerScale = 1,

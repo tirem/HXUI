@@ -75,31 +75,11 @@ giltracker.DrawWindow = function(settings)
 		if showIcon then
 			-- Icon + text mode: create combined draggable area
 			local iconSize = settings.iconScale;
+			local iconRight = settings.iconRight;
+			local rightAlign = settings.rightAlign;
 
-			if (settings.rightAlign) then
-				-- Icon on left, text on right: [icon][text]
-				local totalWidth = iconSize + textPadding + textWidth;
-				local totalHeight = math.max(iconSize, textHeight);
-				imgui.Dummy({totalWidth, totalHeight});
-
-				-- DEBUG: Draw red rectangle around draggable area
-				if DEBUG_DRAW then
-					local draw_list = imgui.GetWindowDrawList();
-					draw_list:AddRect({cursorX, cursorY}, {cursorX + totalWidth, cursorY + totalHeight}, 0xFF0000FF, 0, 0, 2);
-				end
-
-				-- Draw icon at start of dummy area
-				local draw_list = imgui.GetWindowDrawList();
-				local iconY = cursorY + (totalHeight - iconSize) / 2;
-				draw_list:AddImage(tonumber(ffi.cast("uint32_t", gilTexture.image)),
-					{cursorX, iconY},
-					{cursorX + iconSize, iconY + iconSize});
-
-				-- Position text to the right of icon (right-aligned font, so position_x is right edge)
-				gilText:set_position_x(cursorX + iconSize + textPadding + textWidth);
-				gilText:set_position_y(cursorY + (totalHeight - textHeight) / 2);
-			else
-				-- Text on left, icon on right: [text][icon]
+			if iconRight then
+				-- Icon on right: [text][icon]
 				local totalWidth = textWidth + textPadding + iconSize;
 				local totalHeight = math.max(iconSize, textHeight);
 				imgui.Dummy({totalWidth, totalHeight});
@@ -118,8 +98,42 @@ giltracker.DrawWindow = function(settings)
 					{iconX, iconY},
 					{iconX + iconSize, iconY + iconSize});
 
-				-- Position text at start (right-aligned font, so position_x is right edge)
-				gilText:set_position_x(cursorX + textWidth);
+				-- Position text based on alignment
+				if rightAlign then
+					-- Right-aligned: position_x is right edge of text (anchored next to icon)
+					gilText:set_position_x(cursorX + textWidth);
+				else
+					-- Left-aligned: position_x is left edge of text
+					gilText:set_position_x(cursorX);
+				end
+				gilText:set_position_y(cursorY + (totalHeight - textHeight) / 2);
+			else
+				-- Icon on left: [icon][text]
+				local totalWidth = iconSize + textPadding + textWidth;
+				local totalHeight = math.max(iconSize, textHeight);
+				imgui.Dummy({totalWidth, totalHeight});
+
+				-- DEBUG: Draw red rectangle around draggable area
+				if DEBUG_DRAW then
+					local draw_list = imgui.GetWindowDrawList();
+					draw_list:AddRect({cursorX, cursorY}, {cursorX + totalWidth, cursorY + totalHeight}, 0xFF0000FF, 0, 0, 2);
+				end
+
+				-- Draw icon at start of dummy area
+				local draw_list = imgui.GetWindowDrawList();
+				local iconY = cursorY + (totalHeight - iconSize) / 2;
+				draw_list:AddImage(tonumber(ffi.cast("uint32_t", gilTexture.image)),
+					{cursorX, iconY},
+					{cursorX + iconSize, iconY + iconSize});
+
+				-- Position text based on alignment
+				if rightAlign then
+					-- Right-aligned: position_x is right edge of text
+					gilText:set_position_x(cursorX + iconSize + textPadding + textWidth);
+				else
+					-- Left-aligned: position_x is left edge of text
+					gilText:set_position_x(cursorX + iconSize + textPadding);
+				end
 				gilText:set_position_y(cursorY + (totalHeight - textHeight) / 2);
 			end
 		else
@@ -132,9 +146,14 @@ giltracker.DrawWindow = function(settings)
 				draw_list:AddRect({cursorX, cursorY}, {cursorX + textWidth, cursorY + textHeight}, 0xFF0000FF, 0, 0, 2);
 			end
 
-			-- Position text over the dummy area
-			-- Font is right-aligned by default, so position_x is the RIGHT edge of text
-			gilText:set_position_x(cursorX + textWidth);
+			-- Position text over the dummy area based on alignment
+			if settings.rightAlign then
+				-- Right-aligned: position_x is the RIGHT edge of text
+				gilText:set_position_x(cursorX + textWidth);
+			else
+				-- Left-aligned: position_x is the LEFT edge of text
+				gilText:set_position_x(cursorX);
+			end
 			gilText:set_position_y(cursorY);
 		end
 
