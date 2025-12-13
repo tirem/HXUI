@@ -66,13 +66,35 @@ function M.DrawSettings()
     end
 
     if components.CollapsingSection('Bar Settings##global') then
-        components.DrawCheckbox('Show Bookends', 'showBookends');
+        -- Global bookends toggle - sets all individual module bookend settings
+        if (imgui.Checkbox('Show Bookends', { gConfig.showBookends })) then
+            gConfig.showBookends = not gConfig.showBookends;
+            -- Update all individual module bookend settings
+            gConfig.showPlayerBarBookends = gConfig.showBookends;
+            gConfig.showTargetBarBookends = gConfig.showBookends;
+            gConfig.showEnemyListBookends = gConfig.showBookends;
+            gConfig.showExpBarBookends = gConfig.showBookends;
+            gConfig.showPartyListBookends = gConfig.showBookends;
+            gConfig.showCastBarBookends = gConfig.showBookends;
+            gConfig.petBarShowBookends = gConfig.showBookends;
+            -- Update party A/B/C settings
+            if gConfig.partyA then gConfig.partyA.showBookends = gConfig.showBookends; end
+            if gConfig.partyB then gConfig.partyB.showBookends = gConfig.showBookends; end
+            if gConfig.partyC then gConfig.partyC.showBookends = gConfig.showBookends; end
+            -- Update pet bar type settings
+            if gConfig.petBarTypeSettings then
+                for _, petType in pairs(gConfig.petBarTypeSettings) do
+                    if petType then petType.showBookends = gConfig.showBookends; end
+                end
+            end
+            SaveSettingsOnly();
+        end
         if gConfig.showBookends then
             imgui.SameLine();
             imgui.SetNextItemWidth(100);
             components.DrawSlider('Size##bookendSize', 'bookendSize', 5, 20);
         end
-        imgui.ShowHelp('Global setting to show or hide bookends on all progress bars.');
+        imgui.ShowHelp('Toggle bookends on/off for all bars. Individual modules can still override.');
 
         components.DrawCheckbox('Health Bar Flash Effects', 'healthBarFlashEnabled');
         imgui.ShowHelp('Flash effect when taking damage on health bars.');

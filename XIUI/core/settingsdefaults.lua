@@ -837,7 +837,7 @@ M.user_settings = T{
     }),
 
     -- Bar Settings (global progress bar configuration)
-    showBookends = false,            -- Global bookend visibility (overrides individual bookend settings)
+    showBookends = false,            -- Global toggle that sets all module bookend settings
     bookendSize = 10,               -- Minimum bookend width in pixels (5-20)
     healthBarFlashEnabled = true,   -- Flash effect when taking damage
     noBookendRounding = 4,          -- Bar roundness for bars without bookends (0-10)
