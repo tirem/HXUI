@@ -187,14 +187,14 @@ local function DrawPartyTabContent(party, partyName)
     if components.CollapsingSection('Cast Bars##party' .. partyName) then
         components.DrawPartyCheckbox(party, 'Show Cast Bars', 'showCastBars');
         if party.showCastBars then
-            local castBarStyleItems = { [0] = 'Replace Name', [1] = 'Use MP Bar' };
-            local currentStyleIndex = party.castBarStyle == 'mp' and 1 or 0;
+            local castBarStyleItems = { [0] = 'Replace Name', [1] = 'Use MP Bar', [2] = 'Use TP Bar' };
+            local currentStyleIndex = party.castBarStyle == 'mp' and 1 or (party.castBarStyle == 'tp' and 2 or 0);
             local styleLabel = castBarStyleItems[currentStyleIndex];
             if imgui.BeginCombo('Style##castBarStyle' .. partyName, styleLabel) then
-                for i = 0, 1 do
+                for i = 0, 2 do
                     local isSelected = (currentStyleIndex == i);
                     if imgui.Selectable(castBarStyleItems[i] .. '##' .. i, isSelected) then
-                        party.castBarStyle = (i == 1) and 'mp' or 'name';
+                        party.castBarStyle = (i == 1) and 'mp' or ((i == 2) and 'tp' or 'name');
                         UpdateSettings();
                     end
                     if isSelected then
@@ -203,7 +203,7 @@ local function DrawPartyTabContent(party, partyName)
                 end
                 imgui.EndCombo();
             end
-            imgui.ShowHelp('Replace Name: replaces player name with spell name during cast.\nUse MP Bar: replaces MP bar with cast bar and MP text with spell name.');
+            imgui.ShowHelp('Replace Name: replaces player name with spell name during cast.\nUse MP Bar: replaces MP bar with cast bar and MP text with spell name.\nUse TP Bar: replaces TP bar with cast bar and TP text with spell name.');
 
             if party.castBarStyle == 'name' then
                 imgui.Text('Scale');

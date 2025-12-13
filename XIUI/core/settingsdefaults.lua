@@ -28,7 +28,7 @@ local function createPartyDefaults(overrides)
         showSubJob = true,
         showSubJobLevel = true,
         showCastBars = true,
-        castBarStyle = 'name', -- 'name' = replace name, 'mp' = use MP bar
+        castBarStyle = 'name', -- 'name' = replace name, 'mp' = use MP bar, 'tp' = use TP bar
         alwaysShowMpBar = true, -- Show MP bar even for jobs without MP
         castBarScaleX = 1.0,
         castBarScaleY = 0.6,

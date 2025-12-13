@@ -650,42 +650,56 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     local showingCastInMpSlot = isCasting and castBarStyle == 'mp' and castData;
     local showMpBar = cache.alwaysShowMpBar or jobHasMP or showingCastInMpSlot;
 
+    -- Determine if we should show the cast bar in the TP slot
+    local showingCastInTpSlot = isCasting and castBarStyle == 'tp' and castData;
+
     if (memInfo.inzone) then
         if layout == 1 then
             -- Layout 2: Vertical layout
             imgui.Dummy({0, 1});
             local rowStartX, rowStartY = imgui.GetCursorScreenPos();
 
-            -- TP text color with optional flashing
-            local desiredTpColor;
-            if memInfo.tp >= 1000 and cache.flashTP then
-                local flashTime = os.clock();
-                local timePerPulse = 1;
-                local phase = flashTime % timePerPulse;
-                local pulseAlpha = (2 / timePerPulse) * phase;
-                if pulseAlpha > 1 then pulseAlpha = 2 - pulseAlpha; end
-                local baseColor = cache.colors.tpFullTextColor or 0xFFFFFFFF;
-                local flashColor = cache.colors.tpFlashColor or 0xFF3ECE00;
-                local baseA = bit.band(bit.rshift(baseColor, 24), 0xFF);
-                local baseR = bit.band(bit.rshift(baseColor, 16), 0xFF);
-                local baseG = bit.band(bit.rshift(baseColor, 8), 0xFF);
-                local baseB = bit.band(baseColor, 0xFF);
-                local flashA = bit.band(bit.rshift(flashColor, 24), 0xFF);
-                local flashR = bit.band(bit.rshift(flashColor, 16), 0xFF);
-                local flashG = bit.band(bit.rshift(flashColor, 8), 0xFF);
-                local flashB = bit.band(flashColor, 0xFF);
-                local interpA = math.floor(baseA + (flashA - baseA) * pulseAlpha);
-                local interpR = math.floor(baseR + (flashR - baseR) * pulseAlpha);
-                local interpG = math.floor(baseG + (flashG - baseG) * pulseAlpha);
-                local interpB = math.floor(baseB + (flashB - baseB) * pulseAlpha);
-                desiredTpColor = bit.bor(bit.lshift(interpA, 24), bit.lshift(interpR, 16), bit.lshift(interpG, 8), interpB);
-                data.memberText[memIdx].tp:set_font_color(desiredTpColor);
-                data.memberTextColorCache[memIdx].tp = nil;
+            -- TP text (or spell name if casting with 'tp' style)
+            if showingCastInTpSlot then
+                -- Show spell name instead of TP when casting with 'tp' style
+                data.memberText[memIdx].tp:set_text(castData.spellName);
+                local castTextColor = cache.colors.castTextColor or 0xFFFFCC44;
+                if (data.memberTextColorCache[memIdx].tp ~= castTextColor) then
+                    data.memberText[memIdx].tp:set_font_color(castTextColor);
+                    data.memberTextColorCache[memIdx].tp = castTextColor;
+                end
             else
-                desiredTpColor = (memInfo.tp >= 1000) and cache.colors.tpFullTextColor or cache.colors.tpEmptyTextColor;
-                if (data.memberTextColorCache[memIdx].tp ~= desiredTpColor) then
+                -- Normal TP text color with optional flashing
+                local desiredTpColor;
+                if memInfo.tp >= 1000 and cache.flashTP then
+                    local flashTime = os.clock();
+                    local timePerPulse = 1;
+                    local phase = flashTime % timePerPulse;
+                    local pulseAlpha = (2 / timePerPulse) * phase;
+                    if pulseAlpha > 1 then pulseAlpha = 2 - pulseAlpha; end
+                    local baseColor = cache.colors.tpFullTextColor or 0xFFFFFFFF;
+                    local flashColor = cache.colors.tpFlashColor or 0xFF3ECE00;
+                    local baseA = bit.band(bit.rshift(baseColor, 24), 0xFF);
+                    local baseR = bit.band(bit.rshift(baseColor, 16), 0xFF);
+                    local baseG = bit.band(bit.rshift(baseColor, 8), 0xFF);
+                    local baseB = bit.band(baseColor, 0xFF);
+                    local flashA = bit.band(bit.rshift(flashColor, 24), 0xFF);
+                    local flashR = bit.band(bit.rshift(flashColor, 16), 0xFF);
+                    local flashG = bit.band(bit.rshift(flashColor, 8), 0xFF);
+                    local flashB = bit.band(flashColor, 0xFF);
+                    local interpA = math.floor(baseA + (flashA - baseA) * pulseAlpha);
+                    local interpR = math.floor(baseR + (flashR - baseR) * pulseAlpha);
+                    local interpG = math.floor(baseG + (flashG - baseG) * pulseAlpha);
+                    local interpB = math.floor(baseB + (flashB - baseB) * pulseAlpha);
+                    desiredTpColor = bit.bor(bit.lshift(interpA, 24), bit.lshift(interpR, 16), bit.lshift(interpG, 8), interpB);
                     data.memberText[memIdx].tp:set_font_color(desiredTpColor);
-                    data.memberTextColorCache[memIdx].tp = desiredTpColor;
+                    data.memberTextColorCache[memIdx].tp = nil;
+                else
+                    desiredTpColor = (memInfo.tp >= 1000) and cache.colors.tpFullTextColor or cache.colors.tpEmptyTextColor;
+                    if (data.memberTextColorCache[memIdx].tp ~= desiredTpColor) then
+                        data.memberText[memIdx].tp:set_font_color(desiredTpColor);
+                        data.memberTextColorCache[memIdx].tp = desiredTpColor;
+                    end
                 end
             end
 
@@ -758,41 +772,58 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                 data.memberText[memIdx].mp:set_position_y(mpStartY + mpBarHeight + settings.mpTextOffsetY + mpBaselineOffset + textOffsets.mpY);
             end
 
-            -- TP bar
-            if (showTP) then
+            -- TP bar (or cast bar if castBarStyle == 'tp')
+            if (showTP or showingCastInTpSlot) then
                 imgui.SameLine();
                 local tpStartX, tpStartY;
                 imgui.SetCursorPosX(imgui.GetCursorPosX());
                 tpStartX, tpStartY = imgui.GetCursorScreenPos();
 
-                local tpGradient = GetCustomGradient(cache.colors, 'tpGradient') or {'#3898ce', '#78c4ee'};
-                local tpOverlayGradient = {'#0078CC', '#0078CC'};
-                local mainPercent;
-                local tpOverlay;
-
-                if (memInfo.tp >= 1000) then
-                    mainPercent = (memInfo.tp - 1000) / 2000;
-                    if (cache.flashTP) then
-                        local flashARGB = cache.colors.tpFlashColor or 0xFF3ECE00;
-                        local flashHex = string.format('#%06X', bit.band(flashARGB, 0xFFFFFF));
-                        tpOverlay = {{1, tpOverlayGradient}, math.ceil(tpBarHeight * 5/7), 0, { flashHex, 1 }};
-                    else
-                        tpOverlay = {{1, tpOverlayGradient}, math.ceil(tpBarHeight * 2/7), 1};
+                if showingCastInTpSlot then
+                    -- Render cast bar in TP slot
+                    local castGradient = GetCustomGradient(cache.colors, 'castBarGradient') or {'#ffaa00', '#ffcc44'};
+                    progressbar.ProgressBar({{castProgress, castGradient}}, {tpBarWidth, tpBarHeight}, {decorate = cache.showBookends, backgroundGradientOverride = data.getBarBackgroundOverride(partyIndex), borderColorOverride = data.getBarBorderOverride(partyIndex)});
+                    -- Set TP text to spell name with cast text color
+                    data.memberText[memIdx].tp:set_text(castData.spellName);
+                    local castTextColor = cache.colors.castTextColor or 0xFFFFCC44;
+                    if (data.memberTextColorCache[memIdx].tp ~= castTextColor) then
+                        data.memberText[memIdx].tp:set_font_color(castTextColor);
+                        data.memberTextColorCache[memIdx].tp = castTextColor;
                     end
                 else
-                    mainPercent = memInfo.tp / 1000;
+                    -- Render normal TP bar
+                    local tpGradient = GetCustomGradient(cache.colors, 'tpGradient') or {'#3898ce', '#78c4ee'};
+                    local tpOverlayGradient = {'#0078CC', '#0078CC'};
+                    local mainPercent;
+                    local tpOverlay;
+
+                    if (memInfo.tp >= 1000) then
+                        mainPercent = (memInfo.tp - 1000) / 2000;
+                        if (cache.flashTP) then
+                            local flashARGB = cache.colors.tpFlashColor or 0xFF3ECE00;
+                            local flashHex = string.format('#%06X', bit.band(flashARGB, 0xFFFFFF));
+                            tpOverlay = {{1, tpOverlayGradient}, math.ceil(tpBarHeight * 5/7), 0, { flashHex, 1 }};
+                        else
+                            tpOverlay = {{1, tpOverlayGradient}, math.ceil(tpBarHeight * 2/7), 1};
+                        end
+                    else
+                        mainPercent = memInfo.tp / 1000;
+                    end
+
+                    progressbar.ProgressBar({{mainPercent, tpGradient}}, {tpBarWidth, tpBarHeight}, {overlayBar=tpOverlay, decorate = cache.showBookends, backgroundGradientOverride = data.getBarBackgroundOverride(partyIndex), borderColorOverride = data.getBarBorderOverride(partyIndex)});
+
+                    local desiredTpColor = (memInfo.tp >= 1000) and cache.colors.tpFullTextColor or cache.colors.tpEmptyTextColor;
+                    if (data.memberTextColorCache[memIdx].tp ~= desiredTpColor) then
+                        data.memberText[memIdx].tp:set_font_color(desiredTpColor);
+                        data.memberTextColorCache[memIdx].tp = desiredTpColor;
+                    end
+                    data.memberText[memIdx].tp:set_text(tostring(memInfo.tp));
                 end
 
-                progressbar.ProgressBar({{mainPercent, tpGradient}}, {tpBarWidth, tpBarHeight}, {overlayBar=tpOverlay, decorate = cache.showBookends, backgroundGradientOverride = data.getBarBackgroundOverride(partyIndex), borderColorOverride = data.getBarBorderOverride(partyIndex)});
-
-                local desiredTpColor = (memInfo.tp >= 1000) and cache.colors.tpFullTextColor or cache.colors.tpEmptyTextColor;
-                if (data.memberTextColorCache[memIdx].tp ~= desiredTpColor) then
-                    data.memberText[memIdx].tp:set_font_color(desiredTpColor);
-                    data.memberTextColorCache[memIdx].tp = desiredTpColor;
-                end
-                data.memberText[memIdx].tp:set_text(tostring(memInfo.tp));
+                -- Recalculate tp text width in case it changed to spell name
+                local currentTpTextWidth, _ = data.memberText[memIdx].tp:get_text_size();
                 local tpBaselineOffset = tpRefHeight - tpHeight;
-                data.memberText[memIdx].tp:set_position_x(tpStartX + tpBarWidth - tpTextWidth + textOffsets.tpX);
+                data.memberText[memIdx].tp:set_position_x(tpStartX + tpBarWidth - currentTpTextWidth + textOffsets.tpX);
                 data.memberText[memIdx].tp:set_position_y(tpStartY + tpBarHeight + settings.tpTextOffsetY + tpBaselineOffset + textOffsets.tpY);
             end
         end
