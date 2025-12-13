@@ -275,13 +275,22 @@ M.user_settings = T{
     -- Cast Cost settings
     castCostScaleX = 1.0,
     castCostScaleY = 1.0,
-    castCostFontSize = 12,
     castCostBackgroundTheme = 'Window1',
     castCostBackgroundOpacity = 1.0,
     castCostBorderOpacity = 1.0,
+    castCostShowName = true,
     castCostShowMpCost = true,
-    castCostShowCastTime = true,
-    castCostShowRecast = true,
+    castCostShowRecast = false,
+    castCostNameFontSize = 12,
+    castCostCostFontSize = 12,
+    castCostTimeFontSize = 10,
+    castCostMinWidth = 100,
+    castCostPadding = 8,
+    castCostPaddingY = 8,
+    castCostAlignBottom = false,
+    castCostShowCooldown = true,
+    castCostBarScaleY = 1.0,
+    castCostRecastFontSize = 10,
 
     statusIconTheme = 'XIView',
     jobIconTheme = 'FFXI',
@@ -996,9 +1005,14 @@ M.user_settings = T{
         -- Cast Cost
         castCost = T{
             nameTextColor = 0xFFFFFFFF,
+            nameOnCooldownColor = 0xFF888888, -- Grey when spell is on cooldown
             mpCostTextColor = 0xFFD4FF97,   -- Green (matches MP color)
+            mpNotEnoughColor = 0xFFFF6666,  -- Red when not enough MP
             tpCostTextColor = 0xFF8DC7FF,   -- Blue (matches TP color)
             timeTextColor = 0xFFCCCCCC,     -- Light gray for cast/recast times
+            readyTextColor = 0xFF44CC44,    -- Green when spell is ready
+            cooldownTextColor = 0xFFFFFFFF, -- White text on cooldown bar
+            cooldownBarGradient = T{ enabled = false, start = '#FFFFFF', stop = '#44CC44' },
             bgColor = 0xFFFFFFFF,
             borderColor = 0xFFFFFFFF,
         },
@@ -1589,6 +1603,10 @@ M.default_settings = T{
 
     -- settings for cast cost
     castCostSettings = T{
+        minWidth = 100,
+        alignBottom = false,
+        showCooldown = true,
+        barScaleY = 1.0,
         bgPadding = 8,
         bgPaddingY = 8,
         borderSize = 21,
@@ -1597,8 +1615,8 @@ M.default_settings = T{
         backgroundTheme = 'Window1',
         backgroundOpacity = 1.0,
         borderOpacity = 1.0,
+        showName = true,
         showMpCost = true,
-        showCastTime = true,
         showRecast = true,
         name_font_settings = T{
             font_alignment = gdi.Alignment.Left,
@@ -1623,6 +1641,24 @@ M.default_settings = T{
             font_family = 'Consolas',
             font_height = 10,
             font_color = 0xFFCCCCCC,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        recast_font_settings = T{
+            font_alignment = gdi.Alignment.Right,
+            font_family = 'Consolas',
+            font_height = 10,
+            font_color = 0xFFFFFFFF,
+            font_flags = gdi.FontFlags.None,
+            outline_color = 0xFF000000,
+            outline_width = 2,
+        },
+        cooldown_font_settings = T{
+            font_alignment = gdi.Alignment.Left,
+            font_family = 'Consolas',
+            font_height = 10,
+            font_color = 0xFF44CC44,
             font_flags = gdi.FontFlags.None,
             outline_color = 0xFF000000,
             outline_width = 2,

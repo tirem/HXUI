@@ -46,9 +46,9 @@ function M.DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg, xOf
         if (xOffset ~= nil) then
             imgui.SetCursorPosX(imgui.GetCursorPosX() + xOffset);
         end
-        for i = 0, #statusIds do
+        for i = 1, #statusIds do
             -- Don't check anymore after -1, as it will be all -1's
-            if (statusIds == -1) then
+            if (statusIds[i] == -1) then
                 break;
             end
             local icon = statusHandler.get_icon_from_theme(gConfig.statusIconTheme, statusIds[i]);
@@ -130,13 +130,15 @@ end
 -- ========================================
 
 function M.ClearDebuffFontCache()
-    -- Destroy all gdi font objects before clearing
+    -- Destroy all gdi font objects and clear entries
+    -- Important: Clear entries in-place instead of reassigning the table
+    -- to preserve the reference held by handlers/helpers.lua global export
     for key, textObj in pairs(debuffTable) do
         if textObj ~= nil then
             gdi:destroy_object(textObj);
         end
+        debuffTable[key] = nil;
     end
-    debuffTable = T{};
 end
 
 -- Get the debuff table (for external access if needed)

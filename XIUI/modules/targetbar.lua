@@ -52,6 +52,14 @@ targetbar.DrawWindow = function(settings)
     if (playerEnt == nil or player == nil) then
 		SetFontsVisible(allFonts, false);
 		targetbar.nameTextInfo.visible = false;
+        -- Also hide debuff timer texts during zone transitions
+        for i=1,32 do
+            local textObjName = "debuffText" .. tostring(i)
+            local textObj = debuffTable[textObjName]
+            if textObj then
+                textObj:set_visible(false)
+            end
+        end
         return;
     end
 
@@ -68,7 +76,7 @@ targetbar.DrawWindow = function(settings)
 		targetbar.nameTextInfo.visible = false;
         for i=1,32 do
             local textObjName = "debuffText" .. tostring(i)
-            textObj = debuffTable[textObjName]
+            local textObj = debuffTable[textObjName]
             if textObj then
                 textObj:set_visible(false)
             end
@@ -533,7 +541,7 @@ targetbar.DrawWindow = function(settings)
 		imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 3});
         for i=1,32 do
             local textObjName = "debuffText" .. tostring(i)
-            textObj = debuffTable[textObjName]
+            local textObj = debuffTable[textObjName]
             if textObj then
                 textObj:set_visible(false)
             end

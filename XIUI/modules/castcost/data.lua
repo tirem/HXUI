@@ -114,6 +114,50 @@ function M.GetSelectedMountId()
 end
 
 -- ============================================
+-- Recast Timer Lookups
+-- ============================================
+
+-- Get current spell recast timer (returns remaining time in seconds, or 0 if ready)
+function M.GetSpellRecast(spellId)
+    if spellId == nil or spellId < 0 then return 0; end
+
+    -- Use Ashita's recast interface
+    local recast = GetRecastSafe();
+    if recast == nil then return 0; end
+
+    -- GetSpellTimer returns remaining recast in 1/60th of a second
+    local timer = recast:GetSpellTimer(spellId);
+    if timer == nil or timer <= 0 then return 0; end
+
+    -- Convert from 1/60th seconds to seconds
+    return timer / 60;
+end
+
+-- Get current ability recast timer (returns remaining time in seconds, or 0 if ready)
+function M.GetAbilityRecast(abilityId)
+    if abilityId == nil or abilityId < 0 then return 0; end
+
+    local recast = GetRecastSafe();
+    if recast == nil then return 0; end
+
+    -- Abilities use a timer ID that maps to a recast slot (0-31)
+    -- We need to find which slot this ability uses
+    for i = 0, 31 do
+        local timerId = recast:GetAbilityTimerId(i);
+        if timerId == abilityId then
+            local timer = recast:GetAbilityTimer(i);
+            if timer ~= nil and timer > 0 then
+                -- Convert from 1/60th seconds to seconds
+                return timer / 60;
+            end
+            break;
+        end
+    end
+
+    return 0;
+end
+
+-- ============================================
 -- Resource Lookups
 -- ============================================
 
@@ -122,6 +166,11 @@ function M.GetSpellInfo(spellId)
     local spell = AshitaCore:GetResourceManager():GetSpellById(spellId);
     if spell == nil then return nil; end
 
+    -- Get max recast time (in seconds, converted from 1/4 seconds)
+    local maxRecast = (spell.RecastDelay or 0) / 4;
+    -- Get current remaining recast time
+    local currentRecast = M.GetSpellRecast(spellId);
+
     return {
         id = spellId,
         name = encoding:ShiftJIS_To_UTF8(spell.Name[1], true),
@@ -129,6 +178,8 @@ function M.GetSpellInfo(spellId)
         castTime = spell.CastTime or 0,
         recastDelay = spell.RecastDelay or 0,
         skill = spell.Skill or 0,
+        maxRecast = maxRecast,
+        currentRecast = currentRecast,
     };
 end
 
@@ -137,10 +188,17 @@ function M.GetAbilityInfo(abilityId)
     local ability = AshitaCore:GetResourceManager():GetAbilityById(abilityId);
     if ability == nil then return nil; end
 
+    -- Get max recast time (in seconds, converted from 1/4 seconds)
+    local maxRecast = (ability.RecastDelay or 0) / 4;
+    -- Get current remaining recast time
+    local currentRecast = M.GetAbilityRecast(abilityId);
+
     return {
         id = abilityId,
         name = encoding:ShiftJIS_To_UTF8(ability.Name[1], true),
         recastDelay = ability.RecastDelay or 0,
+        maxRecast = maxRecast,
+        currentRecast = currentRecast,
         -- Note: TP cost for weapon skills varies and may need special handling
     };
 end
