@@ -7,6 +7,7 @@ require('common');
 require('handlers.helpers');
 local windowBg = require('libs.windowbackground');
 local packets = require('libs.packets');
+local abilityRecast = require('libs.abilityrecast');
 
 local data = {};
 
@@ -663,44 +664,12 @@ local mockAbilities = {
 };
 
 -- ============================================
--- Ability Recast Memory Reading (like PetMe)
+-- Ability Recast (using shared library)
 -- ============================================
 
--- Memory pointer for ability recasts (initialized on first use)
-local AbilityRecastPointer = nil;
-
--- Initialize the ability recast pointer by scanning memory
-local function InitAbilityRecastPointer()
-    if AbilityRecastPointer ~= nil then return true; end
-
-    -- Memory pattern from PetMe addon
-    local pointer = ashita.memory.find('FFXiMain.dll', 0,
-        '894124E9????????8B46??6A006A00508BCEE8', 0x19, 0);
-
-    if pointer == 0 then
-        print('[PetBar] Failed to find AbilityRecastPointer');
-        return false;
-    end
-
-    AbilityRecastPointer = ashita.memory.read_uint32(pointer);
-    return true;
-end
-
--- Get ability timer data by ability ID (direct memory read)
-local function GetAbilityTimerById(abilityId)
-    if not InitAbilityRecastPointer() then
-        return nil;
-    end
-
-    for i = 1, 31 do
-        local compId = ashita.memory.read_uint8(AbilityRecastPointer + (i * 8) + 3);
-        if compId == abilityId then
-            local recast = ashita.memory.read_uint32(AbilityRecastPointer + (i * 4) + 0xF8);
-            return recast;
-        end
-    end
-
-    return 0;  -- Not found or ready
+-- Wrapper for shared library (maintains existing interface)
+local function GetAbilityTimerById(timerId)
+    return abilityRecast.GetAbilityTimerByTimerId(timerId);
 end
 
 -- Get job from preview type (for preview mode)
