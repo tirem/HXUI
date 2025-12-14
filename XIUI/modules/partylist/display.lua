@@ -573,10 +573,13 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     -- Distance text
     local showDistance = false;
     local highlightDistance = false;
-    if (not isCasting) then
+    -- Only hide name/distance when casting with 'name' style (which replaces name with spell)
+    -- When using 'mp' or 'tp' bar styles, name and distance should remain visible
+    local hidingNameForCast = isCasting and castBarStyle == 'name';
+    if (not hidingNameForCast) then
         data.memberText[memIdx].name:set_text(tostring(memInfo.name));
     end
-    if (not isCasting and cache.showDistance and memInfo.inzone) then
+    if (not hidingNameForCast and cache.showDistance and memInfo.inzone) then
         local distance = nil;
         if memInfo.previewDistance then
             distance = memInfo.previewDistance;
