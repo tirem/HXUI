@@ -890,9 +890,13 @@ function data.UpdateBackground(x, y, width, height, settings)
 
     if data.currentPetName and data.petImagePrims then
         local petKey = data.GetPetSettingsKey(data.currentPetName);
+        local petTypeKey = data.GetPetTypeKey();  -- Get type by job, not name
 
         -- For wyvern, use wyvern-specific settings from petBarWyvern
-        if petKey == 'wyvern' then
+        -- Use petTypeKey (job-based) instead of petKey (name-based) to handle renamed wyverns
+        if petTypeKey == 'wyvern' then
+            -- Override petKey to 'wyvern' for primitive lookup (handles renamed wyverns)
+            petKey = 'wyvern';
             local wyvernSettings = gConfig.petBarWyvern or {};
             showImage = wyvernSettings.showImage or false;
             petImageScale = wyvernSettings.imageScale or 0.4;
