@@ -39,16 +39,31 @@ function M.MigrateFromHXUI()
             -- Read old settings file
             local oldFile = io.open(oldSettingsPath, 'rb');
             if oldFile then
-                local content = oldFile:read('*all');
+                local success, content = pcall(function() return oldFile:read('*all'); end);
                 oldFile:close();
 
-                -- Write to new settings file
-                local newFile = io.open(newSettingsPath, 'wb');
-                if newFile then
-                    newFile:write(content);
-                    newFile:close();
-                    migratedCount = migratedCount + 1;
+                if success and content then
+                    -- Write to new settings file
+                    local newFile = io.open(newSettingsPath, 'wb');
+                    if newFile then
+                        local writeSuccess, writeError = pcall(function()
+                            newFile:write(content);
+                        end);
+                        newFile:close();
+
+                        if writeSuccess then
+                            migratedCount = migratedCount + 1;
+                        else
+                            print(string.format('[XIUI] Warning: Failed to write settings migration to %s: %s', newSettingsPath, tostring(writeError)));
+                        end
+                    else
+                        print(string.format('[XIUI] Warning: Failed to open settings file for writing: %s', newSettingsPath));
+                    end
+                else
+                    print(string.format('[XIUI] Warning: Failed to read settings from %s', oldSettingsPath));
                 end
+            else
+                print(string.format('[XIUI] Warning: Failed to open settings file for reading: %s', oldSettingsPath));
             end
         end
     end

@@ -232,13 +232,13 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
         if memInfo.subTargeted then
             if data.cachedSubtargetBorderColorARGB ~= borderColorARGB then
                 data.cachedSubtargetBorderColorARGB = borderColorARGB;
-                data.cachedSubtargetBorderColorU32 = imgui.GetColorU32(ARGBToImGui(borderColorARGB));
+                data.cachedSubtargetBorderColorU32 = ARGBToU32(borderColorARGB);
             end
             borderColor = data.cachedSubtargetBorderColorU32;
         else
             if data.cachedBorderColorARGB ~= borderColorARGB then
                 data.cachedBorderColorARGB = borderColorARGB;
-                data.cachedBorderColorU32 = imgui.GetColorU32(ARGBToImGui(borderColorARGB));
+                data.cachedBorderColorU32 = ARGBToU32(borderColorARGB);
             end
             borderColor = data.cachedBorderColorU32;
         end
@@ -696,8 +696,10 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                     local interpG = math.floor(baseG + (flashG - baseG) * pulseAlpha);
                     local interpB = math.floor(baseB + (flashB - baseB) * pulseAlpha);
                     desiredTpColor = bit.bor(bit.lshift(interpA, 24), bit.lshift(interpR, 16), bit.lshift(interpG, 8), interpB);
-                    data.memberText[memIdx].tp:set_font_color(desiredTpColor);
-                    data.memberTextColorCache[memIdx].tp = nil;
+                    if (data.memberTextColorCache[memIdx].tp ~= desiredTpColor) then
+                        data.memberText[memIdx].tp:set_font_color(desiredTpColor);
+                        data.memberTextColorCache[memIdx].tp = desiredTpColor;
+                    end
                 else
                     desiredTpColor = (memInfo.tp >= 1000) and cache.colors.tpFullTextColor or cache.colors.tpEmptyTextColor;
                     if (data.memberTextColorCache[memIdx].tp ~= desiredTpColor) then
