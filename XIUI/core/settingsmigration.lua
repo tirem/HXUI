@@ -332,6 +332,23 @@ function M.MigrateColorSettings(gConfig, defaults)
     if not gConfig.colorCustomization.partyListC then
         gConfig.colorCustomization.partyListC = deep_copy_table(defaults.colorCustomization.partyListC);
     end
+
+    -- Migrate old unified expBar barGradient to separate expBarGradient and meritBarGradient
+    if gConfig.colorCustomization.expBar then
+        if gConfig.colorCustomization.expBar.barGradient and not gConfig.colorCustomization.expBar.expBarGradient then
+            -- Migrate old barGradient to expBarGradient
+            gConfig.colorCustomization.expBar.expBarGradient = deep_copy_table(gConfig.colorCustomization.expBar.barGradient);
+            gConfig.colorCustomization.expBar.barGradient = nil;
+        end
+        -- Initialize meritBarGradient if missing
+        if not gConfig.colorCustomization.expBar.meritBarGradient then
+            gConfig.colorCustomization.expBar.meritBarGradient = deep_copy_table(defaults.colorCustomization.expBar.meritBarGradient);
+        end
+        -- Initialize expBarGradient if missing (fresh installs)
+        if not gConfig.colorCustomization.expBar.expBarGradient then
+            gConfig.colorCustomization.expBar.expBarGradient = deep_copy_table(defaults.colorCustomization.expBar.expBarGradient);
+        end
+    end
 end
 
 -- Migrate to new per-pet-type settings structure (petBarAvatar, petBarCharm, etc.)
