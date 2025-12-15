@@ -45,14 +45,14 @@ local function DrawTargetBarSettingsContent()
         components.DrawSlider('Scale Y', 'targetBarScaleY', 0.1, 3.0, '%.1f');
         components.DrawSlider('Name Font Size', 'targetBarNameFontSize', 8, 36);
         components.DrawSlider('Distance Font Size', 'targetBarDistanceFontSize', 8, 36);
-        components.DrawSlider('Distance Offset X', 'targetBarDistanceOffsetX', -100, 100);
+        components.DrawSlider('Distance Offset X', 'targetBarDistanceOffsetX', -300, 300);
         imgui.ShowHelp('Horizontal offset for distance text position.');
-        components.DrawSlider('Distance Offset Y', 'targetBarDistanceOffsetY', -50, 50);
+        components.DrawSlider('Distance Offset Y', 'targetBarDistanceOffsetY', -150, 150);
         imgui.ShowHelp('Vertical offset for distance text position.');
         components.DrawSlider('HP% Font Size', 'targetBarPercentFontSize', 8, 36);
-        components.DrawSlider('HP% Offset X', 'targetBarPercentOffsetX', -100, 100);
+        components.DrawSlider('HP% Offset X', 'targetBarPercentOffsetX', -300, 300);
         imgui.ShowHelp('Horizontal offset for HP% text position.');
-        components.DrawSlider('HP% Offset Y', 'targetBarPercentOffsetY', -50, 50);
+        components.DrawSlider('HP% Offset Y', 'targetBarPercentOffsetY', -150, 150);
         imgui.ShowHelp('Vertical offset for HP% text position.');
     end
 
