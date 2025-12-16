@@ -188,8 +188,8 @@ expbar.DrawWindow = function(settings)
 		-- Pre-size the window with Dummy BEFORE drawing to prevent clipping
 		-- Total width includes text area (in inline mode) plus bar width
 		local totalWidth = inlineMode and (actualTextWidth + progressBarWidth) or progressBarWidth;
-		imgui.Dummy({totalWidth, settings.barHeight});
 		imgui.SetCursorScreenPos({barStartX, startY});
+        imgui.Dummy({totalWidth, settings.barHeight});
 
 		local expGradient;
 		if meritMode then
