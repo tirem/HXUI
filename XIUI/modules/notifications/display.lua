@@ -249,6 +249,14 @@ end
 
 -- Draw a single notification using primitives, GDI fonts, and progress bar
 local function drawNotification(slot, notification, x, y, width, height, settings, drawList)
+    -- Apply animation state
+    local alpha = notification.alpha or 1;
+
+    -- Skip rendering entirely if notification is fully transparent (e.g., during entry stagger delay)
+    if alpha < 0.01 then
+        return;
+    end
+
     -- Get primitive and fonts for this slot
     local bgPrim = notificationData.bgPrims[slot];
     local titleFont = notificationData.titleFonts[slot];
@@ -257,9 +265,6 @@ local function drawNotification(slot, notification, x, y, width, height, setting
     if not bgPrim or not titleFont or not subtitleFont then
         return;
     end
-
-    -- Apply animation state
-    local alpha = notification.alpha or 1;
     local containerOffsetX = notification.containerOffsetX or 0;
     local iconOffsetX = notification.iconOffsetX or 0;
     local textOffsetY = notification.textOffsetY or 0;
@@ -411,8 +416,13 @@ local function drawNotification(slot, notification, x, y, width, height, setting
         subtitleFont:set_font_height(subtitleFontHeight);
         subtitleFont:set_position_x(textX);
         subtitleFont:set_position_y(textY);
-        subtitleFont:set_font_color(fadedSubtitleColor);
-        subtitleFont:set_outline_color(fadedSubtitleOutline);
+        -- Only set colors if changed (expensive D3D calls)
+        -- Key by slot (not notification.id) since fonts are per-slot
+        if notificationData.lastSubtitleColors[slot] ~= fadedSubtitleColor then
+            subtitleFont:set_font_color(fadedSubtitleColor);
+            subtitleFont:set_outline_color(fadedSubtitleOutline);
+            notificationData.lastSubtitleColors[slot] = fadedSubtitleColor;
+        end
         -- Truncate if needed
         local subtitleCacheKey = notification.id .. "_minified";
         local displayName = GetTruncatedText(subtitleFont, playerName, maxTextWidth, subtitleFontHeight, subtitleCacheKey);
@@ -432,8 +442,13 @@ local function drawNotification(slot, notification, x, y, width, height, setting
         titleFont:set_font_height(titleFontHeight);
         titleFont:set_position_x(textX);
         titleFont:set_position_y(textY);
-        titleFont:set_font_color(minifyTitleColor);
-        titleFont:set_outline_color(minifyTitleOutline);
+        -- Only set colors if changed (expensive D3D calls)
+        -- Key by slot (not notification.id) since fonts are per-slot
+        if notificationData.lastTitleColors[slot] ~= minifyTitleColor then
+            titleFont:set_font_color(minifyTitleColor);
+            titleFont:set_outline_color(minifyTitleOutline);
+            notificationData.lastTitleColors[slot] = minifyTitleColor;
+        end
         local titleCacheKey = notification.id .. "_title";
         local displayTitle = GetTruncatedText(titleFont, title, maxTextWidth, titleFontHeight, titleCacheKey);
         titleFont:set_text(displayTitle);
@@ -448,8 +463,13 @@ local function drawNotification(slot, notification, x, y, width, height, setting
         subtitleFont:set_font_height(subtitleFontHeight);
         subtitleFont:set_position_x(textX);
         subtitleFont:set_position_y(interpolatedSubtitleY);
-        subtitleFont:set_font_color(baseSubtitleColor);
-        subtitleFont:set_outline_color(baseSubtitleOutline);
+        -- Only set colors if changed (expensive D3D calls)
+        -- Key by slot (not notification.id) since fonts are per-slot
+        if notificationData.lastSubtitleColors[slot] ~= baseSubtitleColor then
+            subtitleFont:set_font_color(baseSubtitleColor);
+            subtitleFont:set_outline_color(baseSubtitleOutline);
+            notificationData.lastSubtitleColors[slot] = baseSubtitleColor;
+        end
         -- Use player name during minify animation
         local subtitleCacheKey = notification.id .. "_minifying";
         local displayName = GetTruncatedText(subtitleFont, playerName, maxTextWidth, subtitleFontHeight, subtitleCacheKey);
@@ -464,8 +484,13 @@ local function drawNotification(slot, notification, x, y, width, height, setting
         titleFont:set_font_height(titleFontHeight);
         titleFont:set_position_x(textX);
         titleFont:set_position_y(textY);
-        titleFont:set_font_color(fadedTitleColor);
-        titleFont:set_outline_color(fadedTitleOutline);
+        -- Only set colors if changed (expensive D3D calls)
+        -- Key by slot (not notification.id) since fonts are per-slot
+        if notificationData.lastTitleColors[slot] ~= fadedTitleColor then
+            titleFont:set_font_color(fadedTitleColor);
+            titleFont:set_outline_color(fadedTitleOutline);
+            notificationData.lastTitleColors[slot] = fadedTitleColor;
+        end
         -- Truncate title if needed (use notification id for cache key)
         local titleCacheKey = notification.id .. "_title";
         local displayTitle = GetTruncatedText(titleFont, title, maxTextWidth, titleFontHeight, titleCacheKey);
@@ -476,8 +501,13 @@ local function drawNotification(slot, notification, x, y, width, height, setting
         subtitleFont:set_font_height(subtitleFontHeight);
         subtitleFont:set_position_x(textX);
         subtitleFont:set_position_y(textY + titleFontHeight + 2);  -- Small gap between title and subtitle
-        subtitleFont:set_font_color(fadedSubtitleColor);
-        subtitleFont:set_outline_color(fadedSubtitleOutline);
+        -- Only set colors if changed (expensive D3D calls)
+        -- Key by slot (not notification.id) since fonts are per-slot
+        if notificationData.lastSubtitleColors[slot] ~= fadedSubtitleColor then
+            subtitleFont:set_font_color(fadedSubtitleColor);
+            subtitleFont:set_outline_color(fadedSubtitleOutline);
+            notificationData.lastSubtitleColors[slot] = fadedSubtitleColor;
+        end
         -- Truncate subtitle if needed (use notification id for cache key)
         local subtitleCacheKey = notification.id .. "_subtitle";
         local displaySubtitle = GetTruncatedText(subtitleFont, subtitle, maxTextWidth, subtitleFontHeight, subtitleCacheKey);
@@ -522,27 +552,31 @@ local function drawNotification(slot, notification, x, y, width, height, setting
         local barY = y + scaledHeight - barHeight;
 
         -- Get color based on notification type
-        local barGradient = {'#4a90d9', '#6bb3f0'};  -- Default blue
-
+        -- Get bar colors based on notification type (cached to avoid hex parsing every frame)
         local nType = notification.type;
+        local colorKey1 = 'bar1_' .. tostring(nType);
+        local colorKey2 = 'bar2_' .. tostring(nType);
+
+        -- Determine gradient colors by type
+        local barHex1, barHex2 = '#4a90d9', '#6bb3f0';  -- Default blue
         if nType == notificationData.NOTIFICATION_TYPE.ITEM_OBTAINED then
-            barGradient = {'#9abb5a', '#bfe07d'};  -- Green
+            barHex1, barHex2 = '#9abb5a', '#bfe07d';  -- Green
         elseif nType == notificationData.NOTIFICATION_TYPE.KEY_ITEM_OBTAINED then
-            barGradient = {'#d4af37', '#f0d060'};  -- Gold
+            barHex1, barHex2 = '#d4af37', '#f0d060';  -- Gold
         elseif nType == notificationData.NOTIFICATION_TYPE.GIL_OBTAINED then
-            barGradient = {'#d4af37', '#f0d060'};  -- Gold
+            barHex1, barHex2 = '#d4af37', '#f0d060';  -- Gold
         elseif nType == notificationData.NOTIFICATION_TYPE.TREASURE_POOL or
                nType == notificationData.NOTIFICATION_TYPE.TREASURE_LOT then
-            barGradient = {'#9966cc', '#bb99dd'};  -- Purple
+            barHex1, barHex2 = '#9966cc', '#bb99dd';  -- Purple
         elseif nType == notificationData.NOTIFICATION_TYPE.PARTY_INVITE then
-            barGradient = {'#4CAF50', '#81C784'};  -- Green for party
+            barHex1, barHex2 = '#4CAF50', '#81C784';  -- Green for party
         elseif nType == notificationData.NOTIFICATION_TYPE.TRADE_INVITE then
-            barGradient = {'#FF9800', '#FFB74D'};  -- Orange for trade
+            barHex1, barHex2 = '#FF9800', '#FFB74D';  -- Orange for trade
         end
 
-        -- Draw progress bar using imgui draw list directly (more reliable than progressbar with absolutePosition)
-        local barColor1 = HexToU32(barGradient[1]);
-        local barColor2 = HexToU32(barGradient[2]);
+        -- Get cached U32 colors (avoids hex parsing every frame)
+        local barColor1 = notificationData.GetCachedBarColor(colorKey1, barHex1);
+        local barColor2 = notificationData.GetCachedBarColor(colorKey2, barHex2);
         local filledWidth = barWidth * progress;
 
         -- Draw filled portion with gradient
@@ -766,17 +800,20 @@ end
 
 -- Draw dedicated treasure pool window (shows all items with timers and lots)
 local function drawTreasurePoolWindow(settings)
-    -- Wrap entire function in pcall to prevent crashes
-    local success, err = pcall(function()
-        -- Hide all pool fonts and backgrounds initially (will show ones we use)
-        notificationData.HidePoolFonts();
-        notificationData.HidePoolBackgrounds();
+    -- Safety check - ensure pool fonts are initialized
+    if not notificationData.poolItemNameFonts or not notificationData.poolTimerFonts then
+        return;
+    end
 
-        -- Get treasure pool items
-        local poolItems = notificationData.GetSortedTreasurePool();
-        if #poolItems == 0 then
-            return;
-        end
+    -- Hide all pool fonts and backgrounds initially (will show ones we use)
+    notificationData.HidePoolFonts();
+    notificationData.HidePoolBackgrounds();
+
+    -- Get treasure pool items
+    local poolItems = notificationData.GetSortedTreasurePool();
+    if not poolItems or #poolItems == 0 then
+        return;
+    end
 
     -- Build window flags
     local windowFlags = notificationData.getBaseWindowFlags();
@@ -828,152 +865,160 @@ local function drawTreasurePoolWindow(settings)
         -- Start items below header (or at top if no header)
         local currentY = windowPosY + headerHeight;
 
-        for idx, item in ipairs(poolItems) do
-            local slot = item.slot;  -- Use actual slot for font lookup
+        -- Wrap item rendering in pcall to prevent crashes from corrupting ImGui state
+        local renderSuccess, renderErr = pcall(function()
+            for idx, item in ipairs(poolItems) do
+                local slot = item.slot;  -- Use actual slot for font lookup
 
-            -- Bounds check - skip if slot is out of range
-            if slot ~= nil and slot >= 0 and slot < notificationData.TREASURE_POOL_MAX_SLOTS then
+                -- Bounds check - skip if slot is out of range
+                if slot ~= nil and slot >= 0 and slot < notificationData.TREASURE_POOL_MAX_SLOTS then
 
-            local x = windowPosX;
-            local y = currentY;
+                local x = windowPosX;
+                local y = currentY;
 
-            -- Background (renders under GDI fonts)
-            local bgHandle = notificationData.poolBgPrims[slot];
-            if bgHandle then
-                windowBg.update(bgHandle, x, y, itemWidth, itemHeight, {
-                    theme = 'Plain',
-                    padding = 0,
-                    bgOpacity = 0.87,  -- 0xDD = 221/255 ≈ 0.87
-                    bgColor = 0xFF1A1A1A,
-                });
-            end
+                -- Background (renders under GDI fonts)
+                local bgHandle = notificationData.poolBgPrims[slot];
+                if bgHandle then
+                    windowBg.update(bgHandle, x, y, itemWidth, itemHeight, {
+                        theme = 'Plain',
+                        padding = 0,
+                        bgOpacity = 0.87,  -- 0xDD = 221/255 ≈ 0.87
+                        bgColor = 0xFF1A1A1A,
+                    });
+                end
 
-            -- Item icon (rendered via ImGui on top of fonts)
-            local icon = loadItemIcon(item.itemId);
-            if icon and icon.image then
-                pcall(function()
-                    drawList:AddImage(
-                        tonumber(ffi.cast("uint32_t", icon.image)),
-                        {x + padding, y + padding},
-                        {x + padding + iconSize, y + padding + iconSize},
-                        {0, 0}, {1, 1},
-                        0xFFFFFFFF
-                    );
-                end);
-            end
+                -- Item icon (rendered via ImGui on top of fonts)
+                local icon = loadItemIcon(item.itemId);
+                if icon and icon.image then
+                    pcall(function()
+                        drawList:AddImage(
+                            tonumber(ffi.cast("uint32_t", icon.image)),
+                            {x + padding, y + padding},
+                            {x + padding + iconSize, y + padding + iconSize},
+                            {0, 0}, {1, 1},
+                            0xFFFFFFFF
+                        );
+                    end);
+                end
 
-            -- Text positions
-            local textX = x + padding + iconSize + 6;
-            local textY = y + padding;
+                -- Text positions
+                local textX = x + padding + iconSize + 6;
+                local textY = y + padding;
 
-            -- Draw item name using GDI font
-            local itemNameFont = notificationData.poolItemNameFonts[slot];
-            if itemNameFont then
-                itemNameFont:set_font_height(poolFontSize);
-                itemNameFont:set_position_x(textX);
-                itemNameFont:set_position_y(textY);
-                itemNameFont:set_text(item.itemName or 'Unknown Item');
-                itemNameFont:set_visible(true);
-            end
+                -- Draw item name using GDI font
+                local itemNameFont = notificationData.poolItemNameFonts[slot];
+                if itemNameFont then
+                    itemNameFont:set_font_height(poolFontSize);
+                    itemNameFont:set_position_x(textX);
+                    itemNameFont:set_position_y(textY);
+                    itemNameFont:set_text(item.itemName or 'Unknown Item');
+                    itemNameFont:set_visible(true);
+                    -- Mark this slot as visible for optimized hiding next frame
+                    notificationData.MarkPoolSlotVisible(slot);
+                end
 
-            -- Draw timer using GDI font
-            local remaining = notificationData.GetTreasurePoolTimeRemaining(slot);
-            local timerText = notificationData.FormatPoolTimer(remaining);
+                -- Draw timer using GDI font
+                local remaining = notificationData.GetTreasurePoolTimeRemaining(slot);
+                local timerText = notificationData.FormatPoolTimer(remaining);
 
-            -- Timer color (yellow when > 1 min, orange when < 1 min, red when < 30 sec)
-            local timerColor;
-            if remaining > 60 then
-                timerColor = 0xFFFFFF4D;  -- Yellow
-            elseif remaining > 30 then
-                timerColor = 0xFFFF9933;  -- Orange
-            else
-                timerColor = 0xFFFF4D4D;  -- Red
-            end
+                -- Timer color (yellow when > 1 min, orange when < 1 min, red when < 30 sec)
+                local timerColor;
+                if remaining > 60 then
+                    timerColor = 0xFFFFFF4D;  -- Yellow
+                elseif remaining > 30 then
+                    timerColor = 0xFFFF9933;  -- Orange
+                else
+                    timerColor = 0xFFFF4D4D;  -- Red
+                end
 
-            -- Calculate fixed timer area width (for "M:SS" format, ~5 chars)
-            -- This prevents shifting when timer changes digits
-            local timerFont = notificationData.poolTimerFonts[slot];
-            local fixedTimerWidth = 0;
-            if timerFont then
-                timerFont:set_font_height(poolFontSize);
-                timerFont:set_text("5:00");  -- Reference width
-                fixedTimerWidth, _ = timerFont:get_text_size();
-            end
+                -- Get fixed timer area width from cache (avoids measuring "5:00" every frame)
+                local timerFont = notificationData.poolTimerFonts[slot];
+                local fixedTimerWidth = notificationData.GetTimerRefWidth(timerFont, poolFontSize);
 
-            -- Fixed right edge for timer area
-            local timerRightX = x + itemWidth - padding;
-            local timerAreaLeftX = timerRightX - fixedTimerWidth;
+                -- Fixed right edge for timer area
+                local timerRightX = x + itemWidth - padding;
+                local timerAreaLeftX = timerRightX - fixedTimerWidth;
 
-            if timerFont and gConfig.notificationsTreasurePoolShowTimerText then
-                timerFont:set_text(timerText);
-                -- Right-align timer within fixed area
-                local actualTimerWidth, _ = timerFont:get_text_size();
-                timerFont:set_position_x(timerRightX - actualTimerWidth);
-                timerFont:set_position_y(textY);
-                timerFont:set_font_color(timerColor);
-                timerFont:set_visible(true);
-            elseif timerFont then
-                timerFont:set_visible(false);
-            end
-
-            -- Draw lots using GDI font (if showing lots is enabled)
-            -- Displayed inline on the right side, to the left of the fixed timer area
-            if gConfig.notificationsTreasurePoolShowLots then
-                local lotFont = notificationData.poolLotFonts[slot];
-
-                if lotFont and item.highestLot and item.highestLot > 0 then
-                    -- Format: "Name: 734" - compact display on the right
-                    local lotterName = item.highestLotterName or "";
-                    -- Truncate long names to keep it compact
-                    if #lotterName > 8 then
-                        lotterName = lotterName:sub(1, 7) .. ".";
+                if timerFont and gConfig.notificationsTreasurePoolShowTimerText then
+                    timerFont:set_font_height(poolFontSize);
+                    timerFont:set_text(timerText);
+                    -- Right-align timer within fixed area
+                    local actualTimerWidth, _ = timerFont:get_text_size();
+                    timerFont:set_position_x(timerRightX - actualTimerWidth);
+                    timerFont:set_position_y(textY);
+                    -- Only set color if changed (expensive D3D call)
+                    if notificationData.lastPoolTimerColors[slot] ~= timerColor then
+                        timerFont:set_font_color(timerColor);
+                        notificationData.lastPoolTimerColors[slot] = timerColor;
                     end
-                    local lotText = string.format('%s: %d', lotterName, item.highestLot);
-                    local lotColor = 0xFF4DFF4D;  -- Green for lot
-
-                    lotFont:set_font_height(poolFontSize);
-                    lotFont:set_text(lotText);
-                    -- Right-align lot text to the left of the fixed timer area
-                    local lotWidth, _ = lotFont:get_text_size();
-                    local lotX = timerAreaLeftX - 8 - lotWidth;
-                    lotFont:set_position_x(lotX);
-                    lotFont:set_position_y(textY);
-                    lotFont:set_font_color(lotColor);
-                    lotFont:set_visible(true);
+                    timerFont:set_visible(true);
+                elseif timerFont then
+                    timerFont:set_visible(false);
                 end
-            end
 
-            -- Draw timer progress bar at bottom
-            if gConfig.notificationsTreasurePoolShowTimerBar then
-                local barHeight = 3;
-                local barY = y + itemHeight - barHeight - 1;
-                local progress = remaining / notificationData.TREASURE_POOL_TIMEOUT;
+                -- Draw lots using GDI font (if showing lots is enabled)
+                -- Displayed inline on the right side, to the left of the fixed timer area
+                if gConfig.notificationsTreasurePoolShowLots then
+                    local lotFont = notificationData.poolLotFonts[slot];
 
-                -- Purple gradient for treasure pool
-                local barColor = HexToU32('#9966cc');
-                local filledWidth = (itemWidth - 2) * progress;
+                    if lotFont and item.highestLot and item.highestLot > 0 then
+                        -- Format: "Name: 734" - compact display on the right
+                        local lotterName = item.highestLotterName or "";
+                        -- Truncate long names to keep it compact
+                        if #lotterName > 8 then
+                            lotterName = lotterName:sub(1, 7) .. ".";
+                        end
+                        local lotText = string.format('%s: %d', lotterName, item.highestLot);
+                        local lotColor = 0xFF4DFF4D;  -- Green for lot
 
-                if filledWidth > 0 then
-                    drawList:AddRectFilled(
-                        {x + 1, barY},
-                        {x + 1 + filledWidth, barY + barHeight},
-                        barColor,
-                        1
-                    );
+                        lotFont:set_font_height(poolFontSize);
+                        lotFont:set_text(lotText);
+                        -- Right-align lot text to the left of the fixed timer area
+                        local lotWidth, _ = lotFont:get_text_size();
+                        local lotX = timerAreaLeftX - 8 - lotWidth;
+                        lotFont:set_position_x(lotX);
+                        lotFont:set_position_y(textY);
+                        -- Only set color if changed (expensive D3D call)
+                        if notificationData.lastPoolLotColors[slot] ~= lotColor then
+                            lotFont:set_font_color(lotColor);
+                            notificationData.lastPoolLotColors[slot] = lotColor;
+                        end
+                        lotFont:set_visible(true);
+                    end
                 end
+
+                -- Draw timer progress bar at bottom
+                if gConfig.notificationsTreasurePoolShowTimerBar then
+                    local barHeight = 3;
+                    local barY = y + itemHeight - barHeight - 1;
+                    local progress = remaining / notificationData.TREASURE_POOL_TIMEOUT;
+
+                    -- Purple gradient for treasure pool (cached to avoid hex parsing every frame)
+                    local barColor = notificationData.GetCachedBarColor('treasurePool', '#9966cc');
+                    local filledWidth = (itemWidth - 2) * progress;
+
+                    if filledWidth > 0 then
+                        drawList:AddRectFilled(
+                            {x + 1, barY},
+                            {x + 1 + filledWidth, barY + barHeight},
+                            barColor,
+                            1
+                        );
+                    end
+                end
+
+                end -- End bounds check if
+
+                currentY = currentY + itemHeight + spacing;
             end
+        end);
 
-            end -- End bounds check if
-
-            currentY = currentY + itemHeight + spacing;
+        if not renderSuccess and renderErr then
+            print('[XIUI Notifications] Treasure pool render error: ' .. tostring(renderErr));
         end
     end
+    -- CRITICAL: imgui.End() MUST always be called after imgui.Begin() to prevent state corruption
     imgui.End();
-    end); -- End pcall wrapper
-
-    if not success and err then
-        print('[XIUI Notifications] Treasure pool render error: ' .. tostring(err));
-    end
 end
 
 -- ============================================
@@ -999,11 +1044,11 @@ function M.DrawWindow(settings, activeNotifications, pinnedNotifications)
     end
 
     -- Hide all fonts and primitives initially (including treasure pool)
+    -- Note: HideAllBackgrounds already handles pool backgrounds, so no need to call HidePoolBackgrounds separately
     notificationData.SetAllFontsVisible(false);
     notificationData.HideAllBackgrounds();
     notificationData.HideSplitFonts();
     notificationData.HidePoolFonts();
-    notificationData.HidePoolBackgrounds();
 
     -- Reset global slot counter for this frame
     currentSlot = 0;

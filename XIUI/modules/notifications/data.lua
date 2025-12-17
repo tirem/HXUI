@@ -114,6 +114,25 @@ M.poolBgPrims = {};
 M.lastTitleColors = {};
 M.lastSubtitleColors = {};
 
+-- Treasure pool color caches (per slot)
+M.lastPoolTimerColors = {};
+M.lastPoolLotColors = {};
+M.lastPoolItemNameColors = {};
+
+-- Treasure pool sorted cache (avoid table allocation/sort every frame)
+M.sortedPoolCache = {};
+M.sortedPoolDirty = true;
+
+-- Treasure pool timer reference width cache (avoid measuring "5:00" every frame)
+M.timerRefWidthCache = {};  -- fontHeight -> width
+M.lastPoolFontSize = nil;
+
+-- Pre-cached U32 colors for progress bars (avoid hex parsing every frame)
+M.cachedBarColors = {};
+
+-- Track which pool slots were visible last frame (for optimized visibility management)
+M.lastVisiblePoolSlots = {};
+
 -- ============================================
 -- Primitive Storage (following petbar pattern)
 -- ============================================
@@ -181,32 +200,31 @@ function M.HideSplitFonts()
     end
 end
 
--- Hide treasure pool window fonts
+-- Hide treasure pool window fonts (optimized to only hide slots that were visible last frame)
 function M.HidePoolFonts()
     if M.poolHeaderFont then
         M.poolHeaderFont:set_visible(false);
     end
-    if M.poolItemNameFonts then
-        for _, font in pairs(M.poolItemNameFonts) do
-            if font then
-                font:set_visible(false);
-            end
+
+    -- Only hide fonts for slots that were visible last frame (avoid iterating all 10 slots)
+    for slot in pairs(M.lastVisiblePoolSlots) do
+        if M.poolItemNameFonts and M.poolItemNameFonts[slot] then
+            M.poolItemNameFonts[slot]:set_visible(false);
+        end
+        if M.poolTimerFonts and M.poolTimerFonts[slot] then
+            M.poolTimerFonts[slot]:set_visible(false);
+        end
+        if M.poolLotFonts and M.poolLotFonts[slot] then
+            M.poolLotFonts[slot]:set_visible(false);
         end
     end
-    if M.poolTimerFonts then
-        for _, font in pairs(M.poolTimerFonts) do
-            if font then
-                font:set_visible(false);
-            end
-        end
-    end
-    if M.poolLotFonts then
-        for _, font in pairs(M.poolLotFonts) do
-            if font then
-                font:set_visible(false);
-            end
-        end
-    end
+    -- Clear the tracking table for the new frame
+    M.lastVisiblePoolSlots = {};
+end
+
+-- Mark a pool slot as visible this frame (call when showing pool fonts)
+function M.MarkPoolSlotVisible(slot)
+    M.lastVisiblePoolSlots[slot] = true;
 end
 
 -- Hide treasure pool background primitives
@@ -224,6 +242,17 @@ end
 function M.ClearColorCache()
     M.lastTitleColors = {};
     M.lastSubtitleColors = {};
+    M.lastPoolTimerColors = {};
+    M.lastPoolLotColors = {};
+    M.lastPoolItemNameColors = {};
+    M.timerRefWidthCache = {};
+    M.lastPoolFontSize = nil;
+    M.cachedBarColors = {};
+end
+
+-- Mark sorted pool cache as dirty (call when pool changes)
+function M.MarkPoolDirty()
+    M.sortedPoolDirty = true;
 end
 
 -- ============================================
@@ -333,26 +362,40 @@ local function UpdateNotificationState(notification, currentTime)
     local stateElapsed = currentTime - notification.stateStartTime;
 
     if notification.state == M.STATE.ENTERING then
-        -- Entering animation (fade in + slide from left)
-        notification.animationProgress = math.min(1.0, stateElapsed / M.DURATION.ENTER);
+        -- Add stagger delay for entry to prevent all notifications entering at once
+        local entryStaggerDelay = (notification.staggerIndex or 0) * 0.1;  -- 100ms between each
 
-        -- Ease out cubic for smooth deceleration
-        local t = notification.animationProgress;
-        local eased = 1 - math.pow(1 - t, 3);
-
-        notification.alpha = eased;
-        notification.containerOffsetX = -50 * (1 - eased);  -- Container slides in from left
-        notification.iconOffsetX = -20 * (1 - eased);       -- Icon slides from left (relative)
-        notification.textOffsetY = 8 * (1 - eased);         -- Text slides up into position
-
-        if notification.animationProgress >= 1.0 then
-            notification.state = M.STATE.VISIBLE;
-            notification.stateStartTime = currentTime;
+        -- Check if we're still in the stagger delay period
+        if stateElapsed < entryStaggerDelay then
+            -- Still waiting - keep hidden
+            notification.alpha = 0;
+            notification.containerOffsetX = -50;
+            notification.iconOffsetX = -20;
+            notification.textOffsetY = 8;
             notification.animationProgress = 0;
-            notification.alpha = 1;
-            notification.containerOffsetX = 0;
-            notification.iconOffsetX = 0;
-            notification.textOffsetY = 0;
+        else
+            -- Stagger delay passed - start/continue enter animation
+            local animationElapsed = stateElapsed - entryStaggerDelay;
+            notification.animationProgress = math.min(1.0, animationElapsed / M.DURATION.ENTER);
+
+            -- Ease out cubic for smooth deceleration
+            local t = notification.animationProgress;
+            local eased = 1 - math.pow(1 - t, 3);
+
+            notification.alpha = eased;
+            notification.containerOffsetX = -50 * (1 - eased);  -- Container slides in from left
+            notification.iconOffsetX = -20 * (1 - eased);       -- Icon slides from left (relative)
+            notification.textOffsetY = 8 * (1 - eased);         -- Text slides up into position
+
+            if notification.animationProgress >= 1.0 then
+                notification.state = M.STATE.VISIBLE;
+                notification.stateStartTime = currentTime;
+                notification.animationProgress = 0;
+                notification.alpha = 1;
+                notification.containerOffsetX = 0;
+                notification.iconOffsetX = 0;
+                notification.textOffsetY = 0;
+            end
         end
 
     elseif notification.state == M.STATE.VISIBLE then
@@ -506,6 +549,9 @@ function M.Remove(notificationId)
                 notification.state = M.STATE.EXITING;
                 notification.stateStartTime = os.clock();
                 notification.animationProgress = 0;
+                -- Clear minified state to ensure proper exit animation rendering
+                notification.isMinified = false;
+                notification.minifyProgress = 0;
             end
             return;
         end
@@ -518,6 +564,9 @@ function M.Remove(notificationId)
                 notification.state = M.STATE.EXITING;
                 notification.stateStartTime = os.clock();
                 notification.animationProgress = 0;
+                -- Clear minified state to ensure proper exit animation rendering
+                notification.isMinified = false;
+                notification.minifyProgress = 0;
             end
             return;
         end
@@ -541,6 +590,9 @@ function M.RemoveByType(notificationType, excludeId)
                 notification.state = M.STATE.EXITING;
                 notification.stateStartTime = os.clock();
                 notification.animationProgress = 0;
+                -- Clear minified state to ensure proper exit animation rendering
+                notification.isMinified = false;
+                notification.minifyProgress = 0;
             end
         end
     end
@@ -552,6 +604,9 @@ function M.RemoveByType(notificationType, excludeId)
                 notification.state = M.STATE.EXITING;
                 notification.stateStartTime = os.clock();
                 notification.animationProgress = 0;
+                -- Clear minified state to ensure proper exit animation rendering
+                notification.isMinified = false;
+                notification.minifyProgress = 0;
             end
         end
     end
@@ -797,6 +852,9 @@ function M.AddTreasurePoolItem(slot, itemId, dropperId, count, timestamp, showTo
         exitStartTime = nil,    -- For exit animation
     };
 
+    -- Mark sorted cache as dirty
+    M.MarkPoolDirty();
+
     -- Also add a toast notification if enabled (and showToast is not false)
     if showToast ~= false and gConfig and gConfig.notificationsShowTreasure then
         M.AddTreasurePoolNotification(itemId, count);
@@ -826,8 +884,10 @@ function M.UpdateTreasurePoolLot(slot, lotterId, lotterName, lotValue, highestId
     -- Handle drop status - clear immediately on award or loss
     if dropStatus == 1 then  -- Awarded - clear immediately
         M.treasurePool[slot] = nil;
+        M.MarkPoolDirty();
     elseif dropStatus == 2 then  -- Lost/Passed by all
         M.treasurePool[slot] = nil;
+        M.MarkPoolDirty();
     end
 end
 
@@ -835,15 +895,23 @@ end
 function M.UpdateTreasurePool(currentTime)
     local osTime = os.time();
     local clockTime = os.clock();
+    local removed = false;
 
     for slot, item in pairs(M.treasurePool) do
         -- Check expiration
         if osTime >= item.expiresAt then
             M.treasurePool[slot] = nil;
+            removed = true;
         -- Handle awarded item removal after exit animation
         elseif item.exitStartTime and (clockTime - item.exitStartTime) > M.DURATION.EXIT then
             M.treasurePool[slot] = nil;
+            removed = true;
         end
+    end
+
+    -- Mark cache dirty only if something was removed
+    if removed then
+        M.MarkPoolDirty();
     end
 end
 
@@ -863,15 +931,62 @@ function M.FormatPoolTimer(seconds)
     return string.format("%d:%02d", mins, secs);
 end
 
--- Get sorted treasure pool items for display
-function M.GetSortedTreasurePool()
-    local sorted = {};
-    for slot, item in pairs(M.treasurePool) do
-        table.insert(sorted, item);
+-- Get cached timer reference width (avoids measuring "5:00" every frame)
+-- Returns cached width, or calculates and caches if font size changed
+function M.GetTimerRefWidth(timerFont, fontHeight)
+    -- Check if we need to recalculate (font size changed)
+    if M.lastPoolFontSize ~= fontHeight or M.timerRefWidthCache[fontHeight] == nil then
+        if timerFont then
+            timerFont:set_font_height(fontHeight);
+            timerFont:set_text("5:00");
+            local width, _ = timerFont:get_text_size();
+            M.timerRefWidthCache[fontHeight] = width;
+            M.lastPoolFontSize = fontHeight;
+        else
+            return 0;
+        end
     end
-    -- Sort by slot index
-    table.sort(sorted, function(a, b) return a.slot < b.slot end);
-    return sorted;
+    return M.timerRefWidthCache[fontHeight] or 0;
+end
+
+-- Get cached U32 bar color (avoids hex parsing every frame)
+-- key: unique identifier for the color (e.g., 'treasurePool')
+-- hexColor: the hex color string (e.g., '#9966cc')
+function M.GetCachedBarColor(key, hexColor)
+    if M.cachedBarColors[key] == nil or M.cachedBarColors[key].hex ~= hexColor then
+        M.cachedBarColors[key] = {
+            hex = hexColor,
+            u32 = HexToU32(hexColor)
+        };
+    end
+    return M.cachedBarColors[key].u32;
+end
+
+-- Get sorted treasure pool items for display (cached to avoid table allocation every frame)
+function M.GetSortedTreasurePool()
+    -- Only rebuild if cache is dirty
+    if M.sortedPoolDirty then
+        -- Safely clear and rebuild cache (create new table to avoid modifying while iterating)
+        M.sortedPoolCache = {};
+
+        local idx = 1;
+        for slot, item in pairs(M.treasurePool) do
+            -- Only include items with valid slots (0-9)
+            if item and item.slot ~= nil and item.slot >= 0 and item.slot < M.TREASURE_POOL_MAX_SLOTS then
+                M.sortedPoolCache[idx] = item;
+                idx = idx + 1;
+            end
+        end
+
+        -- Sort by slot index (with nil-safe comparison)
+        table.sort(M.sortedPoolCache, function(a, b)
+            local slotA = (a and a.slot) or 999;
+            local slotB = (b and b.slot) or 999;
+            return slotA < slotB;
+        end);
+        M.sortedPoolDirty = false;
+    end
+    return M.sortedPoolCache;
 end
 
 -- Get treasure pool item count
@@ -886,6 +1001,7 @@ end
 -- Clear treasure pool (call on zone change)
 function M.ClearTreasurePool()
     M.treasurePool = {};
+    M.MarkPoolDirty();
 end
 
 -- ============================================

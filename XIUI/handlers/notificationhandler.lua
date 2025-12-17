@@ -301,6 +301,11 @@ function M.HandleTreasurePool(e)
     local oldFlag = struct.unpack('B', e.data, 0x15 + 1);
     local timestamp = struct.unpack('I4', e.data, 0x18 + 1);
 
+    -- Validate slot is within bounds (0-9)
+    if slot == nil or slot >= 10 then
+        return;
+    end
+
     -- Debug output
     if M.DEBUG_ENABLED then
         local item = AshitaCore:GetResourceManager():GetItemById(itemId);
@@ -362,6 +367,12 @@ function M.HandleTreasureLot(e)
     local currentLot = struct.unpack('H', e.data, 0x12 + 1);
     local slot = struct.unpack('B', e.data, 0x14 + 1);
     local dropStatus = struct.unpack('B', e.data, 0x15 + 1);
+
+    -- Validate slot is within bounds (0-9)
+    if slot == nil or slot >= 10 then
+        return;
+    end
+
     local highestLotterNameRaw = struct.unpack('c16', e.data, 0x16 + 1);
     local currentLotterNameRaw = struct.unpack('c16', e.data, 0x26 + 1);
     local highestLotterName = trimNullString(highestLotterNameRaw);

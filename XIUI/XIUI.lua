@@ -255,6 +255,20 @@ showConfig = { false };
 local pendingVisualUpdate = false;
 bLoggedIn = gameState.CheckLoggedIn();
 local bInitialized = false;
+local wasInParty = false;  -- Tracks party state for detecting party leave
+
+-- Check if player is currently in a party (has other members)
+local function IsInParty()
+    local party = AshitaCore:GetMemoryManager():GetParty();
+    if party == nil then return false; end
+    -- Check if any other party members (slots 1-5) are active
+    for i = 1, 5 do
+        if party:GetMemberIsActive(i) == 1 then
+            return true;
+        end
+    end
+    return false;
+end
 
 -- Helper function to get party settings by index (1=A, 2=B, 3=C)
 function GetPartySettings(partyIndex)
@@ -428,6 +442,15 @@ ashita.events.register('command', 'command_cb', function (e)
             return;
         end
 
+        -- Toggle treasure pool window: /xiui treasure or /xiui pool
+        if (#command_args == 2 and command_args[2]:any('treasure', 'pool')) then
+            gConfig.notificationsTreasurePoolWindow = not gConfig.notificationsTreasurePoolWindow;
+            SaveSettingsOnly();
+            local state = gConfig.notificationsTreasurePoolWindow and 'enabled' or 'disabled';
+            print(chat.header(addon.name) .. chat.message('Treasure pool window ' .. state));
+            return;
+        end
+
         -- Test notification command: /xiui testnotif [type]
         if (command_args[2] == 'testnotif') then
             local testType = tonumber(command_args[3]) or 5;  -- default to ITEM_OBTAINED
@@ -438,6 +461,30 @@ ashita.events.register('command', 'command_cb', function (e)
                 playerName = 'TestPlayer',
                 amount = 5000,
             });
+            return;
+        end
+
+        -- Test treasure pool with 10 items: /xiui testpool10
+        if (command_args[2] == 'testpool10') then
+            notifications.TestTreasurePool10();
+            return;
+        end
+
+        -- Stress test treasure pool with 25 items: /xiui testpool25
+        if (command_args[2] == 'testpool25') then
+            notifications.TestTreasurePool25();
+            return;
+        end
+
+        -- Test pool only (no toasts) - for crash isolation: /xiui testpoolonly
+        if (command_args[2] == 'testpoolonly') then
+            notifications.TestPoolOnly();
+            return;
+        end
+
+        -- Test toasts only (no pool) - for crash isolation: /xiui testtoastsonly
+        if (command_args[2] == 'testtoastsonly') then
+            notifications.TestToastsOnly();
             return;
         end
     end
@@ -493,6 +540,13 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
         statusHandler.ReadPartyBuffsFromPacket(e);
     elseif (e.id == 0x0DD) then
         MarkPartyCacheDirty();
+        -- Detect party leave and clear treasure pool
+        local currentlyInParty = IsInParty();
+        if wasInParty and not currentlyInParty then
+            -- Player left party - clear treasure pool (forfeited)
+            notifications.ClearTreasurePool();
+        end
+        wasInParty = currentlyInParty;
     elseif (e.id == 0x00DC) then
         -- Party invite packet
         if gConfig.showNotifications and gConfig.notificationsShowPartyInvite then
