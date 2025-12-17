@@ -94,7 +94,7 @@ end
     @param themeName string: Theme name
     @return table: Border primitives handle with 'tl', 'tr', 'bl', 'br' keys
 ]]--
-function M.createBorders(primData, themeName)
+function M.createBorders(primData, themeName, bgScale)
     local borders = {
         themeName = themeName,
     };
@@ -104,8 +104,8 @@ function M.createBorders(primData, themeName)
         prim.visible = false;
         prim.can_focus = false;
         prim.exists = false;
-        prim.scale_x = 1.0;  -- Borders never scale
-        prim.scale_y = 1.0;
+        prim.scale_x = bgScale;
+        prim.scale_y = bgScale;
 
         -- Load texture if Window theme
         if IsWindowTheme(themeName) then
@@ -132,7 +132,7 @@ end
 ]]--
 function M.create(primData, themeName, bgScale)
     local bgHandle = M.createBackground(primData, themeName, bgScale);
-    local borderHandle = M.createBorders(primData, themeName);
+    local borderHandle = M.createBorders(primData, themeName, bgScale);
 
     return {
         bg = bgHandle.bg,
@@ -190,8 +190,8 @@ function M.updateBackground(bgHandle, x, y, width, height, options)
     bgPrim.visible = bgPrim.exists;
     bgPrim.position_x = x - padding;
     bgPrim.position_y = y - paddingY;
-    bgPrim.width = bgWidth / bgScale;
-    bgPrim.height = bgHeight / bgScale;
+    bgPrim.width = math.ceil(bgWidth / bgScale);
+    bgPrim.height = math.ceil(bgHeight / bgScale);
     bgPrim.scale_x = bgScale;
     bgPrim.scale_y = bgScale;
 
@@ -228,6 +228,7 @@ function M.updateBorders(borderHandle, x, y, width, height, options)
     local paddingY = options.paddingY or padding;
     local borderSize = options.borderSize or DEFAULT_BORDER_SIZE;
     local bgOffset = options.bgOffset or DEFAULT_BG_OFFSET;
+    local bgScale = options.bgScale or borderHandle.bgScale or DEFAULT_BG_SCALE;
     local borderColor = options.borderColor or 0xFFFFFFFF;
 
     local isWindowTheme = IsWindowTheme(theme);
@@ -259,38 +260,46 @@ function M.updateBorders(borderHandle, x, y, width, height, options)
     -- Bottom-right corner
     local br = borderHandle.br;
     br.visible = br.exists;
-    br.position_x = bgX + bgWidth - borderSize + bgOffset;
-    br.position_y = bgY + bgHeight - borderSize + bgOffset;
+    br.position_x = bgX + bgWidth - math.floor((borderSize * bgScale) - (bgOffset * bgScale));
+    br.position_y = bgY + bgHeight - math.floor((borderSize * bgScale) - (bgOffset * bgScale));
     br.width = borderSize;
     br.height = borderSize;
     br.color = finalColor;
+    br.scale_x = bgScale;
+    br.scale_y = bgScale;
 
     -- Top-right edge (L-shaped from top to br)
     local tr = borderHandle.tr;
     tr.visible = tr.exists;
     tr.position_x = br.position_x;
-    tr.position_y = bgY - bgOffset;
+    tr.position_y = bgY - (bgOffset * bgScale);
     tr.width = borderSize;
-    tr.height = br.position_y - tr.position_y;
+    tr.height = math.ceil((br.position_y - tr.position_y) / bgScale);
     tr.color = finalColor;
+    tr.scale_x = bgScale;
+    tr.scale_y = bgScale;
 
     -- Top-left (L-shaped: top and left edges)
     local tl = borderHandle.tl;
     tl.visible = tl.exists;
-    tl.position_x = bgX - bgOffset;
-    tl.position_y = bgY - bgOffset;
-    tl.width = tr.position_x - tl.position_x;
-    tl.height = br.position_y - tl.position_y;
+    tl.position_x = bgX - (bgOffset * bgScale);
+    tl.position_y = bgY - (bgOffset * bgScale);
+    tl.width = math.ceil((tr.position_x - tl.position_x) / bgScale);
+    tl.height =  tr.height;
     tl.color = finalColor;
+    tl.scale_x = bgScale;
+    tl.scale_y = bgScale;
 
     -- Bottom-left edge (L-shaped from left to br)
     local bl = borderHandle.bl;
     bl.visible = bl.exists;
     bl.position_x = tl.position_x;
-    bl.position_y = bgY + bgHeight - borderSize + bgOffset;
-    bl.width = br.position_x - bl.position_x;
-    bl.height = borderSize;
+    bl.position_y = br.position_y;
+    bl.width = tl.width;
+    bl.height = br.height;
     bl.color = finalColor;
+    bl.scale_x = bgScale;
+    bl.scale_y = bgScale;
 end
 
 --[[
@@ -381,10 +390,14 @@ end
     @param borderHandle table: Border handle
     @param themeName string: New theme name
 ]]--
-function M.setBordersTheme(borderHandle, themeName)
+function M.setBordersTheme(borderHandle, themeName, bgScale)
     if not borderHandle then return; end
 
     borderHandle.themeName = themeName;
+    if bgScale then
+        borderHandle.bgScale = bgScale;
+    end
+
     local isWindow = IsWindowTheme(themeName);
 
     for _, k in ipairs(M.BORDER_KEYS) do
@@ -394,6 +407,8 @@ function M.setBordersTheme(borderHandle, themeName)
                 local filepath = string.format('%s/assets/backgrounds/%s-%s.png', addon.path, themeName, k);
                 prim.texture = filepath;
                 prim.exists = ashita.fs.exists(filepath);
+                prim.scale_x = bgScale;
+                prim.scale_y = bgScale;
             else
                 prim.exists = false;
                 prim.visible = false;
@@ -410,7 +425,7 @@ end
 ]]--
 function M.setTheme(handle, themeName, bgScale)
     M.setBackgroundTheme(handle, themeName, bgScale);
-    M.setBordersTheme(handle, themeName);
+    M.setBordersTheme(handle, themeName, bgScale);
     handle.themeName = themeName;
     if bgScale then
         handle.bgScale = bgScale;
