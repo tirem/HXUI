@@ -687,97 +687,105 @@ local function drawNotificationWindow(windowName, notifications, settings, split
 
     -- Create ImGui window
     if imgui.Begin(windowName, true, windowFlags) then
-        local windowPosX, windowPosY = imgui.GetWindowPos();
-        local drawList = imgui.GetWindowDrawList();
+        -- Wrap rendering in pcall to ensure End() is always called even if an error occurs
+        local renderSuccess, renderErr = pcall(function()
+            local windowPosX, windowPosY = imgui.GetWindowPos();
+            local drawList = imgui.GetWindowDrawList();
 
-        -- Set window size
-        imgui.Dummy({notificationWidth, totalHeight});
+            -- Set window size
+            imgui.Dummy({notificationWidth, totalHeight});
 
-        if hasNotifications then
-            local currentY = windowPosY;
-            for i, notification in ipairs(notifications) do
-                -- Use global slot counter instead of local index
-                currentSlot = currentSlot + 1;
-                if currentSlot > notificationData.MAX_ACTIVE_NOTIFICATIONS then break; end
+            if hasNotifications then
+                local currentY = windowPosY;
+                for i, notification in ipairs(notifications) do
+                    -- Use global slot counter instead of local index
+                    currentSlot = currentSlot + 1;
+                    if currentSlot > notificationData.MAX_ACTIVE_NOTIFICATIONS then break; end
 
-                -- Calculate height based on minified/minifying state
-                local isMinified = notificationData.IsMinified(notification);
-                local isMinifying = notificationData.IsMinifying(notification);
-                local minifyProgress = notificationData.GetMinifyProgress(notification);
+                    -- Calculate height based on minified/minifying state
+                    local isMinified = notificationData.IsMinified(notification);
+                    local isMinifying = notificationData.IsMinifying(notification);
+                    local minifyProgress = notificationData.GetMinifyProgress(notification);
 
-                local notificationHeight;
-                if isMinifying then
-                    notificationHeight = normalHeight - (minifyProgress * (normalHeight - minifiedHeight));
+                    local notificationHeight;
+                    if isMinifying then
+                        notificationHeight = normalHeight - (minifyProgress * (normalHeight - minifiedHeight));
+                    else
+                        notificationHeight = isMinified and minifiedHeight or normalHeight;
+                    end
+
+                    local x = windowPosX;
+                    local y = currentY;
+
+                    drawNotification(currentSlot, notification, x, y, notificationWidth, notificationHeight, settings, drawList);
+
+                    currentY = currentY + notificationHeight + spacing;
+                end
+            elseif configOpen then
+                -- Show placeholder when config is open
+                local placeholderPadding = gConfig.notificationsPadding or 8;
+                local titleHeight = gConfig.notificationsTitleFontSize or 14;
+                local subtitleHeight = gConfig.notificationsSubtitleFontSize or 12;
+
+                -- Get fonts and primitives based on window type
+                local bgPrim, titleFont, subtitleFont;
+                if splitKey == nil then
+                    -- Main window: use slot 1 primitives/fonts
+                    -- Only show if no other notifications are using slot 1 (currentSlot == 0)
+                    if currentSlot > 0 then
+                        -- Skip placeholder - slot 1 is in use by split window notifications
+                        -- Note: return from pcall, End() will be called below
+                        return;
+                    end
+                    bgPrim = notificationData.bgPrims[1];
+                    titleFont = notificationData.titleFonts[1];
+                    subtitleFont = notificationData.subtitleFonts[1];
                 else
-                    notificationHeight = isMinified and minifiedHeight or normalHeight;
+                    -- Split window: use dedicated split window primitives/fonts
+                    bgPrim = notificationData.splitBgPrims[splitKey];
+                    titleFont = notificationData.splitTitleFonts[splitKey];
+                    subtitleFont = notificationData.splitSubtitleFonts[splitKey];
                 end
 
-                local x = windowPosX;
-                local y = currentY;
-
-                drawNotification(currentSlot, notification, x, y, notificationWidth, notificationHeight, settings, drawList);
-
-                currentY = currentY + notificationHeight + spacing;
-            end
-        elseif configOpen then
-            -- Show placeholder when config is open
-            local placeholderPadding = gConfig.notificationsPadding or 8;
-            local titleHeight = gConfig.notificationsTitleFontSize or 14;
-            local subtitleHeight = gConfig.notificationsSubtitleFontSize or 12;
-
-            -- Get fonts and primitives based on window type
-            local bgPrim, titleFont, subtitleFont;
-            if splitKey == nil then
-                -- Main window: use slot 1 primitives/fonts
-                -- Only show if no other notifications are using slot 1 (currentSlot == 0)
-                if currentSlot > 0 then
-                    -- Skip placeholder - slot 1 is in use by split window notifications
-                    imgui.End();
-                    return true;
+                -- Draw background using windowbackground library
+                if bgPrim then
+                    windowBg.update(bgPrim, windowPosX, windowPosY, notificationWidth, normalHeight, {
+                        theme = 'Plain',
+                        padding = 0,
+                        bgOpacity = 0.27,  -- 0x44 = 68/255 ≈ 0.27
+                        bgColor = 0xFF1A1A1A,
+                    });
                 end
-                bgPrim = notificationData.bgPrims[1];
-                titleFont = notificationData.titleFonts[1];
-                subtitleFont = notificationData.subtitleFonts[1];
-            else
-                -- Split window: use dedicated split window primitives/fonts
-                bgPrim = notificationData.splitBgPrims[splitKey];
-                titleFont = notificationData.splitTitleFonts[splitKey];
-                subtitleFont = notificationData.splitSubtitleFonts[splitKey];
-            end
 
-            -- Draw background using windowbackground library
-            if bgPrim then
-                windowBg.update(bgPrim, windowPosX, windowPosY, notificationWidth, normalHeight, {
-                    theme = 'Plain',
-                    padding = 0,
-                    bgOpacity = 0.27,  -- 0x44 = 68/255 ≈ 0.27
-                    bgColor = 0xFF1A1A1A,
-                });
-            end
+                -- Draw title font
+                if titleFont then
+                    titleFont:set_font_height(titleHeight);
+                    titleFont:set_position_x(windowPosX + placeholderPadding);
+                    titleFont:set_position_y(windowPosY + placeholderPadding);
+                    titleFont:set_text(placeholderTitle or 'Notification Area');
+                    titleFont:set_font_color(0xFFFFFFFF);  -- Reset to full opacity
+                    titleFont:set_outline_color(0xFF000000);
+                    titleFont:set_visible(true);
+                end
 
-            -- Draw title font
-            if titleFont then
-                titleFont:set_font_height(titleHeight);
-                titleFont:set_position_x(windowPosX + placeholderPadding);
-                titleFont:set_position_y(windowPosY + placeholderPadding);
-                titleFont:set_text(placeholderTitle or 'Notification Area');
-                titleFont:set_font_color(0xFFFFFFFF);  -- Reset to full opacity
-                titleFont:set_outline_color(0xFF000000);
-                titleFont:set_visible(true);
+                -- Draw subtitle font
+                if subtitleFont then
+                    subtitleFont:set_font_height(subtitleHeight);
+                    subtitleFont:set_position_x(windowPosX + placeholderPadding);
+                    subtitleFont:set_position_y(windowPosY + placeholderPadding + titleHeight + 2);
+                    subtitleFont:set_text(placeholderSubtitle or 'Drag to reposition');
+                    subtitleFont:set_font_color(0xFFCCCCCC);  -- Reset to full opacity (slightly dimmer)
+                    subtitleFont:set_outline_color(0xFF000000);
+                    subtitleFont:set_visible(true);
+                end
             end
+        end);
 
-            -- Draw subtitle font
-            if subtitleFont then
-                subtitleFont:set_font_height(subtitleHeight);
-                subtitleFont:set_position_x(windowPosX + placeholderPadding);
-                subtitleFont:set_position_y(windowPosY + placeholderPadding + titleHeight + 2);
-                subtitleFont:set_text(placeholderSubtitle or 'Drag to reposition');
-                subtitleFont:set_font_color(0xFFCCCCCC);  -- Reset to full opacity (slightly dimmer)
-                subtitleFont:set_outline_color(0xFF000000);
-                subtitleFont:set_visible(true);
-            end
+        if not renderSuccess and renderErr then
+            print('[XIUI Notifications] Render error: ' .. tostring(renderErr));
         end
     end
+    -- CRITICAL: imgui.End() MUST always be called after imgui.Begin() to prevent state corruption
     imgui.End();
 
     return true;
