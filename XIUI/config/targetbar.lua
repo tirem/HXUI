@@ -17,7 +17,7 @@ local positionLabels = { 'Above', 'Below', 'Left', 'Right' };
 -- Helper to draw a position dropdown
 local function DrawPositionDropdown(configKey, width)
     local currentPos = gConfig[configKey] or 0;
-    imgui.SetNextItemWidth(width or 70);
+    imgui.SetNextItemWidth(width or 85);
     if imgui.BeginCombo('##' .. configKey, positionLabels[currentPos + 1]) then
         for i, label in ipairs(positionLabels) do
             local isSelected = (currentPos == i - 1);
