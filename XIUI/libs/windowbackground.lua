@@ -452,8 +452,17 @@ end
     @param borderScale number: Optional new border scale
 ]]--
 function M.setTheme(handle, themeName, bgScale, borderScale)
+    -- Save old themeName before sub-functions modify it
+    -- (setBackgroundTheme updates handle.themeName, which would cause
+    -- setBordersTheme's change detection to fail)
+    local oldThemeName = handle.themeName;
+
+    -- Temporarily restore old name for each check
     M.setBackgroundTheme(handle, themeName, bgScale);
+    handle.themeName = oldThemeName; -- Restore for border check
     M.setBordersTheme(handle, themeName, borderScale);
+
+    -- Now set final values
     handle.themeName = themeName;
     if bgScale then
         handle.bgScale = bgScale;
