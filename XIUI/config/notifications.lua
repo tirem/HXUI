@@ -109,51 +109,98 @@ function M.DrawSettings()
     end
 
     if components.CollapsingSection('Notification Types##notifications') then
+        local indentAmount = 20;
+
+        -- Party Invites
         DrawCheckboxWithTest('Party Invites', 'notificationsShowPartyInvite', notificationData.NOTIFICATION_TYPE.PARTY_INVITE);
-        DrawCheckboxWithTest('Trade Requests', 'notificationsShowTradeInvite', notificationData.NOTIFICATION_TYPE.TRADE_INVITE);
-        DrawCheckboxWithTest('Treasure Pool', 'notificationsShowTreasure', notificationData.NOTIFICATION_TYPE.TREASURE_POOL);
-        DrawCheckboxWithTest('Items Obtained', 'notificationsShowItems', notificationData.NOTIFICATION_TYPE.ITEM_OBTAINED);
-        DrawCheckboxWithTest('Key Items', 'notificationsShowKeyItems', notificationData.NOTIFICATION_TYPE.KEY_ITEM_OBTAINED);
-        DrawCheckboxWithTest('Gil', 'notificationsShowGil', notificationData.NOTIFICATION_TYPE.GIL_OBTAINED);
-    end
-
-    if components.CollapsingSection('Treasure Pool Window##notifications') then
-        imgui.TextColored({0.7, 0.7, 0.7, 1.0}, 'Dedicated window showing all items in treasure pool');
-
-        components.DrawCheckbox('Show Treasure Pool Window', 'notificationsTreasurePoolWindow');
-        imgui.SameLine();
-        if imgui.SmallButton('Test Pool') then
-            addTestTreasurePoolItem();
+        if gConfig.notificationsShowPartyInvite then
+            imgui.Indent(indentAmount);
+            components.DrawCheckbox('Split Window##PartyInvite', 'notificationsSplitPartyInvite');
+            imgui.ShowHelp('Display party invites in a separate draggable window');
+            imgui.Unindent(indentAmount);
         end
-        imgui.ShowHelp('Add a test item to the treasure pool');
 
         imgui.Spacing();
-        components.DrawCheckbox('Show Title', 'notificationsTreasurePoolShowTitle');
-        imgui.ShowHelp('Show "Treasure Pool" header text at the top of the window');
-        components.DrawCheckbox('Show Timer Bar', 'notificationsTreasurePoolShowTimerBar');
-        imgui.ShowHelp('Show countdown progress bar at the bottom of each treasure pool item');
-        components.DrawCheckbox('Show Timer', 'notificationsTreasurePoolShowTimerText');
-        imgui.ShowHelp('Show countdown text (e.g., "4:32") on treasure pool items');
-        components.DrawCheckbox('Show Lots', 'notificationsTreasurePoolShowLots');
-        imgui.ShowHelp('Show party member lots on treasure pool items');
+
+        -- Trade Requests
+        DrawCheckboxWithTest('Trade Requests', 'notificationsShowTradeInvite', notificationData.NOTIFICATION_TYPE.TRADE_INVITE);
+        if gConfig.notificationsShowTradeInvite then
+            imgui.Indent(indentAmount);
+            components.DrawCheckbox('Split Window##TradeInvite', 'notificationsSplitTradeInvite');
+            imgui.ShowHelp('Display trade requests in a separate draggable window');
+            imgui.Unindent(indentAmount);
+        end
 
         imgui.Spacing();
-        components.DrawSlider('Text Size', 'notificationsTreasurePoolFontSize', 8, 18, '%.0f px');
-        imgui.ShowHelp('Font size for all text in the treasure pool window');
-        components.DrawSlider('Scale X##TreasurePool', 'notificationsTreasurePoolScaleX', 0.5, 2.0, '%.1f');
-        components.DrawSlider('Scale Y##TreasurePool', 'notificationsTreasurePoolScaleY', 0.5, 2.0, '%.1f');
-    end
 
-    if components.CollapsingSection('Split Windows##notifications') then
-        imgui.TextColored({0.7, 0.7, 0.7, 1.0}, 'Display notification types in separate draggable windows');
+        -- Treasure Pool
+        DrawCheckboxWithTest('Treasure Pool', 'notificationsShowTreasure', notificationData.NOTIFICATION_TYPE.TREASURE_POOL);
+        if gConfig.notificationsShowTreasure then
+            imgui.Indent(indentAmount);
+            components.DrawCheckbox('Split Window##TreasurePool', 'notificationsSplitTreasurePool');
+            imgui.ShowHelp('Display treasure pool toasts in a separate draggable window');
+
+            imgui.Spacing();
+            imgui.TextColored({0.7, 0.7, 0.7, 1.0}, 'Dedicated Treasure Pool Window:');
+            components.DrawCheckbox('Show Treasure Pool Window', 'notificationsTreasurePoolWindow');
+            imgui.SameLine();
+            if imgui.SmallButton('Test Pool') then
+                addTestTreasurePoolItem();
+            end
+            imgui.ShowHelp('Show a dedicated window listing all treasure pool items');
+
+            if gConfig.notificationsTreasurePoolWindow then
+                imgui.Indent(indentAmount);
+                components.DrawCheckbox('Show Title', 'notificationsTreasurePoolShowTitle');
+                imgui.ShowHelp('Show "Treasure Pool" header text');
+                components.DrawCheckbox('Show Timer Bar', 'notificationsTreasurePoolShowTimerBar');
+                imgui.ShowHelp('Show countdown progress bar');
+                components.DrawCheckbox('Show Timer Text', 'notificationsTreasurePoolShowTimerText');
+                imgui.ShowHelp('Show countdown text (e.g., "4:32")');
+                components.DrawCheckbox('Show Lots', 'notificationsTreasurePoolShowLots');
+                imgui.ShowHelp('Show party member lots');
+                imgui.Spacing();
+                components.DrawSlider('Text Size##Pool', 'notificationsTreasurePoolFontSize', 8, 18, '%.0f px');
+                components.DrawSlider('Scale X##Pool', 'notificationsTreasurePoolScaleX', 0.5, 2.0, '%.1f');
+                components.DrawSlider('Scale Y##Pool', 'notificationsTreasurePoolScaleY', 0.5, 2.0, '%.1f');
+                imgui.Unindent(indentAmount);
+            end
+
+            imgui.Unindent(indentAmount);
+        end
+
         imgui.Spacing();
 
-        components.DrawCheckbox('Split Party Invites', 'notificationsSplitPartyInvite');
-        components.DrawCheckbox('Split Trade Requests', 'notificationsSplitTradeInvite');
-        components.DrawCheckbox('Split Treasure Pool', 'notificationsSplitTreasurePool');
-        components.DrawCheckbox('Split Items Obtained', 'notificationsSplitItemObtained');
-        components.DrawCheckbox('Split Key Items', 'notificationsSplitKeyItemObtained');
-        components.DrawCheckbox('Split Gil', 'notificationsSplitGilObtained');
+        -- Items Obtained
+        DrawCheckboxWithTest('Items Obtained', 'notificationsShowItems', notificationData.NOTIFICATION_TYPE.ITEM_OBTAINED);
+        if gConfig.notificationsShowItems then
+            imgui.Indent(indentAmount);
+            components.DrawCheckbox('Split Window##ItemObtained', 'notificationsSplitItemObtained');
+            imgui.ShowHelp('Display item notifications in a separate draggable window');
+            imgui.Unindent(indentAmount);
+        end
+
+        imgui.Spacing();
+
+        -- Key Items
+        DrawCheckboxWithTest('Key Items', 'notificationsShowKeyItems', notificationData.NOTIFICATION_TYPE.KEY_ITEM_OBTAINED);
+        if gConfig.notificationsShowKeyItems then
+            imgui.Indent(indentAmount);
+            components.DrawCheckbox('Split Window##KeyItemObtained', 'notificationsSplitKeyItemObtained');
+            imgui.ShowHelp('Display key item notifications in a separate draggable window');
+            imgui.Unindent(indentAmount);
+        end
+
+        imgui.Spacing();
+
+        -- Gil
+        DrawCheckboxWithTest('Gil', 'notificationsShowGil', notificationData.NOTIFICATION_TYPE.GIL_OBTAINED);
+        if gConfig.notificationsShowGil then
+            imgui.Indent(indentAmount);
+            components.DrawCheckbox('Split Window##GilObtained', 'notificationsSplitGilObtained');
+            imgui.ShowHelp('Display gil notifications in a separate draggable window');
+            imgui.Unindent(indentAmount);
+        end
     end
 end
 
