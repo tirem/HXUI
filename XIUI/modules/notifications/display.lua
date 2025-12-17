@@ -697,7 +697,18 @@ local function drawNotificationWindow(windowName, notifications, settings, split
 
             if hasNotifications then
                 local currentY = windowPosY;
-                for i, notification in ipairs(notifications) do
+                local stackUp = gConfig.notificationsDirection == 'up';
+
+                -- For "up" direction, reverse iteration so newest appears at top
+                local startIdx, endIdx, step;
+                if stackUp then
+                    startIdx, endIdx, step = #notifications, 1, -1;
+                else
+                    startIdx, endIdx, step = 1, #notifications, 1;
+                end
+
+                for i = startIdx, endIdx, step do
+                    local notification = notifications[i];
                     -- Use global slot counter instead of local index
                     currentSlot = currentSlot + 1;
                     if currentSlot > notificationData.MAX_ACTIVE_NOTIFICATIONS then break; end

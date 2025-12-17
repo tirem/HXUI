@@ -82,6 +82,11 @@ M.pendingQueue = {};            -- Waiting to display
 -- Hash table: slot (0-9) -> pool item data
 M.treasurePool = {};
 
+-- Treasure Pool Awarded History (last 10 items that were awarded)
+-- Array: most recent at index 1
+M.awardedHistory = {};
+M.AWARDED_HISTORY_MAX = 10;
+
 -- ID Counter
 M.nextId = 1;
 
@@ -501,6 +506,7 @@ function M.Initialize(settings)
     M.pinnedNotifications = {};
     M.pendingQueue = {};
     M.treasurePool = {};
+    M.awardedHistory = {};
     M.nextId = 1;
 end
 
@@ -723,6 +729,7 @@ function M.Cleanup()
     M.pinnedNotifications = {};
     M.pendingQueue = {};
     M.treasurePool = {};
+    M.awardedHistory = {};
     M.settings = nil;
     -- Note: Font/primitive objects are destroyed in init.lua Cleanup
     -- We just clear the references here
@@ -867,11 +874,23 @@ function M.UpdateTreasurePoolLot(slot, lotterId, lotterName, lotValue, highestId
     if not item then return end
 
     -- Update current lotter info (hash table for O(1) lookup)
-    if lotterId and lotterId ~= 0 and lotValue and lotValue > 0 then
-        item.lots[lotterId] = {
-            name = lotterName or "Unknown",
-            lot = lotValue,
-        };
+    -- Track lots (> 0) and passes (0 or 65535)
+    if lotterId and lotterId ~= 0 then
+        if lotValue and lotValue > 0 and lotValue < 65535 then
+            -- Valid lot value
+            item.lots[lotterId] = {
+                name = lotterName or "Unknown",
+                lot = lotValue,
+                passed = false,
+            };
+        elseif lotValue == 0 or lotValue == 65535 then
+            -- Pass (0 or 65535 indicates pass)
+            item.lots[lotterId] = {
+                name = lotterName or "Unknown",
+                lot = 0,
+                passed = true,
+            };
+        end
     end
 
     -- Update highest lot info
@@ -881,14 +900,275 @@ function M.UpdateTreasurePoolLot(slot, lotterId, lotterName, lotValue, highestId
         item.highestLotterId = highestId or item.highestLotterId;
     end
 
-    -- Handle drop status - clear immediately on award or loss
-    if dropStatus == 1 then  -- Awarded - clear immediately
+    -- Handle drop status - clear and add to history
+    if dropStatus == 1 then  -- Awarded
+        -- Add to history before removing
+        M.AddToAwardedHistory(item, highestName, highestId);
         M.treasurePool[slot] = nil;
         M.MarkPoolDirty();
-    elseif dropStatus == 2 then  -- Lost/Passed by all
+    elseif dropStatus == 2 then  -- Lost/Passed by all (no winner)
+        -- Add to history with no winner
+        M.AddToAwardedHistory(item, nil, nil);
         M.treasurePool[slot] = nil;
         M.MarkPoolDirty();
     end
+end
+
+-- Add item to awarded history
+function M.AddToAwardedHistory(item, winnerName, winnerId)
+    if not item then return end
+
+    local historyEntry = {
+        itemId = item.itemId,
+        itemName = item.itemName,
+        winnerName = winnerName,
+        winnerId = winnerId,
+        lots = {},  -- Copy lots table
+        awardedAt = os.time(),
+    };
+
+    -- Deep copy lots table (preserve all lot/pass info)
+    for playerId, lotInfo in pairs(item.lots or {}) do
+        historyEntry.lots[playerId] = {
+            name = lotInfo.name,
+            lot = lotInfo.lot,
+            passed = lotInfo.passed,
+        };
+    end
+
+    -- Insert at beginning (most recent first)
+    table.insert(M.awardedHistory, 1, historyEntry);
+
+    -- Trim to max size
+    while #M.awardedHistory > M.AWARDED_HISTORY_MAX do
+        table.remove(M.awardedHistory);
+    end
+end
+
+-- Get awarded history
+function M.GetAwardedHistory()
+    return M.awardedHistory;
+end
+
+-- Clear awarded history
+function M.ClearAwardedHistory()
+    M.awardedHistory = {};
+end
+
+-- Populate mock data for testing rolls window
+function M.PopulateMockRollsData()
+    -- Mock player names (alliance of 18)
+    local mockPlayers = {
+        -- Party A
+        {id = 1001, name = 'Shuu'},
+        {id = 1002, name = 'Whitemage'},
+        {id = 1003, name = 'Blackmage'},
+        {id = 1004, name = 'Redmage'},
+        {id = 1005, name = 'Thief'},
+        {id = 1006, name = 'Paladin'},
+        -- Party B
+        {id = 1007, name = 'Darkknight'},
+        {id = 1008, name = 'Beastmaster'},
+        {id = 1009, name = 'Bard'},
+        {id = 1010, name = 'Ranger'},
+        {id = 1011, name = 'Samurai'},
+        {id = 1012, name = 'Ninja'},
+        -- Party C
+        {id = 1013, name = 'Dragoon'},
+        {id = 1014, name = 'Summoner'},
+        {id = 1015, name = 'Bluemage'},
+        {id = 1016, name = 'Corsair'},
+        {id = 1017, name = 'Puppetmstr'},
+        {id = 1018, name = 'Dancer'},
+    };
+
+    -- Mock items (common FFXI items - correct item IDs)
+    local mockItems = {
+        {id = 4116, name = 'Hi-Potion'},
+        {id = 4148, name = 'Ether'},
+        {id = 13576, name = 'Leaping Boots'},
+        {id = 14525, name = 'Scorpion Harness'},
+        {id = 17440, name = 'Kraken Club'},
+    };
+
+    local currentTime = os.time();
+
+    -- Clear existing data
+    M.treasurePool = {};
+    M.awardedHistory = {};
+
+    -- Item 1: Full 18-person alliance rolling (Kraken Club - everyone wants it!)
+    local slot = 0;
+    M.treasurePool[slot] = {
+        slot = slot,
+        itemId = 17440,
+        itemName = 'Kraken Club',
+        dropperId = 5000,
+        count = 1,
+        timestamp = currentTime,
+        expiresAt = currentTime + 280,
+        lots = {},
+        highestLot = 0,
+        highestLotterName = "",
+        highestLotterId = 0,
+        awarded = false,
+        awardedTo = nil,
+        addedAt = os.clock(),
+        exitStartTime = nil,
+    };
+
+    -- All 18 players on Kraken Club - mix of lots, passes, and pending
+    local highestLot = 0;
+    local highestName = "";
+    local highestId = 0;
+    for j = 1, 18 do
+        local player = mockPlayers[j];
+        local isPassed = (j == 5 or j == 11);  -- A few passes
+        local isPending = (j == 3 or j == 8 or j == 14 or j == 17 or j == 18);  -- Some haven't lotted yet
+        local lotValue;
+
+        if isPending then
+            lotValue = nil;  -- nil means pending/not yet lotted
+        elseif isPassed then
+            lotValue = 0;
+        else
+            lotValue = math.random(100, 999);
+        end
+
+        M.treasurePool[slot].lots[player.id] = {
+            name = player.name,
+            lot = lotValue,
+            passed = isPassed,
+            pending = isPending,
+        };
+
+        if not isPassed and not isPending and lotValue and lotValue > highestLot then
+            highestLot = lotValue;
+            highestName = player.name;
+            highestId = player.id;
+        end
+    end
+    M.treasurePool[slot].highestLot = highestLot;
+    M.treasurePool[slot].highestLotterName = highestName;
+    M.treasurePool[slot].highestLotterId = highestId;
+
+    -- Item 2: Partial party (8 people)
+    slot = 1;
+    M.treasurePool[slot] = {
+        slot = slot,
+        itemId = 4116,
+        itemName = 'Hi-Potion',
+        dropperId = 5000,
+        count = 1,
+        timestamp = currentTime,
+        expiresAt = currentTime + 180,
+        lots = {},
+        highestLot = 0,
+        highestLotterName = "",
+        highestLotterId = 0,
+        awarded = false,
+        awardedTo = nil,
+        addedAt = os.clock(),
+        exitStartTime = nil,
+    };
+
+    highestLot = 0;
+    highestName = "";
+    highestId = 0;
+    for j = 1, 8 do
+        local player = mockPlayers[j];
+        local isPassed = (j % 3 == 0);
+        local lotValue = isPassed and 0 or math.random(1, 999);
+
+        M.treasurePool[slot].lots[player.id] = {
+            name = player.name,
+            lot = lotValue,
+            passed = isPassed,
+        };
+
+        if not isPassed and lotValue > highestLot then
+            highestLot = lotValue;
+            highestName = player.name;
+            highestId = player.id;
+        end
+    end
+    M.treasurePool[slot].highestLot = highestLot;
+    M.treasurePool[slot].highestLotterName = highestName;
+    M.treasurePool[slot].highestLotterId = highestId;
+
+    -- Item 3: Small group (4 people)
+    slot = 2;
+    M.treasurePool[slot] = {
+        slot = slot,
+        itemId = 4148,
+        itemName = 'Ether',
+        dropperId = 5000,
+        count = 1,
+        timestamp = currentTime,
+        expiresAt = currentTime + 90,
+        lots = {},
+        highestLot = 0,
+        highestLotterName = "",
+        highestLotterId = 0,
+        awarded = false,
+        awardedTo = nil,
+        addedAt = os.clock(),
+        exitStartTime = nil,
+    };
+
+    highestLot = 0;
+    highestName = "";
+    highestId = 0;
+    for j = 1, 4 do
+        local player = mockPlayers[j];
+        local isPassed = (j == 2);
+        local lotValue = isPassed and 0 or math.random(1, 999);
+
+        M.treasurePool[slot].lots[player.id] = {
+            name = player.name,
+            lot = lotValue,
+            passed = isPassed,
+        };
+
+        if not isPassed and lotValue > highestLot then
+            highestLot = lotValue;
+            highestName = player.name;
+            highestId = player.id;
+        end
+    end
+    M.treasurePool[slot].highestLot = highestLot;
+    M.treasurePool[slot].highestLotterName = highestName;
+    M.treasurePool[slot].highestLotterId = highestId;
+
+    -- Add 5 items to awarded history
+    for i = 1, 5 do
+        local item = mockItems[((i - 1) % #mockItems) + 1];
+        local winner = mockPlayers[math.random(1, 10)];
+
+        local historyEntry = {
+            itemId = item.id,
+            itemName = item.name,
+            winnerName = (i % 3 == 0) and nil or winner.name,
+            winnerId = (i % 3 == 0) and nil or winner.id,
+            lots = {},
+            awardedAt = currentTime - (i * 120),
+        };
+
+        -- Add some mock lots to history
+        for j = 1, math.random(3, 8) do
+            local player = mockPlayers[j];
+            historyEntry.lots[player.id] = {
+                name = player.name,
+                lot = math.random(1, 999),
+                passed = (j % 5 == 0),
+            };
+        end
+
+        table.insert(M.awardedHistory, historyEntry);
+    end
+
+    M.MarkPoolDirty();
+    print('[XIUI] Mock rolls data populated (18-player alliance test)');
 end
 
 -- Update treasure pool state (call every frame from display)
