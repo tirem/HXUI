@@ -41,6 +41,9 @@ local function createPartyDefaults(overrides)
         -- Appearance
         backgroundName = 'Window1',
         bgScale = 1.0,
+        borderScale = 1.0,
+        backgroundOpacity = 1.0,
+        borderOpacity = 1.0,
         cursor = 'GreyArrow.png',
         statusTheme = 0, -- 0: HorizonXI, 1: HorizonXI-R, 2: FFXIV, 3: FFXI, 4: Disabled
         statusSide = 0, -- 0: Left, 1: Right
@@ -316,25 +319,34 @@ M.user_settings = T{
     notificationsTreasurePoolScaleX = 1.0,        -- Treasure pool window horizontal scale
     notificationsTreasurePoolScaleY = 1.0,        -- Treasure pool window vertical scale
 
-    -- Cast Cost settings
-    castCostScaleX = 1.0,
-    castCostScaleY = 1.0,
-    castCostBackgroundTheme = 'Window1',
-    castCostBackgroundOpacity = 1.0,
-    castCostBorderOpacity = 1.0,
-    castCostShowName = true,
-    castCostShowMpCost = true,
-    castCostShowRecast = false,
-    castCostNameFontSize = 12,
-    castCostCostFontSize = 12,
-    castCostTimeFontSize = 10,
-    castCostMinWidth = 100,
-    castCostPadding = 8,
-    castCostPaddingY = 8,
-    castCostAlignBottom = false,
-    castCostShowCooldown = true,
-    castCostBarScaleY = 1.0,
-    castCostRecastFontSize = 10,
+    -- Cast Cost settings (nested structure to match other modules)
+    castCost = T{
+        -- Display options
+        showName = true,
+        showMpCost = true,
+        showRecast = false,
+        showCooldown = true,
+
+        -- Font sizes
+        nameFontSize = 12,
+        costFontSize = 12,
+        timeFontSize = 10,
+        recastFontSize = 10,
+
+        -- Layout
+        minWidth = 100,
+        padding = 8,
+        paddingY = 8,
+        alignBottom = false,
+        barScaleY = 1.0,
+
+        -- Background/Border
+        backgroundTheme = 'Window1',
+        bgScale = 1.0,
+        borderScale = 1.0,
+        backgroundOpacity = 1.0,
+        borderOpacity = 1.0,
+    },
 
     statusIconTheme = 'XIView',
     jobIconTheme = 'FFXI',
@@ -1676,6 +1688,7 @@ M.default_settings = T{
         borderSize = 21,
         bgOffset = 1,
         bgScale = 1.0,
+        borderScale = 1.0,
         backgroundTheme = 'Window1',
         backgroundOpacity = 1.0,
         borderOpacity = 1.0,
@@ -1745,6 +1758,7 @@ M.default_settings = T{
         bgPaddingY = 8,
         bgOffset = 1,
         bgScale = 1.0,
+        borderScale = 1.0,
         borderSize = 21,
         -- HP interpolation settings
         hitInterpolationDecayPercentPerSecond = 150,

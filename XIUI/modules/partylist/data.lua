@@ -180,6 +180,9 @@ function data.updatePartyConfigCache()
         cache.flashTP = party.flashTP;
         cache.backgroundName = party.backgroundName;
         cache.bgScale = party.bgScale or 1;
+        cache.borderScale = party.borderScale or 1;
+        cache.backgroundOpacity = party.backgroundOpacity or 1;
+        cache.borderOpacity = party.borderOpacity or 1;
         cache.cursor = party.cursor;
         cache.subtargetArrowTint = party.subtargetArrowTint or 0xFFfdd017;
         cache.targetArrowTint = party.targetArrowTint or 0xFFFFFFFF;

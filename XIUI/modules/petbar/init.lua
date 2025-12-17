@@ -104,7 +104,7 @@ petbar.Initialize = function(settings)
     end
 
     -- 3. Create border primitives (render on top of middle layer)
-    local borderHandle = windowBg.createBorders(prim_data, backgroundName, settings.bgScale);
+    local borderHandle = windowBg.createBorders(prim_data, backgroundName, settings.borderScale);
     data.backgroundPrim['tl'] = borderHandle.tl;
     data.backgroundPrim['tr'] = borderHandle.tr;
     data.backgroundPrim['bl'] = borderHandle.bl;

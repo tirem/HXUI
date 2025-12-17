@@ -142,7 +142,13 @@ local function DrawPartyTabContent(party, partyName)
 
     if components.CollapsingSection('Background##party' .. partyName) then
         components.DrawPartyComboBox(party, 'Background', 'backgroundName', bg_theme_paths, DeferredUpdateVisuals);
-        components.DrawPartySlider(party, 'Background Scale', 'bgScale', 0.1, 3.0, '%.2f', UpdatePartyListVisuals);
+        -- Scale/opacity sliders don't need callbacks - changes are picked up from gConfig on next frame
+        components.DrawPartySlider(party, 'Background Scale', 'bgScale', 0.1, 3.0, '%.2f');
+        components.DrawPartySlider(party, 'Border Scale', 'borderScale', 0.1, 3.0, '%.2f');
+        components.DrawPartySlider(party, 'Background Opacity', 'backgroundOpacity', 0.0, 1.0, '%.2f');
+        imgui.ShowHelp('Opacity of the background.');
+        components.DrawPartySlider(party, 'Border Opacity', 'borderOpacity', 0.0, 1.0, '%.2f');
+        imgui.ShowHelp('Opacity of the window borders (Window themes only).');
         components.DrawPartyComboBox(party, 'Cursor', 'cursor', cursor_paths, DeferredUpdateVisuals);
     end
 

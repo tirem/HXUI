@@ -87,7 +87,8 @@ partyList.Initialize = function(settings)
         data.partyWindowPrim[partyIndex].background = windowBg.create(
             settings.prim_data,
             cache.backgroundName,
-            cache.bgScale
+            cache.bgScale,
+            cache.borderScale
         );
     end
 
@@ -218,7 +219,7 @@ partyList.UpdateVisuals = function(settings)
         data.loadedBg[partyIndex] = cache.backgroundName;
 
         if bgChanged then
-            windowBg.setTheme(backgroundPrim, cache.backgroundName, cache.bgScale);
+            windowBg.setTheme(backgroundPrim, cache.backgroundName, cache.bgScale, cache.borderScale);
         end
     end
 end

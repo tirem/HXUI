@@ -319,7 +319,7 @@ function SaveSettingsOnly()
     UpdateUserSettings();
 end
 
--- Module-specific visual updaters
+-- Module-specific visual updaters (includes disk save - use for dropdowns, checkboxes)
 UpdatePlayerBarVisuals = uiModules.CreateVisualUpdater('playerBar', SaveSettingsOnly, gAdjustedSettings);
 UpdateTargetBarVisuals = uiModules.CreateVisualUpdater('targetBar', SaveSettingsOnly, gAdjustedSettings);
 UpdatePartyListVisuals = uiModules.CreateVisualUpdater('partyList', SaveSettingsOnly, gAdjustedSettings);

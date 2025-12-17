@@ -1213,9 +1213,12 @@ function display.DrawPartyWindow(settings, party, partyIndex)
         padding = settings.bgPadding,
         paddingY = settings.bgPaddingY,
         bgScale = cache.bgScale,
+        borderScale = cache.borderScale,
+        bgOpacity = cache.backgroundOpacity,
         bgColor = cache.colors.bgColor,
         borderSize = settings.borderSize,
         bgOffset = settings.bgOffset,
+        borderOpacity = cache.borderOpacity,
         borderColor = cache.colors.borderColor,
     };
     windowBg.update(backgroundPrim, imguiPosX, imguiPosY, data.fullMenuWidth[partyIndex], data.fullMenuHeight[partyIndex], bgOptions);

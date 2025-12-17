@@ -64,8 +64,9 @@ function M.Initialize(settings)
     cooldownFont = FontManager.create(settings.cooldown_font_settings);
     allFonts = { nameFont, costFont, timeFont, recastFont, cooldownFont };
 
-    -- Create window background
-    bgHandle = windowBg.create(settings.prim_data, settings.backgroundTheme or 'Window1', settings.bgScale or 1.0);
+    -- Create window background (read scale directly from gConfig like partylist does)
+    local cc = gConfig.castCost or {};
+    bgHandle = windowBg.create(settings.prim_data, cc.backgroundTheme or 'Window1', cc.bgScale or 1.0, cc.borderScale or 1.0);
 end
 
 -- ============================================
@@ -98,9 +99,10 @@ function M.UpdateVisuals(settings)
     lastRecastFontHeight = 0;
     lastCooldownFontHeight = 0;
 
-    -- Update background theme
+    -- Update background theme (read scale directly from gConfig like partylist does)
+    local cc = gConfig.castCost or {};
     if bgHandle then
-        windowBg.setTheme(bgHandle, settings.backgroundTheme or 'Window1', settings.bgScale or 1.0);
+        windowBg.setTheme(bgHandle, cc.backgroundTheme or 'Window1', cc.bgScale or 1.0, cc.borderScale or 1.0);
     end
 end
 
@@ -388,18 +390,20 @@ function M.Render(itemInfo, itemType, settings, colors)
         local paddingY = settings.bgPaddingY or padding;
         imgui.Dummy({ contentWidth, contentHeight });
 
-        -- Update background
+        -- Update background (read scale directly from gConfig like partylist does)
+        local cc = gConfig.castCost or {};
         if bgHandle then
             windowBg.update(bgHandle, cursorX, cursorY, contentWidth, contentHeight, {
-                theme = settings.backgroundTheme or 'Window1',
+                theme = cc.backgroundTheme or 'Window1',
                 padding = padding,
                 paddingY = paddingY,
-                bgScale = settings.bgScale or 1.0,
-                bgOpacity = settings.backgroundOpacity or 1.0,
+                bgScale = cc.bgScale or 1.0,
+                borderScale = cc.borderScale or 1.0,
+                bgOpacity = cc.backgroundOpacity or 1.0,
                 bgColor = colors.bgColor or 0xFFFFFFFF,
                 borderSize = settings.borderSize or 21,
                 bgOffset = settings.bgOffset or 1,
-                borderOpacity = settings.borderOpacity or 1.0,
+                borderOpacity = cc.borderOpacity or 1.0,
                 borderColor = colors.borderColor or 0xFFFFFFFF,
             });
         end
