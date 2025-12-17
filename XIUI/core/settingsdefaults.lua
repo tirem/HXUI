@@ -410,6 +410,10 @@ M.user_settings = T{
     showTargetHpPercent = true,
     showTargetHpPercentAllTargets = false,
     showTargetName = true,
+    -- Position options: 0=Above, 1=Below, 2=Left, 3=Right
+    targetNamePosition = 0,
+    targetDistancePosition = 0,
+    targetHpPercentPosition = 0,
     showTargetBarBookends = false,
     showTargetBarLockOnBorder = true,
     showTargetBarCastBar = true,

@@ -11,15 +11,52 @@ local ffi = require('ffi');
 
 local M = {};
 
+-- Position options for text elements
+local positionLabels = { 'Above', 'Below', 'Left', 'Right' };
+
+-- Helper to draw a position dropdown
+local function DrawPositionDropdown(configKey, width)
+    local currentPos = gConfig[configKey] or 0;
+    imgui.SetNextItemWidth(width or 70);
+    if imgui.BeginCombo('##' .. configKey, positionLabels[currentPos + 1]) then
+        for i, label in ipairs(positionLabels) do
+            local isSelected = (currentPos == i - 1);
+            if imgui.Selectable(label, isSelected) then
+                gConfig[configKey] = i - 1;
+                SaveSettingsOnly();
+            end
+            if isSelected then
+                imgui.SetItemDefaultFocus();
+            end
+        end
+        imgui.EndCombo();
+    end
+end
+
 -- Helper: Draw Target Bar specific settings (used in tab)
 local function DrawTargetBarSettingsContent()
     components.DrawCheckbox('Enabled', 'showTargetBar', CheckVisibility);
 
     if components.CollapsingSection('Display Options##targetBar') then
+        -- Show Name with position dropdown
         components.DrawCheckbox('Show Name', 'showTargetName');
+        if gConfig.showTargetName then
+            imgui.SameLine();
+            DrawPositionDropdown('targetNamePosition');
+        end
+
+        -- Show Distance with position dropdown
         components.DrawCheckbox('Show Distance', 'showTargetDistance');
+        if gConfig.showTargetDistance then
+            imgui.SameLine();
+            DrawPositionDropdown('targetDistancePosition');
+        end
+
+        -- Show HP% with position dropdown
         components.DrawCheckbox('Show HP%', 'showTargetHpPercent');
-        if (gConfig.showTargetHpPercent) then
+        if gConfig.showTargetHpPercent then
+            imgui.SameLine();
+            DrawPositionDropdown('targetHpPercentPosition');
             imgui.Indent(20);
             components.DrawCheckbox('Include NPCs', 'showTargetHpPercentAllTargets');
             imgui.ShowHelp('Also show HP% for NPCs, players, and other non-monster targets.');

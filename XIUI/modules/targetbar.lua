@@ -5,6 +5,8 @@ local statusHandler = require('handlers.statushandler');
 local debuffHandler = require('handlers.debuffhandler');
 local actionTracker = require('handlers.actiontracker');
 local progressbar = require('libs.progressbar');
+local statusIcons = require('libs.statusicons');
+local buffTable = require('libs.bufftable');
 local gdi = require('submodules.gdifonts.include');
 local encoding = require('submodules.gdifonts.encoding');
 local ffi = require("ffi");
@@ -39,6 +41,12 @@ local lastPercentTextColor;
 local lastTotNameTextColor;
 local lastCastTextColor;
 local lastDistTextColor;
+
+-- Position constants
+local POS_ABOVE = 0;
+local POS_BELOW = 1;
+local POS_LEFT = 2;
+local POS_RIGHT = 3;
 
 local _XIUI_DEV_DEBUG_INTERPOLATION = false;
 local _XIUI_DEV_DEBUG_INTERPOLATION_DELAY = 1;
@@ -387,77 +395,153 @@ targetbar.DrawWindow = function(settings)
 			lockIconOffset = lockWidth + 4;  -- Icon width + 4px spacing
 		end
 
-		-- Left-aligned text position (target name) - 8px from left edge (after bookend) + lock icon offset
+		-- Common positioning values
 		local leftTextX = startX + bookendWidth + textPadding + lockIconOffset;
-		local nameTextY = startY - settings.topTextYOffset - settings.name_font_settings.font_height;
-		nameText:set_position_x(leftTextX);
-		nameText:set_position_y(nameTextY);
-		-- Only call set_font_color if the color has changed (expensive operation for GDI fonts)
+		local rightTextX = startX + settings.barWidth - bookendWidth - textPadding;
+		local topTextY = startY - settings.topTextYOffset;
+		local bottomTextY = startY + settings.barHeight + textPadding;
+		local sideTextY = startY + (settings.barHeight / 2); -- Vertically centered
+
+		-- Distance and HP% visibility flags
+		local showDistance = gConfig.showTargetDistance;
+		local showHpPercent = gConfig.showTargetHpPercent and (isMonster or gConfig.showTargetHpPercentAllTargets);
+
+		-- Get position settings
+		local namePos = gConfig.targetNamePosition or POS_ABOVE;
+		local distPos = gConfig.targetDistancePosition or POS_ABOVE;
+		local hpPos = gConfig.targetHpPercentPosition or POS_ABOVE;
+
+		-- === POSITION NAME TEXT ===
+		nameText:set_font_height(settings.name_font_settings.font_height);
+		nameText:set_text(targetNameText);
+		local nameWidth, nameHeight = nameText:get_text_size();
+
+		local nameX, nameY;
+		if namePos == POS_ABOVE then
+			nameX = leftTextX;
+			nameY = topTextY - settings.name_font_settings.font_height;
+		elseif namePos == POS_BELOW then
+			nameX = leftTextX;
+			nameY = bottomTextY;
+		elseif namePos == POS_LEFT then
+			-- Right-align: position is right edge minus text width so text grows left
+			nameX = startX - textPadding - nameWidth;
+			nameY = sideTextY - (nameHeight / 2);
+		else -- POS_RIGHT
+			nameX = startX + settings.barWidth + textPadding + lockIconOffset;
+			nameY = sideTextY - (nameHeight / 2);
+		end
+
+		nameText:set_position_x(nameX);
+		nameText:set_position_y(nameY);
 		if (lastNameTextColor ~= color) then
 			nameText:set_font_color(color);
 			lastNameTextColor = color;
 		end
-		nameText:set_text(targetNameText);
 		nameText:set_visible(gConfig.showTargetName);
 
 		-- Export name text position for mob info snap feature
-		local nameTextWidth, nameTextHeight = nameText:get_text_size();
-		targetbar.nameTextInfo.x = leftTextX + nameTextWidth + 8; -- 8px spacing after name
-		targetbar.nameTextInfo.y = nameTextY;
+		targetbar.nameTextInfo.x = nameX + nameWidth + 8;
+		targetbar.nameTextInfo.y = nameY;
 		targetbar.nameTextInfo.visible = true;
 
-		-- Right-aligned text positioning for distance and HP%
-		local rightTextX = startX + settings.barWidth - bookendWidth - textPadding;
-		local topTextY = startY - settings.topTextYOffset;
-
-		-- Distance and HP% are independent elements
-		local showDistance = gConfig.showTargetDistance;
-		local showHpPercent = gConfig.showTargetHpPercent and (isMonster or gConfig.showTargetHpPercentAllTargets);
-
-		-- Track the rightmost position for stacking text elements
-		local currentRightX = rightTextX;
-
-		-- Draw HP% first (rightmost position)
+		-- === POSITION HP% TEXT ===
 		if (showHpPercent) then
 			percentText:set_font_height(settings.percent_font_settings.font_height);
 			percentText:set_text(targetHpPercent);
-			local percentWidth, _ = percentText:get_text_size();
+			local percentWidth, percentHeight = percentText:get_text_size();
 			local percentOffsetX = settings.percentOffsetX or 0;
 			local percentOffsetY = settings.percentOffsetY or 0;
-			percentText:set_position_x(currentRightX + percentOffsetX);
-			percentText:set_position_y(topTextY - settings.percent_font_settings.font_height + percentOffsetY);
 
-			-- HP% color based on HP amount
+			local percentX, percentY;
+			if hpPos == POS_ABOVE then
+				percentX = rightTextX + percentOffsetX;
+				percentY = topTextY - settings.percent_font_settings.font_height + percentOffsetY;
+			elseif hpPos == POS_BELOW then
+				percentX = rightTextX + percentOffsetX;
+				percentY = bottomTextY + percentOffsetY;
+			elseif hpPos == POS_LEFT then
+				-- Right-align: position is right edge minus text width so text grows left
+				percentX = startX - textPadding - percentWidth + percentOffsetX;
+				percentY = sideTextY - (percentHeight / 2) + percentOffsetY;
+			else -- POS_RIGHT
+				percentX = startX + settings.barWidth + textPadding + percentOffsetX;
+				percentY = sideTextY - (percentHeight / 2) + percentOffsetY;
+			end
+
+			percentText:set_position_x(percentX);
+			percentText:set_position_y(percentY);
+
 			local desiredPercentColor, _ = GetHpColors(targetEntity.HPPercent / 100);
 			if (lastPercentTextColor ~= desiredPercentColor) then
 				percentText:set_font_color(desiredPercentColor);
 				lastPercentTextColor = desiredPercentColor;
 			end
-
 			percentText:set_visible(true);
-			-- Move left for next element (add spacing)
-			currentRightX = currentRightX - percentWidth - 8;
 		else
 			percentText:set_visible(false);
 		end
 
-		-- Draw distance (to the left of HP% if both shown)
+		-- === POSITION DISTANCE TEXT ===
 		if (showDistance) then
 			distText:set_font_height(settings.distance_font_settings.font_height);
 			distText:set_text(tostring(dist));
-			local distWidth, _ = distText:get_text_size();
+			local distWidth, distHeight = distText:get_text_size();
 			local distanceOffsetX = settings.distanceOffsetX or 0;
 			local distanceOffsetY = settings.distanceOffsetY or 0;
-			distText:set_position_x(currentRightX + distanceOffsetX);
-			distText:set_position_y(topTextY - settings.distance_font_settings.font_height + distanceOffsetY);
 
-			-- Distance uses configured color
+			local distX, distY;
+			if distPos == POS_ABOVE then
+				-- When above, stack to the left of HP% if both are above
+				local stackOffset = 0;
+				if showHpPercent and hpPos == POS_ABOVE then
+					percentText:set_text(targetHpPercent);
+					local percentWidth, _ = percentText:get_text_size();
+					stackOffset = percentWidth + 8;
+				end
+				distX = rightTextX - stackOffset + distanceOffsetX;
+				distY = topTextY - settings.distance_font_settings.font_height + distanceOffsetY;
+			elseif distPos == POS_BELOW then
+				-- When below, stack to the left of HP% if both are below
+				local stackOffset = 0;
+				if showHpPercent and hpPos == POS_BELOW then
+					percentText:set_text(targetHpPercent);
+					local percentWidth, _ = percentText:get_text_size();
+					stackOffset = percentWidth + 8;
+				end
+				distX = rightTextX - stackOffset + distanceOffsetX;
+				distY = bottomTextY + distanceOffsetY;
+			elseif distPos == POS_LEFT then
+				-- Right-align: position is right edge minus text width so text grows left
+				-- When left, stack above HP% if both are left
+				local stackOffset = 0;
+				if showHpPercent and hpPos == POS_LEFT then
+					percentText:set_text(targetHpPercent);
+					local _, percentHeight = percentText:get_text_size();
+					stackOffset = percentHeight + 2;
+				end
+				distX = startX - textPadding - distWidth + distanceOffsetX;
+				distY = sideTextY - (distHeight / 2) - stackOffset + distanceOffsetY;
+			else -- POS_RIGHT
+				-- When right, stack above HP% if both are right
+				local stackOffset = 0;
+				if showHpPercent and hpPos == POS_RIGHT then
+					percentText:set_text(targetHpPercent);
+					local _, percentHeight = percentText:get_text_size();
+					stackOffset = percentHeight + 2;
+				end
+				distX = startX + settings.barWidth + textPadding + distanceOffsetX;
+				distY = sideTextY - (distHeight / 2) - stackOffset + distanceOffsetY;
+			end
+
+			distText:set_position_x(distX);
+			distText:set_position_y(distY);
+
 			local desiredDistColor = gConfig.colorCustomization.targetBar.distanceTextColor;
 			if (lastDistTextColor ~= desiredDistColor) then
 				distText:set_font_color(desiredDistColor);
 				lastDistTextColor = desiredDistColor;
 			end
-
 			distText:set_visible(true);
 		else
 			distText:set_visible(false);
@@ -543,7 +627,9 @@ targetbar.DrawWindow = function(settings)
                 textObj:set_visible(false)
             end
         end
-		DrawStatusIcons(buffIds, settings.iconSize, settings.maxIconColumns, 3, false, settings.barHeight/2, buffTimes, nil);
+		-- Reorder to show debuffs first for easier identification
+		local reorderedBuffs = statusIcons.ReorderDebuffsFirst(buffIds, buffTable);
+		DrawStatusIcons(reorderedBuffs, settings.iconSize, settings.maxIconColumns, 3, false, settings.barHeight/2, buffTimes, nil);
 		imgui.PopStyleVar(1);
 
 		-- Obtain our target of target using action-based tracking (more reliable)

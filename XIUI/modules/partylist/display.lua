@@ -9,6 +9,7 @@ local ffi = require('ffi');
 local imgui = require('imgui');
 local statusHandler = require('handlers.statushandler');
 local buffTable = require('libs.bufftable');
+local statusIcons = require('libs.statusicons');
 local progressbar = require('libs.progressbar');
 local windowBg = require('libs.windowbackground');
 local encoding = require('submodules.gdifonts.encoding');
@@ -993,6 +994,29 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                     end
                 end
 
+                -- Debuffs row (closest to party frame, at HP bar level)
+                if (debuffCount > 0) then
+                    if cache.statusSide == 0 then
+                        if data.debuffWindowX[memIdx] ~= nil then
+                            imgui.SetNextWindowPos({hpStartX - data.debuffWindowX[memIdx] - settings.buffOffset, hpStartY});
+                        end
+                    else
+                        if data.fullMenuWidth[partyIndex] ~= nil then
+                            local thisPosX, _ = imgui.GetWindowPos();
+                            imgui.SetNextWindowPos({ thisPosX + data.fullMenuWidth[partyIndex], hpStartY });
+                        end
+                    end
+                    if (imgui.Begin('PlayerDebuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings, ImGuiWindowFlags_NoDocking))) then
+                        imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {3, 1});
+                        DrawStatusIcons(data.reusableDebuffs, settings.iconSize, 32, 1, true);
+                        imgui.PopStyleVar(1);
+                    end
+                    local debuffWindowSizeX, _ = imgui.GetWindowSize();
+                    data.debuffWindowX[memIdx] = debuffWindowSizeX;
+                    imgui.End();
+                end
+
+                -- Buffs row (above debuffs, further from party frame)
                 if (buffCount > 0) then
                     if cache.statusSide == 0 then
                         if data.buffWindowX[memIdx] ~= nil then
@@ -1013,34 +1037,13 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                     data.buffWindowX[memIdx] = buffWindowSizeX;
                     imgui.End();
                 end
-
-                if (debuffCount > 0) then
-                    if cache.statusSide == 0 then
-                        if data.debuffWindowX[memIdx] ~= nil then
-                            imgui.SetNextWindowPos({hpStartX - data.debuffWindowX[memIdx] - settings.buffOffset, hpStartY});
-                        end
-                    else
-                        if data.fullMenuWidth[partyIndex] ~= nil then
-                            local thisPosX, _ = imgui.GetWindowPos();
-                            imgui.SetNextWindowPos({ thisPosX + data.fullMenuWidth[partyIndex], hpStartY });
-                        end
-                    end
-                    if (imgui.Begin('PlayerDebuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings, ImGuiWindowFlags_NoDocking))) then
-                        imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {3, 1});
-                        DrawStatusIcons(data.reusableDebuffs, settings.iconSize, 32, 1, true);
-                        imgui.PopStyleVar(1);
-                    end
-                    local buffWindowSizeX, buffWindowSizeY = imgui.GetWindowSize();
-                    data.debuffWindowX[memIdx] = buffWindowSizeX;
-                    imgui.End();
-                end
             elseif (cache.statusTheme == 2) then
                 local resetX, resetY = imgui.GetCursorScreenPos();
                 imgui.PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
                 imgui.SetNextWindowPos({mpStartX, mpStartY - settings.iconSize - settings.xivBuffOffsetY})
                 if (imgui.Begin('XIVStatus'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings, ImGuiWindowFlags_NoDocking))) then
                     imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
-                    DrawStatusIcons(memInfo.buffs, settings.iconSize, 32, 1);
+                    DrawStatusIcons(statusIcons.ReorderForStatusSide(memInfo.buffs, buffTable, cache.statusSide), settings.iconSize, 32, 1);
                     imgui.PopStyleVar(1);
                 end
                 imgui.PopStyleVar(1);
@@ -1059,7 +1062,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                 end
                 if (imgui.Begin('PlayerBuffs'..memIdx, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings, ImGuiWindowFlags_NoDocking))) then
                     imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 3});
-                    DrawStatusIcons(memInfo.buffs, settings.iconSize, 7, 3);
+                    DrawStatusIcons(statusIcons.ReorderForStatusSide(memInfo.buffs, buffTable, cache.statusSide), settings.iconSize, 7, 3);
                     imgui.PopStyleVar(1);
                 end
                 local buffWindowSizeX, _ = imgui.GetWindowSize();
