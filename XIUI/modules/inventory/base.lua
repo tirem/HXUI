@@ -30,7 +30,7 @@ end
 
 -- Helper function to convert dot color (RGBA table) to ARGB hex for font
 local function DotColorToFontColor(dotColor)
-    return color.ColorTableToARGB(dotColor);
+    return ColorTableToARGB(dotColor);
 end
 
 -- Helper function to get text color based on thresholds (returns ARGB hex)
