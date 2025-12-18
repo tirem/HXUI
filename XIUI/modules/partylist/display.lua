@@ -438,7 +438,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
         if layout == 1 then
             zoneBarHeight = hpBarHeight + 1 + mpBarHeight;
         else
-            zoneBarHeight = barHeight;
+            zoneBarHeight = hpBarHeight;
         end
         imgui.Dummy({zoneBarWidth, zoneBarHeight});
         data.memberText[memIdx].zone:set_visible(false);
@@ -448,7 +448,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
         if layout == 1 then
             zoneBarHeight = hpBarHeight + 1 + mpBarHeight;
         else
-            zoneBarHeight = barHeight;
+            zoneBarHeight = hpBarHeight;
         end
 
         local zoneBarStartX, zoneBarStartY = imgui.GetCursorScreenPos();
