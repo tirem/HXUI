@@ -196,6 +196,8 @@ function M.DrawSettings()
                     components.DrawSlider('Text Size##Pool', 'notificationsTreasurePoolFontSize', 8, 18, '%.0f px');
                     components.DrawSlider('Scale X##Pool', 'notificationsTreasurePoolScaleX', 0.5, 2.0, '%.1f');
                     components.DrawSlider('Scale Y##Pool', 'notificationsTreasurePoolScaleY', 0.5, 2.0, '%.1f');
+                    imgui.Spacing();
+                    imgui.TextDisabled('Toggle extended view with /xiui treasure or /xiui pool');
                     imgui.Unindent(indentAmount);
                 end
             end
