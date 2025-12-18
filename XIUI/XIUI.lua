@@ -372,6 +372,12 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     local eventSystemActive = gameState.GetEventSystemActive();
 
     if not gameState.ShouldHideUI(gConfig.hideDuringEvents, bLoggedIn) then
+        -- Sync treasure pool from memory (authoritative source of truth)
+        -- This ensures we never miss items, even if packets were dropped
+        if gConfig.showNotifications then
+            notifications.SyncTreasurePoolFromMemory();
+        end
+
         -- Render all registered modules
         for name, _ in pairs(uiModules.GetAll()) do
             uiModules.RenderModule(name, gConfig, gAdjustedSettings, eventSystemActive);
@@ -454,20 +460,11 @@ ashita.events.register('command', 'command_cb', function (e)
             return;
         end
 
-        -- Toggle treasure pool window: /xiui treasure or /xiui pool
-        if (#command_args == 2 and command_args[2]:any('treasure', 'pool')) then
-            gConfig.notificationsTreasurePoolWindow = not gConfig.notificationsTreasurePoolWindow;
-            SaveSettingsOnly();
-            local state = gConfig.notificationsTreasurePoolWindow and 'enabled' or 'disabled';
-            print('[XIUI] Treasure pool window ' .. state);
-            return;
-        end
-
-        -- Toggle rolls window: /xiui rolls
-        if (#command_args == 2 and command_args[2]:any('rolls', 'roll', 'lot', 'lots')) then
+        -- Toggle extended treasure pool view: /xiui treasure, /xiui pool, /xiui rolls
+        if (#command_args == 2 and command_args[2]:any('treasure', 'pool', 'rolls', 'roll', 'lot', 'lots')) then
             local visible = rollsWindow.Toggle();
             local state = visible and 'shown' or 'hidden';
-            print('[XIUI] Rolls window ' .. state);
+            print('[XIUI] Treasure pool window ' .. state);
             return;
         end
 
@@ -495,6 +492,16 @@ ashita.events.register('command', 'command_cb', function (e)
                 playerName = 'TestPlayer',
                 amount = 5000,
             });
+            return;
+        end
+
+        -- Test extended treasure pool view with mock data: /xiui testpool
+        if (command_args[2] == 'testpool') then
+            local notifData = require('modules.notifications.data');
+            local notifHandler = require('handlers.notificationhandler');
+            notifHandler.testModeEnabled = true;  -- Prevent memory sync from clearing mock data
+            notifData.PopulateMockRollsData();
+            rollsWindow.Show();
             return;
         end
 

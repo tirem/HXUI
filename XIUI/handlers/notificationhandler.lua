@@ -16,7 +16,7 @@ local M = {};
 -- Track zoning/load state to ignore inventory sync packets
 -- Initialize to current time so grace period is active on addon load
 M.zoningTimestamp = os.clock();
-M.ZONING_GRACE_PERIOD = 5.0;  -- Ignore inventory/treasure updates for 5 seconds after zoning/load
+M.ZONING_GRACE_PERIOD = 5.0;  -- Ignore inventory updates for 5 seconds after zoning/load
 
 -- Called when zone packet is received OR on addon load
 function M.HandleZonePacket()
@@ -26,11 +26,150 @@ function M.HandleZonePacket()
     if M.dataModule and M.dataModule.RemoveByType and M.dataModule.NOTIFICATION_TYPE then
         M.dataModule.RemoveByType(M.dataModule.NOTIFICATION_TYPE.PARTY_INVITE);
     end
+
+    -- Clear toast tracking so items in new zone get fresh toasts
+    M.ClearToastTracking();
 end
 
--- Check if we're in the zoning/load grace period
+-- Check if we're in the zoning/load grace period (for inventory packets only)
 local function isInZoningGracePeriod()
     return (os.clock() - M.zoningTimestamp) < M.ZONING_GRACE_PERIOD;
+end
+
+-- ========================================
+-- Treasure Pool Memory Sync (xitools approach)
+-- ========================================
+
+-- Track which items we've already shown toasts for (by slot + itemId)
+local shownToasts = {};
+
+-- Test mode flag - when true, don't remove items not in memory (for UI testing)
+M.testModeEnabled = false;
+
+-- Timestamp cache (like xitools' WeirdTimestamps)
+-- Maps DropTime -> calculated expiration time (os.time() + 300)
+local timestampCache = {};
+
+-- Sync treasure pool state from Ashita memory API
+-- Following xitools approach: pure memory read every frame
+-- Debug: track last log time to avoid spam
+local lastDebugLogTime = 0;
+
+function M.SyncTreasurePoolFromMemory()
+    if M.dataModule == nil then return end
+
+    -- Get inventory manager (same as xitools)
+    local memMgr = AshitaCore:GetMemoryManager();
+    if not memMgr then return end
+
+    local inventory = memMgr:GetInventory();
+    if not inventory then return end
+
+    local resources = AshitaCore:GetResourceManager();
+    local now = os.time();
+
+    -- Debug: log every 5 seconds to confirm sync is running
+    if M.DEBUG_ENABLED and (now - lastDebugLogTime) >= 5 then
+        lastDebugLogTime = now;
+        local itemCount = 0;
+        for slot = 0, 9 do
+            local item = inventory:GetTreasurePoolItem(slot);
+            if item ~= nil and item.ItemId ~= nil and item.ItemId > 0 then
+                itemCount = itemCount + 1;
+                local itemInfo = resources:GetItemById(item.ItemId);
+                local itemName = (itemInfo and itemInfo.Name and itemInfo.Name[1]) or 'Unknown';
+                print(string.format('[XIUI] POOL SCAN slot=%d: %s (id=%d)', slot, itemName, item.ItemId));
+            end
+        end
+        print(string.format('[XIUI] POOL SCAN: %d items in memory', itemCount));
+    end
+
+    -- Track which slots have items this frame
+    local activeSlots = {};
+
+    -- Iterate all 10 treasure pool slots (exactly like xitools)
+    for slot = 0, 9 do
+        local item = inventory:GetTreasurePoolItem(slot);
+
+        -- Check if slot has a valid item (same check as xitools)
+        if item ~= nil and item.ItemId ~= nil and item.ItemId > 0 then
+            activeSlots[slot] = true;
+
+            -- Check if we already have this item tracked
+            local existingItem = M.dataModule.treasurePool and M.dataModule.treasurePool[slot];
+            local isNewItem = not existingItem or existingItem.itemId ~= item.ItemId;
+
+            if isNewItem then
+                -- Handle timestamp like xitools: cache first-seen time + 300 seconds
+                if not timestampCache[item.DropTime] then
+                    timestampCache[item.DropTime] = now + 300;
+                end
+
+                -- Determine if we should show a toast
+                local toastKey = slot .. '_' .. item.ItemId;
+                local showToast = not shownToasts[toastKey];
+
+                -- Get item info from resources (like xitools)
+                local itemInfo = resources:GetItemById(item.ItemId);
+                local itemName = (itemInfo and itemInfo.Name and itemInfo.Name[1]) or 'Unknown';
+
+                -- Add to treasure pool
+                if M.dataModule.AddTreasurePoolItem then
+                    M.dataModule.AddTreasurePoolItem(slot, item.ItemId, 0, 1, item.DropTime, showToast);
+
+                    if showToast then
+                        shownToasts[toastKey] = true;
+                    end
+
+                    if M.DEBUG_ENABLED then
+                        print(string.format('[XIUI] POOL ADD: slot=%d item=%s toast=%s',
+                            slot, itemName, tostring(showToast)));
+                    end
+                end
+            end
+
+            -- Update lot information from memory (xitools reads these fields)
+            if M.dataModule.treasurePool and M.dataModule.treasurePool[slot] then
+                local poolItem = M.dataModule.treasurePool[slot];
+
+                -- Update winning lot info
+                if item.WinningLot and item.WinningLot > 0 then
+                    poolItem.highestLot = item.WinningLot;
+                    poolItem.highestLotterName = item.WinningEntityName or poolItem.highestLotterName;
+                end
+
+                -- Update player's lot status (xitools interpretation)
+                -- Lot = 0: hasn't rolled, < 1000: has rolled, > 1000: has passed
+                poolItem.playerLot = item.Lot;
+
+                -- Update cached expiration time
+                if timestampCache[item.DropTime] then
+                    poolItem.expiresAt = timestampCache[item.DropTime];
+                end
+            end
+        end
+    end
+
+    -- Remove items from tracking that are no longer in memory
+    -- Skip this in test mode to allow test items to persist
+    if not M.testModeEnabled and M.dataModule.treasurePool then
+        for slot, poolItem in pairs(M.dataModule.treasurePool) do
+            if not activeSlots[slot] then
+                M.dataModule.treasurePool[slot] = nil;
+                M.dataModule.MarkPoolDirty();
+
+                if M.DEBUG_ENABLED then
+                    print(string.format('[XIUI] POOL REMOVE: slot=%d', slot));
+                end
+            end
+        end
+    end
+end
+
+-- Clear toast and timestamp tracking (call on zone change)
+function M.ClearToastTracking()
+    shownToasts = {};
+    timestampCache = {};
 end
 
 -- ========================================
@@ -38,7 +177,7 @@ end
 -- ========================================
 
 -- Debug flag - set to true to see message IDs and item IDs in log
-M.DEBUG_ENABLED = true;
+M.DEBUG_ENABLED = false;
 
 -- Item obtained message IDs
 -- Reference: FFXI message packet (0x029) message types
@@ -283,27 +422,30 @@ end
 -- ========================================
 
 -- Handle treasure pool update packet (0x00D2)
--- Packet structure:
--- 0x08-0x0B: Dropper ID (mob server ID) - 4 bytes
--- 0x0C-0x0F: Count - 4 bytes
--- 0x10-0x11: Item ID - 2 bytes
--- 0x12-0x13: Dropper Index - 2 bytes
--- 0x14: Pool slot index (0-9) - 1 byte
--- 0x15: Old flag - 1 byte
--- 0x18-0x1B: Timestamp - 4 bytes
+-- NOTE: Memory sync (SyncTreasurePoolFromMemory) is the primary source of truth.
+-- This packet handler provides supplementary data (dropper ID) and debug logging.
+-- Packet structure (per Atom0s XiPackets):
+-- 0x04-0x07: TrophyItemNum (item count) - 4 bytes
+-- 0x08-0x0B: TargetUniqueNo (dropper server ID) - 4 bytes
+-- 0x0C-0x0D: Gold - 2 bytes
+-- 0x10-0x11: TrophyItemNo (item ID) - 2 bytes
+-- 0x12-0x13: TargetActIndex (dropper index) - 2 bytes
+-- 0x14: TrophyItemIndex (pool slot 0-9) - 1 byte
+-- 0x15: Entry (lot status: 0=none, 1=passed, 2=lotted) - 1 byte
+-- 0x18-0x1B: StartTime (timestamp) - 4 bytes
 function M.HandleTreasurePool(e)
     if M.dataModule == nil then return end
 
-    -- Skip treasure pool sync during zoning grace period
-    if isInZoningGracePeriod() then return end
+    -- No grace period - memory sync handles the authoritative state
+    -- This packet handler is supplementary for dropper info and debug
 
-    -- Parse full packet structure
-    local dropperId = struct.unpack('I4', e.data, 0x08 + 1);
-    local count = struct.unpack('I4', e.data, 0x0C + 1);
-    local itemId = struct.unpack('H', e.data, 0x10 + 1);
-    local slot = struct.unpack('B', e.data, 0x14 + 1);
-    local oldFlag = struct.unpack('B', e.data, 0x15 + 1);
-    local timestamp = struct.unpack('I4', e.data, 0x18 + 1);
+    -- Parse packet structure (corrected per Atom0s documentation)
+    local count = struct.unpack('I4', e.data, 0x04 + 1);       -- TrophyItemNum at 0x04
+    local dropperId = struct.unpack('I4', e.data, 0x08 + 1);   -- TargetUniqueNo at 0x08
+    local itemId = struct.unpack('H', e.data, 0x10 + 1);       -- TrophyItemNo at 0x10
+    local slot = struct.unpack('B', e.data, 0x14 + 1);         -- TrophyItemIndex at 0x14
+    local entry = struct.unpack('B', e.data, 0x15 + 1);        -- Entry at 0x15
+    local timestamp = struct.unpack('I4', e.data, 0x18 + 1);   -- StartTime at 0x18
 
     -- Validate slot is within bounds (0-9)
     if slot == nil or slot >= 10 then
@@ -314,32 +456,23 @@ function M.HandleTreasurePool(e)
     if M.DEBUG_ENABLED then
         local item = AshitaCore:GetResourceManager():GetItemById(itemId);
         local itemName = (item and item.Name and item.Name[1]) or 'nil';
-        print(string.format('[XIUI] 0x0D2 POOL: slot=%d item=%d(%s) count=%d old=%d ts=%d',
-            slot, itemId, itemName, count, oldFlag, timestamp));
+        print(string.format('[XIUI] 0x0D2 PACKET: slot=%d item=%d(%s) count=%d entry=%d ts=%d dropper=%d',
+            slot, itemId, itemName, count, entry, timestamp, dropperId));
     end
-
-    -- Check if treasure notifications are enabled
-    if not gConfig.notificationsShowTreasure then return end
 
     -- Skip invalid item IDs
     if itemId == nil or itemId == 0 or itemId == 65535 then return end
 
-    -- Check if we already have this item tracked in this slot (e.g., after zoning)
-    -- If so, keep our existing data to preserve the timer
+    -- Update dropper ID if we have this item tracked (memory sync doesn't have dropper info)
     if M.dataModule.treasurePool and M.dataModule.treasurePool[slot] then
         local existingItem = M.dataModule.treasurePool[slot];
-        if existingItem.itemId == itemId then
-            -- Same item in same slot - keep existing data (preserve timer)
-            return;
+        if existingItem.itemId == itemId and dropperId and dropperId > 0 then
+            existingItem.dropperId = dropperId;
         end
     end
 
-    -- Add to treasure pool state
-    -- showToast = false if oldFlag is set (item existed before we started tracking)
-    local showToast = (oldFlag ~= 1);
-    if M.dataModule.AddTreasurePoolItem then
-        M.dataModule.AddTreasurePoolItem(slot, itemId, dropperId, count, timestamp, showToast);
-    end
+    -- NOTE: Don't mark toast as shown here - let memory sync handle toasts
+    -- The packet arrives before memory is updated, so memory sync is the source of truth
 end
 
 -- ========================================
@@ -361,8 +494,7 @@ end
 function M.HandleTreasureLot(e)
     if M.dataModule == nil then return end
 
-    -- Skip treasure lot sync during zoning grace period
-    if isInZoningGracePeriod() then return end
+    -- No grace period - lot packets contain valuable name/lot data that memory doesn't have
 
     -- Parse packet structure
     local highestLotterId = struct.unpack('I4', e.data, 0x04 + 1);
@@ -412,6 +544,10 @@ function M.ClearTreasureState()
     if M.dataModule and M.dataModule.ClearTreasurePool then
         M.dataModule.ClearTreasurePool();
     end
+    -- Also clear toast tracking so items re-appearing in pool get toasts
+    M.ClearToastTracking();
+    -- Disable test mode (return to normal memory sync)
+    M.testModeEnabled = false;
 end
 
 return M;

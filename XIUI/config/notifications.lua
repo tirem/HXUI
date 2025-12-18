@@ -8,6 +8,7 @@ require('handlers.helpers');
 local components = require('config.components');
 local imgui = require('imgui');
 local notificationData = require('modules.notifications.data');
+local notificationHandler = require('handlers.notificationhandler');
 
 local M = {};
 
@@ -46,6 +47,9 @@ end
 
 -- Add a test item to treasure pool
 local function addTestTreasurePoolItem()
+    -- Enable test mode to prevent memory sync from removing test items
+    notificationHandler.testModeEnabled = true;
+
     local slot = 0;
     -- Find first empty slot
     for i = 0, 9 do
@@ -55,8 +59,8 @@ local function addTestTreasurePoolItem()
         end
     end
 
-    -- Add test item (Leaping Boots)
-    notificationData.AddTreasurePoolItem(slot, 13014, 0, 1, 0);
+    -- Add test item (Leaping Boots) with toast notification
+    notificationData.AddTreasurePoolItem(slot, 13014, 0, 1, 0, true);
 end
 
 -- Draw a checkbox with a test button on the same line

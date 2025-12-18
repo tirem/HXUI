@@ -502,7 +502,17 @@ notifications.HandleTreasurePool = handler.HandleTreasurePool;
 notifications.HandleTreasureLot = handler.HandleTreasureLot;
 notifications.HandleZonePacket = handler.HandleZonePacket;
 notifications.ClearTreasureState = handler.ClearTreasureState;
-notifications.ClearTreasurePool = data.ClearTreasurePool;
+-- Wrap ClearTreasurePool to also disable test mode
+function notifications.ClearTreasurePool()
+    data.ClearTreasurePool();
+    handler.testModeEnabled = false;
+end
+notifications.SyncTreasurePoolFromMemory = handler.SyncTreasurePoolFromMemory;
+
+-- Test mode control (disables memory sync to allow test items to persist)
+function notifications.SetTestMode(enabled)
+    handler.testModeEnabled = enabled;
+end
 
 -- ============================================
 -- Test Helper (for development)
@@ -514,6 +524,9 @@ end
 -- Test treasure pool with multiple items (fills all 10 slots)
 -- Uses common consumable item IDs that definitely have valid icons
 function notifications.TestTreasurePool10()
+    -- Enable test mode to prevent memory sync from removing test items
+    handler.testModeEnabled = true;
+
     -- Clear existing pool first
     data.ClearTreasurePool();
 
@@ -537,16 +550,19 @@ function notifications.TestTreasurePool10()
         data.AddTreasurePoolItem(slot, item.id, 0, 1, 0, true);
     end
 
-    print('[XIUI] Added 10 test items to treasure pool');
+    print('[XIUI] Added 10 test items to treasure pool (test mode enabled)');
 end
 
 -- Test treasure pool ONLY (no toast notifications) - for crash isolation
 function notifications.TestPoolOnly()
+    -- Enable test mode to prevent memory sync from removing test items
+    handler.testModeEnabled = true;
+
     data.ClearTreasurePool();
     for slot = 0, 9 do
         data.AddTreasurePoolItem(slot, 4096 + slot, 0, 1, 0, false);  -- false = no toast
     end
-    print('[XIUI] Added 10 pool items (NO toasts)');
+    print('[XIUI] Added 10 pool items (NO toasts, test mode enabled)');
 end
 
 -- Test toast notifications ONLY (no treasure pool) - for crash isolation
@@ -563,6 +579,9 @@ end
 
 -- Stress test: attempt to add 25 items (tests bounds checking - only 0-9 are valid)
 function notifications.TestTreasurePool25()
+    -- Enable test mode to prevent memory sync from removing test items
+    handler.testModeEnabled = true;
+
     -- Clear existing pool first
     data.ClearTreasurePool();
 
@@ -606,7 +625,14 @@ function notifications.TestTreasurePool25()
         end
     end
 
-    print(string.format('[XIUI] Stress test: attempted 25 items, added %d (max slots: %d)', added, data.TREASURE_POOL_MAX_SLOTS));
+    print(string.format('[XIUI] Stress test: attempted 25 items, added %d (max slots: %d, test mode enabled)', added, data.TREASURE_POOL_MAX_SLOTS));
+end
+
+-- Clear test pool and disable test mode (returns to normal memory sync)
+function notifications.ClearTestPool()
+    data.ClearTreasurePool();
+    handler.testModeEnabled = false;
+    print('[XIUI] Cleared treasure pool and disabled test mode');
 end
 
 return notifications;
