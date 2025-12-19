@@ -12,9 +12,33 @@ local M = {};
 -- ========================================
 
 local entityIndexCache = {};
+local cachePopulated = false;
 
 function M.ClearEntityCache()
     entityIndexCache = {};
+    cachePopulated = false;
+end
+
+-- Batch populate cache with all valid entity ID->index mappings
+-- Call this after zone load to avoid O(n) scans on first access
+function M.PopulateEntityCache()
+    if cachePopulated then
+        return;
+    end
+
+    local entMgr = AshitaCore:GetMemoryManager():GetEntity();
+    if not entMgr then
+        return;
+    end
+
+    for i = 1, 0x8FF do
+        local serverId = entMgr:GetServerId(i);
+        if serverId and serverId > 0 and serverId < 0x4000000 then
+            entityIndexCache[serverId] = i;
+        end
+    end
+
+    cachePopulated = true;
 end
 
 -- ========================================
@@ -22,14 +46,19 @@ end
 -- ========================================
 
 function M.GetIndexFromId(id)
-    -- Check cache first
+    -- Lazy populate cache on first access after zone
+    if not cachePopulated then
+        M.PopulateEntityCache();
+    end
+
+    -- Check cache first (O(1) after population)
     if entityIndexCache[id] then
         return entityIndexCache[id];
     end
 
     local entMgr = AshitaCore:GetMemoryManager():GetEntity();
 
-    -- Shortcut for monsters/static npcs
+    -- Shortcut for monsters/static npcs (handles entities spawned after cache population)
     if (bit.band(id, 0x1000000) ~= 0) then
         local index = bit.band(id, 0xFFF);
         if (index >= 0x900) then
@@ -42,6 +71,7 @@ function M.GetIndexFromId(id)
         end
     end
 
+    -- Full scan fallback for entities not in cache (rare after population)
     for i = 1, 0x8FF do
         if entMgr:GetServerId(i) == id then
             entityIndexCache[id] = i;

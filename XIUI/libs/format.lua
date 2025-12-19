@@ -33,6 +33,22 @@ function M.FormatInt(number)
 end
 
 -- ========================================
+-- String Utilities
+-- ========================================
+
+-- Split a string by separator
+-- @param str The string to split
+-- @param sep The separator (default ":")
+-- @return Table of substrings
+function M.split(str, sep)
+    sep = sep or ":";
+    local fields = {};
+    local pattern = string.format("([^%s]+)", sep);
+    str:gsub(pattern, function(c) fields[#fields + 1] = c end);
+    return fields;
+end
+
+-- ========================================
 -- Misc Utilities
 -- ========================================
 

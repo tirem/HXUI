@@ -43,7 +43,7 @@ function M.GetEventSystemActive()
 end
 
 function M.GetInterfaceHidden()
-    if (pEventSystem == 0) then
+    if (pInterfaceHidden == 0) then
         return false;
     end
     local ptr = ashita.memory.read_uint32(pInterfaceHidden + 10);

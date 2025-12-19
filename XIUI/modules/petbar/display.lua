@@ -149,7 +149,7 @@ local function GetTimerGradients(abilityName, colorConfig)
                getGradient(cc.timerDeployRecastGradient, {'#ffbb66d9', '#ffcc99d9'});
     end
     if name == 'Deactivate' then
-        return getGradient(cc.timerDeactivateReadyGradient, {'#999999e6', '#bbbbbbbe6'}),
+        return getGradient(cc.timerDeactivateReadyGradient, {'#999999e6', '#bbbbbbe6'}),
                getGradient(cc.timerDeactivateRecastGradient, {'#bbbbbbd9', '#ccccccd9'});
     end
     if name == 'Retrieve' then

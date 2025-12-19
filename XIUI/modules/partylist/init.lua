@@ -120,6 +120,10 @@ partyList.UpdateVisuals = function(settings)
     data.partyConfigCacheValid = false;
     data.updatePartyConfigCache();
 
+    -- Clear text caches since font settings may have changed
+    data.memberTextCache = {};
+    data.maxTpTextWidthCache = { [1] = nil, [2] = nil, [3] = nil };
+
     -- Check if font settings changed
     local fontFamilyChanged = false;
     local fontFlagsChanged = false;

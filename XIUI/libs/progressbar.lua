@@ -19,11 +19,43 @@ local progressbar = {
 	foregroundRounding = 3,
 	foregroundPadding = 5,
 
-	gradientTextures = {}
+	-- Gradient texture cache (hash table for O(1) lookup)
+	gradientTexturesByKey = {},
+	-- Legacy array for cleanup (maintains references)
+	gradientTextures = {},
+
+	-- Cached U32 colors to avoid per-frame conversions
+	colorU32Cache = {},
 };
 
 -- Use shared hex2rgba from color library
 local hex2rgba = colorLib.hex2rgba;
+local hex2rgb = colorLib.hex2rgb;
+
+-- Cached hex to U32 conversion (avoids per-frame table allocation)
+local function GetCachedColorU32(hexColor)
+	local cached = progressbar.colorU32Cache[hexColor];
+	if cached then
+		return cached;
+	end
+	local r, g, b, a = hex2rgba(hexColor);
+	cached = imgui.GetColorU32({r / 255, g / 255, b / 255, a / 255});
+	progressbar.colorU32Cache[hexColor] = cached;
+	return cached;
+end
+
+-- Pre-allocated tables for ImGui calls (avoids per-frame allocations)
+local reusablePos1 = {0, 0};
+local reusablePos2 = {0, 0};
+local reusableUV1 = {0, 0};
+local reusableUV2 = {1, 1};
+
+-- Helper to set position table values (avoids creating new tables)
+local function setPos(tbl, x, y)
+	tbl[1] = x;
+	tbl[2] = y;
+	return tbl;
+end
 
 function MakeGradientBitmap(startColor, endColor)
 	local height = 100;
@@ -81,14 +113,9 @@ function MakeThreeStepGradientBitmap(startColor, midColor, endColor)
 end
 
 function GetGradient(startColor, endColor)
-	local texture;
-
-	for i, existingTexture in ipairs(progressbar.gradientTextures) do
-		if (existingTexture.startColor == startColor and existingTexture.endColor == endColor and existingTexture.midColor == nil) then
-			texture = existingTexture;
-			break;
-		end
-	end
+	-- O(1) hash lookup instead of O(n) linear search
+	local cacheKey = startColor .. '|' .. endColor;
+	local texture = progressbar.gradientTexturesByKey[cacheKey];
 
 	if not texture then
 		local device = memory.GetD3D8Device();
@@ -113,6 +140,8 @@ function GetGradient(startColor, endColor)
 
 		d3d.gc_safe_release(texture.texture);
 
+		-- Store in both hash table (for lookup) and array (for cleanup)
+		progressbar.gradientTexturesByKey[cacheKey] = texture;
 		table.insert(progressbar.gradientTextures, texture);
 	end
 
@@ -124,14 +153,9 @@ function GetGradient(startColor, endColor)
 end
 
 function GetThreeStepGradient(startColor, midColor, endColor)
-	local texture;
-
-	for i, existingTexture in ipairs(progressbar.gradientTextures) do
-		if (existingTexture.startColor == startColor and existingTexture.midColor == midColor and existingTexture.endColor == endColor) then
-			texture = existingTexture;
-			break;
-		end
-	end
+	-- O(1) hash lookup instead of O(n) linear search
+	local cacheKey = startColor .. '|' .. midColor .. '|' .. endColor;
+	local texture = progressbar.gradientTexturesByKey[cacheKey];
 
 	if not texture then
 		local device = memory.GetD3D8Device();
@@ -156,6 +180,8 @@ function GetThreeStepGradient(startColor, midColor, endColor)
 
 		d3d.gc_safe_release(texture.texture);
 
+		-- Store in both hash table (for lookup) and array (for cleanup)
+		progressbar.gradientTexturesByKey[cacheKey] = texture;
 		table.insert(progressbar.gradientTextures, texture);
 	end
 
@@ -444,8 +470,7 @@ progressbar.ProgressBar  = function(percentList, dimensions, options)
 	elseif gConfig and gConfig.colorCustomization and gConfig.colorCustomization.shared and gConfig.colorCustomization.shared.backgroundGradient then
 		borderColor = gConfig.colorCustomization.shared.backgroundGradient.start;
 	end
-	local bgR, bgG, bgB, bgA = hex2rgba(borderColor);
-	local bgColorU32 = imgui.GetColorU32({bgR / 255, bgG / 255, bgB / 255, bgA / 255});
+	local bgColorU32 = GetCachedColorU32(borderColor);
 
 	-- Draw enhanced border if specified (middle and outer layers)
 	if options.enhancedBorder then

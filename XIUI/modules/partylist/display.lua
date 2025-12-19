@@ -20,6 +20,17 @@ local data = require('modules.partylist.data');
 
 local display = {};
 
+-- Helper: Set font text only if changed (avoids texture regeneration)
+local function setCachedText(memIdx, fontKey, font, text)
+    if not data.memberTextCache[memIdx] then
+        data.memberTextCache[memIdx] = {};
+    end
+    if data.memberTextCache[memIdx][fontKey] ~= text then
+        font:set_text(text);
+        data.memberTextCache[memIdx][fontKey] = text;
+    end
+end
+
 -- ============================================
 -- DrawMember - Render a single party member
 -- ============================================
@@ -100,8 +111,9 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     local tpRefHeight = refHeights.tpRefHeight;
     local nameRefHeight = refHeights.nameRefHeight;
 
-    -- Calculate text sizes
-    data.memberText[memIdx].name:set_text(tostring(memInfo.name));
+    -- Calculate text sizes (use cached text to avoid texture regeneration)
+    local nameText = tostring(memInfo.name);
+    setCachedText(memIdx, 'name', data.memberText[memIdx].name, nameText);
     local nameWidth, nameHeight = data.memberText[memIdx].name:get_text_size();
 
     -- Format HP text based on display mode
@@ -119,7 +131,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     else
         hpDisplayText = tostring(memInfo.hp);
     end
-    data.memberText[memIdx].hp:set_text(hpDisplayText);
+    setCachedText(memIdx, 'hp', data.memberText[memIdx].hp, hpDisplayText);
     local hpTextWidth, hpHeight = data.memberText[memIdx].hp:get_text_size();
 
     -- Format MP text based on display mode
@@ -137,18 +149,23 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     else
         mpDisplayText = tostring(memInfo.mp);
     end
-    data.memberText[memIdx].mp:set_text(mpDisplayText);
+    setCachedText(memIdx, 'mp', data.memberText[memIdx].mp, mpDisplayText);
     local mpTextWidth, mpHeight = data.memberText[memIdx].mp:get_text_size();
 
-    data.memberText[memIdx].tp:set_text(tostring(memInfo.tp));
+    local tpText = tostring(memInfo.tp);
+    setCachedText(memIdx, 'tp', data.memberText[memIdx].tp, tpText);
     local tpTextWidth, tpHeight = data.memberText[memIdx].tp:get_text_size();
 
-    -- Calculate max TP text width for Layout 2
+    -- Calculate max TP text width for Layout 1 (cached per party to avoid per-frame texture regen)
     local maxTpTextWidth = tpTextWidth;
     if layout == 1 then
-        data.memberText[memIdx].tp:set_text("3000");
-        maxTpTextWidth, _ = data.memberText[memIdx].tp:get_text_size();
-        data.memberText[memIdx].tp:set_text(tostring(memInfo.tp));
+        if not data.maxTpTextWidthCache[partyIndex] then
+            -- Calculate once: temporarily set to "3000", get width, restore
+            data.memberText[memIdx].tp:set_text("3000");
+            data.maxTpTextWidthCache[partyIndex], _ = data.memberText[memIdx].tp:get_text_size();
+            data.memberText[memIdx].tp:set_text(tpText);
+        end
+        maxTpTextWidth = data.maxTpTextWidthCache[partyIndex];
     end
 
     -- Calculate allBarsLengths based on layout
@@ -204,9 +221,12 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
         local startColor = HexToImGui(selectionGradient[1]);
         local endColor = HexToImGui(selectionGradient[2]);
 
-        -- Draw gradient effect
-        local gradientSteps = 8;
+        -- Draw gradient effect (4 steps for performance, reuse tables)
+        local gradientSteps = 4;
         local stepHeight = selectionHeight / gradientSteps;
+        local selX1 = selectionTL[1];
+        local selX2 = selectionBR[1];
+        local selY1 = selectionTL[2];
         for i = 1, gradientSteps do
             local t = (i - 1) / (gradientSteps - 1);
             local r = startColor[1] + (endColor[1] - startColor[1]) * t;
@@ -215,15 +235,15 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
             local alpha = 0.35 - t * 0.25;
 
             local stepColor = imgui.GetColorU32({r, g, b, alpha});
-            local stepTL_y = selectionTL[2] + (i - 1) * stepHeight;
+            local stepTL_y = selY1 + (i - 1) * stepHeight;
             local stepBR_y = stepTL_y + stepHeight;
 
             if i == 1 then
-                drawList:AddRectFilled({selectionTL[1], stepTL_y}, {selectionBR[1], stepBR_y}, stepColor, 6, 3);
+                drawList:AddRectFilled({selX1, stepTL_y}, {selX2, stepBR_y}, stepColor, 6, 3);
             elseif i == gradientSteps then
-                drawList:AddRectFilled({selectionTL[1], stepTL_y}, {selectionBR[1], stepBR_y}, stepColor, 6, 12);
+                drawList:AddRectFilled({selX1, stepTL_y}, {selX2, stepBR_y}, stepColor, 6, 12);
             else
-                drawList:AddRectFilled({selectionTL[1], stepTL_y}, {selectionBR[1], stepBR_y}, stepColor, 0);
+                drawList:AddRectFilled({selX1, stepTL_y}, {selX2, stepBR_y}, stepColor, 0);
             end
         end
 
@@ -462,7 +482,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
         );
 
         local zoneName = encoding:ShiftJIS_To_UTF8(AshitaCore:GetResourceManager():GetString("zones.names", memInfo.zone), true);
-        data.memberText[memIdx].zone:set_text(zoneName);
+        setCachedText(memIdx, 'zone', data.memberText[memIdx].zone, zoneName);
         local zoneTextWidth, zoneTextHeight = data.memberText[memIdx].zone:get_text_size();
         data.memberText[memIdx].zone:set_position_x(zoneBarStartX + (zoneBarWidth - zoneTextWidth) / 2);
         data.memberText[memIdx].zone:set_position_y(zoneBarStartY + (zoneBarHeight - zoneTextHeight) / 2);
@@ -541,7 +561,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
 
             -- Handle 'name' style cast bar rendering
             if isCasting and castBarStyle == 'name' then
-                data.memberText[memIdx].name:set_text(castData.spellName);
+                setCachedText(memIdx, 'name', data.memberText[memIdx].name, castData.spellName);
                 -- Set name text to cast text color
                 local castTextColor = cache.colors.castTextColor or 0xFFFFCC44;
                 if (data.memberTextColorCache[memIdx].name ~= castTextColor) then
@@ -577,7 +597,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     -- When using 'mp' or 'tp' bar styles, name and distance should remain visible
     local hidingNameForCast = isCasting and castBarStyle == 'name';
     if (not hidingNameForCast) then
-        data.memberText[memIdx].name:set_text(tostring(memInfo.name));
+        setCachedText(memIdx, 'name', data.memberText[memIdx].name, nameText);
     end
     if (not hidingNameForCast and cache.showDistance and memInfo.inzone) then
         local distance = nil;
@@ -591,7 +611,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
         end
         if (distance ~= nil and distance > 0 and distance <= 50) then
             local distanceText = ('%.1f'):fmt(distance);
-            data.memberText[memIdx].distance:set_text(distanceText);
+            setCachedText(memIdx, 'distance', data.memberText[memIdx].distance, distanceText);
             local distancePosX = namePosX + nameWidth + 4;
             data.memberText[memIdx].distance:set_position_x(distancePosX + textOffsets.distanceX);
             data.memberText[memIdx].distance:set_position_y(hpStartY - nameRefHeight - settings.nameTextOffsetY + nameBaselineOffset + textOffsets.distanceY);
@@ -630,7 +650,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
             end
         end
         if jobStr ~= '' then
-            data.memberText[memIdx].job:set_text(jobStr);
+            setCachedText(memIdx, 'job', data.memberText[memIdx].job, jobStr);
             data.memberText[memIdx].job:set_font_height(fontSizes.job);
             local jobTextWidth, jobTextHeight = data.memberText[memIdx].job:get_text_size();
             local jobPosX = hpStartX + allBarsLengths - jobTextWidth;
@@ -669,7 +689,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
             -- TP text (or spell name if casting with 'tp' style)
             if showingCastInTpSlot then
                 -- Show spell name instead of TP when casting with 'tp' style
-                data.memberText[memIdx].tp:set_text(castData.spellName);
+                setCachedText(memIdx, 'tp', data.memberText[memIdx].tp, castData.spellName);
                 local castTextColor = cache.colors.castTextColor or 0xFFFFCC44;
                 if (data.memberTextColorCache[memIdx].tp ~= castTextColor) then
                     data.memberText[memIdx].tp:set_font_color(castTextColor);
@@ -727,7 +747,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                     local castGradient = GetCustomGradient(cache.colors, 'castBarGradient') or {'#ffaa00', '#ffcc44'};
                     progressbar.ProgressBar({{castProgress, castGradient}}, {mpBarWidth, mpBarHeight}, {decorate = cache.showBookends, backgroundGradientOverride = data.getBarBackgroundOverride(partyIndex), borderColorOverride = data.getBarBorderOverride(partyIndex)});
                     -- Set MP text to spell name with cast text color
-                    data.memberText[memIdx].mp:set_text(castData.spellName);
+                    setCachedText(memIdx, 'mp', data.memberText[memIdx].mp, castData.spellName);
                     local castTextColor = cache.colors.castTextColor or 0xFFFFCC44;
                     if (data.memberTextColorCache[memIdx].mp ~= castTextColor) then
                         data.memberText[memIdx].mp:set_font_color(castTextColor);
@@ -810,7 +830,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                     local castGradient = GetCustomGradient(cache.colors, 'castBarGradient') or {'#ffaa00', '#ffcc44'};
                     progressbar.ProgressBar({{castProgress, castGradient}}, {mpBarWidth, mpBarHeight}, {decorate = cache.showBookends, backgroundGradientOverride = data.getBarBackgroundOverride(partyIndex), borderColorOverride = data.getBarBorderOverride(partyIndex)});
                     -- Set MP text to spell name with cast text color
-                    data.memberText[memIdx].mp:set_text(castData.spellName);
+                    setCachedText(memIdx, 'mp', data.memberText[memIdx].mp, castData.spellName);
                     local castTextColor = cache.colors.castTextColor or 0xFFFFCC44;
                     if (data.memberTextColorCache[memIdx].mp ~= castTextColor) then
                         data.memberText[memIdx].mp:set_font_color(castTextColor);
@@ -894,7 +914,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                     local castGradient = GetCustomGradient(cache.colors, 'castBarGradient') or {'#ffaa00', '#ffcc44'};
                     progressbar.ProgressBar({{castProgress, castGradient}}, {tpBarWidth, tpBarHeight}, {decorate = cache.showBookends, backgroundGradientOverride = data.getBarBackgroundOverride(partyIndex), borderColorOverride = data.getBarBorderOverride(partyIndex)});
                     -- Set TP text to spell name with cast text color
-                    data.memberText[memIdx].tp:set_text(castData.spellName);
+                    setCachedText(memIdx, 'tp', data.memberText[memIdx].tp, castData.spellName);
                     local castTextColor = cache.colors.castTextColor or 0xFFFFCC44;
                     if (data.memberTextColorCache[memIdx].tp ~= castTextColor) then
                         data.memberText[memIdx].tp:set_font_color(castTextColor);
@@ -927,7 +947,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                         data.memberText[memIdx].tp:set_font_color(desiredTpColor);
                         data.memberTextColorCache[memIdx].tp = desiredTpColor;
                     end
-                    data.memberText[memIdx].tp:set_text(tostring(memInfo.tp));
+                    setCachedText(memIdx, 'tp', data.memberText[memIdx].tp, tpText);
                 end
 
                 -- Recalculate tp text width in case it changed to spell name
@@ -1297,10 +1317,9 @@ end
 -- DrawWindow - Main entry point for rendering
 -- ============================================
 function display.DrawWindow(settings)
-    -- Refresh config cache each frame (reads from gConfig which can change anytime)
-    -- The updatePartyConfigCache function is lightweight - it just copies values
-    data.partyConfigCacheValid = false;
-    data.updatePartyConfigCache();
+    -- Rebuild config cache if settings version changed
+    -- This is more efficient than rebuilding every frame but still catches config UI changes
+    data.checkAndUpdateConfigCache();
 
     -- Cache game state
     data.frameCache.party = GetPartySafe();

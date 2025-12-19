@@ -37,9 +37,9 @@ local settings = require('settings');
 local gdi = require('submodules.gdifonts.include');
 
 -- Core modules
-local settingsDefaults = require('core.settingsdefaults');
-local settingsMigration = require('core.settingsmigration');
-local settingsUpdater = require('core.settingsupdater');
+local settingsDefaults = require('core.settings.init');
+local settingsMigration = require('core.settings.migration');
+local settingsUpdater = require('core.settings.updater');
 local gameState = require('core.gamestate');
 local uiModules = require('core.moduleregistry');
 
@@ -79,11 +79,13 @@ local _XIUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS = 1;
 local _XIUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME;
 local _XIUI_DEV_HOT_RELOAD_FILES = {};
 
-function string:split(sep)
-   local sep, fields = sep or ":", {}
-   local pattern = string.format("([^%s]+)", sep)
-   self:gsub(pattern, function(c) fields[#fields+1] = c end)
-   return fields
+-- Local split function for hot reload (avoids monkeypatching string metatable)
+local function _split_string(str, sep)
+    sep = sep or ":";
+    local fields = {};
+    local pattern = string.format("([^%s]+)", sep);
+    str:gsub(pattern, function(c) fields[#fields + 1] = c end);
+    return fields;
 end
 
 function _check_hot_reload()
@@ -93,7 +95,7 @@ function _check_hot_reload()
 
     for line in result:lines() do
         if #line > 0 then
-            local splitLine = line:split(" ");
+            local splitLine = _split_string(line, " ");
             local filename = splitLine[1];
             local dateModified = splitLine[2];
             local timeModified = splitLine[3];
@@ -242,6 +244,7 @@ local migrationResult = settingsMigration.MigrateFromHXUI();
 -- Load settings and run structure migrations
 local config = settings.load(user_settings_container);
 gConfig = config.userSettings;
+gConfigVersion = 0; -- Incremented on settings changes for cache invalidation
 settingsMigration.RunStructureMigrations(gConfig, defaultUserSettings);
 
 -- Show migration message after settings are loaded (deferred to ensure chat is ready)
@@ -302,6 +305,7 @@ function CheckVisibility()
 end
 
 function UpdateUserSettings()
+    gConfigVersion = gConfigVersion + 1; -- Notify caches of settings change (for real-time slider updates)
     settingsUpdater.UpdateUserSettings(gAdjustedSettings, settingsDefaults.default_settings, gConfig);
 end
 
@@ -309,6 +313,7 @@ function SaveSettingsToDisk()
     if gConfig.colorCustomization == nil then
         gConfig.colorCustomization = deep_copy_table(defaultUserSettings.colorCustomization);
     end
+    gConfigVersion = gConfigVersion + 1; -- Notify caches of settings change
     settings.save();
 end
 
@@ -316,6 +321,7 @@ function SaveSettingsOnly()
     if gConfig.colorCustomization == nil then
         gConfig.colorCustomization = deep_copy_table(defaultUserSettings.colorCustomization);
     end
+    gConfigVersion = gConfigVersion + 1; -- Notify caches of settings change
     settings.save();
     UpdateUserSettings();
 end
@@ -338,6 +344,9 @@ end
 function UpdateSettings()
     SaveSettingsOnly();
     CheckVisibility();
+    -- Clear cached colors to pick up new settings
+    InvalidateInterpolationColorCache();
+    InvalidateColorCaches();
     uiModules.UpdateVisualsAll(gAdjustedSettings);
 end
 

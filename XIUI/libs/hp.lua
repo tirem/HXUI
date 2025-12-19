@@ -235,9 +235,22 @@ M.HpInterpolation = {
 -- HP Interpolation Colors
 -- ========================================
 
+-- Cached interpolation colors (rebuilt only when InvalidateInterpolationColorCache is called)
+local cachedInterpolationColors = nil;
+
+-- Invalidate the interpolation color cache (call from UpdateVisuals)
+function M.InvalidateInterpolationColorCache()
+    cachedInterpolationColors = nil;
+end
+
 -- Get HP interpolation effect colors from shared config
 -- Returns table with damageGradient, damageFlashColor, healGradient, healFlashColor
+-- Cached to avoid per-frame table allocation
 function M.GetHpInterpolationColors()
+    if cachedInterpolationColors then
+        return cachedInterpolationColors;
+    end
+
     local colors = {
         damageGradient = {'#cf3437', '#c54d4d'},
         damageFlashColor = '#ffacae',
@@ -269,6 +282,7 @@ function M.GetHpInterpolationColors()
         end
     end
 
+    cachedInterpolationColors = colors;
     return colors;
 end
 
