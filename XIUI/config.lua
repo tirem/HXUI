@@ -22,8 +22,14 @@ local castbarModule = require('config.castbar');
 local castcostModule = require('config.castcost');
 local petbarModule = require('config.petbar');
 local notificationsModule = require('config.notifications');
+local treasurepoolModule = require('config.treasurepool');
+
+local treasurePool = require('modules.treasurepool.init');
 
 local config = {};
+
+-- Track previous config state to detect when config closes
+local wasConfigOpen = false;
 
 -- Global modal state (accessible by other modules to know when to dim foreground elements)
 _XIUI_MODAL_OPEN = false;
@@ -114,6 +120,7 @@ local categories = {
     { name = 'castCost', label = 'Cast Cost' },
     { name = 'petBar', label = 'Pet Bar' },
     { name = 'notifications', label = 'Notifications' },
+    { name = 'treasurePool', label = 'Treasure Pool' },
 };
 
 -- Build state object for modules that need tab state
@@ -207,6 +214,10 @@ local function DrawNotificationsSettings()
     notificationsModule.DrawSettings();
 end
 
+local function DrawTreasurePoolSettings()
+    treasurepoolModule.DrawSettings();
+end
+
 -- Color settings draw functions with state handling
 local function DrawGlobalColorSettings()
     globalModule.DrawColorSettings();
@@ -260,6 +271,10 @@ local function DrawNotificationsColorSettings()
     notificationsModule.DrawColorSettings();
 end
 
+local function DrawTreasurePoolColorSettings()
+    treasurepoolModule.DrawColorSettings();
+end
+
 -- Dispatch tables for settings and color settings
 local settingsDrawFunctions = {
     DrawGlobalSettings,
@@ -274,6 +289,7 @@ local settingsDrawFunctions = {
     DrawCastCostSettings,
     DrawPetBarSettings,
     DrawNotificationsSettings,
+    DrawTreasurePoolSettings,
 };
 
 local colorSettingsDrawFunctions = {
@@ -289,9 +305,20 @@ local colorSettingsDrawFunctions = {
     DrawCastCostColorSettings,
     DrawPetBarColorSettings,
     DrawNotificationsColorSettings,
+    DrawTreasurePoolColorSettings,
 };
 
 config.DrawWindow = function(us)
+    -- Detect when config closes and clear treasure pool preview
+    local isConfigOpen = showConfig[1];
+    if wasConfigOpen and not isConfigOpen then
+        -- Config just closed - clear preview state and reset settings
+        treasurePool.ClearPreview();
+        gConfig.treasurePoolMiniPreview = false;
+        gConfig.treasurePoolFullPreview = false;
+    end
+    wasConfigOpen = isConfigOpen;
+
     -- Early exit if config window isn't shown (atom0s recommendation)
     -- This prevents unnecessary style pushes and imgui.End() calls when window is hidden
     if (not showConfig[1]) then return; end

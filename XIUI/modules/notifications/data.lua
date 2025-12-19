@@ -106,37 +106,12 @@ M.allFonts = {};
 M.splitTitleFonts = {};     -- splitKey -> font
 M.splitSubtitleFonts = {};  -- splitKey -> font
 
--- Treasure pool window fonts (indexed by slot 0-9)
-M.poolHeaderFont = nil;     -- Header font for "Treasure Pool" title
-M.poolItemNameFonts = {};   -- slot -> font (item name)
-M.poolTimerFonts = {};      -- slot -> font (countdown timer)
-M.poolLotFonts = {};        -- slot -> font (lot info)
-
--- Treasure pool background primitives (indexed by slot 0-9)
-M.poolBgPrims = {};
-
 -- Cached colors to avoid expensive set_font_color calls
 M.lastTitleColors = {};
 M.lastSubtitleColors = {};
 
--- Treasure pool color caches (per slot)
-M.lastPoolTimerColors = {};
-M.lastPoolLotColors = {};
-M.lastPoolItemNameColors = {};
-
--- Treasure pool sorted cache (avoid table allocation/sort every frame)
-M.sortedPoolCache = {};
-M.sortedPoolDirty = true;
-
--- Treasure pool timer reference width cache (avoid measuring "5:00" every frame)
-M.timerRefWidthCache = {};  -- fontHeight -> width
-M.lastPoolFontSize = nil;
-
 -- Pre-cached U32 colors for progress bars (avoid hex parsing every frame)
 M.cachedBarColors = {};
-
--- Track which pool slots were visible last frame (for optimized visibility management)
-M.lastVisiblePoolSlots = {};
 
 -- Window anchors for bottom-anchoring in "stack up" mode
 -- Keys: 'bottomAnchor_<windowName>' -> Y position of bottom edge
@@ -164,7 +139,7 @@ function M.SetAllFontsVisible(visible)
     end
 end
 
--- Hide all background primitives (including pool backgrounds)
+-- Hide all background primitives
 function M.HideAllBackgrounds()
     -- Hide notification backgrounds
     if M.bgPrims then
@@ -177,14 +152,6 @@ function M.HideAllBackgrounds()
     -- Hide split window backgrounds
     if M.splitBgPrims then
         for _, handle in pairs(M.splitBgPrims) do
-            if handle then
-                windowBg.hide(handle);
-            end
-        end
-    end
-    -- Hide treasure pool backgrounds
-    if M.poolBgPrims then
-        for _, handle in pairs(M.poolBgPrims) do
             if handle then
                 windowBg.hide(handle);
             end
@@ -210,54 +177,24 @@ function M.HideSplitFonts()
     end
 end
 
--- Hide treasure pool window fonts (optimized to only hide slots that were visible last frame)
-function M.HidePoolFonts()
-    if M.poolHeaderFont then
-        M.poolHeaderFont:set_visible(false);
-    end
-
-    -- Only hide fonts for slots that were visible last frame (avoid iterating all 10 slots)
-    for slot in pairs(M.lastVisiblePoolSlots) do
-        if M.poolItemNameFonts and M.poolItemNameFonts[slot] then
-            M.poolItemNameFonts[slot]:set_visible(false);
-        end
-        if M.poolTimerFonts and M.poolTimerFonts[slot] then
-            M.poolTimerFonts[slot]:set_visible(false);
-        end
-        if M.poolLotFonts and M.poolLotFonts[slot] then
-            M.poolLotFonts[slot]:set_visible(false);
-        end
-    end
-    -- Clear the tracking table for the new frame
-    M.lastVisiblePoolSlots = {};
-end
-
--- Mark a pool slot as visible this frame (call when showing pool fonts)
-function M.MarkPoolSlotVisible(slot)
-    M.lastVisiblePoolSlots[slot] = true;
-end
-
--- Hide treasure pool background primitives
-function M.HidePoolBackgrounds()
-    if M.poolBgPrims then
-        for _, handle in pairs(M.poolBgPrims) do
-            if handle then
-                windowBg.hide(handle);
-            end
-        end
-    end
-end
-
 -- Clear cached colors
 function M.ClearColorCache()
     M.lastTitleColors = {};
     M.lastSubtitleColors = {};
-    M.lastPoolTimerColors = {};
-    M.lastPoolLotColors = {};
-    M.lastPoolItemNameColors = {};
-    M.timerRefWidthCache = {};
-    M.lastPoolFontSize = nil;
     M.cachedBarColors = {};
+end
+
+-- Get cached U32 bar color (avoids hex parsing every frame)
+-- key: unique identifier for the color (e.g., 'treasurePool')
+-- hexColor: the hex color string (e.g., '#9966cc')
+function M.GetCachedBarColor(key, hexColor)
+    if M.cachedBarColors[key] == nil or M.cachedBarColors[key].hex ~= hexColor then
+        M.cachedBarColors[key] = {
+            hex = hexColor,
+            u32 = HexToU32(hexColor)
+        };
+    end
+    return M.cachedBarColors[key].u32;
 end
 
 -- Clear window anchors (call when direction changes)
@@ -265,9 +202,23 @@ function M.ClearWindowAnchors()
     M.windowAnchors = {};
 end
 
--- Mark sorted pool cache as dirty (call when pool changes)
+-- Mark pool as dirty (no-op - pool display moved to treasurepool module)
 function M.MarkPoolDirty()
-    M.sortedPoolDirty = true;
+    -- No longer needed - pool display handled by modules/treasurepool
+end
+
+-- Get sorted treasure pool items (for legacy rolls.lua window)
+-- Returns array of pool items sorted by slot
+function M.GetSortedTreasurePool()
+    local result = {};
+    for slot, item in pairs(M.treasurePool) do
+        table.insert(result, item);
+    end
+    -- Sort by slot number
+    table.sort(result, function(a, b)
+        return a.slot < b.slot;
+    end);
+    return result;
 end
 
 -- ============================================
@@ -510,9 +461,6 @@ function M.Initialize(settings)
     M.splitTitleFonts = {};
     M.splitSubtitleFonts = {};
     M.splitBgPrims = {};
-    M.poolItemNameFonts = {};
-    M.poolTimerFonts = {};
-    M.poolLotFonts = {};
     M.pinnedNotifications = {};
     M.pendingQueue = {};
     M.treasurePool = {};
@@ -747,9 +695,6 @@ function M.Cleanup()
     M.splitTitleFonts = {};
     M.splitSubtitleFonts = {};
     M.splitBgPrims = {};
-    M.poolItemNameFonts = {};
-    M.poolTimerFonts = {};
-    M.poolLotFonts = {};
 end
 
 -- ============================================
@@ -1171,64 +1116,6 @@ function M.FormatPoolTimer(seconds)
     local mins = math.floor(seconds / 60);
     local secs = seconds % 60;
     return string.format("%d:%02d", mins, secs);
-end
-
--- Get cached timer reference width (avoids measuring "5:00" every frame)
--- Returns cached width, or calculates and caches if font size changed
-function M.GetTimerRefWidth(timerFont, fontHeight)
-    -- Check if we need to recalculate (font size changed)
-    if M.lastPoolFontSize ~= fontHeight or M.timerRefWidthCache[fontHeight] == nil then
-        if timerFont then
-            timerFont:set_font_height(fontHeight);
-            timerFont:set_text("5:00");
-            local width, _ = timerFont:get_text_size();
-            M.timerRefWidthCache[fontHeight] = width;
-            M.lastPoolFontSize = fontHeight;
-        else
-            return 0;
-        end
-    end
-    return M.timerRefWidthCache[fontHeight] or 0;
-end
-
--- Get cached U32 bar color (avoids hex parsing every frame)
--- key: unique identifier for the color (e.g., 'treasurePool')
--- hexColor: the hex color string (e.g., '#9966cc')
-function M.GetCachedBarColor(key, hexColor)
-    if M.cachedBarColors[key] == nil or M.cachedBarColors[key].hex ~= hexColor then
-        M.cachedBarColors[key] = {
-            hex = hexColor,
-            u32 = HexToU32(hexColor)
-        };
-    end
-    return M.cachedBarColors[key].u32;
-end
-
--- Get sorted treasure pool items for display (cached to avoid table allocation every frame)
-function M.GetSortedTreasurePool()
-    -- Only rebuild if cache is dirty
-    if M.sortedPoolDirty then
-        -- Safely clear and rebuild cache (create new table to avoid modifying while iterating)
-        M.sortedPoolCache = {};
-
-        local idx = 1;
-        for slot, item in pairs(M.treasurePool) do
-            -- Only include items with valid slots (0-9)
-            if item and item.slot ~= nil and item.slot >= 0 and item.slot < M.TREASURE_POOL_MAX_SLOTS then
-                M.sortedPoolCache[idx] = item;
-                idx = idx + 1;
-            end
-        end
-
-        -- Sort by slot index (with nil-safe comparison)
-        table.sort(M.sortedPoolCache, function(a, b)
-            local slotA = (a and a.slot) or 999;
-            local slotB = (b and b.slot) or 999;
-            return slotA < slotB;
-        end);
-        M.sortedPoolDirty = false;
-    end
-    return M.sortedPoolCache;
 end
 
 -- Get treasure pool item count

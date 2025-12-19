@@ -40,58 +40,45 @@ end
 -- Treasure Pool Memory Sync (xitools approach)
 -- ========================================
 
--- Track which items we've already shown toasts for (by slot + itemId)
-local shownToasts = {};
+-- Track pending pool notifications by slot
+-- Maps slot -> {itemId, count, timestamp}
+-- Used to determine if item stays in pool (needs "Treasure Pool" notification)
+-- or gets immediately awarded (only needs "Item Obtained" notification)
+local pendingPoolNotifications = {};
+
+-- Short delay to wait for 0x00D3 before showing "Treasure Pool" notification
+-- If 0x00D3 arrives within this time, item was auto-awarded (show only "Item Obtained")
+-- If not, item is staying in pool (show "Treasure Pool")
+local POOL_NOTIFICATION_DELAY = 0.2;  -- 200ms - enough for packets to arrive
 
 -- Test mode flag - when true, don't remove items not in memory (for UI testing)
 M.testModeEnabled = false;
 
--- Timestamp cache (like xitools' WeirdTimestamps)
--- Maps DropTime -> calculated expiration time (os.time() + 300)
+-- Timestamp cache for expiration times
 local timestampCache = {};
 
--- Sync treasure pool state from Ashita memory API
--- Following xitools approach: pure memory read every frame
--- Debug: track last log time to avoid spam
-local lastDebugLogTime = 0;
+-- ========================================
+-- Treasure Pool Memory Sync (UI only)
+-- ========================================
 
+-- Sync treasure pool state from Ashita memory API for UI display
+-- This does NOT create notifications - that's handled by packet handlers
 function M.SyncTreasurePoolFromMemory()
     if M.dataModule == nil then return end
 
-    -- Get inventory manager (same as xitools)
     local memMgr = AshitaCore:GetMemoryManager();
     if not memMgr then return end
 
     local inventory = memMgr:GetInventory();
     if not inventory then return end
 
-    local resources = AshitaCore:GetResourceManager();
     local now = os.time();
-
-    -- Debug: log every 5 seconds to confirm sync is running
-    if M.DEBUG_ENABLED and (now - lastDebugLogTime) >= 5 then
-        lastDebugLogTime = now;
-        local itemCount = 0;
-        for slot = 0, 9 do
-            local item = inventory:GetTreasurePoolItem(slot);
-            if item ~= nil and item.ItemId ~= nil and item.ItemId > 0 then
-                itemCount = itemCount + 1;
-                local itemInfo = resources:GetItemById(item.ItemId);
-                local itemName = (itemInfo and itemInfo.Name and itemInfo.Name[1]) or 'Unknown';
-                print(string.format('[XIUI] POOL SCAN slot=%d: %s (id=%d)', slot, itemName, item.ItemId));
-            end
-        end
-        print(string.format('[XIUI] POOL SCAN: %d items in memory', itemCount));
-    end
-
-    -- Track which slots have items this frame
     local activeSlots = {};
 
-    -- Iterate all 10 treasure pool slots (exactly like xitools)
+    -- Iterate all 10 treasure pool slots
     for slot = 0, 9 do
         local item = inventory:GetTreasurePoolItem(slot);
 
-        -- Check if slot has a valid item (same check as xitools)
         if item ~= nil and item.ItemId ~= nil and item.ItemId > 0 then
             activeSlots[slot] = true;
 
@@ -100,49 +87,28 @@ function M.SyncTreasurePoolFromMemory()
             local isNewItem = not existingItem or existingItem.itemId ~= item.ItemId;
 
             if isNewItem then
-                -- Handle timestamp like xitools: cache first-seen time + 300 seconds
+                -- Cache expiration time
                 if not timestampCache[item.DropTime] then
                     timestampCache[item.DropTime] = now + 300;
                 end
 
-                -- Determine if we should show a toast
-                local toastKey = slot .. '_' .. item.ItemId;
-                local showToast = not shownToasts[toastKey];
-
-                -- Get item info from resources (like xitools)
-                local itemInfo = resources:GetItemById(item.ItemId);
-                local itemName = (itemInfo and itemInfo.Name and itemInfo.Name[1]) or 'Unknown';
-
-                -- Add to treasure pool
+                -- Add to treasure pool tracking (UI only, no notification)
                 if M.dataModule.AddTreasurePoolItem then
-                    M.dataModule.AddTreasurePoolItem(slot, item.ItemId, 0, 1, item.DropTime, showToast);
-
-                    if showToast then
-                        shownToasts[toastKey] = true;
-                    end
-
-                    if M.DEBUG_ENABLED then
-                        print(string.format('[XIUI] POOL ADD: slot=%d item=%s toast=%s',
-                            slot, itemName, tostring(showToast)));
-                    end
+                    M.dataModule.AddTreasurePoolItem(slot, item.ItemId, 0, 1, item.DropTime, false);
                 end
             end
 
-            -- Update lot information from memory (xitools reads these fields)
+            -- Update lot information from memory
             if M.dataModule.treasurePool and M.dataModule.treasurePool[slot] then
                 local poolItem = M.dataModule.treasurePool[slot];
 
-                -- Update winning lot info
                 if item.WinningLot and item.WinningLot > 0 then
                     poolItem.highestLot = item.WinningLot;
                     poolItem.highestLotterName = item.WinningEntityName or poolItem.highestLotterName;
                 end
 
-                -- Update player's lot status (xitools interpretation)
-                -- Lot = 0: hasn't rolled, < 1000: has rolled, > 1000: has passed
                 poolItem.playerLot = item.Lot;
 
-                -- Update cached expiration time
                 if timestampCache[item.DropTime] then
                     poolItem.expiresAt = timestampCache[item.DropTime];
                 end
@@ -166,10 +132,41 @@ function M.SyncTreasurePoolFromMemory()
     end
 end
 
--- Clear toast and timestamp tracking (call on zone change)
+-- Clear tracking (call on zone change)
 function M.ClearToastTracking()
-    shownToasts = {};
+    pendingPoolNotifications = {};
     timestampCache = {};
+end
+
+-- ========================================
+-- Pending Pool Notification Check
+-- ========================================
+
+-- Check pending items and create "Treasure Pool" notifications for items
+-- that have been in pool longer than POOL_NOTIFICATION_DELAY (not auto-awarded)
+-- Call this from render loop
+function M.CheckPendingPoolNotifications()
+    if M.dataModule == nil then return end
+    if not gConfig.notificationsShowTreasure then return end
+
+    local now = os.clock();
+
+    for slot, pending in pairs(pendingPoolNotifications) do
+        if pending.timestamp and not pending.notified then
+            local age = now - pending.timestamp;
+            if age >= POOL_NOTIFICATION_DELAY then
+                -- Item has been in pool long enough without 0x00D3 award
+                -- This means it's genuinely staying in pool (party or full inventory)
+                pending.notified = true;
+                if M.dataModule.AddTreasurePoolNotification then
+                    M.dataModule.AddTreasurePoolNotification(pending.itemId, pending.count or 1);
+                    if M.DEBUG_ENABLED then
+                        print(string.format('[XIUI] Pending: Created Treasure Pool notification after %.1fs', age));
+                    end
+                end
+            end
+        end
+    end
 end
 
 -- ========================================
@@ -356,9 +353,10 @@ function M.HandleTradeResponse(e)
     end
 end
 
--- Handle message packet (0x0029) for item/gil/key item obtained
+-- Handle message packet (0x0029/0x002D) for item/gil/key item obtained
 -- This parses the already-parsed message packet structure
-function M.HandleMessagePacket(e, messagePacket)
+-- packetId: optional, the packet ID (0x0029 or 0x002D) for debug logging
+function M.HandleMessagePacket(e, messagePacket, packetId)
     if M.dataModule == nil then return end
     if messagePacket == nil then return end
 
@@ -370,9 +368,10 @@ function M.HandleMessagePacket(e, messagePacket)
     if M.DEBUG_ENABLED then
         local item = AshitaCore:GetResourceManager():GetItemById(param);
         local itemName = (item and item.Name and item.Name[1]) or 'nil';
-        local handled = itemObtainedMes[message] and 'ITEM' or (gilObtainedMes[message] and 'GIL' or '-');
-        print(string.format('[XIUI] msg=%d p=%d v=%d item=%s [%s]',
-            message, param, value, itemName, handled));
+        local handled = itemObtainedMes[message] and 'ITEM' or (gilObtainedMes[message] and 'GIL' or (keyItemObtainedMes[message] and 'KEY' or '-'));
+        local pktStr = packetId and string.format('0x%04X', packetId) or '????';
+        print(string.format('[XIUI] [%s] msg=%d p=%d v=%d item=%s [%s]',
+            pktStr, message, param, value, itemName, handled));
     end
 
     -- Check for item obtained
@@ -422,57 +421,57 @@ end
 -- ========================================
 
 -- Handle treasure pool update packet (0x00D2)
--- NOTE: Memory sync (SyncTreasurePoolFromMemory) is the primary source of truth.
--- This packet handler provides supplementary data (dropper ID) and debug logging.
 -- Packet structure (per Atom0s XiPackets):
 -- 0x04-0x07: TrophyItemNum (item count) - 4 bytes
 -- 0x08-0x0B: TargetUniqueNo (dropper server ID) - 4 bytes
 -- 0x0C-0x0D: Gold - 2 bytes
 -- 0x10-0x11: TrophyItemNo (item ID) - 2 bytes
--- 0x12-0x13: TargetActIndex (dropper index) - 2 bytes
 -- 0x14: TrophyItemIndex (pool slot 0-9) - 1 byte
--- 0x15: Entry (lot status: 0=none, 1=passed, 2=lotted) - 1 byte
--- 0x18-0x1B: StartTime (timestamp) - 4 bytes
+-- 0x15: Entry (lot status: 0=pending, 1=passed, 2=lotted) - 1 byte
 function M.HandleTreasurePool(e)
     if M.dataModule == nil then return end
 
-    -- No grace period - memory sync handles the authoritative state
-    -- This packet handler is supplementary for dropper info and debug
+    -- Skip during zoning grace period to avoid false notifications
+    if isInZoningGracePeriod() then return end
 
-    -- Parse packet structure (corrected per Atom0s documentation)
-    local count = struct.unpack('I4', e.data, 0x04 + 1);       -- TrophyItemNum at 0x04
-    local dropperId = struct.unpack('I4', e.data, 0x08 + 1);   -- TargetUniqueNo at 0x08
-    local itemId = struct.unpack('H', e.data, 0x10 + 1);       -- TrophyItemNo at 0x10
-    local slot = struct.unpack('B', e.data, 0x14 + 1);         -- TrophyItemIndex at 0x14
-    local entry = struct.unpack('B', e.data, 0x15 + 1);        -- Entry at 0x15
-    local timestamp = struct.unpack('I4', e.data, 0x18 + 1);   -- StartTime at 0x18
-
-    -- Validate slot is within bounds (0-9)
-    if slot == nil or slot >= 10 then
-        return;
-    end
+    -- Parse packet structure
+    local count = struct.unpack('I4', e.data, 0x04 + 1);       -- TrophyItemNum
+    local gil = struct.unpack('H', e.data, 0x0C + 1);          -- Gold
+    local itemId = struct.unpack('H', e.data, 0x10 + 1);       -- TrophyItemNo
+    local slot = struct.unpack('B', e.data, 0x14 + 1);         -- TrophyItemIndex
 
     -- Debug output
     if M.DEBUG_ENABLED then
         local item = AshitaCore:GetResourceManager():GetItemById(itemId);
-        local itemName = (item and item.Name and item.Name[1]) or 'nil';
-        print(string.format('[XIUI] 0x0D2 PACKET: slot=%d item=%d(%s) count=%d entry=%d ts=%d dropper=%d',
-            slot, itemId, itemName, count, entry, timestamp, dropperId));
+        local itemName = (item and item.Name and item.Name[1]) or 'Unknown';
+        print(string.format('[XIUI] 0x0D2: slot=%d item=%s gil=%d', slot or 255, itemName, gil or 0));
     end
+
+    -- Handle gil notification FIRST (before any slot validation)
+    if gil and gil > 0 and gConfig.notificationsShowGil and M.dataModule.AddGilObtainedNotification then
+        M.dataModule.AddGilObtainedNotification(gil);
+    end
+
+    -- Validate slot is within bounds (0-9)
+    if slot == nil or slot >= 10 then return end
 
     -- Skip invalid item IDs
     if itemId == nil or itemId == 0 or itemId == 65535 then return end
 
-    -- Update dropper ID if we have this item tracked (memory sync doesn't have dropper info)
-    if M.dataModule.treasurePool and M.dataModule.treasurePool[slot] then
-        local existingItem = M.dataModule.treasurePool[slot];
-        if existingItem.itemId == itemId and dropperId and dropperId > 0 then
-            existingItem.dropperId = dropperId;
-        end
-    end
+    -- Track item with timestamp - DON'T create notification yet
+    -- Wait briefly to see if 0x00D3 (item awarded) arrives
+    -- If it does, only "Item Obtained" notification is created
+    -- If not (item stays in pool), CheckPendingPoolNotifications creates "Treasure Pool"
+    pendingPoolNotifications[slot] = {
+        itemId = itemId,
+        count = count or 1,
+        timestamp = os.clock(),
+        notified = false,
+    };
 
-    -- NOTE: Don't mark toast as shown here - let memory sync handle toasts
-    -- The packet arrives before memory is updated, so memory sync is the source of truth
+    if M.DEBUG_ENABLED then
+        print(string.format('[XIUI] 0x0D2: Tracking item, waiting for 0x00D3'));
+    end
 end
 
 -- ========================================
@@ -519,6 +518,50 @@ function M.HandleTreasureLot(e)
         print(string.format('[XIUI] 0x0D3 LOT: slot=%d status=%d curr=%s(%d) high=%s(%d)',
             slot, dropStatus, currentLotterName or '-', currentLot or 0,
             highestLotterName or '-', highestLot or 0));
+    end
+
+    -- When item is won (status=1), create "Item Obtained" notification for the winner
+    if dropStatus == 1 then
+        -- Get current player's server ID to check if WE won
+        local party = GetPartySafe();
+        if party then
+            local playerServerId = party:GetMemberServerId(0);
+            if highestLotterId == playerServerId then
+                -- We won! Get item ID from pendingPoolNotifications first, then treasurePool
+                local itemId = nil;
+                local count = 1;
+
+                if pendingPoolNotifications[slot] then
+                    itemId = pendingPoolNotifications[slot].itemId;
+                    count = pendingPoolNotifications[slot].count or 1;
+                elseif M.dataModule.treasurePool and M.dataModule.treasurePool[slot] then
+                    local poolItem = M.dataModule.treasurePool[slot];
+                    itemId = poolItem.itemId;
+                    count = poolItem.count or 1;
+                end
+
+                if itemId and itemId > 0 then
+                    -- Clear pending entry FIRST to prevent "Treasure Pool" notification
+                    pendingPoolNotifications[slot] = nil;
+
+                    if gConfig.notificationsShowItems and M.dataModule.AddItemObtainedNotification then
+                        M.dataModule.AddItemObtainedNotification(itemId, count);
+
+                        if M.DEBUG_ENABLED then
+                            local item = AshitaCore:GetResourceManager():GetItemById(itemId);
+                            local itemName = (item and item.Name and item.Name[1]) or 'Unknown';
+                            print(string.format('[XIUI] 0x0D3: Created item obtained notification for %d(%s) x%d (we won!)',
+                                itemId, itemName, count));
+                        end
+                    end
+                elseif M.DEBUG_ENABLED then
+                    print(string.format('[XIUI] 0x0D3: Item won but slot %d not found in pendingPoolNotifications or treasurePool', slot));
+                end
+            elseif M.DEBUG_ENABLED then
+                print(string.format('[XIUI] 0x0D3: Item won by %s (id=%d), not us (id=%d)',
+                    highestLotterName or 'Unknown', highestLotterId, playerServerId));
+            end
+        end
     end
 
     -- Check if treasure notifications are enabled

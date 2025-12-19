@@ -118,69 +118,6 @@ notifications.Initialize = function(settings)
             data.splitBgPrims[splitKey] = windowBg.create(prim_data, 'Plain', 1.0);
         end
 
-        -- Create fonts for treasure pool window (10 slots max)
-        data.poolItemNameFonts = {};
-        data.poolTimerFonts = {};
-        data.poolLotFonts = {};
-
-        -- Create header font for treasure pool window
-        data.poolHeaderFont = FontManager.create({
-            font_alignment = titleFontSettings.font_alignment or gdi.Alignment.Left,
-            font_family = titleFontSettings.font_family or 'Consolas',
-            font_height = titleFontSettings.font_height or 14,
-            font_color = titleFontSettings.font_color or 0xFFFFFFFF,
-            font_flags = titleFontSettings.font_flags or gdi.FontFlags.Bold,
-            outline_color = titleFontSettings.outline_color or 0xFF000000,
-            outline_width = titleFontSettings.outline_width or 2,
-        });
-        table.insert(data.allFonts, data.poolHeaderFont);
-
-        for slot = 0, data.TREASURE_POOL_MAX_SLOTS - 1 do
-            -- Item name font (title style)
-            data.poolItemNameFonts[slot] = FontManager.create({
-                font_alignment = titleFontSettings.font_alignment or gdi.Alignment.Left,
-                font_family = titleFontSettings.font_family or 'Consolas',
-                font_height = titleFontSettings.font_height or 14,
-                font_color = titleFontSettings.font_color or 0xFFFFFFFF,
-                font_flags = titleFontSettings.font_flags or gdi.FontFlags.Bold,
-                outline_color = titleFontSettings.outline_color or 0xFF000000,
-                outline_width = titleFontSettings.outline_width or 2,
-            });
-
-            -- Timer font (subtitle style)
-            data.poolTimerFonts[slot] = FontManager.create({
-                font_alignment = fontSettings.font_alignment or gdi.Alignment.Left,
-                font_family = fontSettings.font_family or 'Consolas',
-                font_height = fontSettings.font_height or 12,
-                font_color = 0xFFFFFF4D,  -- Yellow default for timer
-                font_flags = fontSettings.font_flags or gdi.FontFlags.None,
-                outline_color = fontSettings.outline_color or 0xFF000000,
-                outline_width = fontSettings.outline_width or 2,
-            });
-
-            -- Lot info font (subtitle style)
-            data.poolLotFonts[slot] = FontManager.create({
-                font_alignment = fontSettings.font_alignment or gdi.Alignment.Left,
-                font_family = fontSettings.font_family or 'Consolas',
-                font_height = fontSettings.font_height or 12,
-                font_color = fontSettings.font_color or 0xFFCCCCCC,
-                font_flags = fontSettings.font_flags or gdi.FontFlags.None,
-                outline_color = fontSettings.outline_color or 0xFF000000,
-                outline_width = fontSettings.outline_width or 2,
-            });
-
-            -- Add to allFonts for batch visibility control
-            table.insert(data.allFonts, data.poolItemNameFonts[slot]);
-            table.insert(data.allFonts, data.poolTimerFonts[slot]);
-            table.insert(data.allFonts, data.poolLotFonts[slot]);
-        end
-
-        -- Create background primitives for treasure pool slots
-        data.poolBgPrims = {};
-        for slot = 0, data.TREASURE_POOL_MAX_SLOTS - 1 do
-            data.poolBgPrims[slot] = windowBg.create(prim_data, 'Plain', 1.0);
-        end
-
         -- Clear cached colors
         data.ClearColorCache();
 
@@ -255,58 +192,6 @@ notifications.UpdateVisuals = function(settings)
         end
     end
 
-    -- Recreate treasure pool header font
-    if data.poolHeaderFont then
-        data.poolHeaderFont = FontManager.recreate(data.poolHeaderFont, {
-            font_alignment = titleFontSettings.font_alignment or gdi.Alignment.Left,
-            font_family = titleFontSettings.font_family or 'Consolas',
-            font_height = titleFontSettings.font_height or 14,
-            font_color = titleFontSettings.font_color or 0xFFFFFFFF,
-            font_flags = titleFontSettings.font_flags or gdi.FontFlags.Bold,
-            outline_color = titleFontSettings.outline_color or 0xFF000000,
-            outline_width = titleFontSettings.outline_width or 2,
-        });
-    end
-
-    -- Recreate treasure pool fonts
-    for slot = 0, data.TREASURE_POOL_MAX_SLOTS - 1 do
-        if data.poolItemNameFonts[slot] then
-            data.poolItemNameFonts[slot] = FontManager.recreate(data.poolItemNameFonts[slot], {
-                font_alignment = titleFontSettings.font_alignment or gdi.Alignment.Left,
-                font_family = titleFontSettings.font_family or 'Consolas',
-                font_height = titleFontSettings.font_height or 14,
-                font_color = titleFontSettings.font_color or 0xFFFFFFFF,
-                font_flags = titleFontSettings.font_flags or gdi.FontFlags.Bold,
-                outline_color = titleFontSettings.outline_color or 0xFF000000,
-                outline_width = titleFontSettings.outline_width or 2,
-            });
-        end
-
-        if data.poolTimerFonts[slot] then
-            data.poolTimerFonts[slot] = FontManager.recreate(data.poolTimerFonts[slot], {
-                font_alignment = fontSettings.font_alignment or gdi.Alignment.Left,
-                font_family = fontSettings.font_family or 'Consolas',
-                font_height = fontSettings.font_height or 12,
-                font_color = 0xFFFFFF4D,  -- Yellow default for timer
-                font_flags = fontSettings.font_flags or gdi.FontFlags.None,
-                outline_color = fontSettings.outline_color or 0xFF000000,
-                outline_width = fontSettings.outline_width or 2,
-            });
-        end
-
-        if data.poolLotFonts[slot] then
-            data.poolLotFonts[slot] = FontManager.recreate(data.poolLotFonts[slot], {
-                font_alignment = fontSettings.font_alignment or gdi.Alignment.Left,
-                font_family = fontSettings.font_family or 'Consolas',
-                font_height = fontSettings.font_height or 12,
-                font_color = fontSettings.font_color or 0xFFCCCCCC,
-                font_flags = fontSettings.font_flags or gdi.FontFlags.None,
-                outline_color = fontSettings.outline_color or 0xFF000000,
-                outline_width = fontSettings.outline_width or 2,
-            });
-        end
-    end
-
     -- Rebuild allFonts list
     data.allFonts = {};
     for i = 1, data.MAX_ACTIVE_NOTIFICATIONS do
@@ -324,22 +209,6 @@ notifications.UpdateVisuals = function(settings)
         end
         if data.splitSubtitleFonts[splitKey] then
             table.insert(data.allFonts, data.splitSubtitleFonts[splitKey]);
-        end
-    end
-    -- Add treasure pool header font to allFonts
-    if data.poolHeaderFont then
-        table.insert(data.allFonts, data.poolHeaderFont);
-    end
-    -- Add treasure pool fonts to allFonts
-    for slot = 0, data.TREASURE_POOL_MAX_SLOTS - 1 do
-        if data.poolItemNameFonts[slot] then
-            table.insert(data.allFonts, data.poolItemNameFonts[slot]);
-        end
-        if data.poolTimerFonts[slot] then
-            table.insert(data.allFonts, data.poolTimerFonts[slot]);
-        end
-        if data.poolLotFonts[slot] then
-            table.insert(data.allFonts, data.poolLotFonts[slot]);
         end
     end
 
@@ -435,49 +304,6 @@ notifications.Cleanup = function()
         data.splitBgPrims = {};
     end
 
-    -- Cleanup treasure pool header font
-    if data.poolHeaderFont then
-        data.poolHeaderFont = FontManager.destroy(data.poolHeaderFont);
-    end
-
-    -- Cleanup treasure pool fonts
-    if data.poolItemNameFonts then
-        for slot, font in pairs(data.poolItemNameFonts) do
-            if font then
-                FontManager.destroy(font);
-            end
-        end
-        data.poolItemNameFonts = {};
-    end
-
-    if data.poolTimerFonts then
-        for slot, font in pairs(data.poolTimerFonts) do
-            if font then
-                FontManager.destroy(font);
-            end
-        end
-        data.poolTimerFonts = {};
-    end
-
-    if data.poolLotFonts then
-        for slot, font in pairs(data.poolLotFonts) do
-            if font then
-                FontManager.destroy(font);
-            end
-        end
-        data.poolLotFonts = {};
-    end
-
-    -- Cleanup treasure pool background primitives
-    if data.poolBgPrims then
-        for slot, prim in pairs(data.poolBgPrims) do
-            if prim then
-                windowBg.destroy(prim);
-            end
-        end
-        data.poolBgPrims = {};
-    end
-
     -- Clear cached colors
     data.ClearColorCache();
 
@@ -508,11 +334,15 @@ function notifications.ClearTreasurePool()
     handler.testModeEnabled = false;
 end
 notifications.SyncTreasurePoolFromMemory = handler.SyncTreasurePoolFromMemory;
+notifications.CheckPendingPoolNotifications = handler.CheckPendingPoolNotifications;
 
 -- Test mode control (disables memory sync to allow test items to persist)
 function notifications.SetTestMode(enabled)
     handler.testModeEnabled = enabled;
 end
+
+-- Export AddTreasurePoolNotification for treasure pool module to trigger toast notifications
+notifications.AddTreasurePoolNotification = data.AddTreasurePoolNotification;
 
 -- ============================================
 -- Test Helper (for development)

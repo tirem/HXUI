@@ -192,6 +192,7 @@ end
 -- Message Packet Parsing
 -- ========================================
 
+-- Parse 0x0029/0x002D Battle/Kill Message packets
 function M.ParseMessagePacket(e)
     -- Use unsigned integers per FFXI packet structure
     -- 'I4' = unsigned 4-byte int, 'H' = unsigned 2-byte short
@@ -203,6 +204,23 @@ function M.ParseMessagePacket(e)
         sender_tgt = struct.unpack('H', e, 0x14 + 1),
         target_tgt = struct.unpack('H', e, 0x16 + 1),
         message    = struct.unpack('H', e, 0x18 + 1),
+    }
+    return basic;
+end
+
+-- Parse 0x002A Message Standard packet (zone/container messages)
+-- Different structure: params are array of 4 at 0x08, message at 0x1A
+function M.ParseMessageStandardPacket(e)
+    local basic = {
+        sender     = struct.unpack('I4', e, 0x04 + 1),
+        -- num is array of 4 int32s - param1 often contains gil amount
+        param      = struct.unpack('I4', e, 0x08 + 1),  -- num[0]
+        param2     = struct.unpack('I4', e, 0x0C + 1),  -- num[1]
+        param3     = struct.unpack('I4', e, 0x10 + 1),  -- num[2]
+        param4     = struct.unpack('I4', e, 0x14 + 1),  -- num[3]
+        sender_tgt = struct.unpack('H', e, 0x18 + 1),   -- ActIndex
+        message    = bit.band(struct.unpack('H', e, 0x1A + 1), 0x7FFF),  -- MesNum (15 bits)
+        value      = 0,  -- For compatibility with HandleMessagePacket
     }
     return basic;
 end

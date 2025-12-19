@@ -28,6 +28,20 @@ function M.createUserSettingsDefaults()
         showPetBar = true,
         showCastCost = true,
         showNotifications = true,
+        showTreasurePool = true,
+
+        -- Treasure Pool settings
+        treasurePoolMiniEnabled = true,       -- Show mini-display when items in pool
+        treasurePoolMiniShowTitle = true,     -- Show "Treasure Pool" header text
+        treasurePoolMiniShowTimerBar = true,  -- Show countdown progress bar
+        treasurePoolMiniShowTimerText = true, -- Show timer text (countdown like "4:32")
+        treasurePoolMiniShowLots = true,      -- Show winning lot info
+        treasurePoolMiniFontSize = 10,        -- Font size for mini-display text
+        treasurePoolMiniScaleX = 1.0,         -- Mini-display horizontal scale
+        treasurePoolMiniScaleY = 1.0,         -- Mini-display vertical scale
+        treasurePoolMiniOpacity = 0.87,       -- Mini-display background opacity
+        treasurePoolMiniPreview = false,      -- Show mini-display preview with test data
+        treasurePoolFullPreview = false,      -- Show full window preview with test data
 
         -- Notifications settings
         notificationsShowPartyInvite = true,
@@ -57,16 +71,6 @@ function M.createUserSettingsDefaults()
         notificationsSplitItemObtained = false,
         notificationsSplitKeyItemObtained = false,
         notificationsSplitGilObtained = false,
-
-        -- Treasure Pool Window Settings
-        notificationsTreasurePoolWindow = true,       -- Show dedicated treasure pool tracking window
-        notificationsTreasurePoolShowTitle = true,    -- Show "Treasure Pool" header text
-        notificationsTreasurePoolShowTimerBar = true, -- Show countdown progress bar on pool items
-        notificationsTreasurePoolShowTimerText = true, -- Show timer text (countdown like "4:32")
-        notificationsTreasurePoolShowLots = true,     -- Show party member lots
-        notificationsTreasurePoolFontSize = 10,       -- Font size for all treasure pool text
-        notificationsTreasurePoolScaleX = 1.0,        -- Treasure pool window horizontal scale
-        notificationsTreasurePoolScaleY = 1.0,        -- Treasure pool window vertical scale
 
         -- Cast Cost settings (nested structure to match other modules)
         castCost = T{

@@ -660,6 +660,28 @@ function M.createModuleDefaults()
             },
         },
 
+        -- settings for treasure pool module
+        treasurePoolSettings = T{
+            font_settings = T{
+                font_alignment = gdi.Alignment.Left,
+                font_family = 'Consolas',
+                font_height = 10,
+                font_color = 0xFFFFFFFF,
+                font_flags = gdi.FontFlags.None,
+                outline_color = 0xFF000000,
+                outline_width = 2,
+            },
+            title_font_settings = T{
+                font_alignment = gdi.Alignment.Left,
+                font_family = 'Consolas',
+                font_height = 14,
+                font_color = 0xFFFFFFFF,
+                font_flags = gdi.FontFlags.Bold,
+                outline_color = 0xFF000000,
+                outline_width = 2,
+            },
+        },
+
     };
 end
 

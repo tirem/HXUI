@@ -937,233 +937,6 @@ local function drawSplitWindow(splitKey, settings)
 end
 
 -- ============================================
--- Treasure Pool Window
--- ============================================
-
--- Draw dedicated treasure pool window (shows all items with timers and lots)
-local function drawTreasurePoolWindow(settings)
-    -- Safety check - ensure pool fonts are initialized
-    if not notificationData.poolItemNameFonts or not notificationData.poolTimerFonts then
-        return;
-    end
-
-    -- Hide all pool fonts and backgrounds initially (will show ones we use)
-    notificationData.HidePoolFonts();
-    notificationData.HidePoolBackgrounds();
-
-    -- Get treasure pool items
-    local poolItems = notificationData.GetSortedTreasurePool();
-    if not poolItems or #poolItems == 0 then
-        return;
-    end
-
-    -- Build window flags
-    local windowFlags = notificationData.getBaseWindowFlags();
-    local configOpen = showConfig and showConfig[1];
-    if gConfig.lockPositions and not configOpen then
-        windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
-    end
-
-    -- Dimensions
-    local scaleX = gConfig.notificationsTreasurePoolScaleX or 1.0;
-    local scaleY = gConfig.notificationsTreasurePoolScaleY or 1.0;
-    local padding = gConfig.notificationsPadding or 8;
-    local itemWidth = math.floor(280 * scaleX);
-    -- Item height: padding + icon(16) + padding + timer bar(4)
-    local itemHeight = math.floor((padding * 2 + 16 + 4) * scaleY);
-    local iconSize = math.floor(16 * scaleY);
-    local spacing = 4;
-
-    -- Font size from config (single size for all treasure pool text)
-    local poolFontSize = gConfig.notificationsTreasurePoolFontSize or 10;
-
-    -- Header height (font size + padding below) - only if title is shown
-    local showTitle = gConfig.notificationsTreasurePoolShowTitle ~= false;
-    local headerHeight = showTitle and (poolFontSize + 4) or 0;
-
-    -- Calculate total height (header + items)
-    local totalHeight = headerHeight + (#poolItems * itemHeight) + ((#poolItems - 1) * spacing);
-
-    if imgui.Begin('TreasurePool', true, windowFlags) then
-        local windowPosX, windowPosY = imgui.GetWindowPos();
-        local drawList = imgui.GetWindowDrawList();
-
-        imgui.Dummy({itemWidth, totalHeight});
-
-        -- Draw header "Treasure Pool" if enabled
-        local headerFont = notificationData.poolHeaderFont;
-        if headerFont then
-            if showTitle then
-                headerFont:set_font_height(poolFontSize);
-                headerFont:set_position_x(windowPosX);
-                headerFont:set_position_y(windowPosY);
-                headerFont:set_text('Treasure Pool');
-                headerFont:set_visible(true);
-            else
-                headerFont:set_visible(false);
-            end
-        end
-
-        -- Start items below header (or at top if no header)
-        local currentY = windowPosY + headerHeight;
-
-        -- Wrap item rendering in pcall to prevent crashes from corrupting ImGui state
-        local renderSuccess, renderErr = pcall(function()
-            for idx, item in ipairs(poolItems) do
-                local slot = item.slot;  -- Use actual slot for font lookup
-
-                -- Bounds check - skip if slot is out of range
-                if slot ~= nil and slot >= 0 and slot < notificationData.TREASURE_POOL_MAX_SLOTS then
-
-                local x = windowPosX;
-                local y = currentY;
-
-                -- Background (renders under GDI fonts)
-                local bgHandle = notificationData.poolBgPrims[slot];
-                if bgHandle then
-                    windowBg.update(bgHandle, x, y, itemWidth, itemHeight, {
-                        theme = 'Plain',
-                        padding = 0,
-                        bgOpacity = 0.87,  -- 0xDD = 221/255 ≈ 0.87
-                        bgColor = 0xFF1A1A1A,
-                    });
-                end
-
-                -- Item icon (rendered via ImGui on top of fonts)
-                local icon = loadItemIcon(item.itemId);
-                if icon and icon.image then
-                    pcall(function()
-                        drawList:AddImage(
-                            tonumber(ffi.cast("uint32_t", icon.image)),
-                            {x + padding, y + padding},
-                            {x + padding + iconSize, y + padding + iconSize},
-                            {0, 0}, {1, 1},
-                            0xFFFFFFFF
-                        );
-                    end);
-                end
-
-                -- Text positions
-                local textX = x + padding + iconSize + 6;
-                local textY = y + padding;
-
-                -- Draw item name using GDI font
-                local itemNameFont = notificationData.poolItemNameFonts[slot];
-                if itemNameFont then
-                    itemNameFont:set_font_height(poolFontSize);
-                    itemNameFont:set_position_x(textX);
-                    itemNameFont:set_position_y(textY);
-                    itemNameFont:set_text(item.itemName or 'Unknown Item');
-                    itemNameFont:set_visible(true);
-                    -- Mark this slot as visible for optimized hiding next frame
-                    notificationData.MarkPoolSlotVisible(slot);
-                end
-
-                -- Draw timer using GDI font
-                local remaining = notificationData.GetTreasurePoolTimeRemaining(slot);
-                local timerText = notificationData.FormatPoolTimer(remaining);
-
-                -- Timer color (yellow when > 1 min, orange when < 1 min, red when < 30 sec)
-                local timerColor;
-                if remaining > 60 then
-                    timerColor = 0xFFFFFF4D;  -- Yellow
-                elseif remaining > 30 then
-                    timerColor = 0xFFFF9933;  -- Orange
-                else
-                    timerColor = 0xFFFF4D4D;  -- Red
-                end
-
-                -- Get fixed timer area width from cache (avoids measuring "5:00" every frame)
-                local timerFont = notificationData.poolTimerFonts[slot];
-                local fixedTimerWidth = notificationData.GetTimerRefWidth(timerFont, poolFontSize);
-
-                -- Fixed right edge for timer area
-                local timerRightX = x + itemWidth - padding;
-                local timerAreaLeftX = timerRightX - fixedTimerWidth;
-
-                if timerFont and gConfig.notificationsTreasurePoolShowTimerText then
-                    timerFont:set_font_height(poolFontSize);
-                    timerFont:set_text(timerText);
-                    -- Right-align timer within fixed area
-                    local actualTimerWidth, _ = timerFont:get_text_size();
-                    timerFont:set_position_x(timerRightX - actualTimerWidth);
-                    timerFont:set_position_y(textY);
-                    -- Only set color if changed (expensive D3D call)
-                    if notificationData.lastPoolTimerColors[slot] ~= timerColor then
-                        timerFont:set_font_color(timerColor);
-                        notificationData.lastPoolTimerColors[slot] = timerColor;
-                    end
-                    timerFont:set_visible(true);
-                elseif timerFont then
-                    timerFont:set_visible(false);
-                end
-
-                -- Draw lots using GDI font (if showing lots is enabled)
-                -- Displayed inline on the right side, to the left of the fixed timer area
-                if gConfig.notificationsTreasurePoolShowLots then
-                    local lotFont = notificationData.poolLotFonts[slot];
-
-                    if lotFont and item.highestLot and item.highestLot > 0 then
-                        -- Format: "Name: 734" - compact display on the right
-                        local lotterName = item.highestLotterName or "";
-                        -- Truncate long names to keep it compact
-                        if #lotterName > 8 then
-                            lotterName = lotterName:sub(1, 7) .. ".";
-                        end
-                        local lotText = string.format('%s: %d', lotterName, item.highestLot);
-                        local lotColor = 0xFF4DFF4D;  -- Green for lot
-
-                        lotFont:set_font_height(poolFontSize);
-                        lotFont:set_text(lotText);
-                        -- Right-align lot text to the left of the fixed timer area
-                        local lotWidth, _ = lotFont:get_text_size();
-                        local lotX = timerAreaLeftX - 8 - lotWidth;
-                        lotFont:set_position_x(lotX);
-                        lotFont:set_position_y(textY);
-                        -- Only set color if changed (expensive D3D call)
-                        if notificationData.lastPoolLotColors[slot] ~= lotColor then
-                            lotFont:set_font_color(lotColor);
-                            notificationData.lastPoolLotColors[slot] = lotColor;
-                        end
-                        lotFont:set_visible(true);
-                    end
-                end
-
-                -- Draw timer progress bar at bottom
-                if gConfig.notificationsTreasurePoolShowTimerBar then
-                    local barHeight = 3;
-                    local barY = y + itemHeight - barHeight - 1;
-                    local progress = remaining / notificationData.TREASURE_POOL_TIMEOUT;
-
-                    -- Purple gradient for treasure pool (cached to avoid hex parsing every frame)
-                    local barColor = notificationData.GetCachedBarColor('treasurePool', '#9966cc');
-                    local filledWidth = (itemWidth - 2) * progress;
-
-                    if filledWidth > 0 then
-                        drawList:AddRectFilled(
-                            {x + 1, barY},
-                            {x + 1 + filledWidth, barY + barHeight},
-                            barColor,
-                            1
-                        );
-                    end
-                end
-
-                end -- End bounds check if
-
-                currentY = currentY + itemHeight + spacing;
-            end
-        end);
-
-        if not renderSuccess and renderErr then
-            print('[XIUI Notifications] Treasure pool render error: ' .. tostring(renderErr));
-        end
-    end
-    -- CRITICAL: imgui.End() MUST always be called after imgui.Begin() to prevent state corruption
-    imgui.End();
-end
-
--- ============================================
 -- Module Functions
 -- ============================================
 
@@ -1185,12 +958,10 @@ function M.DrawWindow(settings, activeNotifications, pinnedNotifications)
         return;
     end
 
-    -- Hide all fonts and primitives initially (including treasure pool)
-    -- Note: HideAllBackgrounds already handles pool backgrounds, so no need to call HidePoolBackgrounds separately
+    -- Hide all fonts and primitives initially
     notificationData.SetAllFontsVisible(false);
     notificationData.HideAllBackgrounds();
     notificationData.HideSplitFonts();
-    notificationData.HidePoolFonts();
 
     -- Reset global slot counter for this frame
     currentSlot = 0;
@@ -1203,11 +974,6 @@ function M.DrawWindow(settings, activeNotifications, pinnedNotifications)
 
     -- Update treasure pool state (handles expiration, animations)
     notificationData.UpdateTreasurePool(os.clock());
-
-    -- Draw treasure pool window if enabled and has items
-    if gConfig.notificationsTreasurePoolWindow and gConfig.notificationsShowTreasure then
-        drawTreasurePoolWindow(settings);
-    end
 
     local configOpen = showConfig and showConfig[1];
 
@@ -1255,8 +1021,6 @@ function M.SetHidden(hidden)
         notificationData.SetAllFontsVisible(false);
         notificationData.HideAllBackgrounds();
         notificationData.HideSplitFonts();
-        notificationData.HidePoolFonts();
-        notificationData.HidePoolBackgrounds();
     end
 end
 

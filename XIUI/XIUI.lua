@@ -61,6 +61,7 @@ local castBar = uiMods.castbar;
 local petBar = uiMods.petbar;
 local castCost = uiMods.castcost;
 local notifications = uiMods.notifications;
+local treasurePool = uiMods.treasurepool;
 local rollsWindow = require('modules.notifications.rolls');
 local configMenu = require('config');
 local debuffHandler = require('handlers.debuffhandler');
@@ -229,6 +230,12 @@ uiModules.Register('notifications', {
     hideOnEventKey = 'notificationsHideDuringEvents',
     hasSetHidden = true,
 });
+uiModules.Register('treasurePool', {
+    module = treasurePool,
+    settingsKey = 'treasurePoolSettings',
+    configKey = 'showTreasurePool',
+    hasSetHidden = true,
+});
 
 -- Initialize settings from defaults
 local user_settings_container = T{
@@ -385,6 +392,9 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         -- This ensures we never miss items, even if packets were dropped
         if gConfig.showNotifications then
             notifications.SyncTreasurePoolFromMemory();
+            -- Check pending pool items - creates "Treasure Pool" notification if item
+            -- hasn't been awarded (0x00D3) within 200ms of dropping (0x00D2)
+            notifications.CheckPendingPoolNotifications();
         end
 
         -- Render all registered modules
@@ -469,17 +479,23 @@ ashita.events.register('command', 'command_cb', function (e)
             return;
         end
 
-        -- Toggle extended treasure pool view: /xiui treasure, /xiui pool, /xiui rolls
-        if (#command_args == 2 and command_args[2]:any('treasure', 'pool', 'rolls', 'roll', 'lot', 'lots')) then
-            local visible = rollsWindow.Toggle();
+        -- Toggle extended treasure pool view: /xiui treasure, /xiui pool
+        if (#command_args == 2 and command_args[2]:any('treasure', 'pool')) then
+            local visible = treasurePool.ToggleFullWindow();
             local state = visible and 'shown' or 'hidden';
             print('[XIUI] Treasure pool window ' .. state);
             return;
         end
 
+        -- Lot all unlotted items: /xiui lotall or /xiui lot
+        if (#command_args == 2 and command_args[2]:any('lotall', 'lot')) then
+            treasurePool.LotAll();
+            return;
+        end
+
         -- Pass all unlotted items: /xiui passall or /xiui pass
         if (#command_args == 2 and command_args[2]:any('passall', 'pass')) then
-            rollsWindow.PassAllUnlotted();
+            treasurePool.PassAll();
             return;
         end
 
@@ -567,6 +583,7 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
         -- Note: We do NOT clear treasure pool on zone - items persist across zones
         -- The server will send 0x00D2 packets to sync pool state after zoning
         notifications.HandleZonePacket();
+        treasurePool.HandleZonePacket();
         enemyList.HandleZonePacket(e);
         partyList.HandleZonePacket(e);
         debuffHandler.HandleZonePacket(e);
@@ -580,11 +597,30 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
         if messagePacket then
             debuffHandler.HandleMessagePacket(messagePacket);
             if gConfig.showNotifications then
-                notifications.HandleMessagePacket(e, messagePacket);
+                notifications.HandleMessagePacket(e, messagePacket, 0x0029);
+            end
+        end
+    elseif (e.id == 0x002D) then
+        -- Kill message packet (item/gil rewards from defeating mobs)
+        -- Same structure as 0x0029, used for post-combat notifications
+        local messagePacket = ParseMessagePacket(e.data);
+        if messagePacket then
+            if gConfig.showNotifications then
+                notifications.HandleMessagePacket(e, messagePacket, 0x002D);
+            end
+        end
+    elseif (e.id == 0x002A) then
+        -- Message Standard packet (zone/container messages)
+        -- Different structure than 0x0029 - use ParseMessageStandardPacket
+        local messagePacket = ParseMessageStandardPacket(e.data);
+        if messagePacket then
+            if gConfig.showNotifications then
+                notifications.HandleMessagePacket(e, messagePacket, 0x002A);
             end
         end
     elseif (e.id == 0x00B) then
         notifications.HandleZonePacket();
+        treasurePool.HandleZonePacket();
         bLoggedIn = false;
     elseif (e.id == 0x076) then
         statusHandler.ReadPartyBuffsFromPacket(e);

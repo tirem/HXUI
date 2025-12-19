@@ -118,6 +118,7 @@ ParseMobUpdatePacket = packetsLib.ParseMobUpdatePacket;
 ClearEntityCache = packetsLib.ClearEntityCache;
 PopulateEntityCache = packetsLib.PopulateEntityCache;
 ParseMessagePacket = packetsLib.ParseMessagePacket;
+ParseMessageStandardPacket = packetsLib.ParseMessageStandardPacket;
 valid_server_id = packetsLib.valid_server_id;
 
 -- Texture Utilities (from textures.lua)

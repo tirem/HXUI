@@ -113,6 +113,12 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.notificationsSettings.font_settings.font_flags = gdi.FontFlags.None;
     gAdjustedSettings.notificationsSettings.font_settings.outline_width = us.fontOutlineWidth;
 
+    -- Treasure Pool fonts
+    applyGlobalFontSettings(gAdjustedSettings.treasurePoolSettings.font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    applyGlobalFontSettings(gAdjustedSettings.treasurePoolSettings.title_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    -- Title font uses bold
+    gAdjustedSettings.treasurePoolSettings.title_font_settings.font_flags = bit.bor(fontWeightFlags, gdi.FontFlags.Bold);
+
     -- Target Bar dimensions and settings
     gAdjustedSettings.targetBarSettings.barWidth = ds.targetBarSettings.barWidth * us.targetBarScaleX;
     gAdjustedSettings.targetBarSettings.barHeight = ds.targetBarSettings.barHeight * us.targetBarScaleY;

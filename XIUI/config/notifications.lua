@@ -8,7 +8,6 @@ require('handlers.helpers');
 local components = require('config.components');
 local imgui = require('imgui');
 local notificationData = require('modules.notifications.data');
-local notificationHandler = require('handlers.notificationhandler');
 
 local M = {};
 
@@ -43,24 +42,6 @@ local testData = {
 -- Trigger a test notification
 local function triggerTestNotification(notifType)
     notificationData.Add(notifType, testData[notifType] or {});
-end
-
--- Add a test item to treasure pool
-local function addTestTreasurePoolItem()
-    -- Enable test mode to prevent memory sync from removing test items
-    notificationHandler.testModeEnabled = true;
-
-    local slot = 0;
-    -- Find first empty slot
-    for i = 0, 9 do
-        if not notificationData.treasurePool[i] then
-            slot = i;
-            break;
-        end
-    end
-
-    -- Add test item (Leaping Boots) with toast notification
-    notificationData.AddTreasurePoolItem(slot, 13014, 0, 1, 0, true);
 end
 
 -- Draw a checkbox with a test button on the same line
@@ -181,36 +162,6 @@ function M.DrawSettings()
             imgui.Indent(indentAmount);
             components.DrawCheckbox('Split Window##TreasurePool', 'notificationsSplitTreasurePool');
             imgui.ShowHelp('Display treasure pool toasts in a separate draggable window');
-
-            imgui.Spacing();
-            if components.CollapsingSection('Treasure Pool Window Settings##TreasurePoolWindow') then
-                components.DrawCheckbox('Show Treasure Pool Window', 'notificationsTreasurePoolWindow');
-                imgui.SameLine();
-                if imgui.SmallButton('Test Pool') then
-                    addTestTreasurePoolItem();
-                end
-                imgui.ShowHelp('Show a dedicated window listing all treasure pool items');
-
-                if gConfig.notificationsTreasurePoolWindow then
-                    imgui.Indent(indentAmount);
-                    components.DrawCheckbox('Show Title', 'notificationsTreasurePoolShowTitle');
-                    imgui.ShowHelp('Show "Treasure Pool" header text');
-                    components.DrawCheckbox('Show Timer Bar', 'notificationsTreasurePoolShowTimerBar');
-                    imgui.ShowHelp('Show countdown progress bar');
-                    components.DrawCheckbox('Show Timer Text', 'notificationsTreasurePoolShowTimerText');
-                    imgui.ShowHelp('Show countdown text (e.g., "4:32")');
-                    components.DrawCheckbox('Show Lots', 'notificationsTreasurePoolShowLots');
-                    imgui.ShowHelp('Show party member lots');
-                    imgui.Spacing();
-                    components.DrawSlider('Text Size##Pool', 'notificationsTreasurePoolFontSize', 8, 18, '%.0f px');
-                    components.DrawSlider('Scale X##Pool', 'notificationsTreasurePoolScaleX', 0.5, 2.0, '%.1f');
-                    components.DrawSlider('Scale Y##Pool', 'notificationsTreasurePoolScaleY', 0.5, 2.0, '%.1f');
-                    imgui.Spacing();
-                    imgui.TextDisabled('Toggle extended view with /xiui treasure or /xiui pool');
-                    imgui.Unindent(indentAmount);
-                end
-            end
-
             imgui.Unindent(indentAmount);
         end
     end
