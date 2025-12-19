@@ -132,9 +132,9 @@ local function DrawPetTypeVisualSettings(configKey, petTypeLabel)
         components.DrawPartyComboBox(typeSettings, 'Theme##bg' .. configKey, 'backgroundTheme', bgThemes, DeferredUpdateVisuals);
         imgui.ShowHelp('Select the background window theme for this pet type.');
         -- Scale/opacity sliders don't need callbacks - changes are picked up from gConfig on next frame
-        components.DrawPartySlider(typeSettings, 'Background Scale##' .. configKey, 'bgScale', 0.1, 3.0, '%.2f');
+        components.DrawPartySlider(typeSettings, 'Background Scale##' .. configKey, 'bgScale', 0.1, 3.0, '%.2f', nil, 1.0);
         imgui.ShowHelp('Scale of the background texture.');
-        components.DrawPartySlider(typeSettings, 'Border Scale##' .. configKey, 'borderScale', 0.1, 3.0, '%.2f');
+        components.DrawPartySlider(typeSettings, 'Border Scale##' .. configKey, 'borderScale', 0.1, 3.0, '%.2f', nil, 1.0);
         imgui.ShowHelp('Scale of the window borders (Window themes only).');
         components.DrawPartySlider(typeSettings, 'Background Opacity##' .. configKey, 'backgroundOpacity', 0.0, 1.0, '%.2f');
         imgui.ShowHelp('Opacity of the background.');

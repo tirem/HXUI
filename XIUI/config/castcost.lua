@@ -68,8 +68,8 @@ function M.DrawSettings()
         end
 
         -- Scale/opacity sliders don't need callbacks - changes are picked up from gConfig on next frame
-        components.DrawPartySlider(gConfig.castCost, 'Background Scale', 'bgScale', 0.1, 3.0, '%.2f');
-        components.DrawPartySlider(gConfig.castCost, 'Border Scale', 'borderScale', 0.1, 3.0, '%.2f');
+        components.DrawPartySlider(gConfig.castCost, 'Background Scale', 'bgScale', 0.1, 3.0, '%.2f', nil, 1.0);
+        components.DrawPartySlider(gConfig.castCost, 'Border Scale', 'borderScale', 0.1, 3.0, '%.2f', nil, 1.0);
         components.DrawPartySlider(gConfig.castCost, 'Background Opacity', 'backgroundOpacity', 0.0, 1.0, '%.2f');
         components.DrawPartySlider(gConfig.castCost, 'Border Opacity', 'borderOpacity', 0.0, 1.0, '%.2f');
     end
