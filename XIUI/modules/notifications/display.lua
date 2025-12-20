@@ -277,14 +277,26 @@ local function drawNotification(slot, notification, x, y, width, height, setting
     local scaledHeight = height;
 
     -- Update background using windowbackground library
-    -- Convert alpha (0-1) to opacity (0xDD = 221/255 ≈ 0.87)
-    local bgOpacity = alpha * 0.87;
+    -- Get background settings from config
+    local bgTheme = gConfig.notificationsBackgroundTheme or 'Plain';
+    local bgScale = gConfig.notificationsBgScale or 1.0;
+    local borderScale = gConfig.notificationsBorderScale or 1.0;
+    local configBgOpacity = gConfig.notificationsBgOpacity or 0.87;
+    local configBorderOpacity = gConfig.notificationsBorderOpacity or 1.0;
+
+    -- Apply notification alpha to opacity
+    local bgOpacity = alpha * configBgOpacity;
+    local borderOpacity = alpha * configBorderOpacity;
 
     windowBg.update(bgPrim, x, y, scaledWidth, scaledHeight, {
-        theme = 'Plain',
+        theme = bgTheme,
         padding = 0,
+        bgScale = bgScale,
+        borderScale = borderScale,
         bgOpacity = bgOpacity,
+        borderOpacity = borderOpacity,
         bgColor = 0xFF1A1A1A,
+        borderColor = 0xFFFFFFFF,
     });
 
     -- Draw pulsing dot for party/trade invites
@@ -883,11 +895,23 @@ local function drawNotificationWindow(windowName, notifications, settings, split
 
                 -- Draw background using windowbackground library
                 if bgPrim then
+                    local bgTheme = gConfig.notificationsBackgroundTheme or 'Plain';
+                    local bgScale = gConfig.notificationsBgScale or 1.0;
+                    local borderScale = gConfig.notificationsBorderScale or 1.0;
+                    local configBgOpacity = gConfig.notificationsBgOpacity or 0.87;
+                    local configBorderOpacity = gConfig.notificationsBorderOpacity or 1.0;
+
+                    -- Placeholder uses reduced opacity (approximately 30% of normal)
+                    local placeholderOpacity = 0.3;
                     windowBg.update(bgPrim, windowPosX, windowPosY, notificationWidth, normalHeight, {
-                        theme = 'Plain',
+                        theme = bgTheme,
                         padding = 0,
-                        bgOpacity = 0.27,  -- 0x44 = 68/255 ≈ 0.27
+                        bgScale = bgScale,
+                        borderScale = borderScale,
+                        bgOpacity = configBgOpacity * placeholderOpacity,
+                        borderOpacity = configBorderOpacity * placeholderOpacity,
                         bgColor = 0xFF1A1A1A,
+                        borderColor = 0xFFFFFFFF,
                     });
                 end
 
@@ -962,6 +986,9 @@ function M.DrawWindow(settings, activeNotifications, pinnedNotifications)
     notificationData.SetAllFontsVisible(false);
     notificationData.HideAllBackgrounds();
     notificationData.HideSplitFonts();
+
+    -- Check if background theme changed and reload textures if needed
+    notificationData.CheckAndUpdateTheme();
 
     -- Reset global slot counter for this frame
     currentSlot = 0;

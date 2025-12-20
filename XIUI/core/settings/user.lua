@@ -66,6 +66,13 @@ function M.createUserSettingsDefaults()
         notificationsProgressBarScaleY = 1.0,
         notificationsHideDuringEvents = false,
 
+        -- Background/Border settings
+        notificationsBackgroundTheme = 'Plain',
+        notificationsBgScale = 1.0,
+        notificationsBorderScale = 1.0,
+        notificationsBgOpacity = 0.87,
+        notificationsBorderOpacity = 1.0,
+
         -- Split Window Settings (allow each notification type to have its own window)
         notificationsSplitPartyInvite = false,
         notificationsSplitTradeInvite = false,

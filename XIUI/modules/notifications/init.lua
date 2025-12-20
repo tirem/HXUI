@@ -77,9 +77,17 @@ notifications.Initialize = function(settings)
             height = 80,
         };
 
+        -- Get background theme and scales from config
+        local bgTheme = gConfig.notificationsBackgroundTheme or 'Plain';
+        local bgScale = gConfig.notificationsBgScale or 1.0;
+        local borderScale = gConfig.notificationsBorderScale or 1.0;
+
+        -- Track the loaded theme for change detection
+        data.loadedBgTheme = bgTheme;
+
         data.bgPrims = {};
         for i = 1, data.MAX_ACTIVE_NOTIFICATIONS do
-            data.bgPrims[i] = windowBg.create(prim_data, 'Plain', 1.0);
+            data.bgPrims[i] = windowBg.create(prim_data, bgTheme, bgScale, borderScale);
         end
 
         -- Create fonts and primitives for split window placeholders
@@ -115,7 +123,7 @@ notifications.Initialize = function(settings)
             table.insert(data.allFonts, data.splitSubtitleFonts[splitKey]);
 
             -- Background primitive for split window placeholder
-            data.splitBgPrims[splitKey] = windowBg.create(prim_data, 'Plain', 1.0);
+            data.splitBgPrims[splitKey] = windowBg.create(prim_data, bgTheme, bgScale, borderScale);
         end
 
         -- Clear cached colors
@@ -214,6 +222,29 @@ notifications.UpdateVisuals = function(settings)
 
     -- Clear cached colors
     data.ClearColorCache();
+
+    -- Update background themes for all primitives
+    local bgTheme = gConfig.notificationsBackgroundTheme or 'Plain';
+    local bgScale = gConfig.notificationsBgScale or 1.0;
+    local borderScale = gConfig.notificationsBorderScale or 1.0;
+
+    -- Update notification slot backgrounds
+    if data.bgPrims then
+        for i = 1, data.MAX_ACTIVE_NOTIFICATIONS do
+            if data.bgPrims[i] then
+                windowBg.setTheme(data.bgPrims[i], bgTheme, bgScale, borderScale);
+            end
+        end
+    end
+
+    -- Update split window backgrounds
+    if data.splitBgPrims then
+        for _, splitKey in ipairs(data.SPLIT_WINDOW_KEYS) do
+            if data.splitBgPrims[splitKey] then
+                windowBg.setTheme(data.splitBgPrims[splitKey], bgTheme, bgScale, borderScale);
+            end
+        end
+    end
 
     -- Update display module
     display.UpdateVisuals(settings);

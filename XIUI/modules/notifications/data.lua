@@ -128,6 +128,9 @@ M.bgPrims = {};  -- indexed by slot number
 -- Split window placeholder primitives (indexed by split key)
 M.splitBgPrims = {};  -- splitKey -> primitive
 
+-- Background theme tracking (to detect when theme changes and reload textures)
+M.loadedBgTheme = nil;
+
 -- ============================================
 -- Font/Primitive Helpers
 -- ============================================
@@ -175,6 +178,42 @@ function M.HideSplitFonts()
             end
         end
     end
+end
+
+-- Check if background theme changed and reload textures if needed
+-- Returns true if theme was changed, false if unchanged
+function M.CheckAndUpdateTheme()
+    local bgTheme = gConfig.notificationsBackgroundTheme or 'Plain';
+    local bgScale = gConfig.notificationsBgScale or 1.0;
+    local borderScale = gConfig.notificationsBorderScale or 1.0;
+
+    -- Check if theme changed
+    if M.loadedBgTheme == bgTheme then
+        return false;
+    end
+
+    -- Theme changed - update all primitives
+    M.loadedBgTheme = bgTheme;
+
+    -- Update notification slot backgrounds
+    if M.bgPrims then
+        for i = 1, M.MAX_ACTIVE_NOTIFICATIONS do
+            if M.bgPrims[i] then
+                windowBg.setTheme(M.bgPrims[i], bgTheme, bgScale, borderScale);
+            end
+        end
+    end
+
+    -- Update split window backgrounds
+    if M.splitBgPrims then
+        for _, splitKey in ipairs(M.SPLIT_WINDOW_KEYS) do
+            if M.splitBgPrims[splitKey] then
+                windowBg.setTheme(M.splitBgPrims[splitKey], bgTheme, bgScale, borderScale);
+            end
+        end
+    end
+
+    return true;
 end
 
 -- Clear cached colors

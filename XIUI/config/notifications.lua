@@ -98,6 +98,31 @@ function M.DrawSettings()
         components.DrawSlider('Subtitle Text Size', 'notificationsSubtitleFontSize', 8, 24, '%.0f');
     end
 
+    if components.CollapsingSection('Background##notifications') then
+        local bgThemes = {'-None-', 'Plain', 'Window1', 'Window2', 'Window3', 'Window4', 'Window5', 'Window6', 'Window7', 'Window8'};
+        local currentTheme = gConfig.notificationsBackgroundTheme or 'Plain';
+        imgui.SetNextItemWidth(150);
+        if imgui.BeginCombo('Theme##notifBg', currentTheme) then
+            for _, theme in ipairs(bgThemes) do
+                if imgui.Selectable(theme, theme == currentTheme) then
+                    gConfig.notificationsBackgroundTheme = theme;
+                    DeferredUpdateVisuals();
+                end
+            end
+            imgui.EndCombo();
+        end
+        imgui.ShowHelp('Select the background window theme for notifications.');
+
+        components.DrawSlider('Background Scale', 'notificationsBgScale', 0.1, 3.0, '%.2f', DeferredUpdateVisuals);
+        imgui.ShowHelp('Scale of the background texture.');
+        components.DrawSlider('Border Scale', 'notificationsBorderScale', 0.1, 3.0, '%.2f', DeferredUpdateVisuals);
+        imgui.ShowHelp('Scale of the window borders (Window themes only).');
+        components.DrawSlider('Background Opacity', 'notificationsBgOpacity', 0.0, 1.0, '%.2f');
+        imgui.ShowHelp('Opacity of the background.');
+        components.DrawSlider('Border Opacity', 'notificationsBorderOpacity', 0.0, 1.0, '%.2f');
+        imgui.ShowHelp('Opacity of the window borders (Window themes only).');
+    end
+
     if components.CollapsingSection('Notification Types##notifications') then
         local indentAmount = 20;
 
