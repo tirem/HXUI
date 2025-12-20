@@ -7,6 +7,14 @@
 
 local M = {};
 
+-- Color conversion caches (cleared via InvalidateColorCaches)
+local hexToImGuiCache = {};
+
+-- Invalidate color caches (call when settings change)
+function M.InvalidateColorCaches()
+    hexToImGuiCache = {};
+end
+
 -- ========================================
 -- RGB/HSV Conversion
 -- ========================================
@@ -197,16 +205,24 @@ end
 -- ========================================
 
 -- Convert hex string (#RRGGBB or #RRGGBBAA) to ImGui RGBA float table
+-- Cached for performance - do not modify the returned table
 function M.HexToImGui(hex)
-    hex = hex:gsub("#", "");
-    local r = tonumber(hex:sub(1,2), 16) / 255;
-    local g = tonumber(hex:sub(3,4), 16) / 255;
-    local b = tonumber(hex:sub(5,6), 16) / 255;
-    local a = 1.0;
-    if #hex == 8 then
-        a = tonumber(hex:sub(7,8), 16) / 255;
+    local cached = hexToImGuiCache[hex];
+    if cached then
+        return cached;
     end
-    return {r, g, b, a};
+
+    local cleanHex = hex:gsub("#", "");
+    local r = tonumber(cleanHex:sub(1,2), 16) / 255;
+    local g = tonumber(cleanHex:sub(3,4), 16) / 255;
+    local b = tonumber(cleanHex:sub(5,6), 16) / 255;
+    local a = 1.0;
+    if #cleanHex == 8 then
+        a = tonumber(cleanHex:sub(7,8), 16) / 255;
+    end
+    local result = {r, g, b, a};
+    hexToImGuiCache[hex] = result;
+    return result;
 end
 
 -- Convert ImGui RGBA float table to hex string

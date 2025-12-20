@@ -53,6 +53,17 @@ data.referenceTextHeights = {};
 -- Cache last set colors to avoid expensive SetColor() calls every frame
 data.memberTextColorCache = {};
 
+-- Cache last set text to avoid expensive texture regeneration every frame
+data.memberTextCache = {};
+
+-- Cached max TP text width per party (for layout 1 "3000" calculation)
+-- This never changes so we calculate once per party
+data.maxTpTextWidthCache = {
+    [1] = nil,
+    [2] = nil,
+    [3] = nil,
+};
+
 -- HP interpolation tracking for each party member (indexed by absolute member index 0-17)
 data.memberInterpolation = {};
 
@@ -108,6 +119,7 @@ data.partyConfigCache = {
     [3] = { scale = nil, fontSizes = nil, barScales = nil, showTP = nil },
 };
 data.partyConfigCacheValid = false;
+data.partyConfigCacheVersion = -1; -- Tracks which gConfigVersion we built from
 
 -- Pre-calculated reference heights per party
 data.partyRefHeights = {
@@ -180,12 +192,17 @@ function data.updatePartyConfigCache()
         cache.flashTP = party.flashTP;
         cache.backgroundName = party.backgroundName;
         cache.bgScale = party.bgScale or 1;
+        cache.borderScale = party.borderScale or 1;
+        cache.backgroundOpacity = party.backgroundOpacity or 1;
+        cache.borderOpacity = party.borderOpacity or 1;
         cache.cursor = party.cursor;
         cache.subtargetArrowTint = party.subtargetArrowTint or 0xFFfdd017;
         cache.targetArrowTint = party.targetArrowTint or 0xFFFFFFFF;
         cache.statusTheme = party.statusTheme or 0;
         cache.statusSide = party.statusSide or 0;
         cache.buffScale = party.buffScale or 1;
+        cache.statusOffsetX = party.statusOffsetX or 0;
+        cache.statusOffsetY = party.statusOffsetY or 0;
         cache.expandHeight = party.expandHeight;
         cache.alignBottom = party.alignBottom;
         cache.minRows = party.minRows or 1;
@@ -253,6 +270,16 @@ function data.updatePartyConfigCache()
     end
 
     data.partyConfigCacheValid = true;
+    data.partyConfigCacheVersion = gConfigVersion or 0;
+end
+
+-- Check if config cache needs updating (compares version instead of rebuilding every frame)
+function data.checkAndUpdateConfigCache()
+    local currentVersion = gConfigVersion or 0;
+    if data.partyConfigCacheVersion ~= currentVersion or not data.partyConfigCacheValid then
+        data.partyConfigCacheValid = false;
+        data.updatePartyConfigCache();
+    end
 end
 
 -- Cached getters
@@ -608,10 +635,13 @@ function data.Reset()
         {background = {}}
     };
     data.memberTextColorCache = {};
+    data.memberTextCache = {};
+    data.maxTpTextWidthCache = { [1] = nil, [2] = nil, [3] = nil };
     data.memberInterpolation = {};
     data.partyCasts = {};
     data.loadedBg = {};
     data.partyConfigCacheValid = false;
+    data.partyConfigCacheVersion = -1;
     data.partyRefHeightsValid = false;
 end
 

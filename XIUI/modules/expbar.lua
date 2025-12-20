@@ -3,6 +3,7 @@ require('handlers.helpers');
 local imgui = require('imgui');
 local gdi = require('submodules.gdifonts.include');
 local progressbar = require('libs.progressbar');
+local drawing = require('libs.drawing');
 
 local jobText;
 local expText;
@@ -135,9 +136,8 @@ expbar.DrawWindow = function(settings)
     local expBarTextMargin = 10;
 
     -- Build text strings once, reuse for both measuring and rendering
-    -- Note: In inline mode we use ' - ' separator, in non-inline mode we use ''
     -- All text (including percent) requires expBarShowText to be enabled
-    local expStringSeparator = inlineMode and ' - ' or '';
+    local expStringSeparator = '';
     local jobString = gConfig.expBarShowText and buildJobString(player, jobLevel, masteryEnabled, mlJobLevel) or nil;
     local expString = gConfig.expBarShowText and buildExpString(expStringSeparator, masteryEnabled, meritMode, jobLevel, jobPoints, meritPoints, limitPoints, capPoints, expPoints, expbar.mastery) or nil;
     local percentString = (gConfig.expBarShowText and gConfig.expBarShowPercent) and buildPercentString(progressBarProgress, true) or nil;
@@ -160,7 +160,8 @@ expbar.DrawWindow = function(settings)
         if percentString then
             percentText:set_text(percentString);
             local percentWidth = percentText:get_text_size();
-            actualTextWidth = actualTextWidth + percentWidth;
+            -- Add spacing between exp text and percent text
+            actualTextWidth = actualTextWidth + percentWidth + expBarTextMargin;
         end
 
         -- Add spacing between text and bar (only if there's text to space from)
@@ -176,20 +177,19 @@ expbar.DrawWindow = function(settings)
     if (imgui.Begin('ExpBar', true, windowFlags)) then
 
 		-- Draw the progress bar
+        local progressBarWidth = settings.barWidth;
+
+		-- Get window origin for text positioning
 		local startX, startY = imgui.GetCursorScreenPos();
 
-        local progressBarWidth = settings.barWidth;
-        local barStartX = startX; -- Default to window start
-        if inlineMode then
-            -- Position the bar after the text in inline mode
-            barStartX = startX + actualTextWidth;
-        end
+		-- In inline mode, add invisible spacing for text area first
+		if inlineMode then
+			imgui.Dummy({actualTextWidth, settings.barHeight});
+			imgui.SameLine(0, 0);
+		end
 
-		-- Pre-size the window with Dummy BEFORE drawing to prevent clipping
-		-- Total width includes text area (in inline mode) plus bar width
-		local totalWidth = inlineMode and (actualTextWidth + progressBarWidth) or progressBarWidth;
-		imgui.Dummy({totalWidth, settings.barHeight});
-		imgui.SetCursorScreenPos({barStartX, startY});
+		-- Get bar position (offset by text area in inline mode)
+		local barStartX, barStartY = imgui.GetCursorScreenPos();
 
 		local expGradient;
 		if meritMode then
@@ -197,10 +197,9 @@ expbar.DrawWindow = function(settings)
 		else
 			expGradient = GetCustomGradient(gConfig.colorCustomization.expBar, 'expBarGradient') or {'#c39040', '#e9c466'};
 		end
-		-- Use foreground draw list to avoid window clipping, absolutePosition to skip internal Dummy
-		progressbar.ProgressBar({{progressBarProgress, expGradient}}, {progressBarWidth, settings.barHeight}, {decorate = gConfig.showExpBarBookends, absolutePosition = {barStartX, startY}, drawList = imgui.GetForegroundDrawList()});
-
-		imgui.SameLine();
+		-- Let progressbar handle its own Dummy for sizing (includes border extent)
+		-- Use GetUIDrawList: foreground when config closed (no clipping), window when config open (respects layering)
+		progressbar.ProgressBar({{progressBarProgress, expGradient}}, {progressBarWidth, settings.barHeight}, {decorate = gConfig.showExpBarBookends, drawList = drawing.GetUIDrawList()});
 
         -- Calculate text padding
         local bookendWidth = gConfig.showExpBarBookends and (settings.barHeight / 2) or 0;
@@ -246,12 +245,22 @@ expbar.DrawWindow = function(settings)
         local textWidth, textHeight = 0, 0;
         local expTextWidth, expTextHeight = 0, 0;
 
+        -- Get user-defined text offsets
+        local jobOffsetX = settings.jobTextOffsetX or 0;
+        local jobOffsetY = settings.jobTextOffsetY or 0;
+        local expOffsetX = settings.expTextOffsetX or 0;
+        local expOffsetY = settings.expTextOffsetY or 0;
+        local percentOffsetX = settings.percentTextOffsetX or 0;
+        local percentOffsetY = settings.percentTextOffsetY or 0;
+
         if jobString then
             -- Job Text (string already built above)
             jobText:set_text(jobString);
             textWidth, textHeight = jobText:get_text_size();
-            jobText:set_position_x(leftTextX);
-            jobText:set_position_y(inlineMode and textY + (settings.barHeight - textHeight) / 2 - 1 or textY);
+            local jobBaseX = leftTextX;
+            local jobBaseY = inlineMode and textY + (settings.barHeight - textHeight) / 2 - 1 or textY;
+            jobText:set_position_x(jobBaseX + jobOffsetX);
+            jobText:set_position_y(jobBaseY + jobOffsetY);
             -- Only call set_font_color if the color has changed (expensive operation for GDI fonts)
             if (lastJobTextColor ~= gConfig.colorCustomization.expBar.jobTextColor) then
                 jobText:set_font_color(gConfig.colorCustomization.expBar.jobTextColor);
@@ -263,19 +272,22 @@ expbar.DrawWindow = function(settings)
             expTextWidth, expTextHeight = expText:get_text_size();
 
             -- Position exp text after job text in inline mode, or at right edge in non-inline mode
+            local expBaseX;
             if inlineMode then
                 -- Exp text is right-aligned, so X position is the RIGHT edge
                 -- Position it so the right edge is at: leftTextX + jobWidth + expWidth
-                expText:set_position_x(leftTextX + textWidth + expTextWidth + expBarTextMargin);
+                expBaseX = leftTextX + textWidth + expTextWidth + expBarTextMargin;
             else
                 -- In non-inline mode, if percent is shown, leave room for it on the right
                 if gConfig.expBarShowPercent then
-                    expText:set_position_x(rightTextX - percentTextWidth);
+                    expBaseX = rightTextX - percentTextWidth;
                 else
-                    expText:set_position_x(rightTextX);
+                    expBaseX = rightTextX;
                 end
             end
-            expText:set_position_y(inlineMode and textY + (settings.barHeight - expTextHeight) / 2 - 1 or textY);
+            local expBaseY = inlineMode and textY + (settings.barHeight - expTextHeight) / 2 - 1 or textY;
+            expText:set_position_x(expBaseX + expOffsetX);
+            expText:set_position_y(expBaseY + expOffsetY);
             -- Only call set_font_color if the color has changed
             if (lastExpTextColor ~= gConfig.colorCustomization.expBar.expTextColor) then
                 expText:set_font_color(gConfig.colorCustomization.expBar.expTextColor);
@@ -297,11 +309,11 @@ expbar.DrawWindow = function(settings)
             -- Position percent text
             local percentTextX, percentTextY;
             if inlineMode then
-                -- In inline mode, position after exp text on the same line
+                -- In inline mode, position after exp text on the same line (with spacing)
                 if gConfig.expBarShowText then
                     -- Percent text is right-aligned, so X position is the RIGHT edge
-                    -- Position it so the right edge is at: leftTextX + jobWidth + expWidth + percentWidth
-                    percentTextX = leftTextX + textWidth + expTextWidth + percentTextWidth;
+                    -- Add expBarTextMargin spacing between exp text and percent text
+                    percentTextX = leftTextX + textWidth + expTextWidth + expBarTextMargin + percentTextWidth + expBarTextMargin;
                 else
                     percentTextX = leftTextX + percentTextWidth;
                 end
@@ -319,8 +331,8 @@ expbar.DrawWindow = function(settings)
                 end
             end
 
-            percentText:set_position_x(percentTextX);
-            percentText:set_position_y(percentTextY);
+            percentText:set_position_x(percentTextX + percentOffsetX);
+            percentText:set_position_y(percentTextY + percentOffsetY);
             -- Only call set_font_color if the color has changed
             if (lastPercentTextColor ~= gConfig.colorCustomization.expBar.percentTextColor) then
                 percentText:set_font_color(gConfig.colorCustomization.expBar.percentTextColor);

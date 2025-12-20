@@ -33,6 +33,7 @@ local DEFAULT_PADDING = 8;
 local DEFAULT_BORDER_SIZE = 21;
 local DEFAULT_BG_OFFSET = 1;
 local DEFAULT_BG_SCALE = 1.0;
+local DEFAULT_BORDER_SCALE = 1.0;
 
 -- ============================================
 -- Internal Helpers
@@ -92,11 +93,15 @@ end
 
     @param primData table: Base primitive data
     @param themeName string: Theme name
+    @param borderScale number: Border texture scale (default 1.0)
     @return table: Border primitives handle with 'tl', 'tr', 'bl', 'br' keys
 ]]--
-function M.createBorders(primData, themeName)
+function M.createBorders(primData, themeName, borderScale)
+    borderScale = borderScale or DEFAULT_BORDER_SCALE;
+
     local borders = {
         themeName = themeName,
+        borderScale = borderScale,
     };
 
     for _, k in ipairs(M.BORDER_KEYS) do
@@ -104,8 +109,8 @@ function M.createBorders(primData, themeName)
         prim.visible = false;
         prim.can_focus = false;
         prim.exists = false;
-        prim.scale_x = 1.0;  -- Borders never scale
-        prim.scale_y = 1.0;
+        prim.scale_x = borderScale;
+        prim.scale_y = borderScale;
 
         -- Load texture if Window theme
         if IsWindowTheme(themeName) then
@@ -128,11 +133,15 @@ end
     @param primData table: Base primitive data
     @param themeName string: Theme name
     @param bgScale number: Background texture scale (default 1.0)
+    @param borderScale number: Border texture scale (default 1.0, or bgScale if not specified)
     @return table: Combined handle with 'bg', 'tl', 'tr', 'bl', 'br' keys
 ]]--
-function M.create(primData, themeName, bgScale)
+function M.create(primData, themeName, bgScale, borderScale)
+    bgScale = bgScale or DEFAULT_BG_SCALE;
+    borderScale = borderScale or DEFAULT_BORDER_SCALE;
+
     local bgHandle = M.createBackground(primData, themeName, bgScale);
-    local borderHandle = M.createBorders(primData, themeName);
+    local borderHandle = M.createBorders(primData, themeName, borderScale);
 
     return {
         bg = bgHandle.bg,
@@ -141,7 +150,8 @@ function M.create(primData, themeName, bgScale)
         bl = borderHandle.bl,
         br = borderHandle.br,
         themeName = themeName,
-        bgScale = bgScale or DEFAULT_BG_SCALE,
+        bgScale = bgScale,
+        borderScale = borderScale,
     };
 end
 
@@ -190,8 +200,8 @@ function M.updateBackground(bgHandle, x, y, width, height, options)
     bgPrim.visible = bgPrim.exists;
     bgPrim.position_x = x - padding;
     bgPrim.position_y = y - paddingY;
-    bgPrim.width = bgWidth / bgScale;
-    bgPrim.height = bgHeight / bgScale;
+    bgPrim.width = math.ceil(bgWidth / bgScale);
+    bgPrim.height = math.ceil(bgHeight / bgScale);
     bgPrim.scale_x = bgScale;
     bgPrim.scale_y = bgScale;
 
@@ -217,6 +227,7 @@ end
         paddingY = number,      -- Vertical padding (defaults to padding)
         borderSize = number,    -- Corner piece size (default 21)
         bgOffset = number,      -- Border offset from background (default 1)
+        borderScale = number,   -- Border scale (default 1.0)
         borderOpacity = number, -- Border opacity 0-1 (optional)
         borderColor = number,   -- Border color ARGB (default 0xFFFFFFFF)
     }
@@ -228,6 +239,7 @@ function M.updateBorders(borderHandle, x, y, width, height, options)
     local paddingY = options.paddingY or padding;
     local borderSize = options.borderSize or DEFAULT_BORDER_SIZE;
     local bgOffset = options.bgOffset or DEFAULT_BG_OFFSET;
+    local borderScale = options.borderScale or borderHandle.borderScale or DEFAULT_BORDER_SCALE;
     local borderColor = options.borderColor or 0xFFFFFFFF;
 
     local isWindowTheme = IsWindowTheme(theme);
@@ -259,38 +271,46 @@ function M.updateBorders(borderHandle, x, y, width, height, options)
     -- Bottom-right corner
     local br = borderHandle.br;
     br.visible = br.exists;
-    br.position_x = bgX + bgWidth - borderSize + bgOffset;
-    br.position_y = bgY + bgHeight - borderSize + bgOffset;
+    br.position_x = bgX + bgWidth - math.floor((borderSize * borderScale) - (bgOffset * borderScale));
+    br.position_y = bgY + bgHeight - math.floor((borderSize * borderScale) - (bgOffset * borderScale));
     br.width = borderSize;
     br.height = borderSize;
     br.color = finalColor;
+    br.scale_x = borderScale;
+    br.scale_y = borderScale;
 
     -- Top-right edge (L-shaped from top to br)
     local tr = borderHandle.tr;
     tr.visible = tr.exists;
     tr.position_x = br.position_x;
-    tr.position_y = bgY - bgOffset;
+    tr.position_y = bgY - (bgOffset * borderScale);
     tr.width = borderSize;
-    tr.height = br.position_y - tr.position_y;
+    tr.height = math.ceil((br.position_y - tr.position_y) / borderScale);
     tr.color = finalColor;
+    tr.scale_x = borderScale;
+    tr.scale_y = borderScale;
 
     -- Top-left (L-shaped: top and left edges)
     local tl = borderHandle.tl;
     tl.visible = tl.exists;
-    tl.position_x = bgX - bgOffset;
-    tl.position_y = bgY - bgOffset;
-    tl.width = tr.position_x - tl.position_x;
-    tl.height = br.position_y - tl.position_y;
+    tl.position_x = bgX - (bgOffset * borderScale);
+    tl.position_y = bgY - (bgOffset * borderScale);
+    tl.width = math.ceil((tr.position_x - tl.position_x) / borderScale);
+    tl.height =  tr.height;
     tl.color = finalColor;
+    tl.scale_x = borderScale;
+    tl.scale_y = borderScale;
 
     -- Bottom-left edge (L-shaped from left to br)
     local bl = borderHandle.bl;
     bl.visible = bl.exists;
     bl.position_x = tl.position_x;
-    bl.position_y = bgY + bgHeight - borderSize + bgOffset;
-    bl.width = br.position_x - bl.position_x;
-    bl.height = borderSize;
+    bl.position_y = br.position_y;
+    bl.width = tl.width;
+    bl.height = br.height;
     bl.color = finalColor;
+    bl.scale_x = borderScale;
+    bl.scale_y = borderScale;
 end
 
 --[[
@@ -351,7 +371,7 @@ end
 -- ============================================
 
 --[[
-    Change background theme (reloads texture)
+    Change background theme (reloads texture only if theme changed)
     @param bgHandle table: Background handle
     @param themeName string: New theme name
     @param bgScale number: Optional new scale
@@ -359,61 +379,126 @@ end
 function M.setBackgroundTheme(bgHandle, themeName, bgScale)
     if not bgHandle or not bgHandle.bg then return; end
 
-    bgHandle.themeName = themeName;
+    -- Always update scale if provided (lightweight operation)
     if bgScale then
         bgHandle.bgScale = bgScale;
         bgHandle.bg.scale_x = bgScale;
         bgHandle.bg.scale_y = bgScale;
     end
 
-    if themeName == '-None-' then
-        bgHandle.bg.exists = false;
-        bgHandle.bg.visible = false;
-    else
-        local filepath = string.format('%s/assets/backgrounds/%s-bg.png', addon.path, themeName);
-        bgHandle.bg.texture = filepath;
-        bgHandle.bg.exists = ashita.fs.exists(filepath);
+    -- Only reload texture if theme actually changed (expensive file I/O)
+    local themeChanged = bgHandle.themeName ~= themeName;
+    if themeChanged then
+        bgHandle.themeName = themeName;
+        if themeName == '-None-' then
+            bgHandle.bg.exists = false;
+            bgHandle.bg.visible = false;
+        else
+            local filepath = string.format('%s/assets/backgrounds/%s-bg.png', addon.path, themeName);
+            bgHandle.bg.texture = filepath;
+            bgHandle.bg.exists = ashita.fs.exists(filepath);
+        end
     end
 end
 
 --[[
-    Change border theme (reloads textures)
+    Change border theme (reloads textures only if theme changed)
     @param borderHandle table: Border handle
     @param themeName string: New theme name
+    @param borderScale number: Optional new border scale
 ]]--
-function M.setBordersTheme(borderHandle, themeName)
+function M.setBordersTheme(borderHandle, themeName, borderScale)
     if not borderHandle then return; end
 
-    borderHandle.themeName = themeName;
-    local isWindow = IsWindowTheme(themeName);
+    -- Always update scale if provided (lightweight operation)
+    if borderScale then
+        borderHandle.borderScale = borderScale;
+        for _, k in ipairs(M.BORDER_KEYS) do
+            local prim = borderHandle[k];
+            if prim then
+                prim.scale_x = borderScale;
+                prim.scale_y = borderScale;
+            end
+        end
+    end
 
-    for _, k in ipairs(M.BORDER_KEYS) do
-        local prim = borderHandle[k];
-        if prim then
-            if isWindow then
-                local filepath = string.format('%s/assets/backgrounds/%s-%s.png', addon.path, themeName, k);
-                prim.texture = filepath;
-                prim.exists = ashita.fs.exists(filepath);
-            else
-                prim.exists = false;
-                prim.visible = false;
+    -- Only reload textures if theme actually changed (expensive file I/O)
+    local themeChanged = borderHandle.themeName ~= themeName;
+    if themeChanged then
+        borderHandle.themeName = themeName;
+        local isWindow = IsWindowTheme(themeName);
+
+        for _, k in ipairs(M.BORDER_KEYS) do
+            local prim = borderHandle[k];
+            if prim then
+                if isWindow then
+                    local filepath = string.format('%s/assets/backgrounds/%s-%s.png', addon.path, themeName, k);
+                    prim.texture = filepath;
+                    prim.exists = ashita.fs.exists(filepath);
+                else
+                    prim.exists = false;
+                    prim.visible = false;
+                end
             end
         end
     end
 end
 
 --[[
-    Change theme for combined handle
+    Change theme for combined handle (optimized: skips file I/O if only scale changed)
     @param handle table: Combined handle from create()
     @param themeName string: New theme name
-    @param bgScale number: Optional new scale
+    @param bgScale number: Optional new background scale
+    @param borderScale number: Optional new border scale
 ]]--
-function M.setTheme(handle, themeName, bgScale)
+function M.setTheme(handle, themeName, bgScale, borderScale)
+    -- Save old themeName before sub-functions modify it
+    -- (setBackgroundTheme updates handle.themeName, which would cause
+    -- setBordersTheme's change detection to fail)
+    local oldThemeName = handle.themeName;
+
+    -- Temporarily restore old name for each check
     M.setBackgroundTheme(handle, themeName, bgScale);
-    M.setBordersTheme(handle, themeName);
+    handle.themeName = oldThemeName; -- Restore for border check
+    M.setBordersTheme(handle, themeName, borderScale);
+
+    -- Now set final values
     handle.themeName = themeName;
     if bgScale then
         handle.bgScale = bgScale;
+    end
+    if borderScale then
+        handle.borderScale = borderScale;
+    end
+end
+
+--[[
+    Lightweight scale-only update (no file I/O, no texture changes)
+    Use this when only scale is changing, not theme.
+    @param handle table: Combined handle from create()
+    @param bgScale number: New background scale
+    @param borderScale number: New border scale
+]]--
+function M.setScale(handle, bgScale, borderScale)
+    if not handle then return; end
+
+    -- Update background scale
+    if bgScale and handle.bg then
+        handle.bgScale = bgScale;
+        handle.bg.scale_x = bgScale;
+        handle.bg.scale_y = bgScale;
+    end
+
+    -- Update border scale
+    if borderScale then
+        handle.borderScale = borderScale;
+        for _, k in ipairs(M.BORDER_KEYS) do
+            local prim = handle[k];
+            if prim then
+                prim.scale_x = borderScale;
+                prim.scale_y = borderScale;
+            end
+        end
     end
 end
 

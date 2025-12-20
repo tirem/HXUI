@@ -103,6 +103,7 @@ GetFontWeightFlags = fontsLib.GetFontWeightFlags;
 FontManager = fontsLib.FontManager;
 ColorCachedFont = fontsLib.ColorCachedFont;
 SetFontsVisible = fontsLib.SetFontsVisible;
+UpdateAllFontOutlineWidths = fontsLib.UpdateAllOutlineWidths;
 
 -- Drawing Utilities (from drawing.lua)
 draw_rect = drawingLib.draw_rect;
@@ -115,7 +116,9 @@ GetIndexFromId = packetsLib.GetIndexFromId;
 ParseActionPacket = packetsLib.ParseActionPacket;
 ParseMobUpdatePacket = packetsLib.ParseMobUpdatePacket;
 ClearEntityCache = packetsLib.ClearEntityCache;
+PopulateEntityCache = packetsLib.PopulateEntityCache;
 ParseMessagePacket = packetsLib.ParseMessagePacket;
+ParseMessageStandardPacket = packetsLib.ParseMessageStandardPacket;
 valid_server_id = packetsLib.valid_server_id;
 
 -- Texture Utilities (from textures.lua)
@@ -126,6 +129,7 @@ GetTextureDimensions = texturesLib.GetTextureDimensions;
 -- HP Utilities (from hp.lua)
 HpInterpolation = hpLib.HpInterpolation;
 GetHpInterpolationColors = hpLib.GetHpInterpolationColors;
+InvalidateInterpolationColorCache = hpLib.InvalidateInterpolationColorCache;
 GetHpColors = hpLib.GetHpColors;
 GetCustomHpColors = hpLib.GetCustomHpColors;
 GetCustomGradient = hpLib.GetCustomGradient;
@@ -149,6 +153,7 @@ ARGBToABGR = colorLib.ARGBToABGR;
 HexToImGui = colorLib.HexToImGui;
 ImGuiToHex = colorLib.ImGuiToHex;
 HexToARGB = colorLib.HexToARGB;
+InvalidateColorCaches = colorLib.InvalidateColorCaches;
 GetColorSetting = colorLib.GetColorSetting;
 GetGradientSetting = colorLib.GetGradientSetting;
 

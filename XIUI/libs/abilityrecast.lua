@@ -24,7 +24,12 @@ local function InitAbilityRecastPointer()
         return false;
     end
 
-    AbilityRecastPointer = ashita.memory.read_uint32(pointer);
+    local ptr = ashita.memory.read_uint32(pointer);
+    if ptr == 0 then
+        return false;
+    end
+
+    AbilityRecastPointer = ptr;
     return true;
 end
 

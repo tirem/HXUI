@@ -12,9 +12,33 @@ local M = {};
 -- ========================================
 
 local entityIndexCache = {};
+local cachePopulated = false;
 
 function M.ClearEntityCache()
     entityIndexCache = {};
+    cachePopulated = false;
+end
+
+-- Batch populate cache with all valid entity ID->index mappings
+-- Call this after zone load to avoid O(n) scans on first access
+function M.PopulateEntityCache()
+    if cachePopulated then
+        return;
+    end
+
+    local entMgr = AshitaCore:GetMemoryManager():GetEntity();
+    if not entMgr then
+        return;
+    end
+
+    for i = 1, 0x8FF do
+        local serverId = entMgr:GetServerId(i);
+        if serverId and serverId > 0 and serverId < 0x4000000 then
+            entityIndexCache[serverId] = i;
+        end
+    end
+
+    cachePopulated = true;
 end
 
 -- ========================================
@@ -22,14 +46,19 @@ end
 -- ========================================
 
 function M.GetIndexFromId(id)
-    -- Check cache first
+    -- Lazy populate cache on first access after zone
+    if not cachePopulated then
+        M.PopulateEntityCache();
+    end
+
+    -- Check cache first (O(1) after population)
     if entityIndexCache[id] then
         return entityIndexCache[id];
     end
 
     local entMgr = AshitaCore:GetMemoryManager():GetEntity();
 
-    -- Shortcut for monsters/static npcs
+    -- Shortcut for monsters/static npcs (handles entities spawned after cache population)
     if (bit.band(id, 0x1000000) ~= 0) then
         local index = bit.band(id, 0xFFF);
         if (index >= 0x900) then
@@ -42,6 +71,7 @@ function M.GetIndexFromId(id)
         end
     end
 
+    -- Full scan fallback for entities not in cache (rare after population)
     for i = 1, 0x8FF do
         if entMgr:GetServerId(i) == id then
             entityIndexCache[id] = i;
@@ -162,15 +192,35 @@ end
 -- Message Packet Parsing
 -- ========================================
 
+-- Parse 0x0029/0x002D Battle/Kill Message packets
 function M.ParseMessagePacket(e)
+    -- Use unsigned integers per FFXI packet structure
+    -- 'I4' = unsigned 4-byte int, 'H' = unsigned 2-byte short
     local basic = {
-        sender     = struct.unpack('i4', e, 0x04 + 1),
-        target     = struct.unpack('i4', e, 0x08 + 1),
-        param      = struct.unpack('i4', e, 0x0C + 1),
-        value      = struct.unpack('i4', e, 0x10 + 1),
-        sender_tgt = struct.unpack('i2', e, 0x14 + 1),
-        target_tgt = struct.unpack('i2', e, 0x16 + 1),
-        message    = struct.unpack('i2', e, 0x18 + 1),
+        sender     = struct.unpack('I4', e, 0x04 + 1),
+        target     = struct.unpack('I4', e, 0x08 + 1),
+        param      = struct.unpack('I4', e, 0x0C + 1),
+        value      = struct.unpack('I4', e, 0x10 + 1),
+        sender_tgt = struct.unpack('H', e, 0x14 + 1),
+        target_tgt = struct.unpack('H', e, 0x16 + 1),
+        message    = struct.unpack('H', e, 0x18 + 1),
+    }
+    return basic;
+end
+
+-- Parse 0x002A Message Standard packet (zone/container messages)
+-- Different structure: params are array of 4 at 0x08, message at 0x1A
+function M.ParseMessageStandardPacket(e)
+    local basic = {
+        sender     = struct.unpack('I4', e, 0x04 + 1),
+        -- num is array of 4 int32s - param1 often contains gil amount
+        param      = struct.unpack('I4', e, 0x08 + 1),  -- num[0]
+        param2     = struct.unpack('I4', e, 0x0C + 1),  -- num[1]
+        param3     = struct.unpack('I4', e, 0x10 + 1),  -- num[2]
+        param4     = struct.unpack('I4', e, 0x14 + 1),  -- num[3]
+        sender_tgt = struct.unpack('H', e, 0x18 + 1),   -- ActIndex
+        message    = bit.band(struct.unpack('H', e, 0x1A + 1), 0x7FFF),  -- MesNum (15 bits)
+        value      = 0,  -- For compatibility with HandleMessagePacket
     }
     return basic;
 end

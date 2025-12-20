@@ -840,10 +840,14 @@ function data.UpdateBackground(x, y, width, height, settings)
     local bgColor = typeColors.bgColor or (gConfig.colorCustomization and gConfig.colorCustomization.petBar and gConfig.colorCustomization.petBar.bgColor) or 0xFFFFFFFF;
     local borderColor = typeColors.borderColor or (gConfig.colorCustomization and gConfig.colorCustomization.petBar and gConfig.colorCustomization.petBar.borderColor) or 0xFFFFFFFF;
 
+    -- Get scale from per-type settings (like bgTheme, bgOpacity)
+    local bgScale = typeSettings.bgScale or 1.0;
+    local borderScale = typeSettings.borderScale or 1.0;
+
     -- Check if theme changed and reload textures if needed
     if data.loadedBgName ~= bgTheme then
         data.loadedBgName = bgTheme;
-        windowBg.setTheme(data.backgroundPrim, bgTheme, settings.bgScale);
+        windowBg.setTheme(data.backgroundPrim, bgTheme, bgScale, borderScale);
     end
 
     -- Common options for windowbackground library
@@ -851,7 +855,8 @@ function data.UpdateBackground(x, y, width, height, settings)
         theme = bgTheme,
         padding = settings.bgPadding or data.PADDING,
         paddingY = settings.bgPaddingY or data.PADDING,
-        bgScale = settings.bgScale or 1.0,
+        bgScale = bgScale,
+        borderScale = borderScale,
         bgOpacity = bgOpacity,
         bgColor = bgColor,
         borderSize = settings.borderSize or 21,

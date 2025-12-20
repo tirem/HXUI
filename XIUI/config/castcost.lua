@@ -16,38 +16,35 @@ function M.DrawSettings()
     components.DrawCheckbox('Enabled', 'showCastCost', CheckVisibility);
 
     if components.CollapsingSection('Display Options##castCost') then
-        components.DrawCheckbox('Spell/Ability Name', 'castCostShowName');
-        components.DrawCheckbox('MP Cost', 'castCostShowMpCost');
-        components.DrawCheckbox('Recast Time', 'castCostShowRecast');
+        components.DrawPartyCheckbox(gConfig.castCost, 'Spell/Ability Name', 'showName');
+        components.DrawPartyCheckbox(gConfig.castCost, 'MP Cost', 'showMpCost');
+        components.DrawPartyCheckbox(gConfig.castCost, 'Recast Time', 'showRecast');
         components.DrawCheckbox('MP Cost Preview', 'showMpCostPreview');
         imgui.ShowHelp('Shows spell MP cost on your MP bar when hovering over spells');
-
-        imgui.Spacing();
-        imgui.Text('Font Sizes:');
-        components.DrawSlider('Name Font Size', 'castCostNameFontSize', 8, 24);
-        components.DrawSlider('Cost Font Size', 'castCostCostFontSize', 8, 24);
-        components.DrawSlider('Recast Font Size', 'castCostTimeFontSize', 8, 24);
-        components.DrawSlider('Cooldown Timer Font Size', 'castCostRecastFontSize', 8, 24);
-
-        imgui.Spacing();
-        imgui.Text('Cooldown:');
-        components.DrawCheckbox('Show Cooldown', 'castCostShowCooldown');
+        components.DrawPartyCheckbox(gConfig.castCost, 'Show Cooldown', 'showCooldown');
         imgui.ShowHelp('Shows "Next: ready" when available, or progress bar with timer when on cooldown');
-        components.DrawSlider('Bar Scale Y', 'castCostBarScaleY', 0.5, 2.0, '%.1f');
     end
 
-    if components.CollapsingSection('Layout##castCost') then
-        components.DrawSlider('Minimum Width', 'castCostMinWidth', 50, 300);
-        components.DrawSlider('Padding (Horizontal)', 'castCostPadding', 0, 20);
-        components.DrawSlider('Padding (Vertical)', 'castCostPaddingY', 0, 20);
-        components.DrawCheckbox('Align Bottom', 'castCostAlignBottom');
+    if components.CollapsingSection('Scale & Position##castCost') then
+        components.DrawPartySlider(gConfig.castCost, 'Bar Scale Y', 'barScaleY', 0.5, 2.0, '%.1f');
+        components.DrawPartySlider(gConfig.castCost, 'Minimum Width', 'minWidth', 50, 300);
+        components.DrawPartySlider(gConfig.castCost, 'Padding (Horizontal)', 'padding', 0, 20);
+        components.DrawPartySlider(gConfig.castCost, 'Padding (Vertical)', 'paddingY', 0, 20);
+        components.DrawPartyCheckbox(gConfig.castCost, 'Align Bottom', 'alignBottom');
         imgui.ShowHelp('When enabled, content grows upward instead of downward');
+    end
+
+    if components.CollapsingSection('Text Settings##castCost') then
+        components.DrawPartySlider(gConfig.castCost, 'Name Text Size', 'nameFontSize', 8, 24);
+        components.DrawPartySlider(gConfig.castCost, 'Cost Text Size', 'costFontSize', 8, 24);
+        components.DrawPartySlider(gConfig.castCost, 'Recast Text Size', 'timeFontSize', 8, 24);
+        components.DrawPartySlider(gConfig.castCost, 'Cooldown Timer Text Size', 'recastFontSize', 8, 24);
     end
 
     if components.CollapsingSection('Background##castCost') then
         -- Background theme dropdown
         local themes = statusHandler.get_background_paths();
-        local currentTheme = gConfig.castCostBackgroundTheme or 'Window1';
+        local currentTheme = gConfig.castCost.backgroundTheme or 'Window1';
         local themeIndex = 1;
         for i, theme in ipairs(themes) do
             if theme == currentTheme then
@@ -60,7 +57,7 @@ function M.DrawSettings()
             for i, theme in ipairs(themes) do
                 local isSelected = (theme == currentTheme);
                 if imgui.Selectable(theme, isSelected) then
-                    gConfig.castCostBackgroundTheme = theme;
+                    gConfig.castCost.backgroundTheme = theme;
                     UpdateCastCostVisuals();
                 end
                 if isSelected then
@@ -70,9 +67,11 @@ function M.DrawSettings()
             imgui.EndCombo();
         end
 
-        components.DrawSlider('Background Scale', 'castCostScaleX', 0.5, 2.0, '%.1f');
-        components.DrawSlider('Background Opacity', 'castCostBackgroundOpacity', 0.0, 1.0, '%.2f');
-        components.DrawSlider('Border Opacity', 'castCostBorderOpacity', 0.0, 1.0, '%.2f');
+        -- Scale/opacity sliders don't need callbacks - changes are picked up from gConfig on next frame
+        components.DrawPartySlider(gConfig.castCost, 'Background Scale', 'bgScale', 0.1, 3.0, '%.2f', nil, 1.0);
+        components.DrawPartySlider(gConfig.castCost, 'Border Scale', 'borderScale', 0.1, 3.0, '%.2f', nil, 1.0);
+        components.DrawPartySlider(gConfig.castCost, 'Background Opacity', 'backgroundOpacity', 0.0, 1.0, '%.2f');
+        components.DrawPartySlider(gConfig.castCost, 'Border Opacity', 'borderOpacity', 0.0, 1.0, '%.2f');
     end
 end
 

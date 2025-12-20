@@ -87,7 +87,8 @@ partyList.Initialize = function(settings)
         data.partyWindowPrim[partyIndex].background = windowBg.create(
             settings.prim_data,
             cache.backgroundName,
-            cache.bgScale
+            cache.bgScale,
+            cache.borderScale
         );
     end
 
@@ -118,6 +119,10 @@ partyList.UpdateVisuals = function(settings)
     -- Refresh config cache
     data.partyConfigCacheValid = false;
     data.updatePartyConfigCache();
+
+    -- Clear text caches since font settings may have changed
+    data.memberTextCache = {};
+    data.maxTpTextWidthCache = { [1] = nil, [2] = nil, [3] = nil };
 
     -- Check if font settings changed
     local fontFamilyChanged = false;
@@ -218,7 +223,7 @@ partyList.UpdateVisuals = function(settings)
         data.loadedBg[partyIndex] = cache.backgroundName;
 
         if bgChanged then
-            windowBg.setTheme(backgroundPrim, cache.backgroundName, cache.bgScale);
+            windowBg.setTheme(backgroundPrim, cache.backgroundName, cache.bgScale, cache.borderScale);
         end
     end
 end

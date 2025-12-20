@@ -556,6 +556,90 @@ function M.MigrateIndividualSettings(gConfig, defaults)
     end
 end
 
+-- Migrate flat castCost* settings to nested castCost table
+function M.MigrateCastCostSettings(gConfig, defaults)
+    -- Check if migration is needed (old flat settings exist, new nested doesn't)
+    if gConfig.castCostScaleX ~= nil and gConfig.castCost == nil then
+        -- Create nested structure from old flat settings
+        gConfig.castCost = T{
+            -- Display options
+            showName = gConfig.castCostShowName,
+            showMpCost = gConfig.castCostShowMpCost,
+            showRecast = gConfig.castCostShowRecast,
+            showCooldown = gConfig.castCostShowCooldown,
+
+            -- Font sizes
+            nameFontSize = gConfig.castCostNameFontSize or 12,
+            costFontSize = gConfig.castCostCostFontSize or 12,
+            timeFontSize = gConfig.castCostTimeFontSize or 10,
+            recastFontSize = gConfig.castCostRecastFontSize or 10,
+
+            -- Layout
+            minWidth = gConfig.castCostMinWidth or 100,
+            padding = gConfig.castCostPadding or 8,
+            paddingY = gConfig.castCostPaddingY or 8,
+            alignBottom = gConfig.castCostAlignBottom or false,
+            barScaleY = gConfig.castCostBarScaleY or 1.0,
+
+            -- Background/Border
+            backgroundTheme = gConfig.castCostBackgroundTheme or 'Window1',
+            bgScale = gConfig.castCostScaleX or 1.0,
+            borderScale = gConfig.castCostBorderScale or 1.0,
+            backgroundOpacity = gConfig.castCostBackgroundOpacity or 1.0,
+            borderOpacity = gConfig.castCostBorderOpacity or 1.0,
+        };
+
+        -- Clean up old flat settings
+        gConfig.castCostScaleX = nil;
+        gConfig.castCostScaleY = nil;
+        gConfig.castCostBorderScale = nil;
+        gConfig.castCostBackgroundTheme = nil;
+        gConfig.castCostBackgroundOpacity = nil;
+        gConfig.castCostBorderOpacity = nil;
+        gConfig.castCostShowName = nil;
+        gConfig.castCostShowMpCost = nil;
+        gConfig.castCostShowRecast = nil;
+        gConfig.castCostNameFontSize = nil;
+        gConfig.castCostCostFontSize = nil;
+        gConfig.castCostTimeFontSize = nil;
+        gConfig.castCostMinWidth = nil;
+        gConfig.castCostPadding = nil;
+        gConfig.castCostPaddingY = nil;
+        gConfig.castCostAlignBottom = nil;
+        gConfig.castCostShowCooldown = nil;
+        gConfig.castCostBarScaleY = nil;
+        gConfig.castCostRecastFontSize = nil;
+    end
+
+    -- Ensure castCost table exists with defaults
+    if gConfig.castCost == nil then
+        gConfig.castCost = defaults.castCost;
+    end
+
+    -- Fill in any missing fields with defaults
+    if gConfig.castCost then
+        local d = defaults.castCost;
+        if gConfig.castCost.showName == nil then gConfig.castCost.showName = d.showName; end
+        if gConfig.castCost.showMpCost == nil then gConfig.castCost.showMpCost = d.showMpCost; end
+        if gConfig.castCost.showRecast == nil then gConfig.castCost.showRecast = d.showRecast; end
+        if gConfig.castCost.showCooldown == nil then gConfig.castCost.showCooldown = d.showCooldown; end
+        if gConfig.castCost.nameFontSize == nil then gConfig.castCost.nameFontSize = d.nameFontSize; end
+        if gConfig.castCost.costFontSize == nil then gConfig.castCost.costFontSize = d.costFontSize; end
+        if gConfig.castCost.timeFontSize == nil then gConfig.castCost.timeFontSize = d.timeFontSize; end
+        if gConfig.castCost.recastFontSize == nil then gConfig.castCost.recastFontSize = d.recastFontSize; end
+        if gConfig.castCost.minWidth == nil then gConfig.castCost.minWidth = d.minWidth; end
+        if gConfig.castCost.padding == nil then gConfig.castCost.padding = d.padding; end
+        if gConfig.castCost.paddingY == nil then gConfig.castCost.paddingY = d.paddingY; end
+        if gConfig.castCost.alignBottom == nil then gConfig.castCost.alignBottom = d.alignBottom; end
+        if gConfig.castCost.barScaleY == nil then gConfig.castCost.barScaleY = d.barScaleY; end
+        if gConfig.castCost.backgroundTheme == nil then gConfig.castCost.backgroundTheme = d.backgroundTheme; end
+        if gConfig.castCost.bgScale == nil then gConfig.castCost.bgScale = d.bgScale; end
+        if gConfig.castCost.borderScale == nil then gConfig.castCost.borderScale = d.borderScale; end
+        if gConfig.castCost.backgroundOpacity == nil then gConfig.castCost.backgroundOpacity = d.backgroundOpacity; end
+        if gConfig.castCost.borderOpacity == nil then gConfig.castCost.borderOpacity = d.borderOpacity; end
+    end
+end
+
 -- Run structure migrations (called AFTER settings.load())
 -- These handle migrating old settings structures to new ones
 function M.RunStructureMigrations(gConfig, defaults)
@@ -565,6 +649,7 @@ function M.RunStructureMigrations(gConfig, defaults)
     M.MigrateColorSettings(gConfig, defaults);
     M.MigratePerPetTypeColorSettings(gConfig, defaults);
     M.MigrateIndividualSettings(gConfig, defaults);
+    M.MigrateCastCostSettings(gConfig, defaults);
 end
 
 -- Legacy function for backward compatibility (if any external code calls it)

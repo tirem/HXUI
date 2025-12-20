@@ -105,6 +105,20 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     applyGlobalFontSettings(gAdjustedSettings.petBarSettings.vitals_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
     applyGlobalFontSettings(gAdjustedSettings.petBarSettings.timer_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
 
+    -- Notifications fonts (title uses Bold + global weight, subtitle uses no weight flags)
+    applyGlobalFontSettings(gAdjustedSettings.notificationsSettings.title_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    gAdjustedSettings.notificationsSettings.title_font_settings.font_flags = bit.bor(fontWeightFlags, gdi.FontFlags.Bold);
+    -- Subtitle: only apply font family and outline, NOT weight flags (keep it normal/light)
+    gAdjustedSettings.notificationsSettings.font_settings.font_family = us.fontFamily;
+    gAdjustedSettings.notificationsSettings.font_settings.font_flags = gdi.FontFlags.None;
+    gAdjustedSettings.notificationsSettings.font_settings.outline_width = us.fontOutlineWidth;
+
+    -- Treasure Pool fonts
+    applyGlobalFontSettings(gAdjustedSettings.treasurePoolSettings.font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    applyGlobalFontSettings(gAdjustedSettings.treasurePoolSettings.title_font_settings, us.fontFamily, fontWeightFlags, us.fontOutlineWidth);
+    -- Title font uses bold
+    gAdjustedSettings.treasurePoolSettings.title_font_settings.font_flags = bit.bor(fontWeightFlags, gdi.FontFlags.Bold);
+
     -- Target Bar dimensions and settings
     gAdjustedSettings.targetBarSettings.barWidth = ds.targetBarSettings.barWidth * us.targetBarScaleX;
     gAdjustedSettings.targetBarSettings.barHeight = ds.targetBarSettings.barHeight * us.targetBarScaleY;
@@ -213,6 +227,13 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.expBarSettings.job_font_settings.font_height = math.max(us.expBarFontSize, 8);
     gAdjustedSettings.expBarSettings.exp_font_settings.font_height = math.max(us.expBarFontSize, 8);
     gAdjustedSettings.expBarSettings.percent_font_settings.font_height = math.max(us.expBarFontSize, 8);
+    -- Text position offsets
+    gAdjustedSettings.expBarSettings.jobTextOffsetX = us.expBarJobTextOffsetX or 0;
+    gAdjustedSettings.expBarSettings.jobTextOffsetY = us.expBarJobTextOffsetY or 0;
+    gAdjustedSettings.expBarSettings.expTextOffsetX = us.expBarExpTextOffsetX or 0;
+    gAdjustedSettings.expBarSettings.expTextOffsetY = us.expBarExpTextOffsetY or 0;
+    gAdjustedSettings.expBarSettings.percentTextOffsetX = us.expBarPercentTextOffsetX or 0;
+    gAdjustedSettings.expBarSettings.percentTextOffsetY = us.expBarPercentTextOffsetY or 0;
 
     -- Gil Tracker
     gAdjustedSettings.gilTrackerSettings.iconScale = ds.gilTrackerSettings.iconScale * us.gilTrackerScale;
@@ -313,28 +334,30 @@ function M.UpdateUserSettings(gAdjustedSettings, default_settings, gConfig)
     gAdjustedSettings.castBarSettings.spell_font_settings.font_height = math.max(us.castBarFontSize, 8);
     gAdjustedSettings.castBarSettings.percent_font_settings.font_height = math.max(us.castBarFontSize, 8);
 
-    -- Cast Cost
-    gAdjustedSettings.castCostSettings.bgScale = us.castCostScaleX or 1.0;
-    gAdjustedSettings.castCostSettings.backgroundTheme = us.castCostBackgroundTheme or 'Window1';
-    gAdjustedSettings.castCostSettings.backgroundOpacity = us.castCostBackgroundOpacity or 1.0;
-    gAdjustedSettings.castCostSettings.borderOpacity = us.castCostBorderOpacity or 1.0;
-    gAdjustedSettings.castCostSettings.showName = us.castCostShowName;
-    gAdjustedSettings.castCostSettings.showMpCost = us.castCostShowMpCost;
-    gAdjustedSettings.castCostSettings.showRecast = us.castCostShowRecast;
-    gAdjustedSettings.castCostSettings.name_font_settings.font_height = math.max(us.castCostNameFontSize or 12, 8);
-    gAdjustedSettings.castCostSettings.cost_font_settings.font_height = math.max(us.castCostCostFontSize or 12, 8);
-    gAdjustedSettings.castCostSettings.time_font_settings.font_height = math.max(us.castCostTimeFontSize or 10, 8);
-    gAdjustedSettings.castCostSettings.minWidth = us.castCostMinWidth or 100;
-    gAdjustedSettings.castCostSettings.bgPadding = us.castCostPadding or 8;
-    gAdjustedSettings.castCostSettings.bgPaddingY = us.castCostPaddingY or 8;
-    gAdjustedSettings.castCostSettings.alignBottom = us.castCostAlignBottom or false;
-    gAdjustedSettings.castCostSettings.showCooldown = us.castCostShowCooldown;
+    -- Cast Cost (uses nested gConfig.castCost structure)
+    local cc = us.castCost or ds.castCost;
+    gAdjustedSettings.castCostSettings.bgScale = cc.bgScale or 1.0;
+    gAdjustedSettings.castCostSettings.borderScale = cc.borderScale or 1.0;
+    gAdjustedSettings.castCostSettings.backgroundTheme = cc.backgroundTheme or 'Window1';
+    gAdjustedSettings.castCostSettings.backgroundOpacity = cc.backgroundOpacity or 1.0;
+    gAdjustedSettings.castCostSettings.borderOpacity = cc.borderOpacity or 1.0;
+    gAdjustedSettings.castCostSettings.showName = cc.showName;
+    gAdjustedSettings.castCostSettings.showMpCost = cc.showMpCost;
+    gAdjustedSettings.castCostSettings.showRecast = cc.showRecast;
+    gAdjustedSettings.castCostSettings.name_font_settings.font_height = math.max(cc.nameFontSize or 12, 8);
+    gAdjustedSettings.castCostSettings.cost_font_settings.font_height = math.max(cc.costFontSize or 12, 8);
+    gAdjustedSettings.castCostSettings.time_font_settings.font_height = math.max(cc.timeFontSize or 10, 8);
+    gAdjustedSettings.castCostSettings.minWidth = cc.minWidth or 100;
+    gAdjustedSettings.castCostSettings.bgPadding = cc.padding or 8;
+    gAdjustedSettings.castCostSettings.bgPaddingY = cc.paddingY or 8;
+    gAdjustedSettings.castCostSettings.alignBottom = cc.alignBottom or false;
+    gAdjustedSettings.castCostSettings.showCooldown = cc.showCooldown;
     if gAdjustedSettings.castCostSettings.showCooldown == nil then
         gAdjustedSettings.castCostSettings.showCooldown = true;
     end
-    gAdjustedSettings.castCostSettings.barScaleY = us.castCostBarScaleY or 1.0;
-    gAdjustedSettings.castCostSettings.recast_font_settings.font_height = math.max(us.castCostRecastFontSize or 10, 8);
-    gAdjustedSettings.castCostSettings.cooldown_font_settings.font_height = math.max(us.castCostRecastFontSize or 10, 8);
+    gAdjustedSettings.castCostSettings.barScaleY = cc.barScaleY or 1.0;
+    gAdjustedSettings.castCostSettings.recast_font_settings.font_height = math.max(cc.recastFontSize or 10, 8);
+    gAdjustedSettings.castCostSettings.cooldown_font_settings.font_height = math.max(cc.recastFontSize or 10, 8);
 
     -- Mob Info
     gAdjustedSettings.mobInfoSettings.level_font_settings.font_height = math.max(us.mobInfoFontSize, 8);

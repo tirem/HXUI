@@ -30,7 +30,7 @@ end
 
 -- Helper function to convert dot color (RGBA table) to ARGB hex for font
 local function DotColorToFontColor(dotColor)
-    return color.ColorTableToARGB(dotColor);
+    return ColorTableToARGB(dotColor);
 end
 
 -- Helper function to get text color based on thresholds (returns ARGB hex)
@@ -96,6 +96,11 @@ end
 -- label: optional prefix like "W1" or "S2" for per-container mode
 -- textUseThresholdColor: if true, text color follows dot threshold colors
 local function DrawSingleContainerWindow(windowName, usedSlots, maxSlots, settings, colorConfig, threshold1, threshold2, textFont, lastTextColorRef, showDots, showText, label, textUseThresholdColor)
+    -- If showText is requested but font is nil, disable text to prevent errors
+    if showText and textFont == nil then
+        showText = false;
+    end
+
     imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
 
     local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus, ImGuiWindowFlags_NoDocking);

@@ -11,8 +11,17 @@ local M = {};
 
 function M.GetStPartyIndex()
     local ptr = AshitaCore:GetPointerManager():Get('party');
+    if ptr == nil or ptr == 0 then
+        return nil;
+    end
     ptr = ashita.memory.read_uint32(ptr);
+    if ptr == 0 then
+        return nil;
+    end
     ptr = ashita.memory.read_uint32(ptr);
+    if ptr == 0 then
+        return nil;
+    end
     local isActive = (ashita.memory.read_uint32(ptr + 0x54) ~= 0);
     if isActive then
         return ashita.memory.read_uint8(ptr + 0x50);

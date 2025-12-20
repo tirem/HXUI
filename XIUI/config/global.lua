@@ -40,7 +40,7 @@ function M.DrawSettings()
         components.DrawCheckbox('Hide During Events', 'hideDuringEvents');
     end
 
-    if components.CollapsingSection('Fonts##global') then
+    if components.CollapsingSection('Text Settings##global') then
         -- Font Family Selector
         components.DrawComboBox('Font Family', gConfig.fontFamily, components.available_fonts, function(newValue)
             gConfig.fontFamily = newValue;
@@ -58,9 +58,11 @@ function M.DrawSettings()
         imgui.ShowHelp('The font weight (boldness) to use for all text in XIUI.');
 
         -- Font Outline Width Slider
+        -- Uses lightweight UpdateAllFontOutlineWidths instead of DeferredUpdateVisuals
+        -- to avoid expensive font recreation on every slider tick
         components.DrawSlider('Font Outline Width', 'fontOutlineWidth', 0, 5, nil, function()
             ClearDebuffFontCache();
-            DeferredUpdateVisuals();
+            UpdateAllFontOutlineWidths(gConfig.fontOutlineWidth);
         end);
         imgui.ShowHelp('The thickness of the text outline/stroke for all text in XIUI.');
     end
