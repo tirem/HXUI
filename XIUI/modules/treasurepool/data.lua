@@ -22,9 +22,6 @@ M.POOL_TIMEOUT_SECONDS = 300;       -- 5 minutes pool timeout
 -- Current pool state from memory (slot -> item data)
 M.poolItems = {};
 
--- Previous frame pool state (for detecting new items)
-M.previousPoolState = {};
-
 -- Timestamp cache for expiration times
 -- Maps DropTime -> cached expiration time
 M.timestampCache = {};
@@ -44,18 +41,6 @@ M.lotHistory = {};
 -- ============================================
 -- Helper Functions
 -- ============================================
-
--- Get notifications module lazily (avoid circular require)
-local notificationsModule = nil;
-local function getNotificationsModule()
-    if notificationsModule == nil then
-        local success, mod = pcall(require, 'modules.notifications.init');
-        if success then
-            notificationsModule = mod;
-        end
-    end
-    return notificationsModule;
-end
 
 -- Get item name from resource manager
 local function getItemName(itemId)
@@ -109,10 +94,6 @@ function M.ReadFromMemory()
             activeSlots[slot] = true;
             M.missingFrameCount[slot] = 0;  -- Reset missing count
 
-            -- Check if this is a NEW item we haven't seen
-            local isNewItem = not M.previousPoolState[slot] or
-                             M.previousPoolState[slot].itemId ~= item.ItemId;
-
             -- Cache expiration time
             if not M.timestampCache[item.DropTime] then
                 M.timestampCache[item.DropTime] = now + M.POOL_TIMEOUT_SECONDS;
@@ -132,16 +113,8 @@ function M.ReadFromMemory()
                 winningLotterName = item.WinningEntityName or '',
             };
 
-            -- Trigger toast notification for NEW items
-            if isNewItem then
-                -- Check if notifications are enabled
-                if gConfig and gConfig.notificationsShowTreasure then
-                    local notifMod = getNotificationsModule();
-                    if notifMod and notifMod.AddTreasurePoolNotification then
-                        notifMod.AddTreasurePoolNotification(item.ItemId, 1);
-                    end
-                end
-            end
+            -- Note: Notifications are handled by notificationhandler.lua via 0x00D2 packet
+            -- to properly handle auto-award vs staying-in-pool scenarios
 
             markCacheDirty();
         end
@@ -163,14 +136,6 @@ function M.ReadFromMemory()
                 hasItems = true;  -- Still has items during grace period
             end
         end
-    end
-
-    -- Update previous state for next frame comparison
-    M.previousPoolState = {};
-    for slot, item in pairs(M.poolItems) do
-        M.previousPoolState[slot] = {
-            itemId = item.itemId,
-        };
     end
 
     return hasItems;
@@ -481,17 +446,20 @@ function M.HandleLotPacket(slot, entryServerId, entryName, entryFlg, entryLot,
     local history = M.lotHistory[slot];
 
     -- Track the action if we have valid entry data
+    -- entryFlg: 0 = lot action, 1 = pass action (primary indicator)
+    -- entryLot: lot value if lotting, -1 (0xFFFF signed) if passing without prior lot
     if entryServerId and entryServerId > 0 and entryName and entryName ~= '' then
-        if entryFlg == 1 then
-            -- Lot action
-            history.lotters[entryServerId] = { name = entryName, lot = entryLot or 0 };
-            -- Remove from passers if they previously passed (re-lot)
-            history.passers[entryServerId] = nil;
-        else
+        local isPass = (entryFlg and entryFlg == 1) or (entryLot and entryLot < 0);
+        if isPass then
             -- Pass action
             history.passers[entryServerId] = { name = entryName };
-            -- Remove from lotters if they previously lotted (shouldn't happen but be safe)
+            -- Remove from lotters if they previously lotted
             history.lotters[entryServerId] = nil;
+        elseif entryLot and entryLot >= 0 then
+            -- Lot action (entryLot is the actual lot value, 0-999)
+            history.lotters[entryServerId] = { name = entryName, lot = entryLot };
+            -- Remove from passers if they previously passed (re-lot)
+            history.passers[entryServerId] = nil;
         end
     end
 
@@ -567,6 +535,116 @@ end
 function M.GetWinner(slot)
     if not M.lotHistory[slot] then return nil; end
     return M.lotHistory[slot].winner;
+end
+
+-- Get all party members organized by party with their status for a slot
+-- Returns: { partyA = {members}, partyB = {members}, partyC = {members} }
+-- Each party array has up to 6 members in slot order (index 0-5 within party)
+function M.GetMembersByParty(slot)
+    local result = {
+        partyA = {},  -- indices 0-5
+        partyB = {},  -- indices 6-11
+        partyC = {},  -- indices 12-17
+    };
+
+    -- In preview mode, use mock data (put all in party A for simplicity)
+    if M.previewEnabled and M.lotHistory[slot] then
+        local history = M.lotHistory[slot];
+        local idx = 1;
+        for serverId, data in pairs(history.lotters or {}) do
+            if idx <= 6 then
+                result.partyA[idx] = { serverId = serverId, name = data.name, status = 'lotted', lot = data.lot };
+                idx = idx + 1;
+            end
+        end
+        for serverId, data in pairs(history.passers or {}) do
+            if idx <= 6 then
+                result.partyA[idx] = { serverId = serverId, name = data.name, status = 'passed' };
+                idx = idx + 1;
+            end
+        end
+        for serverId, data in pairs(history.pending or {}) do
+            if idx <= 6 then
+                result.partyA[idx] = { serverId = serverId, name = data.name, status = 'pending' };
+                idx = idx + 1;
+            end
+        end
+        return result;
+    end
+
+    -- Get party interface
+    local party = GetPartySafe();
+    if not party then return result; end
+
+    -- Build lookup tables for this slot
+    local lotters = {};
+    local passers = {};
+    if M.lotHistory[slot] then
+        for serverId, data in pairs(M.lotHistory[slot].lotters or {}) do
+            lotters[serverId] = data;
+        end
+        for serverId, data in pairs(M.lotHistory[slot].passers or {}) do
+            passers[serverId] = data;
+        end
+    end
+
+    -- Helper to add member to appropriate party (uses GetMemberIsActive like partylist)
+    local function addMember(i, targetParty)
+        -- Use GetMemberIsActive to filter out stale/inactive slots (same as partylist module)
+        if party:GetMemberIsActive(i) == 0 then
+            return;
+        end
+
+        local serverId = party:GetMemberServerId(i);
+        if serverId and serverId > 0 then
+            local name = party:GetMemberName(i);
+            if name and name ~= '' then
+                -- Build member data
+                local member = { serverId = serverId, name = name, partyIndex = i };
+                if lotters[serverId] then
+                    member.status = 'lotted';
+                    member.lot = lotters[serverId].lot;
+                elseif passers[serverId] then
+                    member.status = 'passed';
+                else
+                    member.status = 'pending';
+                end
+
+                -- Find next available slot in target party
+                for s = 1, 6 do
+                    if not targetParty[s] then
+                        targetParty[s] = member;
+                        break;
+                    end
+                end
+            end
+        end
+    end
+
+    -- Party A: indices 0-5 (your party)
+    for i = 0, 5 do
+        addMember(i, result.partyA);
+    end
+
+    -- Party B: indices 6-11 (alliance party 2)
+    for i = 6, 11 do
+        addMember(i, result.partyB);
+    end
+
+    -- Party C: indices 12-17 (alliance party 3)
+    for i = 12, 17 do
+        addMember(i, result.partyC);
+    end
+
+    return result;
+end
+
+-- Check if a party has any members
+function M.PartyHasMembers(partyData)
+    for i = 1, 6 do
+        if partyData[i] then return true; end
+    end
+    return false;
 end
 
 -- Check if we have any lot history for a slot
@@ -654,7 +732,6 @@ end
 -- Initialize data module
 function M.Initialize()
     M.poolItems = {};
-    M.previousPoolState = {};
     M.timestampCache = {};
     M.sortedCache = {};
     M.sortedCacheDirty = true;
@@ -667,7 +744,6 @@ end
 -- Clear all state (call on zone change)
 function M.Clear()
     M.poolItems = {};
-    M.previousPoolState = {};
     M.timestampCache = {};
     M.sortedCache = {};
     M.sortedCacheDirty = true;

@@ -42,7 +42,6 @@ function M.Initialize(settings)
 
         -- Set defaults for new settings
         if gConfig.treasurePoolEnabled == nil then gConfig.treasurePoolEnabled = true; end
-        if gConfig.treasurePoolShowTitle == nil then gConfig.treasurePoolShowTitle = true; end
         if gConfig.treasurePoolShowTimerBar == nil then gConfig.treasurePoolShowTimerBar = true; end
         if gConfig.treasurePoolShowTimerText == nil then gConfig.treasurePoolShowTimerText = true; end
         if gConfig.treasurePoolShowLots == nil then gConfig.treasurePoolShowLots = true; end
@@ -55,7 +54,23 @@ function M.Initialize(settings)
         if gConfig.treasurePoolScaleY == nil or gConfig.treasurePoolScaleY < 0.5 then
             gConfig.treasurePoolScaleY = 1.0;
         end
-        if gConfig.treasurePoolOpacity == nil then gConfig.treasurePoolOpacity = 0.87; end
+        -- Split background/border settings (like petbar)
+        if gConfig.treasurePoolBgScale == nil or gConfig.treasurePoolBgScale < 0.1 then
+            gConfig.treasurePoolBgScale = 1.0;
+        end
+        if gConfig.treasurePoolBorderScale == nil or gConfig.treasurePoolBorderScale < 0.1 then
+            gConfig.treasurePoolBorderScale = 1.0;
+        end
+        -- Migrate old treasurePoolOpacity to new split settings
+        if gConfig.treasurePoolBackgroundOpacity == nil then
+            if gConfig.treasurePoolOpacity ~= nil then
+                gConfig.treasurePoolBackgroundOpacity = gConfig.treasurePoolOpacity;
+                gConfig.treasurePoolOpacity = nil;  -- Clean up old setting
+            else
+                gConfig.treasurePoolBackgroundOpacity = 0.87;
+            end
+        end
+        if gConfig.treasurePoolBorderOpacity == nil then gConfig.treasurePoolBorderOpacity = 1.0; end
         if gConfig.treasurePoolBackgroundTheme == nil then gConfig.treasurePoolBackgroundTheme = 'Plain'; end
         if gConfig.treasurePoolExpanded == nil then gConfig.treasurePoolExpanded = false; end
     end

@@ -610,9 +610,11 @@ targetbar.DrawWindow = function(settings)
 		if (targetEntity == playerEnt) then
 			buffIds = player:GetBuffs();
 		elseif (IsMemberOfParty(targetIndex)) then
-			buffIds = statusHandler.get_member_status(playerTarget:GetServerId(0));
+			-- Use targetEntity.ServerId instead of playerTarget:GetServerId(0)
+			-- because targetIndex may have been swapped by GetTargets() for subtargets
+			buffIds = statusHandler.get_member_status(targetEntity.ServerId);
 		elseif (isMonster) then
-			buffIds, buffTimes = debuffHandler.GetActiveDebuffs(playerTarget:GetServerId(0));
+			buffIds, buffTimes = debuffHandler.GetActiveDebuffs(targetEntity.ServerId);
 		end
 		imgui.NewLine();
 		-- Apply buffs offset Y
@@ -685,6 +687,8 @@ targetbar.DrawWindow = function(settings)
 				local totGradient = GetCustomGradient(gConfig.colorCustomization.totBar, 'hpGradient') or {'#e16c6c', '#fb9494'};
 				local totHpPercentData = HpInterpolation.update('tot', totEntity.HPPercent, totIndex, settings, currentTime, totGradient);
 				progressbar.ProgressBar(totHpPercentData, {settings.barWidth / 3, settings.totBarHeight}, {decorate = gConfig.showTargetBarBookends});
+				-- Submit a dummy item to properly extend window bounds after SetCursorScreenPos
+				imgui.Dummy({1, 1});
 
 				-- Dynamically set font height for ToT text
 				totNameText:set_font_height(settings.totName_font_settings.font_height);

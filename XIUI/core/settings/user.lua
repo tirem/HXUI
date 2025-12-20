@@ -28,18 +28,19 @@ function M.createUserSettingsDefaults()
         showPetBar = true,
         showCastCost = true,
         showNotifications = true,
-        showTreasurePool = true,
 
         -- Treasure Pool settings
         treasurePoolEnabled = true,           -- Show treasure pool when items in pool
-        treasurePoolShowTitle = true,         -- Show "Treasure Pool" header text
         treasurePoolShowTimerBar = true,      -- Show countdown progress bar
         treasurePoolShowTimerText = true,     -- Show timer text (countdown like "4:32")
         treasurePoolShowLots = true,          -- Show winning lot info
         treasurePoolFontSize = 10,            -- Font size for text
         treasurePoolScaleX = 1.0,             -- Horizontal scale
         treasurePoolScaleY = 1.0,             -- Vertical scale
-        treasurePoolOpacity = 0.87,           -- Background opacity
+        treasurePoolBgScale = 1.0,            -- Background texture scale
+        treasurePoolBorderScale = 1.0,        -- Border texture scale
+        treasurePoolBackgroundOpacity = 0.87, -- Background opacity
+        treasurePoolBorderOpacity = 1.0,      -- Border opacity
         treasurePoolBackgroundTheme = 'Plain', -- Background theme
         treasurePoolPreview = false,          -- Show preview with test data
         treasurePoolExpanded = false,         -- Expanded view (false = collapsed)

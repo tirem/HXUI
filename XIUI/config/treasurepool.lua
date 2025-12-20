@@ -20,7 +20,6 @@ end
 -- Ensure defaults exist before drawing (config may draw before module init)
 local function ensureDefaults()
     if gConfig.treasurePoolEnabled == nil then gConfig.treasurePoolEnabled = true; end
-    if gConfig.treasurePoolShowTitle == nil then gConfig.treasurePoolShowTitle = true; end
     if gConfig.treasurePoolShowTimerBar == nil then gConfig.treasurePoolShowTimerBar = true; end
     if gConfig.treasurePoolShowTimerText == nil then gConfig.treasurePoolShowTimerText = true; end
     if gConfig.treasurePoolShowLots == nil then gConfig.treasurePoolShowLots = true; end
@@ -34,7 +33,15 @@ local function ensureDefaults()
     if gConfig.treasurePoolScaleY == nil or gConfig.treasurePoolScaleY < 0.5 then
         gConfig.treasurePoolScaleY = 1.0;
     end
-    if gConfig.treasurePoolOpacity == nil then gConfig.treasurePoolOpacity = 0.87; end
+    -- Split background/border settings (like petbar)
+    if gConfig.treasurePoolBgScale == nil or gConfig.treasurePoolBgScale < 0.1 then
+        gConfig.treasurePoolBgScale = 1.0;
+    end
+    if gConfig.treasurePoolBorderScale == nil or gConfig.treasurePoolBorderScale < 0.1 then
+        gConfig.treasurePoolBorderScale = 1.0;
+    end
+    if gConfig.treasurePoolBackgroundOpacity == nil then gConfig.treasurePoolBackgroundOpacity = 0.87; end
+    if gConfig.treasurePoolBorderOpacity == nil then gConfig.treasurePoolBorderOpacity = 1.0; end
     if gConfig.treasurePoolBackgroundTheme == nil then gConfig.treasurePoolBackgroundTheme = 'Plain'; end
     if gConfig.treasurePoolExpanded == nil then gConfig.treasurePoolExpanded = false; end
 end
@@ -53,19 +60,11 @@ function M.DrawSettings()
     -- Ensure defaults before drawing sliders
     ensureDefaults();
 
-    components.DrawCheckbox('Enabled', 'showTreasurePool', CheckVisibility);
+    components.DrawCheckbox('Enabled', 'treasurePoolEnabled', CheckVisibility);
+    components.DrawCheckbox('Preview', 'treasurePoolPreview', onPreviewChanged);
 
     if components.CollapsingSection('Display Settings', true) then
-        components.DrawCheckbox('Show Treasure Pool', 'treasurePoolEnabled');
-        imgui.ShowHelp('Show treasure pool display when items are in pool');
-
-        imgui.SameLine();
-        components.DrawCheckbox('Preview', 'treasurePoolPreview', onPreviewChanged);
-
         if gConfig.treasurePoolEnabled then
-            components.DrawCheckbox('Show Title', 'treasurePoolShowTitle');
-            imgui.ShowHelp('Show "Treasure Pool" header text');
-
             components.DrawCheckbox('Show Timer Bar', 'treasurePoolShowTimerBar');
             imgui.ShowHelp('Show countdown progress bar on pool items');
 
@@ -85,36 +84,40 @@ function M.DrawSettings()
             imgui.ShowHelp('Horizontal scale factor');
             components.DrawSlider('Scale Y', 'treasurePoolScaleY', 0.5, 2.0, '%.1f');
             imgui.ShowHelp('Vertical scale factor');
-            components.DrawSlider('Background Opacity', 'treasurePoolOpacity', 0.0, 1.0, '%.2f');
-            imgui.ShowHelp('Background transparency (0 = transparent, 1 = opaque)');
-
-            -- Background theme dropdown
-            local themes = getBackgroundThemes();
-            local currentTheme = gConfig.treasurePoolBackgroundTheme or 'Plain';
-            if imgui.BeginCombo('Background Theme', currentTheme) then
-                for _, theme in ipairs(themes) do
-                    local isSelected = (theme == currentTheme);
-                    if imgui.Selectable(theme, isSelected) then
-                        gConfig.treasurePoolBackgroundTheme = theme;
-                        UpdateSettings();
-                    end
-                    if isSelected then
-                        imgui.SetItemDefaultFocus();
-                    end
-                end
-                imgui.EndCombo();
-            end
-            imgui.ShowHelp('Window background style (Plain = solid, Window1-8 = themed with borders)');
         end
     end
 
-    if components.CollapsingSection('Usage##treasurepool') then
-        imgui.TextDisabled('Window Controls:');
-        imgui.BulletText('[v]/[^] - Toggle expanded/collapsed view');
-        imgui.BulletText('Lot/Pass buttons - Act on all items');
-        imgui.BulletText('L/P buttons (expanded) - Act on single item');
-        imgui.Spacing();
-        imgui.TextDisabled('Chat Commands:');
+    if components.CollapsingSection('Background', false) then
+        -- Background theme dropdown
+        local themes = getBackgroundThemes();
+        local currentTheme = gConfig.treasurePoolBackgroundTheme or 'Plain';
+        if imgui.BeginCombo('Theme##treasurePoolBg', currentTheme) then
+            for _, theme in ipairs(themes) do
+                local isSelected = (theme == currentTheme);
+                if imgui.Selectable(theme, isSelected) then
+                    gConfig.treasurePoolBackgroundTheme = theme;
+                    UpdateSettings();
+                end
+                if isSelected then
+                    imgui.SetItemDefaultFocus();
+                end
+            end
+            imgui.EndCombo();
+        end
+        imgui.ShowHelp('Window background style (Plain = solid, Window1-8 = themed with borders)');
+
+        -- Scale/opacity sliders
+        components.DrawSlider('Background Scale##treasurePool', 'treasurePoolBgScale', 0.1, 3.0, '%.2f');
+        imgui.ShowHelp('Scale of the background texture.');
+        components.DrawSlider('Border Scale##treasurePool', 'treasurePoolBorderScale', 0.1, 3.0, '%.2f');
+        imgui.ShowHelp('Scale of the window borders (Window themes only).');
+        components.DrawSlider('Background Opacity##treasurePool', 'treasurePoolBackgroundOpacity', 0.0, 1.0, '%.2f');
+        imgui.ShowHelp('Opacity of the background.');
+        components.DrawSlider('Border Opacity##treasurePool', 'treasurePoolBorderOpacity', 0.0, 1.0, '%.2f');
+        imgui.ShowHelp('Opacity of the window borders (Window themes only).');
+    end
+
+    if components.CollapsingSection('Chat Commands##treasurepool') then
         imgui.BulletText('/xiui lotall - Lot on all items');
         imgui.BulletText('/xiui passall - Pass on all items');
     end

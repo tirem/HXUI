@@ -36,7 +36,7 @@ local M = {};
 -- ============================================
 
 local ICON_SIZE = 24;
-local ROW_HEIGHT = 28;
+local ROW_HEIGHT = 32;  -- Icon (24) + top offset (2) + gap (4) + bar (3) - 1
 local PADDING = 8;
 local ICON_TEXT_GAP = 6;
 local ROW_SPACING = 4;
@@ -204,11 +204,15 @@ function M.DrawWindow(settings)
     local fontSize = gConfig.treasurePoolFontSize;
     if fontSize == nil or fontSize < 8 then fontSize = 10; end
 
-    local showTitle = gConfig.treasurePoolShowTitle ~= false;
+    local showTitle = true;  -- Always show title
     local showTimerBar = gConfig.treasurePoolShowTimerBar ~= false;
     local showTimerText = gConfig.treasurePoolShowTimerText ~= false;
     local showLots = gConfig.treasurePoolShowLots ~= false;
-    local bgOpacity = gConfig.treasurePoolOpacity or 0.87;
+    -- Split background/border settings
+    local bgScale = gConfig.treasurePoolBgScale or 1.0;
+    local borderScale = gConfig.treasurePoolBorderScale or 1.0;
+    local bgOpacity = gConfig.treasurePoolBackgroundOpacity or 0.87;
+    local borderOpacity = gConfig.treasurePoolBorderOpacity or 1.0;
     local bgTheme = gConfig.treasurePoolBackgroundTheme or 'Plain';
     local isExpanded = gConfig.treasurePoolExpanded == true;
 
@@ -230,28 +234,19 @@ function M.DrawWindow(settings)
     for i, item in ipairs(poolItems) do
         local slot = item.slot;
         if isExpanded then
-            -- Gather members for this item
-            local members = {};
-            local lotters = data.GetLotters(slot);
-            local passers = data.GetPassers(slot);
-            local pending = data.GetPending(slot);
+            -- Get party members organized by party (A, B, C columns)
+            local partyData = data.GetMembersByParty(slot);
+            itemMemberData[slot] = partyData;
 
-            for _, lotter in ipairs(lotters) do
-                table.insert(members, { name = lotter.name, status = 'lotted', lot = lotter.lot });
-            end
-            for _, passer in ipairs(passers) do
-                table.insert(members, { name = passer.name, status = 'passed' });
-            end
-            for _, pendingMember in ipairs(pending) do
-                table.insert(members, { name = pendingMember.name, status = 'pending' });
-            end
+            -- Count active parties to determine column count
+            local numParties = 0;
+            if data.PartyHasMembers(partyData.partyA) then numParties = numParties + 1; end
+            if data.PartyHasMembers(partyData.partyB) then numParties = numParties + 1; end
+            if data.PartyHasMembers(partyData.partyC) then numParties = numParties + 1; end
+            if numParties < 1 then numParties = 1; end
 
-            itemMemberData[slot] = members;
-
-            -- Calculate rows needed (3 columns)
-            local memberCount = #members;
-            local memberRows = math.ceil(memberCount / 3);
-            if memberRows < 1 then memberRows = 1; end
+            -- Always 6 rows (one per party slot), columns = number of active parties
+            local memberRows = 6;
 
             -- Height = header + member rows + padding + progress bar
             local memberRowHeight = math.floor(EXPANDED_MEMBER_ROW_HEIGHT * scaleY);
@@ -343,7 +338,7 @@ function M.DrawWindow(settings)
             if loadedBgTheme ~= bgTheme then
                 loadedBgTheme = bgTheme;
                 pcall(function()
-                    windowBg.setTheme(bgPrimHandle, bgTheme, 1.0, 1.0);
+                    windowBg.setTheme(bgPrimHandle, bgTheme, bgScale, borderScale);
                 end);
             end
 
@@ -358,7 +353,10 @@ function M.DrawWindow(settings)
                 windowBg.update(bgPrimHandle, startX + padding, startY + padding, contentWidth, contentHeightTotal, {
                     theme = bgTheme,
                     padding = padding,
+                    bgScale = bgScale,
+                    borderScale = borderScale,
                     bgOpacity = bgOpacity,
+                    borderOpacity = borderOpacity,
                     bgColor = bgColor,
                 });
             end);
@@ -750,12 +748,20 @@ function M.DrawWindow(settings)
                 if data.passersFonts[slot] then data.passersFonts[slot]:set_visible(false); end
                 if data.pendingFonts[slot] then data.pendingFonts[slot]:set_visible(false); end
 
-                -- Use cached member data
-                local members = itemMemberData[slot] or {};
+                -- Use cached party data (organized by party A/B/C)
+                local partyData = itemMemberData[slot] or { partyA = {}, partyB = {}, partyC = {} };
 
-                -- Draw members in 3 columns
+                -- Determine which parties have members
+                local activeParties = {};
+                if data.PartyHasMembers(partyData.partyA) then table.insert(activeParties, partyData.partyA); end
+                if data.PartyHasMembers(partyData.partyB) then table.insert(activeParties, partyData.partyB); end
+                if data.PartyHasMembers(partyData.partyC) then table.insert(activeParties, partyData.partyC); end
+
+                -- Draw members: each party is a column, 6 rows per column
                 local memberFontSize = fontSize - 2;
-                local colWidth = math.floor((windowWidth - padding * 2 - itemPadding * 2) / 3);
+                local numCols = #activeParties;
+                if numCols < 1 then numCols = 1; end
+                local colWidth = math.floor((windowWidth - padding * 2 - itemPadding * 2) / numCols);
                 local memberRowHeightPx = math.floor(EXPANDED_MEMBER_ROW_HEIGHT * scaleY);
                 local headerRowHeight = math.floor(EXPANDED_ITEM_HEADER_HEIGHT * scaleY);
                 -- Content row must fit icon + small offset, use max of header or icon height
@@ -781,61 +787,66 @@ function M.DrawWindow(settings)
                 -- Get winning lot for this item to identify winner
                 local winningLot = item.winningLot or 0;
 
-                for idx, member in ipairs(members) do
-                    if idx > data.MAX_MEMBERS_PER_ITEM then break; end
+                -- Track font index for allocation
+                local fontIdx = 0;
 
-                    local memberIdx = idx - 1;
-                    local col = memberIdx % 3;
-                    local row = math.floor(memberIdx / 3);
+                -- Draw each party as a column
+                for col, partyMembers in ipairs(activeParties) do
+                    local colX = memberStartX + (col - 1) * colWidth;
 
-                    local memberX = memberStartX + col * colWidth;
-                    local memberY = memberStartY + row * memberRowHeightPx;
+                    -- Draw 6 rows for this party
+                    for row = 1, 6 do
+                        local member = partyMembers[row];
+                        local memberY = memberStartY + (row - 1) * memberRowHeightPx;
 
-                    local memberFont = data.memberFonts[slot] and data.memberFonts[slot][memberIdx];
-                    if memberFont then
-                        -- Check if this member font is within visible scroll area
-                        local memberVisible = isFontVisible(memberY, memberFontSize);
+                        local memberFont = data.memberFonts[slot] and data.memberFonts[slot][fontIdx];
+                        if memberFont then
+                            if member then
+                                -- Check if this member font is within visible scroll area
+                                local memberVisible = isFontVisible(memberY, memberFontSize);
 
-                        -- Format based on status:
-                        -- Winner: "Name: 123" (green) - highest lot
-                        -- Lotted: "Name: 123" (white) - other lotters
-                        -- Pending: "Name..." (yellow, animated)
-                        -- Passed: "Name: Passed" (grey)
-                        local displayText;
-                        local displayColor;
+                                -- Format based on status
+                                local displayText;
+                                local displayColor;
 
-                        if member.status == 'lotted' and member.lot then
-                            displayText = string.format('%s: %d', member.name, member.lot);
-                            -- Only winner gets green, others get white
-                            if member.lot == winningLot and winningLot > 0 then
-                                displayColor = COLOR_WINNER;
+                                if member.status == 'lotted' and member.lot then
+                                    displayText = string.format('%s: %d', member.name, member.lot);
+                                    -- Only winner gets green, others get white
+                                    if member.lot == winningLot and winningLot > 0 then
+                                        displayColor = COLOR_WINNER;
+                                    else
+                                        displayColor = COLOR_LOTTED;
+                                    end
+                                elseif member.status == 'pending' then
+                                    displayText = member.name .. pendingDots;
+                                    displayColor = COLOR_PENDING;
+                                else  -- passed
+                                    displayText = member.name .. ': Passed';
+                                    displayColor = COLOR_PASSED;
+                                end
+
+                                memberFont:set_font_height(memberFontSize);
+                                memberFont:set_text(displayText);
+                                memberFont:set_position_x(colX);
+                                memberFont:set_position_y(memberY);
+                                memberFont:set_visible(memberVisible);
+
+                                -- Update color only if visible (always update for pending due to animation)
+                                if memberVisible and (data.lastColors.members[slot][fontIdx] ~= displayColor or member.status == 'pending') then
+                                    memberFont:set_font_color(displayColor);
+                                    data.lastColors.members[slot][fontIdx] = displayColor;
+                                end
                             else
-                                displayColor = COLOR_LOTTED;
+                                -- Empty slot in party - hide font
+                                memberFont:set_visible(false);
                             end
-                        elseif member.status == 'pending' then
-                            displayText = member.name .. pendingDots;
-                            displayColor = COLOR_PENDING;
-                        else  -- passed
-                            displayText = member.name .. ': Passed';
-                            displayColor = COLOR_PASSED;
                         end
-
-                        memberFont:set_font_height(memberFontSize);
-                        memberFont:set_text(displayText);
-                        memberFont:set_position_x(memberX);
-                        memberFont:set_position_y(memberY);
-                        memberFont:set_visible(memberVisible);
-
-                        -- Update color only if visible (always update for pending due to animation)
-                        if memberVisible and (data.lastColors.members[slot][memberIdx] ~= displayColor or member.status == 'pending') then
-                            memberFont:set_font_color(displayColor);
-                            data.lastColors.members[slot][memberIdx] = displayColor;
-                        end
+                        fontIdx = fontIdx + 1;
                     end
                 end
 
-                -- Hide unused member fonts for this slot
-                for hideIdx = #members, data.MAX_MEMBERS_PER_ITEM - 1 do
+                -- Hide remaining unused member fonts for this slot
+                for hideIdx = fontIdx, data.MAX_MEMBERS_PER_ITEM - 1 do
                     local memberFont = data.memberFonts[slot] and data.memberFonts[slot][hideIdx];
                     if memberFont then
                         memberFont:set_visible(false);
@@ -965,8 +976,10 @@ end
 -- ============================================
 
 function M.Initialize(settings)
-    -- Get background theme from config (with default)
+    -- Get background theme and scales from config (with defaults)
     local bgTheme = gConfig.treasurePoolBackgroundTheme or 'Plain';
+    local bgScale = gConfig.treasurePoolBgScale or 1.0;
+    local borderScale = gConfig.treasurePoolBorderScale or 1.0;
     loadedBgTheme = bgTheme;
 
     -- Create background primitive (fonts created by init.lua)
@@ -977,15 +990,17 @@ function M.Initialize(settings)
         width = 100,
         height = 100,
     };
-    bgPrimHandle = windowBg.create(primData, bgTheme, 1.0, 1.0);
+    bgPrimHandle = windowBg.create(primData, bgTheme, bgScale, borderScale);
 end
 
 function M.UpdateVisuals(settings)
     -- Check if theme changed
     local bgTheme = gConfig.treasurePoolBackgroundTheme or 'Plain';
+    local bgScale = gConfig.treasurePoolBgScale or 1.0;
+    local borderScale = gConfig.treasurePoolBorderScale or 1.0;
     if loadedBgTheme ~= bgTheme and bgPrimHandle then
         loadedBgTheme = bgTheme;
-        windowBg.setTheme(bgPrimHandle, bgTheme, 1.0, 1.0);
+        windowBg.setTheme(bgPrimHandle, bgTheme, bgScale, borderScale);
     end
 end
 

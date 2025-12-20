@@ -233,7 +233,7 @@ uiModules.Register('notifications', {
 uiModules.Register('treasurePool', {
     module = treasurePool,
     settingsKey = 'treasurePoolSettings',
-    configKey = 'showTreasurePool',
+    configKey = 'treasurePoolEnabled',
     hasSetHidden = true,
 });
 
@@ -668,7 +668,7 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
         local entryName = entryNameRaw and entryNameRaw:match('^[^%z]+') or '';
 
         -- Route to treasure pool module for lot history tracking
-        if gConfig.showTreasurePool then
+        if gConfig.treasurePoolEnabled then
             treasurePool.HandleLotPacket(slot, entryServerId, entryName, entryFlg, entryLot,
                                          winnerServerId, winnerName, winnerLot, judgeFlg);
         end
