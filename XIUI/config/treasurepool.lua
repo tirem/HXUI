@@ -11,36 +11,32 @@ local treasurePool = require('modules.treasurepool.init');
 
 local M = {};
 
--- Preview toggle callbacks
-local function onMiniPreviewChanged()
-    treasurePool.SetMiniPreview(gConfig.treasurePoolMiniPreview);
-    SaveSettingsOnly();
-end
-
-local function onFullPreviewChanged()
-    treasurePool.SetFullPreview(gConfig.treasurePoolFullPreview);
+-- Preview toggle callback
+local function onPreviewChanged()
+    treasurePool.SetPreview(gConfig.treasurePoolPreview);
     SaveSettingsOnly();
 end
 
 -- Ensure defaults exist before drawing (config may draw before module init)
 local function ensureDefaults()
-    if gConfig.treasurePoolMiniEnabled == nil then gConfig.treasurePoolMiniEnabled = true; end
-    if gConfig.treasurePoolMiniShowTitle == nil then gConfig.treasurePoolMiniShowTitle = true; end
-    if gConfig.treasurePoolMiniShowTimerBar == nil then gConfig.treasurePoolMiniShowTimerBar = true; end
-    if gConfig.treasurePoolMiniShowTimerText == nil then gConfig.treasurePoolMiniShowTimerText = true; end
-    if gConfig.treasurePoolMiniShowLots == nil then gConfig.treasurePoolMiniShowLots = true; end
+    if gConfig.treasurePoolEnabled == nil then gConfig.treasurePoolEnabled = true; end
+    if gConfig.treasurePoolShowTitle == nil then gConfig.treasurePoolShowTitle = true; end
+    if gConfig.treasurePoolShowTimerBar == nil then gConfig.treasurePoolShowTimerBar = true; end
+    if gConfig.treasurePoolShowTimerText == nil then gConfig.treasurePoolShowTimerText = true; end
+    if gConfig.treasurePoolShowLots == nil then gConfig.treasurePoolShowLots = true; end
     -- Font size MUST be valid (slider min is 8)
-    if gConfig.treasurePoolMiniFontSize == nil or gConfig.treasurePoolMiniFontSize < 8 then
-        gConfig.treasurePoolMiniFontSize = 10;
+    if gConfig.treasurePoolFontSize == nil or gConfig.treasurePoolFontSize < 8 then
+        gConfig.treasurePoolFontSize = 10;
     end
-    if gConfig.treasurePoolMiniScaleX == nil or gConfig.treasurePoolMiniScaleX < 0.5 then
-        gConfig.treasurePoolMiniScaleX = 1.0;
+    if gConfig.treasurePoolScaleX == nil or gConfig.treasurePoolScaleX < 0.5 then
+        gConfig.treasurePoolScaleX = 1.0;
     end
-    if gConfig.treasurePoolMiniScaleY == nil or gConfig.treasurePoolMiniScaleY < 0.5 then
-        gConfig.treasurePoolMiniScaleY = 1.0;
+    if gConfig.treasurePoolScaleY == nil or gConfig.treasurePoolScaleY < 0.5 then
+        gConfig.treasurePoolScaleY = 1.0;
     end
-    if gConfig.treasurePoolMiniOpacity == nil then gConfig.treasurePoolMiniOpacity = 0.87; end
-    if gConfig.treasurePoolMiniBackgroundTheme == nil then gConfig.treasurePoolMiniBackgroundTheme = 'Plain'; end
+    if gConfig.treasurePoolOpacity == nil then gConfig.treasurePoolOpacity = 0.87; end
+    if gConfig.treasurePoolBackgroundTheme == nil then gConfig.treasurePoolBackgroundTheme = 'Plain'; end
+    if gConfig.treasurePoolExpanded == nil then gConfig.treasurePoolExpanded = false; end
 end
 
 -- Get available background themes
@@ -59,44 +55,47 @@ function M.DrawSettings()
 
     components.DrawCheckbox('Enabled', 'showTreasurePool', CheckVisibility);
 
-    if components.CollapsingSection('Mini Display', true) then
-        components.DrawCheckbox('Show Mini Display', 'treasurePoolMiniEnabled');
-        imgui.ShowHelp('Show compact treasure pool display when items are in pool');
+    if components.CollapsingSection('Display Settings', true) then
+        components.DrawCheckbox('Show Treasure Pool', 'treasurePoolEnabled');
+        imgui.ShowHelp('Show treasure pool display when items are in pool');
 
         imgui.SameLine();
-        components.DrawCheckbox('Preview##mini', 'treasurePoolMiniPreview', onMiniPreviewChanged);
+        components.DrawCheckbox('Preview', 'treasurePoolPreview', onPreviewChanged);
 
-        if gConfig.treasurePoolMiniEnabled then
-            components.DrawCheckbox('Show Title', 'treasurePoolMiniShowTitle');
+        if gConfig.treasurePoolEnabled then
+            components.DrawCheckbox('Show Title', 'treasurePoolShowTitle');
             imgui.ShowHelp('Show "Treasure Pool" header text');
 
-            components.DrawCheckbox('Show Timer Bar', 'treasurePoolMiniShowTimerBar');
+            components.DrawCheckbox('Show Timer Bar', 'treasurePoolShowTimerBar');
             imgui.ShowHelp('Show countdown progress bar on pool items');
 
-            components.DrawCheckbox('Show Timer Text', 'treasurePoolMiniShowTimerText');
+            components.DrawCheckbox('Show Timer Text', 'treasurePoolShowTimerText');
             imgui.ShowHelp('Show timer text (countdown like "4:32")');
 
-            components.DrawCheckbox('Show Lots', 'treasurePoolMiniShowLots');
+            components.DrawCheckbox('Show Lots', 'treasurePoolShowLots');
             imgui.ShowHelp('Show winning lot info');
 
+            components.DrawCheckbox('Start Expanded', 'treasurePoolExpanded');
+            imgui.ShowHelp('Start with expanded view showing all lot details');
+
             -- Size settings
-            components.DrawSlider('Text Size', 'treasurePoolMiniFontSize', 8, 16);
+            components.DrawSlider('Text Size', 'treasurePoolFontSize', 8, 16);
             imgui.ShowHelp('Font size for item names, timers, and lot info');
-            components.DrawSlider('Scale X', 'treasurePoolMiniScaleX', 0.5, 2.0, '%.1f');
+            components.DrawSlider('Scale X', 'treasurePoolScaleX', 0.5, 2.0, '%.1f');
             imgui.ShowHelp('Horizontal scale factor');
-            components.DrawSlider('Scale Y', 'treasurePoolMiniScaleY', 0.5, 2.0, '%.1f');
+            components.DrawSlider('Scale Y', 'treasurePoolScaleY', 0.5, 2.0, '%.1f');
             imgui.ShowHelp('Vertical scale factor');
-            components.DrawSlider('Background Opacity', 'treasurePoolMiniOpacity', 0.0, 1.0, '%.2f');
+            components.DrawSlider('Background Opacity', 'treasurePoolOpacity', 0.0, 1.0, '%.2f');
             imgui.ShowHelp('Background transparency (0 = transparent, 1 = opaque)');
 
             -- Background theme dropdown
             local themes = getBackgroundThemes();
-            local currentTheme = gConfig.treasurePoolMiniBackgroundTheme or 'Plain';
+            local currentTheme = gConfig.treasurePoolBackgroundTheme or 'Plain';
             if imgui.BeginCombo('Background Theme', currentTheme) then
                 for _, theme in ipairs(themes) do
                     local isSelected = (theme == currentTheme);
                     if imgui.Selectable(theme, isSelected) then
-                        gConfig.treasurePoolMiniBackgroundTheme = theme;
+                        gConfig.treasurePoolBackgroundTheme = theme;
                         UpdateSettings();
                     end
                     if isSelected then
@@ -109,20 +108,13 @@ function M.DrawSettings()
         end
     end
 
-    if components.CollapsingSection('Full Window##treasurepool') then
-        imgui.TextDisabled('Full treasure pool window with lot/pass controls');
-        imgui.TextDisabled('Toggle with /xiui treasure or /xiui pool');
+    if components.CollapsingSection('Usage##treasurepool') then
+        imgui.TextDisabled('Window Controls:');
+        imgui.BulletText('[v]/[^] - Toggle expanded/collapsed view');
+        imgui.BulletText('Lot/Pass buttons - Act on all items');
+        imgui.BulletText('L/P buttons (expanded) - Act on single item');
         imgui.Spacing();
-        components.DrawCheckbox('Preview##full', 'treasurePoolFullPreview', onFullPreviewChanged);
-        imgui.ShowHelp('Show full window preview with test items');
-    end
-
-    if components.CollapsingSection('Commands##treasurepool') then
-        imgui.TextDisabled('Toggle full window:');
-        imgui.BulletText('/xiui treasure');
-        imgui.BulletText('/xiui pool');
-        imgui.Spacing();
-        imgui.TextDisabled('Batch actions:');
+        imgui.TextDisabled('Chat Commands:');
         imgui.BulletText('/xiui lotall - Lot on all items');
         imgui.BulletText('/xiui passall - Pass on all items');
     end

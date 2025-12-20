@@ -1,14 +1,21 @@
 --[[
 * XIUI Treasure Pool - Display Module
-* Handles rendering of the treasure pool mini-display
+* Handles rendering of the treasure pool window
+* Supports collapsed (compact) and expanded (detailed) views
 * Fonts are created by init.lua and stored in data module
 *
-* Each item row displays:
+* Collapsed view (each item row):
 *   - Item icon (24x24, left-aligned)
 *   - Item name (after icon)
 *   - Highest lot info (middle-right)
 *   - Timer text (right-aligned)
 *   - Progress bar (bottom of row)
+*
+* Expanded view adds:
+*   - All lotters with lot values
+*   - Passers list
+*   - Pending party members
+*   - Individual lot/pass buttons
 ]]--
 
 require('common');
@@ -18,7 +25,9 @@ local ffi = require('ffi');
 local d3d8 = require('d3d8');
 local windowBg = require('libs.windowbackground');
 local progressbar = require('libs.progressbar');
+local button = require('libs.button');
 local data = require('modules.treasurepool.data');
+local actions = require('modules.treasurepool.actions');
 
 local M = {};
 
@@ -36,8 +45,6 @@ local BAR_HEIGHT = 3;
 -- ============================================
 -- State
 -- ============================================
-
-M.fullWindowVisible = false;
 
 -- Background primitive handle
 local bgPrimHandle = nil;
@@ -132,87 +139,234 @@ local function getTimerColor(remaining)
 end
 
 -- ============================================
--- Mini Display
+-- Treasure Pool Window
 -- ============================================
 
-function M.DrawMiniDisplay(settings)
+-- Constants for expanded view
+local EXPANDED_ITEM_HEADER_HEIGHT = 20;  -- Item name + timer row
+local EXPANDED_MEMBER_ROW_HEIGHT = 12;   -- Height per member row
+local EXPANDED_DETAIL_FONT_SIZE = 9;
+local EXPANDED_ITEM_PADDING = 8;         -- Internal padding for expanded items
+local EXPANDED_MAX_VISIBLE_ITEMS = 3;    -- Max items visible before scrolling
+
+-- Scroll state for expanded view
+local scrollOffset = 0;
+local maxScrollOffset = 0;
+
+-- Helper to build a comma-separated list of names with lots
+local function formatLottersList(lotters, maxChars)
+    if #lotters == 0 then return '(none)'; end
+    local parts = {};
+    local totalLen = 0;
+    for i, lotter in ipairs(lotters) do
+        local entry = string.format('%s (%d)', lotter.name, lotter.lot);
+        if totalLen + #entry > maxChars and i > 1 then
+            table.insert(parts, '...');
+            break;
+        end
+        table.insert(parts, entry);
+        totalLen = totalLen + #entry + 2;  -- +2 for ", "
+    end
+    return table.concat(parts, ', ');
+end
+
+-- Helper to build a comma-separated list of names
+local function formatNamesList(list, maxChars)
+    if #list == 0 then return '(none)'; end
+    local parts = {};
+    local totalLen = 0;
+    for i, item in ipairs(list) do
+        local name = item.name;
+        if totalLen + #name > maxChars and i > 1 then
+            table.insert(parts, '...');
+            break;
+        end
+        table.insert(parts, name);
+        totalLen = totalLen + #name + 2;
+    end
+    return table.concat(parts, ', ');
+end
+
+function M.DrawWindow(settings)
     local poolItems = data.GetSortedPoolItems();
     if #poolItems == 0 then
-        M.HideMiniDisplay();
+        M.HideWindow();
         return;
     end
 
     -- Get settings with validation
-    local scaleX = gConfig.treasurePoolMiniScaleX;
+    local scaleX = gConfig.treasurePoolScaleX;
     if scaleX == nil or scaleX < 0.5 then scaleX = 1.0; end
 
-    local scaleY = gConfig.treasurePoolMiniScaleY;
+    local scaleY = gConfig.treasurePoolScaleY;
     if scaleY == nil or scaleY < 0.5 then scaleY = 1.0; end
 
-    local fontSize = gConfig.treasurePoolMiniFontSize;
+    local fontSize = gConfig.treasurePoolFontSize;
     if fontSize == nil or fontSize < 8 then fontSize = 10; end
 
-    local showTitle = gConfig.treasurePoolMiniShowTitle ~= false;
-    local showTimerBar = gConfig.treasurePoolMiniShowTimerBar ~= false;
-    local showTimerText = gConfig.treasurePoolMiniShowTimerText ~= false;
-    local showLots = gConfig.treasurePoolMiniShowLots ~= false;
-    local bgOpacity = gConfig.treasurePoolMiniOpacity or 0.87;
-    local bgTheme = gConfig.treasurePoolMiniBackgroundTheme or 'Plain';
+    local showTitle = gConfig.treasurePoolShowTitle ~= false;
+    local showTimerBar = gConfig.treasurePoolShowTimerBar ~= false;
+    local showTimerText = gConfig.treasurePoolShowTimerText ~= false;
+    local showLots = gConfig.treasurePoolShowLots ~= false;
+    local bgOpacity = gConfig.treasurePoolOpacity or 0.87;
+    local bgTheme = gConfig.treasurePoolBackgroundTheme or 'Plain';
+    local isExpanded = gConfig.treasurePoolExpanded == true;
 
-    -- Calculate dimensions
+    -- Calculate dimensions (different for expanded vs collapsed)
     local iconSize = math.floor(ICON_SIZE * scaleY);
-    local rowHeight = math.floor(ROW_HEIGHT * scaleY);
-    local padding = PADDING;  -- Fixed 8px padding, not scaled
+    local padding = PADDING;
     local iconTextGap = math.floor(ICON_TEXT_GAP * scaleX);
     local rowSpacing = math.floor(ROW_SPACING * scaleY);
     local barHeight = math.floor(BAR_HEIGHT * scaleY);
-    local contentBaseWidth = math.floor(264 * scaleX);  -- Content area width (scales)
-    local windowWidth = contentBaseWidth + (padding * 2);  -- Total = content + 8px on each side
+
+    -- Fixed width for both expanded and collapsed views
+    local contentBaseWidth = math.floor(320 * scaleX);
+    local windowWidth = contentBaseWidth + (padding * 2);
+
+    -- Pre-calculate row heights and member data for expanded view
+    local itemRowHeights = {};
+    local itemMemberData = {};  -- Cache member data to avoid recalculating
+
+    for i, item in ipairs(poolItems) do
+        local slot = item.slot;
+        if isExpanded then
+            -- Gather members for this item
+            local members = {};
+            local lotters = data.GetLotters(slot);
+            local passers = data.GetPassers(slot);
+            local pending = data.GetPending(slot);
+
+            for _, lotter in ipairs(lotters) do
+                table.insert(members, { name = lotter.name, status = 'lotted', lot = lotter.lot });
+            end
+            for _, passer in ipairs(passers) do
+                table.insert(members, { name = passer.name, status = 'passed' });
+            end
+            for _, pendingMember in ipairs(pending) do
+                table.insert(members, { name = pendingMember.name, status = 'pending' });
+            end
+
+            itemMemberData[slot] = members;
+
+            -- Calculate rows needed (3 columns)
+            local memberCount = #members;
+            local memberRows = math.ceil(memberCount / 3);
+            if memberRows < 1 then memberRows = 1; end
+
+            -- Height = header + member rows + padding + progress bar
+            local memberRowHeight = math.floor(EXPANDED_MEMBER_ROW_HEIGHT * scaleY);
+            local itemPadding = math.floor(EXPANDED_ITEM_PADDING * scaleY);
+            local headerRowHeight = math.floor(EXPANDED_ITEM_HEADER_HEIGHT * scaleY);
+            -- Content row must fit icon (24px) + small offset, use max of header or icon height
+            local contentRowHeight = math.max(headerRowHeight, iconSize + 4);
+            local memberBarGap = 4;  -- Gap between member list and progress bar
+
+            itemRowHeights[i] = itemPadding + contentRowHeight + (memberRows * memberRowHeight) + memberBarGap + itemPadding + barHeight;
+        else
+            itemRowHeights[i] = math.floor(ROW_HEIGHT * scaleY);
+        end
+    end
+
+    -- Calculate total content height (all items)
+    local totalContentHeight = 0;
+    for i = 1, #poolItems do
+        totalContentHeight = totalContentHeight + itemRowHeights[i];
+        if i < #poolItems then
+            totalContentHeight = totalContentHeight + rowSpacing;
+        end
+    end
+
+    -- Calculate visible content height (limited in expanded view)
+    local visibleContentHeight = totalContentHeight;
+    local needsScroll = false;
+
+    if isExpanded and #poolItems > EXPANDED_MAX_VISIBLE_ITEMS then
+        -- Calculate height for first N items only
+        visibleContentHeight = 0;
+        for i = 1, EXPANDED_MAX_VISIBLE_ITEMS do
+            visibleContentHeight = visibleContentHeight + itemRowHeights[i];
+            if i < EXPANDED_MAX_VISIBLE_ITEMS then
+                visibleContentHeight = visibleContentHeight + rowSpacing;
+            end
+        end
+        needsScroll = true;
+        maxScrollOffset = totalContentHeight - visibleContentHeight;
+    else
+        scrollOffset = 0;
+        maxScrollOffset = 0;
+    end
 
     local headerHeight = 0;
     if showTitle then
         headerHeight = fontSize + math.floor(6 * scaleY);
     end
 
-    local contentHeight = #poolItems * rowHeight + (#poolItems - 1) * rowSpacing;
-    local totalHeight = padding + headerHeight + contentHeight + padding;
+    local headerItemGap = showTitle and 4 or 0;  -- Gap between header and items
+    local totalHeight = padding + headerHeight + headerItemGap + visibleContentHeight + padding;
 
-    -- Build window flags using helper from handlers.helpers
+    -- Build window flags
     local windowFlags = GetBaseWindowFlags(gConfig.lockPositions);
 
     imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
 
-    if imgui.Begin('TreasurePoolMini', true, windowFlags) then
-        -- Get cursor position as base for all positioning (consistent reference point)
+    if imgui.Begin('TreasurePool', true, windowFlags) then
         local startX, startY = imgui.GetCursorScreenPos();
         local drawList = imgui.GetBackgroundDrawList();
 
-        imgui.Dummy({windowWidth, totalHeight});
-
-        -- Check if theme changed and reload textures if needed (like petbar)
-        if loadedBgTheme ~= bgTheme and bgPrimHandle then
-            loadedBgTheme = bgTheme;
-            windowBg.setTheme(bgPrimHandle, bgTheme, 1.0, 1.0);
+        -- Safety check for draw list
+        if not drawList then
+            imgui.End();
+            return;
         end
 
-        -- Calculate content area (excluding padding)
-        local contentWidth = windowWidth - (padding * 2);
-        local contentHeightTotal = headerHeight + (#poolItems * rowHeight) + ((#poolItems - 1) * rowSpacing);
+        imgui.Dummy({windowWidth, totalHeight});
 
-        -- Update background: pass content position and let windowBg add padding
-        -- Content starts at (startX + padding, startY + padding)
+        -- Handle scroll input when hovering over window
+        if needsScroll and imgui.IsWindowHovered() then
+            local wheel = imgui.GetIO().MouseWheel;
+            if wheel ~= 0 then
+                local scrollSpeed = 30;  -- Pixels per scroll tick
+                scrollOffset = scrollOffset - (wheel * scrollSpeed);
+                -- Clamp scroll offset
+                if scrollOffset < 0 then scrollOffset = 0; end
+                if scrollOffset > maxScrollOffset then scrollOffset = maxScrollOffset; end
+            end
+        end
+
+        -- Calculate content area
+        local contentWidth = windowWidth - (padding * 2);
+        local contentHeightTotal = headerHeight + headerItemGap + visibleContentHeight;
+
+        -- Update background (with safety checks)
         if bgPrimHandle then
-            windowBg.update(bgPrimHandle, startX + padding, startY + padding, contentWidth, contentHeightTotal, {
-                theme = bgTheme,
-                padding = padding,
-                bgOpacity = bgOpacity,
-                bgColor = 0xFF1A1A1A,
-            });
+            -- Check if theme changed
+            if loadedBgTheme ~= bgTheme then
+                loadedBgTheme = bgTheme;
+                pcall(function()
+                    windowBg.setTheme(bgPrimHandle, bgTheme, 1.0, 1.0);
+                end);
+            end
+
+            pcall(function()
+                -- For themed backgrounds (Window1-8), use white so texture shows through
+                -- For Plain backgrounds, use dark color with opacity
+                local bgColor = 0xFFFFFFFF;  -- White (no tint) for themed backgrounds
+                if bgTheme == 'Plain' then
+                    bgColor = 0xFF1A1A1A;  -- Dark gray for plain background
+                end
+
+                windowBg.update(bgPrimHandle, startX + padding, startY + padding, contentWidth, contentHeightTotal, {
+                    theme = bgTheme,
+                    padding = padding,
+                    bgOpacity = bgOpacity,
+                    bgColor = bgColor,
+                });
+            end);
         end
 
         local y = startY + padding;
 
-        -- Draw header using data.headerFont
+        -- Draw header with expand/collapse toggle and lot/pass buttons
         if showTitle and data.headerFont then
             data.headerFont:set_font_height(fontSize);
             data.headerFont:set_text('Treasure Pool');
@@ -225,67 +379,229 @@ function M.DrawMiniDisplay(settings)
                 data.lastColors.header = 0xFFFFFFFF;
             end
 
-            y = y + headerHeight;
-        elseif data.headerFont then
-            data.headerFont:set_visible(false);
+            -- Button sizing (uses fontSize from config)
+            local btnHeight = fontSize + 6;
+            local btnY = y - 1;
+            local btnSpacing = 4;
+            local toggleSize = btnHeight;  -- Square for arrow
+            local textBtnWidth = fontSize * 4;  -- Wider for "Lot All" / "Pass All" text
+
+            -- Get title width for positioning buttons after it
+            local titleWidth, _ = data.headerFont:get_text_size();
+            titleWidth = titleWidth or (fontSize * 7);  -- Fallback estimate
+
+            -- Position: [Title] [Lot] [Pass] ... [Toggle]
+            local lotAllX = startX + padding + titleWidth + btnSpacing;
+            local passAllX = lotAllX + textBtnWidth + btnSpacing;
+            local toggleX = startX + windowWidth - padding - toggleSize;
+
+            -- Draw expand/collapse arrow button using primitive
+            local arrowDirection = isExpanded and 'up' or 'down';
+            local toggleClicked = button.DrawArrowPrim('tpToggle', toggleX, btnY, toggleSize, arrowDirection, {
+                colors = button.COLORS_NEUTRAL,
+                tooltip = isExpanded and 'Collapse' or 'Expand',
+            }, imgui.GetForegroundDrawList());
+            if toggleClicked then
+                gConfig.treasurePoolExpanded = not gConfig.treasurePoolExpanded;
+                scrollOffset = 0;  -- Reset scroll when toggling
+                SaveSettingsToDisk();
+            end
+
+            -- Draw Pass All button (negative/red) using primitive
+            local passAllClicked = button.DrawPrim('tpPassAll', passAllX, btnY, textBtnWidth, btnHeight, {
+                colors = button.COLORS_NEGATIVE,
+                tooltip = 'Pass on all items',
+            });
+            if passAllClicked then
+                actions.PassAll();
+            end
+
+            -- Draw Pass All label (GDI font renders on top of primitive)
+            if data.passAllFont then
+                data.passAllFont:set_font_height(fontSize);
+                data.passAllFont:set_text('Pass All');
+                local passTextW, passTextH = data.passAllFont:get_text_size();
+                passTextW = passTextW or (fontSize * 2.5);
+                passTextH = passTextH or fontSize;
+                data.passAllFont:set_position_x(passAllX + (textBtnWidth - passTextW) / 2);
+                data.passAllFont:set_position_y(btnY + (btnHeight - passTextH) / 2);
+                data.passAllFont:set_visible(true);
+                if data.lastColors.passAll ~= 0xFFFFFFFF then
+                    data.passAllFont:set_font_color(0xFFFFFFFF);
+                    data.lastColors.passAll = 0xFFFFFFFF;
+                end
+            end
+
+            -- Draw Lot All button (positive/green) using primitive
+            local lotAllClicked = button.DrawPrim('tpLotAll', lotAllX, btnY, textBtnWidth, btnHeight, {
+                colors = button.COLORS_POSITIVE,
+                tooltip = 'Lot on all items',
+            });
+            if lotAllClicked then
+                actions.LotAll();
+            end
+
+            -- Draw Lot All label (GDI font renders on top of primitive)
+            if data.lotAllFont then
+                data.lotAllFont:set_font_height(fontSize);
+                data.lotAllFont:set_text('Lot All');
+                local lotTextW, lotTextH = data.lotAllFont:get_text_size();
+                lotTextW = lotTextW or (fontSize * 2);
+                lotTextH = lotTextH or fontSize;
+                data.lotAllFont:set_position_x(lotAllX + (textBtnWidth - lotTextW) / 2);
+                data.lotAllFont:set_position_y(btnY + (btnHeight - lotTextH) / 2);
+                data.lotAllFont:set_visible(true);
+                if data.lastColors.lotAll ~= 0xFFFFFFFF then
+                    data.lotAllFont:set_font_color(0xFFFFFFFF);
+                    data.lastColors.lotAll = 0xFFFFFFFF;
+                end
+            end
+
+            -- Hide toggle font (not needed, using arrow button)
+            if data.toggleFont then data.toggleFont:set_visible(false); end
+
+            y = y + headerHeight + 4;  -- Add padding between header and items
+        else
+            -- Hide header fonts when title not shown
+            if data.headerFont then data.headerFont:set_visible(false); end
+            if data.toggleFont then data.toggleFont:set_visible(false); end
+            if data.lotAllFont then data.lotAllFont:set_visible(false); end
+            if data.passAllFont then data.passAllFont:set_visible(false); end
         end
 
         local usedSlots = {};
+        local currentY = y;  -- Track cumulative Y position (before scroll)
+
+        -- Calculate visible region for clipping (in expanded scroll mode)
+        -- clipTop starts exactly where items begin (after header)
+        -- clipBottom is exactly the height of visible items below clipTop
+        local itemAreaTop = y;
+        local itemAreaBottom = y + visibleContentHeight;
+
+        -- Push clip rect for scrollable area (only affects ImGui draw list, not GDI fonts)
+        if needsScroll then
+            drawList:PushClipRect(
+                {startX, itemAreaTop},
+                {startX + windowWidth, itemAreaBottom},
+                true
+            );
+        end
 
         -- Draw each item row
         for i, item in ipairs(poolItems) do
             local slot = item.slot;
             usedSlots[slot] = true;
 
-            local rowY = y + (i - 1) * (rowHeight + rowSpacing);
+            local rowHeight = itemRowHeights[i];
+
+            -- Apply scroll offset in expanded mode
+            local rowY = currentY;
+            if needsScroll then
+                rowY = currentY - scrollOffset;
+            end
+
+            -- Check if item overlaps visible region at all (for ImGui elements which clip properly)
+            local itemTop = rowY;
+            local itemBottom = rowY + rowHeight;
+            local hasAnyOverlap = not needsScroll or (itemBottom > itemAreaTop and itemTop < itemAreaBottom);
+
             local remaining = data.GetTimeRemaining(slot);
             local progress = remaining / data.POOL_TIMEOUT_SECONDS;
+
+            -- Update currentY for next item (before any visibility checks)
+            currentY = currentY + rowHeight + rowSpacing;
+
+            -- Skip rendering if item has no overlap with visible region at all
+            if not hasAnyOverlap then
+                -- Hide fonts and buttons for this slot
+                if data.itemNameFonts[slot] then data.itemNameFonts[slot]:set_visible(false); end
+                if data.timerFonts[slot] then data.timerFonts[slot]:set_visible(false); end
+                if data.lotFonts[slot] then data.lotFonts[slot]:set_visible(false); end
+                if data.lotItemFonts[slot] then data.lotItemFonts[slot]:set_visible(false); end
+                if data.passItemFonts[slot] then data.passItemFonts[slot]:set_visible(false); end
+                if data.memberFonts[slot] then
+                    for memberIdx = 0, data.MAX_MEMBERS_PER_ITEM - 1 do
+                        if data.memberFonts[slot][memberIdx] then
+                            data.memberFonts[slot][memberIdx]:set_visible(false);
+                        end
+                    end
+                end
+                button.HidePrim(string.format('tpLotItem%d', slot));
+                button.HidePrim(string.format('tpPassItem%d', slot));
+            else
+                -- Item has some overlap with visible region, render it
+                -- ImGui elements will be clipped automatically by the clip rect
+                -- GDI fonts need per-element visibility checks based on their Y position
+
+            -- Draw border around item row in expanded view
+            local itemPadding = 0;  -- Internal padding for content within border
+            if isExpanded then
+                itemPadding = math.floor(EXPANDED_ITEM_PADDING * scaleY);
+                local borderX1 = startX + padding;
+                local borderY1 = rowY;
+                local borderX2 = startX + windowWidth - padding;
+                local borderY2 = rowY + rowHeight;
+                local borderColor = imgui.GetColorU32({1.0, 1.0, 1.0, 0.2});
+                drawList:AddRect({borderX1, borderY1}, {borderX2, borderY2}, borderColor, 4.0, ImDrawCornerFlags_All, 1.0);
+            end
 
             -- 1. Draw item icon
             local iconTexture = loadItemIcon(item.itemId);
             local iconPtr = getIconPtr(iconTexture);
-            local iconX = startX + padding;
-            local iconY = rowY + (rowHeight - barHeight - iconSize) / 2;
+            local iconX = startX + padding + itemPadding;
+            local iconY = rowY + 2 + itemPadding;  -- Align to top of row with padding
 
             if iconPtr then
                 drawList:AddImage(iconPtr, {iconX, iconY}, {iconX + iconSize, iconY + iconSize});
             end
 
             local textStartX = iconX + iconSize + iconTextGap;
-            local textY = rowY + (rowHeight - barHeight - fontSize) / 2;
+            local textY = rowY + 2 + itemPadding;
 
-            -- 2. Draw item name using data.itemNameFonts[slot]
+            -- Helper to check if a font at Y position is within visible area
+            local function isFontVisible(fontY, fontHeight)
+                if not needsScroll then return true; end
+                local fontBottom = fontY + (fontHeight or fontSize);
+                return fontBottom > itemAreaTop and fontY < itemAreaBottom;
+            end
+
+            -- 2. Draw item name
             local nameFont = data.itemNameFonts[slot];
             if nameFont then
+                local nameVisible = isFontVisible(textY, fontSize);
                 nameFont:set_font_height(fontSize);
                 nameFont:set_text(item.itemName or 'Unknown');
                 nameFont:set_position_x(textStartX);
                 nameFont:set_position_y(textY);
-                nameFont:set_visible(true);
+                nameFont:set_visible(nameVisible);
 
-                if data.lastColors.itemNames[slot] ~= 0xFFFFFFFF then
+                if nameVisible and data.lastColors.itemNames[slot] ~= 0xFFFFFFFF then
                     nameFont:set_font_color(0xFFFFFFFF);
                     data.lastColors.itemNames[slot] = 0xFFFFFFFF;
                 end
             end
 
-            -- 3. Draw timer text using data.timerFonts[slot]
+            -- 3. Draw timer text
             if showTimerText then
                 local timerFont = data.timerFonts[slot];
                 if timerFont then
+                    local timerVisible = isFontVisible(textY, fontSize);
                     local timerText = data.FormatTime(remaining);
                     timerFont:set_font_height(fontSize);
                     timerFont:set_text(timerText);
 
                     local timerWidth, _ = timerFont:get_text_size();
-                    timerFont:set_position_x(startX + windowWidth - padding - timerWidth);
+                    timerWidth = timerWidth or 0;
+                    timerFont:set_position_x(startX + windowWidth - padding - itemPadding - timerWidth);
                     timerFont:set_position_y(textY);
-                    timerFont:set_visible(true);
+                    timerFont:set_visible(timerVisible);
 
-                    local timerColor = getTimerColor(remaining);
-                    if data.lastColors.timers[slot] ~= timerColor then
-                        timerFont:set_font_color(timerColor);
-                        data.lastColors.timers[slot] = timerColor;
+                    if timerVisible then
+                        local timerColor = getTimerColor(remaining);
+                        if data.lastColors.timers[slot] ~= timerColor then
+                            timerFont:set_font_color(timerColor);
+                            data.lastColors.timers[slot] = timerColor;
+                        end
                     end
                 end
             else
@@ -294,43 +610,245 @@ function M.DrawMiniDisplay(settings)
                 end
             end
 
-            -- 4. Draw lot info using data.lotFonts[slot]
-            if showLots and item.winningLot and item.winningLot > 0 and nameFont then
-                local lotFont = data.lotFonts[slot];
-                if lotFont then
-                    local lotterName = item.winningLotterName or '?';
-                    if #lotterName > 10 then
-                        lotterName = lotterName:sub(1, 8) .. '..';
+            -- 4. Draw per-item Lot/Pass buttons (expanded view only)
+            if isExpanded then
+                local itemBtnHeight = fontSize + 4;
+                local itemBtnWidth = fontSize * 2.5;
+                local itemBtnSpacing = 4;
+                local itemBtnY = textY - 1;
+
+                -- Check if button area is visible
+                local btnVisible = isFontVisible(itemBtnY, itemBtnHeight);
+
+                -- Position buttons to the left of the timer
+                local timerWidth = 0;
+                if showTimerText and data.timerFonts[slot] then
+                    timerWidth, _ = data.timerFonts[slot]:get_text_size();
+                    timerWidth = timerWidth or (fontSize * 3);
+                end
+
+                local passBtnX = startX + windowWidth - padding - itemPadding - timerWidth - itemBtnSpacing - itemBtnWidth;
+                local lotBtnX = passBtnX - itemBtnSpacing - itemBtnWidth;
+
+                if btnVisible then
+                    -- Draw Lot button for this item
+                    local lotBtnId = string.format('tpLotItem%d', slot);
+                    local lotItemClicked = button.DrawPrim(lotBtnId, lotBtnX, itemBtnY, itemBtnWidth, itemBtnHeight, {
+                        colors = button.COLORS_POSITIVE,
+                        tooltip = 'Lot on this item',
+                    });
+                    if lotItemClicked then
+                        actions.LotItem(slot);
                     end
-                    local lotText = string.format('%s: %d', lotterName, item.winningLot);
 
-                    lotFont:set_font_height(fontSize - 1);
-                    lotFont:set_text(lotText);
+                    -- Draw Lot button label
+                    if data.lotItemFonts[slot] then
+                        data.lotItemFonts[slot]:set_font_height(fontSize - 1);
+                        data.lotItemFonts[slot]:set_text('Lot');
+                        local lotTextW, lotTextH = data.lotItemFonts[slot]:get_text_size();
+                        lotTextW = lotTextW or (fontSize * 1.5);
+                        lotTextH = lotTextH or fontSize;
+                        data.lotItemFonts[slot]:set_position_x(lotBtnX + (itemBtnWidth - lotTextW) / 2);
+                        data.lotItemFonts[slot]:set_position_y(itemBtnY + (itemBtnHeight - lotTextH) / 2);
+                        data.lotItemFonts[slot]:set_visible(true);
+                        if data.lastColors.lotItems[slot] ~= 0xFFFFFFFF then
+                            data.lotItemFonts[slot]:set_font_color(0xFFFFFFFF);
+                            data.lastColors.lotItems[slot] = 0xFFFFFFFF;
+                        end
+                    end
 
-                    local nameWidth, _ = nameFont:get_text_size();
-                    local lotX = textStartX + nameWidth + math.floor(10 * scaleX);
-                    lotFont:set_position_x(lotX);
-                    lotFont:set_position_y(textY);
-                    lotFont:set_visible(true);
+                    -- Draw Pass button for this item
+                    local passBtnId = string.format('tpPassItem%d', slot);
+                    local passItemClicked = button.DrawPrim(passBtnId, passBtnX, itemBtnY, itemBtnWidth, itemBtnHeight, {
+                        colors = button.COLORS_NEGATIVE,
+                        tooltip = 'Pass on this item',
+                    });
+                    if passItemClicked then
+                        actions.PassItem(slot);
+                    end
 
-                    if data.lastColors.lots[slot] ~= 0xFF88FF88 then
-                        lotFont:set_font_color(0xFF88FF88);
-                        data.lastColors.lots[slot] = 0xFF88FF88;
+                    -- Draw Pass button label
+                    if data.passItemFonts[slot] then
+                        data.passItemFonts[slot]:set_font_height(fontSize - 1);
+                        data.passItemFonts[slot]:set_text('Pass');
+                        local passTextW, passTextH = data.passItemFonts[slot]:get_text_size();
+                        passTextW = passTextW or (fontSize * 2);
+                        passTextH = passTextH or fontSize;
+                        data.passItemFonts[slot]:set_position_x(passBtnX + (itemBtnWidth - passTextW) / 2);
+                        data.passItemFonts[slot]:set_position_y(itemBtnY + (itemBtnHeight - passTextH) / 2);
+                        data.passItemFonts[slot]:set_visible(true);
+                        if data.lastColors.passItems[slot] ~= 0xFFFFFFFF then
+                            data.passItemFonts[slot]:set_font_color(0xFFFFFFFF);
+                            data.lastColors.passItems[slot] = 0xFFFFFFFF;
+                        end
+                    end
+                else
+                    -- Hide buttons when outside visible area
+                    button.HidePrim(string.format('tpLotItem%d', slot));
+                    button.HidePrim(string.format('tpPassItem%d', slot));
+                    if data.lotItemFonts[slot] then data.lotItemFonts[slot]:set_visible(false); end
+                    if data.passItemFonts[slot] then data.passItemFonts[slot]:set_visible(false); end
+                end
+            else
+                -- Hide per-item button primitives when collapsed
+                button.HidePrim(string.format('tpLotItem%d', slot));
+                button.HidePrim(string.format('tpPassItem%d', slot));
+            end
+
+            -- 5. Draw lot info (collapsed: inline; expanded: hidden)
+            if not isExpanded then
+                -- Collapsed view: show winning lot inline with name
+                if showLots and item.winningLot and item.winningLot > 0 and nameFont then
+                    local lotFont = data.lotFonts[slot];
+                    if lotFont then
+                        local lotterName = item.winningLotterName or '?';
+                        if #lotterName > 10 then
+                            lotterName = lotterName:sub(1, 8) .. '..';
+                        end
+                        local lotText = string.format('%s: %d', lotterName, item.winningLot);
+
+                        lotFont:set_font_height(fontSize - 1);
+                        lotFont:set_text(lotText);
+
+                        local nameWidth, _ = nameFont:get_text_size();
+                        nameWidth = nameWidth or 0;
+                        local lotX = textStartX + nameWidth + math.floor(10 * scaleX);
+                        lotFont:set_position_x(lotX);
+                        lotFont:set_position_y(textY);
+                        lotFont:set_visible(true);
+
+                        if data.lastColors.lots[slot] ~= 0xFF88FF88 then
+                            lotFont:set_font_color(0xFF88FF88);
+                            data.lastColors.lots[slot] = 0xFF88FF88;
+                        end
+                    end
+                else
+                    if data.lotFonts[slot] then
+                        data.lotFonts[slot]:set_visible(false);
+                    end
+                end
+
+                -- Hide expanded view fonts when collapsed
+                if data.lottersFonts[slot] then data.lottersFonts[slot]:set_visible(false); end
+                if data.passersFonts[slot] then data.passersFonts[slot]:set_visible(false); end
+                if data.pendingFonts[slot] then data.pendingFonts[slot]:set_visible(false); end
+                if data.lotItemFonts[slot] then data.lotItemFonts[slot]:set_visible(false); end
+                if data.passItemFonts[slot] then data.passItemFonts[slot]:set_visible(false); end
+                -- Hide member fonts when collapsed
+                if data.memberFonts[slot] then
+                    for memberIdx = 0, data.MAX_MEMBERS_PER_ITEM - 1 do
+                        if data.memberFonts[slot][memberIdx] then
+                            data.memberFonts[slot][memberIdx]:set_visible(false);
+                        end
                     end
                 end
             else
-                if data.lotFonts[slot] then
-                    data.lotFonts[slot]:set_visible(false);
+                -- Expanded view: show member list with lot status
+                -- Hide unused fonts (lotItemFonts/passItemFonts are shown via button section above)
+                if data.lotFonts[slot] then data.lotFonts[slot]:set_visible(false); end
+                if data.lottersFonts[slot] then data.lottersFonts[slot]:set_visible(false); end
+                if data.passersFonts[slot] then data.passersFonts[slot]:set_visible(false); end
+                if data.pendingFonts[slot] then data.pendingFonts[slot]:set_visible(false); end
+
+                -- Use cached member data
+                local members = itemMemberData[slot] or {};
+
+                -- Draw members in 3 columns
+                local memberFontSize = fontSize - 2;
+                local colWidth = math.floor((windowWidth - padding * 2 - itemPadding * 2) / 3);
+                local memberRowHeightPx = math.floor(EXPANDED_MEMBER_ROW_HEIGHT * scaleY);
+                local headerRowHeight = math.floor(EXPANDED_ITEM_HEADER_HEIGHT * scaleY);
+                -- Content row must fit icon + small offset, use max of header or icon height
+                local contentRowHeight = math.max(headerRowHeight, iconSize + 4);
+                local memberStartY = rowY + itemPadding + contentRowHeight;
+                local memberStartX = startX + padding + itemPadding;
+
+                -- Animate pending dots (cycles every 0.5s)
+                local dotCycle = math.floor(os.clock() * 2) % 3;
+                local pendingDots = string.rep('.', dotCycle + 1);
+
+                -- Initialize color cache for this slot if needed
+                if not data.lastColors.members[slot] then
+                    data.lastColors.members[slot] = {};
+                end
+
+                -- Status colors
+                local COLOR_WINNER = 0xFF88FF88;   -- Green for winner (highest lot)
+                local COLOR_LOTTED = 0xFFFFFFFF;   -- White for other lotters
+                local COLOR_PENDING = 0xFFFFFF88;  -- Yellow for pending
+                local COLOR_PASSED = 0xFFAAAAAA;   -- Grey for passed
+
+                -- Get winning lot for this item to identify winner
+                local winningLot = item.winningLot or 0;
+
+                for idx, member in ipairs(members) do
+                    if idx > data.MAX_MEMBERS_PER_ITEM then break; end
+
+                    local memberIdx = idx - 1;
+                    local col = memberIdx % 3;
+                    local row = math.floor(memberIdx / 3);
+
+                    local memberX = memberStartX + col * colWidth;
+                    local memberY = memberStartY + row * memberRowHeightPx;
+
+                    local memberFont = data.memberFonts[slot] and data.memberFonts[slot][memberIdx];
+                    if memberFont then
+                        -- Check if this member font is within visible scroll area
+                        local memberVisible = isFontVisible(memberY, memberFontSize);
+
+                        -- Format based on status:
+                        -- Winner: "Name: 123" (green) - highest lot
+                        -- Lotted: "Name: 123" (white) - other lotters
+                        -- Pending: "Name..." (yellow, animated)
+                        -- Passed: "Name: Passed" (grey)
+                        local displayText;
+                        local displayColor;
+
+                        if member.status == 'lotted' and member.lot then
+                            displayText = string.format('%s: %d', member.name, member.lot);
+                            -- Only winner gets green, others get white
+                            if member.lot == winningLot and winningLot > 0 then
+                                displayColor = COLOR_WINNER;
+                            else
+                                displayColor = COLOR_LOTTED;
+                            end
+                        elseif member.status == 'pending' then
+                            displayText = member.name .. pendingDots;
+                            displayColor = COLOR_PENDING;
+                        else  -- passed
+                            displayText = member.name .. ': Passed';
+                            displayColor = COLOR_PASSED;
+                        end
+
+                        memberFont:set_font_height(memberFontSize);
+                        memberFont:set_text(displayText);
+                        memberFont:set_position_x(memberX);
+                        memberFont:set_position_y(memberY);
+                        memberFont:set_visible(memberVisible);
+
+                        -- Update color only if visible (always update for pending due to animation)
+                        if memberVisible and (data.lastColors.members[slot][memberIdx] ~= displayColor or member.status == 'pending') then
+                            memberFont:set_font_color(displayColor);
+                            data.lastColors.members[slot][memberIdx] = displayColor;
+                        end
+                    end
+                end
+
+                -- Hide unused member fonts for this slot
+                for hideIdx = #members, data.MAX_MEMBERS_PER_ITEM - 1 do
+                    local memberFont = data.memberFonts[slot] and data.memberFonts[slot][hideIdx];
+                    if memberFont then
+                        memberFont:set_visible(false);
+                    end
                 end
             end
 
-            -- 5. Draw progress bar using progressbar library
+            -- 5. Draw progress bar
             if showTimerBar then
-                local barY = rowY + rowHeight - barHeight;
-                local barStartX = startX + padding;
-                local barWidth = windowWidth - padding * 2;
+                local barY = rowY + rowHeight - barHeight - itemPadding;
+                local barStartX = startX + padding + itemPadding;
+                local barWidth = windowWidth - padding * 2 - itemPadding * 2;
 
-                -- Get gradient based on remaining time
                 local timerGradient = getTimerGradient(remaining);
 
                 progressbar.ProgressBar(
@@ -343,29 +861,98 @@ function M.DrawMiniDisplay(settings)
                     }
                 );
             end
+            end  -- end isVisible check
         end
 
-        -- Hide fonts for unused slots
+        -- Pop clip rect after drawing items
+        if needsScroll then
+            drawList:PopClipRect();
+
+            -- Draw scroll indicator (shows position in list)
+            local scrollBarWidth = 4;
+            local scrollBarX = startX + windowWidth - padding - scrollBarWidth;
+            local scrollBarHeight = visibleContentHeight;
+            local scrollThumbHeight = math.max(20, scrollBarHeight * (visibleContentHeight / totalContentHeight));
+            local scrollThumbY = itemAreaTop;
+            if maxScrollOffset > 0 then
+                scrollThumbY = itemAreaTop + (scrollOffset / maxScrollOffset) * (scrollBarHeight - scrollThumbHeight);
+            end
+
+            -- Draw scroll track (dark)
+            local trackColor = imgui.GetColorU32({0.2, 0.2, 0.2, 0.5});
+            drawList:AddRectFilled({scrollBarX, itemAreaTop}, {scrollBarX + scrollBarWidth, itemAreaBottom}, trackColor, 2.0);
+
+            -- Draw scroll thumb (light)
+            local thumbColor = imgui.GetColorU32({0.6, 0.6, 0.6, 0.8});
+            drawList:AddRectFilled({scrollBarX, scrollThumbY}, {scrollBarX + scrollBarWidth, scrollThumbY + scrollThumbHeight}, thumbColor, 2.0);
+        end
+
+        -- Hide fonts and buttons for unused slots
         for slot = 0, data.MAX_POOL_SLOTS - 1 do
             if not usedSlots[slot] then
                 if data.itemNameFonts[slot] then data.itemNameFonts[slot]:set_visible(false); end
                 if data.timerFonts[slot] then data.timerFonts[slot]:set_visible(false); end
                 if data.lotFonts[slot] then data.lotFonts[slot]:set_visible(false); end
+                -- Expanded view fonts
+                if data.lottersFonts[slot] then data.lottersFonts[slot]:set_visible(false); end
+                if data.passersFonts[slot] then data.passersFonts[slot]:set_visible(false); end
+                if data.pendingFonts[slot] then data.pendingFonts[slot]:set_visible(false); end
+                if data.lotItemFonts[slot] then data.lotItemFonts[slot]:set_visible(false); end
+                if data.passItemFonts[slot] then data.passItemFonts[slot]:set_visible(false); end
+                -- Member fonts
+                if data.memberFonts[slot] then
+                    for memberIdx = 0, data.MAX_MEMBERS_PER_ITEM - 1 do
+                        if data.memberFonts[slot][memberIdx] then
+                            data.memberFonts[slot][memberIdx]:set_visible(false);
+                        end
+                    end
+                end
+                -- Per-item button primitives
+                button.HidePrim(string.format('tpLotItem%d', slot));
+                button.HidePrim(string.format('tpPassItem%d', slot));
             end
         end
     end
     imgui.End();
 end
 
-function M.HideMiniDisplay()
-    if data.headerFont then
-        data.headerFont:set_visible(false);
-    end
+function M.HideWindow()
+    -- Hide header fonts
+    if data.headerFont then data.headerFont:set_visible(false); end
+    if data.toggleFont then data.toggleFont:set_visible(false); end
+    if data.lotAllFont then data.lotAllFont:set_visible(false); end
+    if data.passAllFont then data.passAllFont:set_visible(false); end
 
+    -- Hide per-slot fonts
     for slot = 0, data.MAX_POOL_SLOTS - 1 do
         if data.itemNameFonts[slot] then data.itemNameFonts[slot]:set_visible(false); end
         if data.timerFonts[slot] then data.timerFonts[slot]:set_visible(false); end
         if data.lotFonts[slot] then data.lotFonts[slot]:set_visible(false); end
+        -- Expanded view fonts
+        if data.lottersFonts[slot] then data.lottersFonts[slot]:set_visible(false); end
+        if data.passersFonts[slot] then data.passersFonts[slot]:set_visible(false); end
+        if data.pendingFonts[slot] then data.pendingFonts[slot]:set_visible(false); end
+        if data.lotItemFonts[slot] then data.lotItemFonts[slot]:set_visible(false); end
+        if data.passItemFonts[slot] then data.passItemFonts[slot]:set_visible(false); end
+        -- Member fonts
+        if data.memberFonts[slot] then
+            for memberIdx = 0, data.MAX_MEMBERS_PER_ITEM - 1 do
+                if data.memberFonts[slot][memberIdx] then
+                    data.memberFonts[slot][memberIdx]:set_visible(false);
+                end
+            end
+        end
+    end
+
+    -- Hide primitive buttons
+    button.HidePrim('tpToggle');
+    button.HidePrim('tpLotAll');
+    button.HidePrim('tpPassAll');
+
+    -- Hide per-item button primitives
+    for slot = 0, data.MAX_POOL_SLOTS - 1 do
+        button.HidePrim(string.format('tpLotItem%d', slot));
+        button.HidePrim(string.format('tpPassItem%d', slot));
     end
 
     if bgPrimHandle then
@@ -374,37 +961,12 @@ function M.HideMiniDisplay()
 end
 
 -- ============================================
--- Full Window (stub)
--- ============================================
-
-function M.DrawFullWindow(settings)
-    -- TODO: Implement full window with lot/pass buttons
-end
-
-function M.HideFullWindow()
-    -- TODO
-end
-
-function M.ToggleFullWindow()
-    M.fullWindowVisible = not M.fullWindowVisible;
-    return M.fullWindowVisible;
-end
-
-function M.ShowFullWindow()
-    M.fullWindowVisible = true;
-end
-
-function M.HideFullWindowCmd()
-    M.fullWindowVisible = false;
-end
-
--- ============================================
 -- Lifecycle
 -- ============================================
 
 function M.Initialize(settings)
     -- Get background theme from config (with default)
-    local bgTheme = gConfig.treasurePoolMiniBackgroundTheme or 'Plain';
+    local bgTheme = gConfig.treasurePoolBackgroundTheme or 'Plain';
     loadedBgTheme = bgTheme;
 
     -- Create background primitive (fonts created by init.lua)
@@ -420,7 +982,7 @@ end
 
 function M.UpdateVisuals(settings)
     -- Check if theme changed
-    local bgTheme = gConfig.treasurePoolMiniBackgroundTheme or 'Plain';
+    local bgTheme = gConfig.treasurePoolBackgroundTheme or 'Plain';
     if loadedBgTheme ~= bgTheme and bgPrimHandle then
         loadedBgTheme = bgTheme;
         windowBg.setTheme(bgPrimHandle, bgTheme, 1.0, 1.0);
@@ -429,7 +991,7 @@ end
 
 function M.SetHidden(hidden)
     if hidden then
-        M.HideMiniDisplay();
+        M.HideWindow();
     end
 end
 
@@ -437,6 +999,17 @@ function M.Cleanup()
     if bgPrimHandle then
         windowBg.destroy(bgPrimHandle);
         bgPrimHandle = nil;
+    end
+
+    -- Destroy primitive buttons
+    button.DestroyPrim('tpToggle');
+    button.DestroyPrim('tpLotAll');
+    button.DestroyPrim('tpPassAll');
+
+    -- Destroy per-item button primitives
+    for slot = 0, data.MAX_POOL_SLOTS - 1 do
+        button.DestroyPrim(string.format('tpLotItem%d', slot));
+        button.DestroyPrim(string.format('tpPassItem%d', slot));
     end
 
     loadedBgTheme = nil;

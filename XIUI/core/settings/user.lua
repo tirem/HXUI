@@ -31,17 +31,18 @@ function M.createUserSettingsDefaults()
         showTreasurePool = true,
 
         -- Treasure Pool settings
-        treasurePoolMiniEnabled = true,       -- Show mini-display when items in pool
-        treasurePoolMiniShowTitle = true,     -- Show "Treasure Pool" header text
-        treasurePoolMiniShowTimerBar = true,  -- Show countdown progress bar
-        treasurePoolMiniShowTimerText = true, -- Show timer text (countdown like "4:32")
-        treasurePoolMiniShowLots = true,      -- Show winning lot info
-        treasurePoolMiniFontSize = 10,        -- Font size for mini-display text
-        treasurePoolMiniScaleX = 1.0,         -- Mini-display horizontal scale
-        treasurePoolMiniScaleY = 1.0,         -- Mini-display vertical scale
-        treasurePoolMiniOpacity = 0.87,       -- Mini-display background opacity
-        treasurePoolMiniPreview = false,      -- Show mini-display preview with test data
-        treasurePoolFullPreview = false,      -- Show full window preview with test data
+        treasurePoolEnabled = true,           -- Show treasure pool when items in pool
+        treasurePoolShowTitle = true,         -- Show "Treasure Pool" header text
+        treasurePoolShowTimerBar = true,      -- Show countdown progress bar
+        treasurePoolShowTimerText = true,     -- Show timer text (countdown like "4:32")
+        treasurePoolShowLots = true,          -- Show winning lot info
+        treasurePoolFontSize = 10,            -- Font size for text
+        treasurePoolScaleX = 1.0,             -- Horizontal scale
+        treasurePoolScaleY = 1.0,             -- Vertical scale
+        treasurePoolOpacity = 0.87,           -- Background opacity
+        treasurePoolBackgroundTheme = 'Plain', -- Background theme
+        treasurePoolPreview = false,          -- Show preview with test data
+        treasurePoolExpanded = false,         -- Expanded view (false = collapsed)
 
         -- Notifications settings
         notificationsShowPartyInvite = true,

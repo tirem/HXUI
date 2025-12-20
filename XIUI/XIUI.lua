@@ -479,14 +479,6 @@ ashita.events.register('command', 'command_cb', function (e)
             return;
         end
 
-        -- Toggle extended treasure pool view: /xiui treasure, /xiui pool
-        if (#command_args == 2 and command_args[2]:any('treasure', 'pool')) then
-            local visible = treasurePool.ToggleFullWindow();
-            local state = visible and 'shown' or 'hidden';
-            print('[XIUI] Treasure pool window ' .. state);
-            return;
-        end
-
         -- Lot all unlotted items: /xiui lotall or /xiui lot
         if (#command_args == 2 and command_args[2]:any('lotall', 'lot')) then
             treasurePool.LotAll();
@@ -660,6 +652,28 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
         end
     elseif (e.id == 0x00D3) then
         -- Treasure lot/drop packet (party member lotted or item awarded)
+        -- Parse packet for treasure pool lot tracking (always, not just for notifications)
+        local winnerServerId = struct.unpack('I4', e.data, 0x04 + 1);
+        local entryServerId = struct.unpack('I4', e.data, 0x08 + 1);
+        local winnerLot = struct.unpack('H', e.data, 0x0E + 1);
+        local entryActIndexAndFlag = struct.unpack('H', e.data, 0x10 + 1);
+        local entryFlg = bit.band(bit.rshift(entryActIndexAndFlag, 15), 1);
+        local entryLot = struct.unpack('h', e.data, 0x12 + 1);  -- signed
+        local slot = struct.unpack('B', e.data, 0x14 + 1);
+        local judgeFlg = struct.unpack('B', e.data, 0x15 + 1);
+        -- Extract names (16-byte null-terminated strings)
+        local winnerNameRaw = struct.unpack('c16', e.data, 0x16 + 1);
+        local entryNameRaw = struct.unpack('c16', e.data, 0x26 + 1);
+        local winnerName = winnerNameRaw and winnerNameRaw:match('^[^%z]+') or '';
+        local entryName = entryNameRaw and entryNameRaw:match('^[^%z]+') or '';
+
+        -- Route to treasure pool module for lot history tracking
+        if gConfig.showTreasurePool then
+            treasurePool.HandleLotPacket(slot, entryServerId, entryName, entryFlg, entryLot,
+                                         winnerServerId, winnerName, winnerLot, judgeFlg);
+        end
+
+        -- Route to notifications handler
         if gConfig.showNotifications and gConfig.notificationsShowTreasure then
             notifications.HandleTreasureLot(e);
         end
