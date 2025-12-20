@@ -647,6 +647,29 @@ function M.PartyHasMembers(partyData)
     return false;
 end
 
+-- Count actual members in a party (returns 0-6)
+function M.GetPartyMemberCount(partyData)
+    local count = 0;
+    for i = 1, 6 do
+        if partyData[i] then count = count + 1; end
+    end
+    return count;
+end
+
+-- Get max member count across all parties for a slot
+-- Used to calculate dynamic row height in expanded view
+function M.GetMaxMemberCount(partyData)
+    local countA = M.GetPartyMemberCount(partyData.partyA);
+    local countB = M.GetPartyMemberCount(partyData.partyB);
+    local countC = M.GetPartyMemberCount(partyData.partyC);
+    local maxCount = math.max(countA, countB, countC);
+    -- Minimum of 1 row if any party has members
+    if maxCount < 1 and (countA > 0 or countB > 0 or countC > 0) then
+        maxCount = 1;
+    end
+    return maxCount;
+end
+
 -- Check if we have any lot history for a slot
 function M.HasLotHistory(slot)
     if not M.lotHistory[slot] then return false; end
@@ -681,6 +704,41 @@ M.passItemFonts = {};   -- slot -> font ("P" button per item)
 M.toggleFont = nil;     -- [v]/[^] toggle icon
 
 M.allFonts = nil;
+
+-- Error message state (for displaying validation errors)
+M.lastErrorMessage = nil;        -- Last error message to display
+M.lastErrorSlot = nil;           -- Slot the error is for
+M.lastErrorTime = 0;             -- When the error occurred (os.clock())
+M.ERROR_DISPLAY_DURATION = 3.0;  -- How long to show error messages (seconds)
+
+-- Set an error message for a slot
+function M.SetError(slot, message)
+    M.lastErrorMessage = message;
+    M.lastErrorSlot = slot;
+    M.lastErrorTime = os.clock();
+end
+
+-- Get current error for a slot (returns nil if expired or different slot)
+function M.GetError(slot)
+    if M.lastErrorMessage == nil then return nil; end
+    if M.lastErrorSlot ~= slot then return nil; end
+
+    local elapsed = os.clock() - M.lastErrorTime;
+    if elapsed > M.ERROR_DISPLAY_DURATION then
+        M.lastErrorMessage = nil;
+        M.lastErrorSlot = nil;
+        return nil;
+    end
+
+    return M.lastErrorMessage;
+end
+
+-- Clear error message
+function M.ClearError()
+    M.lastErrorMessage = nil;
+    M.lastErrorSlot = nil;
+    M.lastErrorTime = 0;
+end
 
 -- Color cache (to avoid expensive set_font_color calls)
 M.lastColors = {
@@ -726,6 +784,96 @@ function M.ClearColorCache()
 end
 
 -- ============================================
+-- Item Validation Helpers
+-- ============================================
+
+-- Item flag constants
+local ITEM_FLAG_RARE = 0x8000;  -- 32768 - Can only have one
+local ITEM_FLAG_EX   = 0x4000;  -- 16384 - Cannot be traded
+
+-- Check if an item has the Rare flag set (via resource data)
+function M.IsItemRare(itemId)
+    if itemId == nil or itemId == 0 or itemId == 65535 then
+        return false;
+    end
+
+    local item = AshitaCore:GetResourceManager():GetItemById(itemId);
+    if item == nil or item.Flags == nil then
+        return false;
+    end
+
+    return bit.band(item.Flags, ITEM_FLAG_RARE) == ITEM_FLAG_RARE;
+end
+
+-- Check if player already has an item in main inventory (container 0)
+function M.PlayerHasItemInInventory(itemId)
+    if itemId == nil or itemId == 0 or itemId == 65535 then
+        return false;
+    end
+
+    local memMgr = AshitaCore:GetMemoryManager();
+    if not memMgr then return false; end
+
+    local inventory = memMgr:GetInventory();
+    if not inventory then return false; end
+
+    -- Container 0 = main inventory
+    local maxSlots = inventory:GetContainerCountMax(0);
+    if maxSlots == nil or maxSlots <= 0 then return false; end
+
+    -- Iterate through all inventory slots (1-based indexing for item slots)
+    for slotIndex = 1, maxSlots do
+        local item = inventory:GetContainerItem(0, slotIndex);
+        if item ~= nil and item.Id == itemId then
+            return true;
+        end
+    end
+
+    return false;
+end
+
+-- Check if player's main inventory is full
+function M.IsInventoryFull()
+    local memMgr = AshitaCore:GetMemoryManager();
+    if not memMgr then return false; end
+
+    local inventory = memMgr:GetInventory();
+    if not inventory then return false; end
+
+    -- Container 0 = main inventory
+    local usedSlots = inventory:GetContainerCount(0);
+    local maxSlots = inventory:GetContainerCountMax(0);
+
+    if usedSlots == nil or maxSlots == nil then return false; end
+
+    return usedSlots >= maxSlots;
+end
+
+-- Validate if player can lot on an item
+-- Returns: canLot (boolean), errorMessage (string or nil)
+function M.ValidateLotItem(slot)
+    local item = M.poolItems[slot];
+    if not item then
+        return false, nil;  -- No error message for missing item
+    end
+
+    local itemId = item.itemId;
+
+    -- Check if inventory is full
+    if M.IsInventoryFull() then
+        return false, 'Inventory is full';
+    end
+
+    -- Check if item is Rare and player already has one
+    if M.IsItemRare(itemId) and M.PlayerHasItemInInventory(itemId) then
+        local itemName = item.itemName or 'this item';
+        return false, 'Already have ' .. itemName .. ' (Rare)';
+    end
+
+    return true, nil;
+end
+
+-- ============================================
 -- Lifecycle
 -- ============================================
 
@@ -749,6 +897,7 @@ function M.Clear()
     M.sortedCacheDirty = true;
     M.lotHistory = {};
     M.missingFrameCount = {};
+    M.ClearError();
 end
 
 -- Cleanup (call on addon unload)

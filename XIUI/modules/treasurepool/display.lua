@@ -236,6 +236,8 @@ function M.DrawWindow(settings)
         if isExpanded then
             -- Get party members organized by party (A, B, C columns)
             local partyData = data.GetMembersByParty(slot);
+            -- Cache max member count for rendering
+            partyData.maxMemberRows = data.GetMaxMemberCount(partyData);
             itemMemberData[slot] = partyData;
 
             -- Count active parties to determine column count
@@ -245,8 +247,9 @@ function M.DrawWindow(settings)
             if data.PartyHasMembers(partyData.partyC) then numParties = numParties + 1; end
             if numParties < 1 then numParties = 1; end
 
-            -- Always 6 rows (one per party slot), columns = number of active parties
-            local memberRows = 6;
+            -- Dynamic row count based on max members across all parties
+            local memberRows = data.GetMaxMemberCount(partyData);
+            if memberRows < 1 then memberRows = 1; end  -- Minimum 1 row
 
             -- Height = header + member rows + padding + progress bar
             local memberRowHeight = math.floor(EXPANDED_MEMBER_ROW_HEIGHT * scaleY);
@@ -563,19 +566,51 @@ function M.DrawWindow(settings)
                 return fontBottom > itemAreaTop and fontY < itemAreaBottom;
             end
 
-            -- 2. Draw item name
+            -- 2. Draw item name (with validation status indicator)
+            -- Check validation for visual feedback (only in expanded view where buttons are shown)
+            local itemCanLot, itemValidationError = data.ValidateLotItem(slot);
+            local itemStatus = data.GetPlayerLotStatus(slot);
+            local hasValidationIssue = (not itemCanLot and itemStatus ~= 'lotted' and itemStatus ~= 'passed');
+
             local nameFont = data.itemNameFonts[slot];
             if nameFont then
                 local nameVisible = isFontVisible(textY, fontSize);
                 nameFont:set_font_height(fontSize);
-                nameFont:set_text(item.itemName or 'Unknown');
+                -- Add warning indicator to name if validation fails
+                local displayName = item.itemName or 'Unknown';
+                if hasValidationIssue then
+                    displayName = '[!] ' .. displayName;
+                end
+                nameFont:set_text(displayName);
                 nameFont:set_position_x(textStartX);
                 nameFont:set_position_y(textY);
                 nameFont:set_visible(nameVisible);
 
-                if nameVisible and data.lastColors.itemNames[slot] ~= 0xFFFFFFFF then
-                    nameFont:set_font_color(0xFFFFFFFF);
-                    data.lastColors.itemNames[slot] = 0xFFFFFFFF;
+                -- Color: orange/yellow if validation issue, white otherwise
+                local nameColor = 0xFFFFFFFF;  -- Default white
+                if hasValidationIssue then
+                    nameColor = 0xFFFFAA44;  -- Orange/yellow for warning
+                end
+
+                if nameVisible and data.lastColors.itemNames[slot] ~= nameColor then
+                    nameFont:set_font_color(nameColor);
+                    data.lastColors.itemNames[slot] = nameColor;
+                end
+            end
+
+            -- Draw tooltip for item name area showing validation error
+            if hasValidationIssue and itemValidationError then
+                local nameWidth, nameHeight = 0, fontSize;
+                if nameFont then
+                    nameWidth, nameHeight = nameFont:get_text_size();
+                    nameWidth = nameWidth or 100;
+                    nameHeight = nameHeight or fontSize;
+                end
+                -- Check if mouse is hovering over item name area
+                local mouseX, mouseY = imgui.GetMousePos();
+                if mouseX >= textStartX and mouseX <= textStartX + nameWidth and
+                   mouseY >= textY and mouseY <= textY + nameHeight then
+                    imgui.SetTooltip(itemValidationError);
                 end
             end
 
@@ -630,8 +665,12 @@ function M.DrawWindow(settings)
 
                 -- Get player's lot status for this item
                 local playerStatus = data.GetPlayerLotStatus(slot);
-                -- Lot button disabled if already lotted or passed
-                local lotDisabled = (playerStatus == 'lotted' or playerStatus == 'passed');
+
+                -- Check validation status for Lot button
+                local canLot, validationError = data.ValidateLotItem(slot);
+
+                -- Lot button disabled if already lotted, passed, or validation fails
+                local lotDisabled = (playerStatus == 'lotted' or playerStatus == 'passed' or not canLot);
                 -- Pass button disabled only if already passed
                 local passDisabled = (playerStatus == 'passed');
 
@@ -640,12 +679,14 @@ function M.DrawWindow(settings)
                 local COLOR_ENABLED_TEXT = 0xFFFFFFFF;
 
                 if btnVisible then
-                    -- Determine Lot button tooltip based on status
+                    -- Determine Lot button tooltip based on status and validation
                     local lotTooltip = 'Lot on this item';
                     if playerStatus == 'lotted' then
                         lotTooltip = 'Already lotted';
                     elseif playerStatus == 'passed' then
                         lotTooltip = 'Already passed';
+                    elseif validationError then
+                        lotTooltip = validationError;  -- Show validation error (e.g., "Already have X (Rare)")
                     end
 
                     -- Draw Lot button for this item
@@ -788,7 +829,7 @@ function M.DrawWindow(settings)
                 if data.PartyHasMembers(partyData.partyB) then table.insert(activeParties, partyData.partyB); end
                 if data.PartyHasMembers(partyData.partyC) then table.insert(activeParties, partyData.partyC); end
 
-                -- Draw members: each party is a column, 6 rows per column
+                -- Draw members: each party is a column, rows = max members across parties
                 local memberFontSize = fontSize - 2;
                 local numCols = #activeParties;
                 if numCols < 1 then numCols = 1; end
@@ -799,6 +840,9 @@ function M.DrawWindow(settings)
                 local contentRowHeight = math.max(headerRowHeight, iconSize + 4);
                 local memberStartY = rowY + itemPadding + contentRowHeight;
                 local memberStartX = startX + padding + itemPadding;
+                -- Get dynamic row count from cached data
+                local maxMemberRows = partyData.maxMemberRows or 6;
+                if maxMemberRows < 1 then maxMemberRows = 1; end
 
                 -- Animate pending dots (cycles every 0.5s)
                 local dotCycle = math.floor(os.clock() * 2) % 3;
@@ -825,8 +869,8 @@ function M.DrawWindow(settings)
                 for col, partyMembers in ipairs(activeParties) do
                     local colX = memberStartX + (col - 1) * colWidth;
 
-                    -- Draw 6 rows for this party
-                    for row = 1, 6 do
+                    -- Draw rows based on max members across parties
+                    for row = 1, maxMemberRows do
                         local member = partyMembers[row];
                         local memberY = memberStartY + (row - 1) * memberRowHeightPx;
 
