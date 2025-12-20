@@ -54,10 +54,10 @@ function M.PassItem(slot)
         return false;
     end
 
-    -- Check if already passed or lotted
+    -- Check if already passed (can still pass after lotting)
     local status = data.GetPlayerLotStatus(slot);
-    if status == 'passed' or status == 'lotted' then
-        return false;  -- Already decided
+    if status == 'passed' then
+        return false;  -- Already passed
     end
 
     -- Build pass packet with full header

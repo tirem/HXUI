@@ -628,14 +628,34 @@ function M.DrawWindow(settings)
                 local passBtnX = startX + windowWidth - padding - itemPadding - timerWidth - itemBtnSpacing - itemBtnWidth;
                 local lotBtnX = passBtnX - itemBtnSpacing - itemBtnWidth;
 
+                -- Get player's lot status for this item
+                local playerStatus = data.GetPlayerLotStatus(slot);
+                -- Lot button disabled if already lotted or passed
+                local lotDisabled = (playerStatus == 'lotted' or playerStatus == 'passed');
+                -- Pass button disabled only if already passed
+                local passDisabled = (playerStatus == 'passed');
+
+                -- Colors for disabled state
+                local COLOR_DISABLED_TEXT = 0xFF666666;
+                local COLOR_ENABLED_TEXT = 0xFFFFFFFF;
+
                 if btnVisible then
+                    -- Determine Lot button tooltip based on status
+                    local lotTooltip = 'Lot on this item';
+                    if playerStatus == 'lotted' then
+                        lotTooltip = 'Already lotted';
+                    elseif playerStatus == 'passed' then
+                        lotTooltip = 'Already passed';
+                    end
+
                     -- Draw Lot button for this item
                     local lotBtnId = string.format('tpLotItem%d', slot);
                     local lotItemClicked = button.DrawPrim(lotBtnId, lotBtnX, itemBtnY, itemBtnWidth, itemBtnHeight, {
                         colors = button.COLORS_POSITIVE,
-                        tooltip = 'Lot on this item',
+                        tooltip = lotTooltip,
+                        disabled = lotDisabled,
                     });
-                    if lotItemClicked then
+                    if lotItemClicked and not lotDisabled then
                         actions.LotItem(slot);
                     end
 
@@ -649,19 +669,29 @@ function M.DrawWindow(settings)
                         data.lotItemFonts[slot]:set_position_x(lotBtnX + (itemBtnWidth - lotTextW) / 2);
                         data.lotItemFonts[slot]:set_position_y(itemBtnY + (itemBtnHeight - lotTextH) / 2);
                         data.lotItemFonts[slot]:set_visible(true);
-                        if data.lastColors.lotItems[slot] ~= 0xFFFFFFFF then
-                            data.lotItemFonts[slot]:set_font_color(0xFFFFFFFF);
-                            data.lastColors.lotItems[slot] = 0xFFFFFFFF;
+                        local lotTextColor = lotDisabled and COLOR_DISABLED_TEXT or COLOR_ENABLED_TEXT;
+                        if data.lastColors.lotItems[slot] ~= lotTextColor then
+                            data.lotItemFonts[slot]:set_font_color(lotTextColor);
+                            data.lastColors.lotItems[slot] = lotTextColor;
                         end
+                    end
+
+                    -- Determine Pass button tooltip based on status
+                    local passTooltip = 'Pass on this item';
+                    if playerStatus == 'passed' then
+                        passTooltip = 'Already passed';
+                    elseif playerStatus == 'lotted' then
+                        passTooltip = 'Pass (withdraw lot)';
                     end
 
                     -- Draw Pass button for this item
                     local passBtnId = string.format('tpPassItem%d', slot);
                     local passItemClicked = button.DrawPrim(passBtnId, passBtnX, itemBtnY, itemBtnWidth, itemBtnHeight, {
                         colors = button.COLORS_NEGATIVE,
-                        tooltip = 'Pass on this item',
+                        tooltip = passTooltip,
+                        disabled = passDisabled,
                     });
-                    if passItemClicked then
+                    if passItemClicked and not passDisabled then
                         actions.PassItem(slot);
                     end
 
@@ -675,9 +705,10 @@ function M.DrawWindow(settings)
                         data.passItemFonts[slot]:set_position_x(passBtnX + (itemBtnWidth - passTextW) / 2);
                         data.passItemFonts[slot]:set_position_y(itemBtnY + (itemBtnHeight - passTextH) / 2);
                         data.passItemFonts[slot]:set_visible(true);
-                        if data.lastColors.passItems[slot] ~= 0xFFFFFFFF then
-                            data.passItemFonts[slot]:set_font_color(0xFFFFFFFF);
-                            data.lastColors.passItems[slot] = 0xFFFFFFFF;
+                        local passTextColor = passDisabled and COLOR_DISABLED_TEXT or COLOR_ENABLED_TEXT;
+                        if data.lastColors.passItems[slot] ~= passTextColor then
+                            data.passItemFonts[slot]:set_font_color(passTextColor);
+                            data.lastColors.passItems[slot] = passTextColor;
                         end
                     end
                 else
