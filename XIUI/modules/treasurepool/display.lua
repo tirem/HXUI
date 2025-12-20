@@ -55,6 +55,9 @@ local loadedBgTheme = nil;
 -- Item icon cache (itemId -> texture table with .image)
 local iconCache = {};
 
+-- Tab state: 1 = Pool view, 2 = History view
+local selectedTab = 1;
+
 -- ============================================
 -- Item Icon Loading
 -- ============================================
@@ -139,6 +142,15 @@ local function getTimerColor(remaining)
 end
 
 -- ============================================
+-- History View Constants
+-- ============================================
+
+local HISTORY_ROW_HEIGHT = 24;  -- Height per history item row
+local HISTORY_MAX_VISIBLE = 10; -- Max visible history items before scrolling
+local historyScrollOffset = 0;
+local historyMaxScrollOffset = 0;
+
+-- ============================================
 -- Treasure Pool Window
 -- ============================================
 
@@ -189,9 +201,25 @@ end
 
 function M.DrawWindow(settings)
     local poolItems = data.GetSortedPoolItems();
-    if #poolItems == 0 then
+    local historyItems = data.GetWonHistory();
+
+    -- Show window if either pool has items OR history has items (depending on tab)
+    local hasPoolItems = #poolItems > 0;
+    local hasHistoryItems = #historyItems > 0;
+
+    -- If no content for either tab, hide window
+    if not hasPoolItems and not hasHistoryItems then
         M.HideWindow();
         return;
+    end
+
+    -- If on Pool tab with no items, switch to History tab (if history exists)
+    if selectedTab == 1 and not hasPoolItems and hasHistoryItems then
+        selectedTab = 2;
+    end
+    -- If on History tab with no items, switch to Pool tab (if pool exists)
+    if selectedTab == 2 and not hasHistoryItems and hasPoolItems then
+        selectedTab = 1;
     end
 
     -- Get settings with validation
@@ -227,71 +255,109 @@ function M.DrawWindow(settings)
     local contentBaseWidth = math.floor(320 * scaleX);
     local windowWidth = contentBaseWidth + (padding * 2);
 
-    -- Pre-calculate row heights and member data for expanded view
+    -- Pre-calculate row heights and member data for expanded view (always needed for Pool tab)
     local itemRowHeights = {};
     local itemMemberData = {};  -- Cache member data to avoid recalculating
-
-    for i, item in ipairs(poolItems) do
-        local slot = item.slot;
-        if isExpanded then
-            -- Get party members organized by party (A, B, C columns)
-            local partyData = data.GetMembersByParty(slot);
-            -- Cache max member count for rendering
-            partyData.maxMemberRows = data.GetMaxMemberCount(partyData);
-            itemMemberData[slot] = partyData;
-
-            -- Count active parties to determine column count
-            local numParties = 0;
-            if data.PartyHasMembers(partyData.partyA) then numParties = numParties + 1; end
-            if data.PartyHasMembers(partyData.partyB) then numParties = numParties + 1; end
-            if data.PartyHasMembers(partyData.partyC) then numParties = numParties + 1; end
-            if numParties < 1 then numParties = 1; end
-
-            -- Dynamic row count based on max members across all parties
-            local memberRows = data.GetMaxMemberCount(partyData);
-            if memberRows < 1 then memberRows = 1; end  -- Minimum 1 row
-
-            -- Height = header + member rows + padding + progress bar
-            local memberRowHeight = math.floor(EXPANDED_MEMBER_ROW_HEIGHT * scaleY);
-            local itemPadding = math.floor(EXPANDED_ITEM_PADDING * scaleY);
-            local headerRowHeight = math.floor(EXPANDED_ITEM_HEADER_HEIGHT * scaleY);
-            -- Content row must fit icon (24px) + small offset, use max of header or icon height
-            local contentRowHeight = math.max(headerRowHeight, iconSize + 4);
-            local memberBarGap = 4;  -- Gap between member list and progress bar
-
-            itemRowHeights[i] = itemPadding + contentRowHeight + (memberRows * memberRowHeight) + memberBarGap + itemPadding + barHeight;
-        else
-            itemRowHeights[i] = math.floor(ROW_HEIGHT * scaleY);
-        end
-    end
-
-    -- Calculate total content height (all items)
     local totalContentHeight = 0;
-    for i = 1, #poolItems do
-        totalContentHeight = totalContentHeight + itemRowHeights[i];
-        if i < #poolItems then
-            totalContentHeight = totalContentHeight + rowSpacing;
-        end
-    end
-
-    -- Calculate visible content height (limited in expanded view)
-    local visibleContentHeight = totalContentHeight;
+    local visibleContentHeight = 0;
     local needsScroll = false;
 
-    if isExpanded and #poolItems > EXPANDED_MAX_VISIBLE_ITEMS then
-        -- Calculate height for first N items only
-        visibleContentHeight = 0;
-        for i = 1, EXPANDED_MAX_VISIBLE_ITEMS do
-            visibleContentHeight = visibleContentHeight + itemRowHeights[i];
-            if i < EXPANDED_MAX_VISIBLE_ITEMS then
-                visibleContentHeight = visibleContentHeight + rowSpacing;
+    -- Always calculate pool item heights (needed when switching back to Pool tab)
+    if hasPoolItems then
+        for i, item in ipairs(poolItems) do
+            local slot = item.slot;
+            if isExpanded then
+                -- Get party members organized by party (A, B, C columns)
+                local partyData = data.GetMembersByParty(slot);
+                -- Cache max member count for rendering
+                partyData.maxMemberRows = data.GetMaxMemberCount(partyData);
+                itemMemberData[slot] = partyData;
+
+                -- Count active parties to determine column count
+                local numParties = 0;
+                if data.PartyHasMembers(partyData.partyA) then numParties = numParties + 1; end
+                if data.PartyHasMembers(partyData.partyB) then numParties = numParties + 1; end
+                if data.PartyHasMembers(partyData.partyC) then numParties = numParties + 1; end
+                if numParties < 1 then numParties = 1; end
+
+                -- Dynamic row count based on max members across all parties
+                local memberRows = data.GetMaxMemberCount(partyData);
+                if memberRows < 1 then memberRows = 1; end  -- Minimum 1 row
+
+                -- Height = header + member rows + padding + progress bar
+                local memberRowHeight = math.floor(EXPANDED_MEMBER_ROW_HEIGHT * scaleY);
+                local itemPadding = math.floor(EXPANDED_ITEM_PADDING * scaleY);
+                local headerRowHeight = math.floor(EXPANDED_ITEM_HEADER_HEIGHT * scaleY);
+                -- Content row must fit icon (24px) + small offset, use max of header or icon height
+                local contentRowHeight = math.max(headerRowHeight, iconSize + 4);
+                local memberBarGap = 4;  -- Gap between member list and progress bar
+
+                itemRowHeights[i] = itemPadding + contentRowHeight + (memberRows * memberRowHeight) + memberBarGap + itemPadding + barHeight;
+            else
+                itemRowHeights[i] = math.floor(ROW_HEIGHT * scaleY);
             end
         end
-        needsScroll = true;
-        maxScrollOffset = totalContentHeight - visibleContentHeight;
+    end
+
+    if selectedTab == 1 then
+        -- Pool tab: calculate content height based on pool items
+        for i = 1, #poolItems do
+            totalContentHeight = totalContentHeight + itemRowHeights[i];
+            if i < #poolItems then
+                totalContentHeight = totalContentHeight + rowSpacing;
+            end
+        end
+
+        -- Calculate visible content height (limited in expanded view)
+        visibleContentHeight = totalContentHeight;
+
+        if isExpanded and #poolItems > EXPANDED_MAX_VISIBLE_ITEMS then
+            -- Calculate height for first N items only
+            visibleContentHeight = 0;
+            for i = 1, EXPANDED_MAX_VISIBLE_ITEMS do
+                visibleContentHeight = visibleContentHeight + itemRowHeights[i];
+                if i < EXPANDED_MAX_VISIBLE_ITEMS then
+                    visibleContentHeight = visibleContentHeight + rowSpacing;
+                end
+            end
+            needsScroll = true;
+            maxScrollOffset = totalContentHeight - visibleContentHeight;
+        else
+            scrollOffset = 0;
+            maxScrollOffset = 0;
+        end
     else
-        scrollOffset = 0;
-        maxScrollOffset = 0;
+        -- History tab: calculate based on history items
+        local historyRowHeight = math.floor(HISTORY_ROW_HEIGHT * scaleY);
+        local historyCount = #historyItems;
+
+        if historyCount == 0 then
+            -- "No recent winners" message height
+            totalContentHeight = fontSize + 4;
+            visibleContentHeight = fontSize + 4;
+            historyScrollOffset = 0;
+            historyMaxScrollOffset = 0;
+        else
+            totalContentHeight = (historyCount * historyRowHeight) + ((historyCount - 1) * rowSpacing);
+
+            if historyCount > HISTORY_MAX_VISIBLE then
+                -- Limit visible height to max visible items
+                visibleContentHeight = (HISTORY_MAX_VISIBLE * historyRowHeight) + ((HISTORY_MAX_VISIBLE - 1) * rowSpacing);
+                needsScroll = true;
+                historyMaxScrollOffset = totalContentHeight - visibleContentHeight;
+                -- Clamp scroll offset
+                if historyScrollOffset > historyMaxScrollOffset then
+                    historyScrollOffset = historyMaxScrollOffset;
+                end
+                if historyScrollOffset < 0 then
+                    historyScrollOffset = 0;
+                end
+            else
+                visibleContentHeight = totalContentHeight;
+                historyScrollOffset = 0;
+                historyMaxScrollOffset = 0;
+            end
+        end
     end
 
     local headerHeight = 0;
@@ -367,99 +433,173 @@ function M.DrawWindow(settings)
 
         local y = startY + padding;
 
-        -- Draw header with expand/collapse toggle and lot/pass buttons
-        if showTitle and data.headerFont then
-            data.headerFont:set_font_height(fontSize);
-            data.headerFont:set_text('Treasure Pool');
-            data.headerFont:set_position_x(startX + padding);
-            data.headerFont:set_position_y(y);
-            data.headerFont:set_visible(true);
-
-            if data.lastColors.header ~= 0xFFFFFFFF then
-                data.headerFont:set_font_color(0xFFFFFFFF);
-                data.lastColors.header = 0xFFFFFFFF;
-            end
-
+        -- Draw header with tabs and action buttons
+        if showTitle then
             -- Button sizing (uses fontSize from config)
             local btnHeight = fontSize + 6;
             local btnY = y - 1;
             local btnSpacing = 4;
-            local toggleSize = btnHeight;  -- Square for arrow
+            local tabBtnWidth = fontSize * 4;  -- Tab button width
             local textBtnWidth = fontSize * 4;  -- Wider for "Lot All" / "Pass All" text
+            local toggleSize = btnHeight;  -- Square for arrow
 
-            -- Get title width for positioning buttons after it
-            local titleWidth, _ = data.headerFont:get_text_size();
-            titleWidth = titleWidth or (fontSize * 7);  -- Fallback estimate
+            -- Tab colors
+            local TAB_COLORS_SELECTED = {
+                normal = 0xDD4a6a8a,
+                hovered = 0xDD5a7a9a,
+                pressed = 0xDD3a5a7a,
+                border = 0xFF2a4a6a,
+            };
+            local TAB_COLORS_UNSELECTED = {
+                normal = 0xAA333333,
+                hovered = 0xCC4a4a4a,
+                pressed = 0xAA222222,
+                border = 0xFF1a1a1a,
+            };
 
-            -- Position: [Title] [Lot] [Pass] ... [Toggle]
-            local lotAllX = startX + padding + titleWidth + btnSpacing;
-            local passAllX = lotAllX + textBtnWidth + btnSpacing;
-            local toggleX = startX + windowWidth - padding - toggleSize;
-
-            -- Draw expand/collapse arrow button using primitive
-            local arrowDirection = isExpanded and 'up' or 'down';
-            local toggleClicked = button.DrawArrowPrim('tpToggle', toggleX, btnY, toggleSize, arrowDirection, {
-                colors = button.COLORS_NEUTRAL,
-                tooltip = isExpanded and 'Collapse' or 'Expand',
-            }, imgui.GetForegroundDrawList());
-            if toggleClicked then
-                gConfig.treasurePoolExpanded = not gConfig.treasurePoolExpanded;
-                scrollOffset = 0;  -- Reset scroll when toggling
-                SaveSettingsToDisk();
-            end
-
-            -- Draw Pass All button (negative/red) using primitive
-            local passAllClicked = button.DrawPrim('tpPassAll', passAllX, btnY, textBtnWidth, btnHeight, {
-                colors = button.COLORS_NEGATIVE,
-                tooltip = 'Pass on all items',
+            -- Draw Pool tab
+            local poolTabX = startX + padding;
+            local poolTabColors = (selectedTab == 1) and TAB_COLORS_SELECTED or TAB_COLORS_UNSELECTED;
+            local poolTabClicked = button.DrawPrim('tpTabPool', poolTabX, btnY, tabBtnWidth, btnHeight, {
+                colors = poolTabColors,
+                tooltip = 'Treasure Pool',
             });
-            if passAllClicked then
-                actions.PassAll();
+            if poolTabClicked then
+                selectedTab = 1;
             end
 
-            -- Draw Pass All label (GDI font renders on top of primitive)
-            if data.passAllFont then
-                data.passAllFont:set_font_height(fontSize);
-                data.passAllFont:set_text('Pass All');
-                local passTextW, passTextH = data.passAllFont:get_text_size();
-                passTextW = passTextW or (fontSize * 2.5);
-                passTextH = passTextH or fontSize;
-                data.passAllFont:set_position_x(passAllX + (textBtnWidth - passTextW) / 2);
-                data.passAllFont:set_position_y(btnY + (btnHeight - passTextH) / 2);
-                data.passAllFont:set_visible(true);
-                if data.lastColors.passAll ~= 0xFFFFFFFF then
-                    data.passAllFont:set_font_color(0xFFFFFFFF);
-                    data.lastColors.passAll = 0xFFFFFFFF;
+            -- Draw Pool tab label
+            if data.tabPoolFont then
+                data.tabPoolFont:set_font_height(fontSize);
+                data.tabPoolFont:set_text('Pool');
+                local poolTextW, poolTextH = data.tabPoolFont:get_text_size();
+                poolTextW = poolTextW or (fontSize * 2);
+                poolTextH = poolTextH or fontSize;
+                data.tabPoolFont:set_position_x(poolTabX + (tabBtnWidth - poolTextW) / 2);
+                data.tabPoolFont:set_position_y(btnY + (btnHeight - poolTextH) / 2);
+                data.tabPoolFont:set_visible(true);
+                local poolTextColor = (selectedTab == 1) and 0xFFFFFFFF or 0xFFAAAAAA;
+                if data.lastColors.tabPool ~= poolTextColor then
+                    data.tabPoolFont:set_font_color(poolTextColor);
+                    data.lastColors.tabPool = poolTextColor;
                 end
             end
 
-            -- Draw Lot All button (positive/green) using primitive
-            local lotAllClicked = button.DrawPrim('tpLotAll', lotAllX, btnY, textBtnWidth, btnHeight, {
-                colors = button.COLORS_POSITIVE,
-                tooltip = 'Lot on all items',
+            -- Draw History tab
+            local historyTabX = poolTabX + tabBtnWidth + btnSpacing;
+            local historyTabColors = (selectedTab == 2) and TAB_COLORS_SELECTED or TAB_COLORS_UNSELECTED;
+            local historyTabClicked = button.DrawPrim('tpTabHistory', historyTabX, btnY, tabBtnWidth, btnHeight, {
+                colors = historyTabColors,
+                tooltip = 'Recent Winners',
             });
-            if lotAllClicked then
-                actions.LotAll();
+            if historyTabClicked then
+                selectedTab = 2;
             end
 
-            -- Draw Lot All label (GDI font renders on top of primitive)
-            if data.lotAllFont then
-                data.lotAllFont:set_font_height(fontSize);
-                data.lotAllFont:set_text('Lot All');
-                local lotTextW, lotTextH = data.lotAllFont:get_text_size();
-                lotTextW = lotTextW or (fontSize * 2);
-                lotTextH = lotTextH or fontSize;
-                data.lotAllFont:set_position_x(lotAllX + (textBtnWidth - lotTextW) / 2);
-                data.lotAllFont:set_position_y(btnY + (btnHeight - lotTextH) / 2);
-                data.lotAllFont:set_visible(true);
-                if data.lastColors.lotAll ~= 0xFFFFFFFF then
-                    data.lotAllFont:set_font_color(0xFFFFFFFF);
-                    data.lastColors.lotAll = 0xFFFFFFFF;
+            -- Draw History tab label
+            if data.tabHistoryFont then
+                data.tabHistoryFont:set_font_height(fontSize);
+                data.tabHistoryFont:set_text('History');
+                local histTextW, histTextH = data.tabHistoryFont:get_text_size();
+                histTextW = histTextW or (fontSize * 3);
+                histTextH = histTextH or fontSize;
+                data.tabHistoryFont:set_position_x(historyTabX + (tabBtnWidth - histTextW) / 2);
+                data.tabHistoryFont:set_position_y(btnY + (btnHeight - histTextH) / 2);
+                data.tabHistoryFont:set_visible(true);
+                local histTextColor = (selectedTab == 2) and 0xFFFFFFFF or 0xFFAAAAAA;
+                if data.lastColors.tabHistory ~= histTextColor then
+                    data.tabHistoryFont:set_font_color(histTextColor);
+                    data.lastColors.tabHistory = histTextColor;
                 end
             end
 
-            -- Hide toggle font (not needed, using arrow button)
-            if data.toggleFont then data.toggleFont:set_visible(false); end
+            -- Hide the old header font (replaced by tabs)
+            if data.headerFont then
+                data.headerFont:set_visible(false);
+            end
+
+            -- Pool tab: show Lot All, Pass All, Toggle buttons
+            if selectedTab == 1 then
+                -- Position: [Pool] [History] [Lot All] [Pass All] ... [Toggle]
+                local afterTabsX = historyTabX + tabBtnWidth + btnSpacing;
+                local lotAllX = afterTabsX;
+                local passAllX = lotAllX + textBtnWidth + btnSpacing;
+                local toggleX = startX + windowWidth - padding - toggleSize;
+
+                -- Draw expand/collapse arrow button using primitive
+                local arrowDirection = isExpanded and 'up' or 'down';
+                local toggleClicked = button.DrawArrowPrim('tpToggle', toggleX, btnY, toggleSize, arrowDirection, {
+                    colors = button.COLORS_NEUTRAL,
+                    tooltip = isExpanded and 'Collapse' or 'Expand',
+                }, imgui.GetForegroundDrawList());
+                if toggleClicked then
+                    gConfig.treasurePoolExpanded = not gConfig.treasurePoolExpanded;
+                    scrollOffset = 0;  -- Reset scroll when toggling
+                    SaveSettingsToDisk();
+                end
+
+                -- Draw Pass All button (negative/red) using primitive
+                local passAllClicked = button.DrawPrim('tpPassAll', passAllX, btnY, textBtnWidth, btnHeight, {
+                    colors = button.COLORS_NEGATIVE,
+                    tooltip = 'Pass on all items',
+                });
+                if passAllClicked then
+                    actions.PassAll();
+                end
+
+                -- Draw Pass All label (GDI font renders on top of primitive)
+                if data.passAllFont then
+                    data.passAllFont:set_font_height(fontSize);
+                    data.passAllFont:set_text('Pass All');
+                    local passTextW, passTextH = data.passAllFont:get_text_size();
+                    passTextW = passTextW or (fontSize * 2.5);
+                    passTextH = passTextH or fontSize;
+                    data.passAllFont:set_position_x(passAllX + (textBtnWidth - passTextW) / 2);
+                    data.passAllFont:set_position_y(btnY + (btnHeight - passTextH) / 2);
+                    data.passAllFont:set_visible(true);
+                    if data.lastColors.passAll ~= 0xFFFFFFFF then
+                        data.passAllFont:set_font_color(0xFFFFFFFF);
+                        data.lastColors.passAll = 0xFFFFFFFF;
+                    end
+                end
+
+                -- Draw Lot All button (positive/green) using primitive
+                local lotAllClicked = button.DrawPrim('tpLotAll', lotAllX, btnY, textBtnWidth, btnHeight, {
+                    colors = button.COLORS_POSITIVE,
+                    tooltip = 'Lot on all items',
+                });
+                if lotAllClicked then
+                    actions.LotAll();
+                end
+
+                -- Draw Lot All label (GDI font renders on top of primitive)
+                if data.lotAllFont then
+                    data.lotAllFont:set_font_height(fontSize);
+                    data.lotAllFont:set_text('Lot All');
+                    local lotTextW, lotTextH = data.lotAllFont:get_text_size();
+                    lotTextW = lotTextW or (fontSize * 2);
+                    lotTextH = lotTextH or fontSize;
+                    data.lotAllFont:set_position_x(lotAllX + (textBtnWidth - lotTextW) / 2);
+                    data.lotAllFont:set_position_y(btnY + (btnHeight - lotTextH) / 2);
+                    data.lotAllFont:set_visible(true);
+                    if data.lastColors.lotAll ~= 0xFFFFFFFF then
+                        data.lotAllFont:set_font_color(0xFFFFFFFF);
+                        data.lastColors.lotAll = 0xFFFFFFFF;
+                    end
+                end
+
+                -- Hide toggle font (not needed, using arrow button)
+                if data.toggleFont then data.toggleFont:set_visible(false); end
+
+            else
+                -- History tab: hide Pool-specific buttons
+                button.HidePrim('tpToggle');
+                button.HidePrim('tpLotAll');
+                button.HidePrim('tpPassAll');
+                if data.toggleFont then data.toggleFont:set_visible(false); end
+                if data.lotAllFont then data.lotAllFont:set_visible(false); end
+                if data.passAllFont then data.passAllFont:set_visible(false); end
+            end
 
             y = y + headerHeight + 4;  -- Add padding between header and items
         else
@@ -468,12 +608,22 @@ function M.DrawWindow(settings)
             if data.toggleFont then data.toggleFont:set_visible(false); end
             if data.lotAllFont then data.lotAllFont:set_visible(false); end
             if data.passAllFont then data.passAllFont:set_visible(false); end
+            if data.tabPoolFont then data.tabPoolFont:set_visible(false); end
+            if data.tabHistoryFont then data.tabHistoryFont:set_visible(false); end
+            button.HidePrim('tpTabPool');
+            button.HidePrim('tpTabHistory');
         end
 
-        local usedSlots = {};
-        local currentY = y;  -- Track cumulative Y position (before scroll)
+        -- Render content based on selected tab
+        if selectedTab == 1 then
+            -- ============================================
+            -- POOL TAB: Show treasure pool items
+            -- ============================================
 
-        -- Calculate visible region for clipping (in expanded scroll mode)
+            local usedSlots = {};
+            local currentY = y;  -- Track cumulative Y position (before scroll)
+
+            -- Calculate visible region for clipping (in expanded scroll mode)
         -- clipTop starts exactly where items begin (after header)
         -- clipBottom is exactly the height of visible items below clipTop
         local itemAreaTop = y;
@@ -973,19 +1123,53 @@ function M.DrawWindow(settings)
             drawList:AddRectFilled({scrollBarX, scrollThumbY}, {scrollBarX + scrollBarWidth, scrollThumbY + scrollThumbHeight}, thumbColor, 2.0);
         end
 
-        -- Hide fonts and buttons for unused slots
-        for slot = 0, data.MAX_POOL_SLOTS - 1 do
-            if not usedSlots[slot] then
+            -- Hide fonts and buttons for unused slots
+            for slot = 0, data.MAX_POOL_SLOTS - 1 do
+                if not usedSlots[slot] then
+                    if data.itemNameFonts[slot] then data.itemNameFonts[slot]:set_visible(false); end
+                    if data.timerFonts[slot] then data.timerFonts[slot]:set_visible(false); end
+                    if data.lotFonts[slot] then data.lotFonts[slot]:set_visible(false); end
+                    -- Expanded view fonts
+                    if data.lottersFonts[slot] then data.lottersFonts[slot]:set_visible(false); end
+                    if data.passersFonts[slot] then data.passersFonts[slot]:set_visible(false); end
+                    if data.pendingFonts[slot] then data.pendingFonts[slot]:set_visible(false); end
+                    if data.lotItemFonts[slot] then data.lotItemFonts[slot]:set_visible(false); end
+                    if data.passItemFonts[slot] then data.passItemFonts[slot]:set_visible(false); end
+                    -- Member fonts
+                    if data.memberFonts[slot] then
+                        for memberIdx = 0, data.MAX_MEMBERS_PER_ITEM - 1 do
+                            if data.memberFonts[slot][memberIdx] then
+                                data.memberFonts[slot][memberIdx]:set_visible(false);
+                            end
+                        end
+                    end
+                    -- Per-item button primitives
+                    button.HidePrim(string.format('tpLotItem%d', slot));
+                    button.HidePrim(string.format('tpPassItem%d', slot));
+                end
+            end
+
+            -- Hide history fonts when on Pool tab
+            for i = 0, data.MAX_HISTORY_ITEMS - 1 do
+                if data.historyItemFonts[i] then data.historyItemFonts[i]:set_visible(false); end
+                if data.historyWinnerFonts[i] then data.historyWinnerFonts[i]:set_visible(false); end
+            end
+
+        else
+            -- ============================================
+            -- HISTORY TAB: Show recent winners
+            -- ============================================
+
+            -- Hide all pool fonts when on History tab
+            for slot = 0, data.MAX_POOL_SLOTS - 1 do
                 if data.itemNameFonts[slot] then data.itemNameFonts[slot]:set_visible(false); end
                 if data.timerFonts[slot] then data.timerFonts[slot]:set_visible(false); end
                 if data.lotFonts[slot] then data.lotFonts[slot]:set_visible(false); end
-                -- Expanded view fonts
                 if data.lottersFonts[slot] then data.lottersFonts[slot]:set_visible(false); end
                 if data.passersFonts[slot] then data.passersFonts[slot]:set_visible(false); end
                 if data.pendingFonts[slot] then data.pendingFonts[slot]:set_visible(false); end
                 if data.lotItemFonts[slot] then data.lotItemFonts[slot]:set_visible(false); end
                 if data.passItemFonts[slot] then data.passItemFonts[slot]:set_visible(false); end
-                -- Member fonts
                 if data.memberFonts[slot] then
                     for memberIdx = 0, data.MAX_MEMBERS_PER_ITEM - 1 do
                         if data.memberFonts[slot][memberIdx] then
@@ -993,9 +1177,175 @@ function M.DrawWindow(settings)
                         end
                     end
                 end
-                -- Per-item button primitives
                 button.HidePrim(string.format('tpLotItem%d', slot));
                 button.HidePrim(string.format('tpPassItem%d', slot));
+            end
+
+            -- Get history items
+            local historyItems = data.GetWonHistory();
+            local historyCount = #historyItems;
+
+            if historyCount == 0 then
+                -- Show "No history" message using header font
+                if data.headerFont then
+                    data.headerFont:set_font_height(fontSize);
+                    data.headerFont:set_text('No recent winners');
+                    data.headerFont:set_position_x(startX + padding);
+                    data.headerFont:set_position_y(y);
+                    data.headerFont:set_visible(true);
+                    if data.lastColors.header ~= 0xFF888888 then
+                        data.headerFont:set_font_color(0xFF888888);
+                        data.lastColors.header = 0xFF888888;
+                    end
+                end
+
+                -- Hide all history fonts
+                for i = 0, data.MAX_HISTORY_ITEMS - 1 do
+                    if data.historyItemFonts[i] then data.historyItemFonts[i]:set_visible(false); end
+                    if data.historyWinnerFonts[i] then data.historyWinnerFonts[i]:set_visible(false); end
+                end
+            else
+                -- Hide the "No history" message font
+                if data.headerFont then data.headerFont:set_visible(false); end
+
+                -- Scale history row height
+                local historyRowHeight = math.floor(HISTORY_ROW_HEIGHT * scaleY);
+                local historyIconSize = math.floor(ICON_SIZE * scaleY);
+
+                -- Calculate visible region for clipping
+                local historyAreaTop = y;
+                local historyAreaBottom = y + visibleContentHeight;
+
+                -- Handle scroll input (mouse wheel) when hovering over window
+                if imgui.IsWindowHovered() and historyMaxScrollOffset > 0 then
+                    local wheelY = imgui.GetIO().MouseWheel;
+                    if wheelY ~= 0 then
+                        local scrollSpeed = historyRowHeight * 2;
+                        historyScrollOffset = historyScrollOffset - (wheelY * scrollSpeed);
+                        -- Clamp scroll offset
+                        if historyScrollOffset < 0 then historyScrollOffset = 0; end
+                        if historyScrollOffset > historyMaxScrollOffset then historyScrollOffset = historyMaxScrollOffset; end
+                    end
+                end
+
+                -- Push clip rect for scrollable area
+                local historyNeedsScroll = historyCount > HISTORY_MAX_VISIBLE;
+                if historyNeedsScroll then
+                    drawList:PushClipRect(
+                        {startX, historyAreaTop},
+                        {startX + windowWidth, historyAreaBottom},
+                        true
+                    );
+                end
+
+                -- Track which history slots are used
+                local usedHistorySlots = {};
+
+                -- Render each history item
+                local currentY = y;
+                for i, histItem in ipairs(historyItems) do
+                    if i > data.MAX_HISTORY_ITEMS then break; end
+                    local idx = i - 1;  -- 0-based for font arrays
+                    usedHistorySlots[idx] = true;
+
+                    -- Apply scroll offset
+                    local rowY = currentY;
+                    if historyNeedsScroll then
+                        rowY = currentY - historyScrollOffset;
+                    end
+
+                    -- Check if item is visible
+                    local itemTop = rowY;
+                    local itemBottom = rowY + historyRowHeight;
+                    local isVisible = not historyNeedsScroll or (itemBottom > historyAreaTop and itemTop < historyAreaBottom);
+
+                    -- Update currentY for next item
+                    currentY = currentY + historyRowHeight + rowSpacing;
+
+                    if not isVisible then
+                        -- Hide fonts for this item
+                        if data.historyItemFonts[idx] then data.historyItemFonts[idx]:set_visible(false); end
+                        if data.historyWinnerFonts[idx] then data.historyWinnerFonts[idx]:set_visible(false); end
+                    else
+                        -- Draw item icon
+                        local iconTexture = loadItemIcon(histItem.itemId);
+                        local iconPtr = getIconPtr(iconTexture);
+                        local iconX = startX + padding;
+                        local iconY = rowY + (historyRowHeight - historyIconSize) / 2;
+
+                        if iconPtr then
+                            drawList:AddImage(iconPtr, {iconX, iconY}, {iconX + historyIconSize, iconY + historyIconSize});
+                        end
+
+                        -- Draw item name
+                        local textX = iconX + historyIconSize + iconTextGap;
+                        local textY = rowY + 2;
+
+                        if data.historyItemFonts[idx] then
+                            local itemFont = data.historyItemFonts[idx];
+                            itemFont:set_font_height(fontSize);
+                            itemFont:set_text(histItem.itemName or 'Unknown');
+                            itemFont:set_position_x(textX);
+                            itemFont:set_position_y(textY);
+                            itemFont:set_visible(true);
+                            if data.lastColors.historyItems[idx] ~= 0xFFFFFFFF then
+                                itemFont:set_font_color(0xFFFFFFFF);
+                                data.lastColors.historyItems[idx] = 0xFFFFFFFF;
+                            end
+                        end
+
+                        -- Draw winner info (right-aligned, with scrollbar accommodation)
+                        local winnerText = string.format('%s: %d', histItem.winnerName or '?', histItem.winnerLot or 0);
+                        if data.historyWinnerFonts[idx] then
+                            local winnerFont = data.historyWinnerFonts[idx];
+                            winnerFont:set_font_height(fontSize);
+                            winnerFont:set_text(winnerText);
+                            local winnerW, _ = winnerFont:get_text_size();
+                            winnerW = winnerW or (fontSize * 6);
+                            -- Add extra padding when scrollbar is visible (scrollbar width + gap)
+                            local scrollbarPadding = historyNeedsScroll and 10 or 0;
+                            winnerFont:set_position_x(startX + windowWidth - padding - winnerW - scrollbarPadding);
+                            winnerFont:set_position_y(textY);
+                            winnerFont:set_visible(true);
+                            if data.lastColors.historyWinners[idx] ~= 0xFF88FF88 then
+                                winnerFont:set_font_color(0xFF88FF88);
+                                data.lastColors.historyWinners[idx] = 0xFF88FF88;
+                            end
+                        end
+                    end
+                end
+
+                -- Pop clip rect if needed
+                if historyNeedsScroll then
+                    drawList:PopClipRect();
+
+                    -- Calculate total history content height
+                    local historyTotalContentHeight = (historyCount * historyRowHeight) + ((historyCount - 1) * rowSpacing);
+
+                    -- Draw scroll bar (matches Pool tab style)
+                    local scrollBarWidth = 4;
+                    local scrollBarX = startX + windowWidth - padding - scrollBarWidth;
+                    local scrollBarHeight = visibleContentHeight;
+                    local scrollThumbHeight = math.max(20, scrollBarHeight * (visibleContentHeight / historyTotalContentHeight));
+                    local scrollThumbY = historyAreaTop;
+                    if historyMaxScrollOffset > 0 then
+                        scrollThumbY = historyAreaTop + (historyScrollOffset / historyMaxScrollOffset) * (scrollBarHeight - scrollThumbHeight);
+                    end
+
+                    -- Draw scroll track (dark)
+                    local trackColor = imgui.GetColorU32({0.2, 0.2, 0.2, 0.5});
+                    drawList:AddRectFilled({scrollBarX, historyAreaTop}, {scrollBarX + scrollBarWidth, historyAreaBottom}, trackColor, 2.0);
+
+                    -- Draw scroll thumb (light)
+                    local thumbColor = imgui.GetColorU32({0.6, 0.6, 0.6, 0.8});
+                    drawList:AddRectFilled({scrollBarX, scrollThumbY}, {scrollBarX + scrollBarWidth, scrollThumbY + scrollThumbHeight}, thumbColor, 2.0);
+                end
+
+                -- Hide unused history fonts
+                for i = historyCount, data.MAX_HISTORY_ITEMS - 1 do
+                    if data.historyItemFonts[i] then data.historyItemFonts[i]:set_visible(false); end
+                    if data.historyWinnerFonts[i] then data.historyWinnerFonts[i]:set_visible(false); end
+                end
             end
         end
     end
@@ -1008,6 +1358,16 @@ function M.HideWindow()
     if data.toggleFont then data.toggleFont:set_visible(false); end
     if data.lotAllFont then data.lotAllFont:set_visible(false); end
     if data.passAllFont then data.passAllFont:set_visible(false); end
+
+    -- Hide tab fonts
+    if data.tabPoolFont then data.tabPoolFont:set_visible(false); end
+    if data.tabHistoryFont then data.tabHistoryFont:set_visible(false); end
+
+    -- Hide history fonts
+    for i = 0, data.MAX_HISTORY_ITEMS - 1 do
+        if data.historyItemFonts[i] then data.historyItemFonts[i]:set_visible(false); end
+        if data.historyWinnerFonts[i] then data.historyWinnerFonts[i]:set_visible(false); end
+    end
 
     -- Hide per-slot fonts
     for slot = 0, data.MAX_POOL_SLOTS - 1 do
@@ -1034,6 +1394,8 @@ function M.HideWindow()
     button.HidePrim('tpToggle');
     button.HidePrim('tpLotAll');
     button.HidePrim('tpPassAll');
+    button.HidePrim('tpTabPool');
+    button.HidePrim('tpTabHistory');
 
     -- Hide per-item button primitives
     for slot = 0, data.MAX_POOL_SLOTS - 1 do
@@ -1095,6 +1457,8 @@ function M.Cleanup()
     button.DestroyPrim('tpToggle');
     button.DestroyPrim('tpLotAll');
     button.DestroyPrim('tpPassAll');
+    button.DestroyPrim('tpTabPool');
+    button.DestroyPrim('tpTabHistory');
 
     -- Destroy per-item button primitives
     for slot = 0, data.MAX_POOL_SLOTS - 1 do

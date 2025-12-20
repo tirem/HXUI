@@ -14,6 +14,7 @@ local M = {};
 
 M.MAX_POOL_SLOTS = 10;              -- Maximum treasure pool slots (0-9)
 M.POOL_TIMEOUT_SECONDS = 300;       -- 5 minutes pool timeout
+M.MAX_HISTORY_ITEMS = 20;           -- Maximum items to keep in won history
 
 -- ============================================
 -- State
@@ -37,6 +38,14 @@ M.previewItems = {};
 -- Lot history per slot (tracked from 0x00D3 packets)
 -- Structure: lotHistory[slot] = { lotters = {}, passers = {}, winner = {} }
 M.lotHistory = {};
+
+-- Won item history (for recent history tab)
+-- Structure: array of { itemId, itemName, winnerName, winnerLot, wonAt (os.time) }
+-- Newest items at front of array (index 1)
+M.wonHistory = {};
+
+-- Preview won history (for config preview mode)
+M.previewWonHistory = {};
 
 -- ============================================
 -- Helper Functions
@@ -294,6 +303,42 @@ local PREVIEW_MEMBERS = {
     { serverId = 3006, name = 'Ravencrest' },
 };
 
+-- Mock won history items for preview (15 items to test scrolling)
+-- Item IDs verified from FFXIAH.com
+local PREVIEW_WON_HISTORY = {
+    { itemId = 17440, name = 'Kraken Club', winner = 'Aetherius', lot = 987 },       -- https://www.ffxiah.com/item/17440
+    { itemId = 13014, name = 'Leaping Boots', winner = 'Brutalix', lot = 876 },      -- https://www.ffxiah.com/item/13014
+    { itemId = 12579, name = 'Scorpion Harness', winner = 'Celestine', lot = 765 },  -- https://www.ffxiah.com/item/12579
+    { itemId = 16555, name = 'Ridill', winner = 'Darkblade', lot = 943 },            -- https://www.ffxiah.com/item/16555
+    { itemId = 13189, name = 'Speed Belt', winner = 'Elyndra', lot = 654 },          -- https://www.ffxiah.com/item/13189
+    { itemId = 13280, name = 'Sniper\'s Ring', winner = 'Frostwind', lot = 821 },    -- https://www.ffxiah.com/item/13280
+    { itemId = 13056, name = 'Peacock Charm', winner = 'Galeheart', lot = 432 },     -- https://www.ffxiah.com/item/13056
+    { itemId = 13281, name = 'Sniper\'s Ring +1', winner = 'Havocborn', lot = 567 }, -- https://www.ffxiah.com/item/13281
+    { itemId = 844, name = 'Phoenix Feather', winner = 'Ironveil', lot = 234 },      -- https://www.ffxiah.com/item/844
+    { itemId = 1313, name = 'Siren\'s Hair', winner = 'Jadestorm', lot = 789 },      -- https://www.ffxiah.com/item/1313
+    { itemId = 644, name = 'Mythril Ore', winner = 'Kiraflame', lot = 345 },         -- https://www.ffxiah.com/item/644
+    { itemId = 4145, name = 'Elixir', winner = 'Lunashade', lot = 456 },             -- https://www.ffxiah.com/item/4145
+    { itemId = 4116, name = 'Hi-Potion', winner = 'Moonsaber', lot = 123 },          -- https://www.ffxiah.com/item/4116
+    { itemId = 13748, name = 'Vermillion Cloak', winner = 'Nightfall', lot = 678 },  -- https://www.ffxiah.com/item/13748
+    { itemId = 12555, name = 'Haubergeon', winner = 'Oakenshield', lot = 912 },      -- https://www.ffxiah.com/item/12555
+};
+
+-- Generate mock won history for preview mode
+local function generateMockWonHistory()
+    local history = {};
+    local now = os.time();
+    for i, item in ipairs(PREVIEW_WON_HISTORY) do
+        history[i] = {
+            itemId = item.itemId,
+            itemName = item.name,
+            winnerName = item.winner,
+            winnerLot = item.lot,
+            wonAt = now - (i * 60),  -- Stagger times (1 minute apart)
+        };
+    end
+    return history;
+end
+
 -- Generate mock lot history for a slot with varied states
 local function generateMockLotHistory(slot)
     local history = { lotters = {}, passers = {}, pending = {}, winner = nil };
@@ -399,8 +444,11 @@ function M.SetPreview(enabled)
     M.previewEnabled = enabled;
     if enabled then
         ensurePreviewItems();
+        -- Generate mock won history for preview
+        M.previewWonHistory = generateMockWonHistory();
     else
         M.previewItems = {};
+        M.previewWonHistory = {};
         -- Clear mock lot history
         for slot = 0, M.MAX_POOL_SLOTS - 1 do
             M.lotHistory[slot] = nil;
@@ -413,6 +461,7 @@ end
 function M.ClearPreview()
     M.previewEnabled = false;
     M.previewItems = {};
+    M.previewWonHistory = {};
     -- Clear mock lot history
     for slot = 0, M.MAX_POOL_SLOTS - 1 do
         M.lotHistory[slot] = nil;
@@ -433,6 +482,25 @@ function M.HandleLotPacket(slot, entryServerId, entryName, entryFlg, entryLot,
 
     -- Handle item won/cleared (JudgeFlg >= 1)
     if judgeFlg and judgeFlg >= 1 then
+        -- Get item info before clearing (from current pool)
+        local item = M.poolItems[slot];
+        if item and winnerName and winnerName ~= '' and winnerLot and winnerLot > 0 then
+            -- Add to won history (insert at front)
+            local historyEntry = {
+                itemId = item.itemId,
+                itemName = item.itemName or getItemName(item.itemId),
+                winnerName = winnerName,
+                winnerLot = winnerLot,
+                wonAt = os.time(),
+            };
+            table.insert(M.wonHistory, 1, historyEntry);
+
+            -- Trim history to max size
+            while #M.wonHistory > M.MAX_HISTORY_ITEMS do
+                table.remove(M.wonHistory);
+            end
+        end
+
         -- Item awarded or cleared - remove from tracking
         M.lotHistory[slot] = nil;
         return;
@@ -678,6 +746,39 @@ function M.HasLotHistory(slot)
 end
 
 -- ============================================
+-- Won History (Recent History Tab)
+-- ============================================
+
+-- Get all won history items (newest first)
+function M.GetWonHistory()
+    if M.previewEnabled then
+        return M.previewWonHistory;
+    end
+    return M.wonHistory;
+end
+
+-- Get won history count
+function M.GetWonHistoryCount()
+    if M.previewEnabled then
+        return #M.previewWonHistory;
+    end
+    return #M.wonHistory;
+end
+
+-- Check if there is any won history
+function M.HasWonHistory()
+    if M.previewEnabled then
+        return #M.previewWonHistory > 0;
+    end
+    return #M.wonHistory > 0;
+end
+
+-- Clear won history
+function M.ClearWonHistory()
+    M.wonHistory = {};
+end
+
+-- ============================================
 -- Font Storage (created by init.lua, used by display.lua)
 -- ============================================
 
@@ -702,6 +803,15 @@ M.passAllFont = nil;    -- "Pass" button label
 M.lotItemFonts = {};    -- slot -> font ("L" button per item)
 M.passItemFonts = {};   -- slot -> font ("P" button per item)
 M.toggleFont = nil;     -- [v]/[^] toggle icon
+
+-- Tab fonts
+M.tabPoolFont = nil;    -- "Pool" tab label
+M.tabHistoryFont = nil; -- "History" tab label
+
+-- History fonts (for recent history tab)
+-- Each history entry needs: item name, winner name + lot
+M.historyItemFonts = {};    -- index -> font (item name)
+M.historyWinnerFonts = {};  -- index -> font (winner: lot)
 
 M.allFonts = nil;
 
@@ -755,6 +865,10 @@ M.lastColors = {
     passItems = {},
     toggle = nil,
     members = {},  -- [slot][memberIdx] = color
+    tabPool = nil,
+    tabHistory = nil,
+    historyItems = {},   -- [index] = color
+    historyWinners = {}, -- [index] = color
 };
 
 -- Helper to set all fonts visible/hidden
@@ -780,6 +894,10 @@ function M.ClearColorCache()
         passItems = {},
         toggle = nil,
         members = {},
+        tabPool = nil,
+        tabHistory = nil,
+        historyItems = {},
+        historyWinners = {},
     };
 end
 
@@ -849,9 +967,30 @@ function M.IsInventoryFull()
     return usedSlots >= maxSlots;
 end
 
+-- Preview mode validation overrides (only these items show warnings in preview)
+local PREVIEW_VALIDATION = {
+    [17440] = 'Already have Kraken Club (Rare)',  -- Kraken Club - show as already owned
+    [13014] = 'Inventory is full',                 -- Leaping Boots - show as full inventory
+};
+
 -- Validate if player can lot on an item
 -- Returns: canLot (boolean), errorMessage (string or nil)
 function M.ValidateLotItem(slot)
+    -- In preview mode, use mock validation
+    if M.previewEnabled then
+        local item = M.previewItems[slot];
+        if not item then
+            return true, nil;  -- No item = no validation needed
+        end
+        -- Check if this item has a mock validation error
+        local mockError = PREVIEW_VALIDATION[item.itemId];
+        if mockError then
+            return false, mockError;
+        end
+        return true, nil;  -- Most preview items pass validation
+    end
+
+    -- Normal mode: check real pool items
     local item = M.poolItems[slot];
     if not item then
         return false, nil;  -- No error message for missing item
@@ -887,6 +1026,7 @@ function M.Initialize()
     M.previewItems = {};
     M.lotHistory = {};
     M.missingFrameCount = {};
+    -- Note: wonHistory is NOT cleared on init to preserve history across reloads
 end
 
 -- Clear all state (call on zone change)

@@ -144,8 +144,21 @@ function M.Initialize(settings)
     data.passAllFont = safeCreateFont(fontSettings);
     data.toggleFont = safeCreateFont(fontSettings);
 
+    -- Tab fonts
+    data.tabPoolFont = safeCreateFont(fontSettings);
+    data.tabHistoryFont = safeCreateFont(fontSettings);
+
+    -- History fonts (for recent history tab)
+    data.historyItemFonts = {};
+    data.historyWinnerFonts = {};
+    for i = 0, data.MAX_HISTORY_ITEMS - 1 do
+        data.historyItemFonts[i] = safeCreateFont(fontSettings);
+        data.historyWinnerFonts[i] = safeCreateFont(fontSettings);
+    end
+
     -- Build allFonts list for batch visibility control
-    data.allFonts = {data.headerFont, data.lotAllFont, data.passAllFont, data.toggleFont};
+    data.allFonts = {data.headerFont, data.lotAllFont, data.passAllFont, data.toggleFont,
+                     data.tabPoolFont, data.tabHistoryFont};
     for slot = 0, data.MAX_POOL_SLOTS - 1 do
         table.insert(data.allFonts, data.itemNameFonts[slot]);
         table.insert(data.allFonts, data.timerFonts[slot]);
@@ -161,6 +174,11 @@ function M.Initialize(settings)
                 table.insert(data.allFonts, data.memberFonts[slot][memberIdx]);
             end
         end
+    end
+    -- History fonts
+    for i = 0, data.MAX_HISTORY_ITEMS - 1 do
+        table.insert(data.allFonts, data.historyItemFonts[i]);
+        table.insert(data.allFonts, data.historyWinnerFonts[i]);
     end
 
     -- Hide all fonts initially
@@ -239,8 +257,27 @@ function M.UpdateVisuals(settings)
         data.toggleFont = FontManager.recreate(data.toggleFont, fontSettings);
     end
 
+    -- Tab fonts
+    if data.tabPoolFont then
+        data.tabPoolFont = FontManager.recreate(data.tabPoolFont, fontSettings);
+    end
+    if data.tabHistoryFont then
+        data.tabHistoryFont = FontManager.recreate(data.tabHistoryFont, fontSettings);
+    end
+
+    -- History fonts
+    for i = 0, data.MAX_HISTORY_ITEMS - 1 do
+        if data.historyItemFonts[i] then
+            data.historyItemFonts[i] = FontManager.recreate(data.historyItemFonts[i], fontSettings);
+        end
+        if data.historyWinnerFonts[i] then
+            data.historyWinnerFonts[i] = FontManager.recreate(data.historyWinnerFonts[i], fontSettings);
+        end
+    end
+
     -- Rebuild allFonts list
-    data.allFonts = {data.headerFont, data.lotAllFont, data.passAllFont, data.toggleFont};
+    data.allFonts = {data.headerFont, data.lotAllFont, data.passAllFont, data.toggleFont,
+                     data.tabPoolFont, data.tabHistoryFont};
     for slot = 0, data.MAX_POOL_SLOTS - 1 do
         table.insert(data.allFonts, data.itemNameFonts[slot]);
         table.insert(data.allFonts, data.timerFonts[slot]);
@@ -256,6 +293,11 @@ function M.UpdateVisuals(settings)
                 table.insert(data.allFonts, data.memberFonts[slot][memberIdx]);
             end
         end
+    end
+    -- History fonts
+    for i = 0, data.MAX_HISTORY_ITEMS - 1 do
+        table.insert(data.allFonts, data.historyItemFonts[i]);
+        table.insert(data.allFonts, data.historyWinnerFonts[i]);
     end
 
     -- Clear color cache
@@ -307,6 +349,20 @@ function M.Cleanup()
     data.passAllFont = FontManager.destroy(data.passAllFont);
     data.toggleFont = FontManager.destroy(data.toggleFont);
 
+    -- Destroy tab fonts
+    data.tabPoolFont = FontManager.destroy(data.tabPoolFont);
+    data.tabHistoryFont = FontManager.destroy(data.tabHistoryFont);
+
+    -- Destroy history fonts
+    for i = 0, data.MAX_HISTORY_ITEMS - 1 do
+        if data.historyItemFonts[i] then
+            data.historyItemFonts[i] = FontManager.destroy(data.historyItemFonts[i]);
+        end
+        if data.historyWinnerFonts[i] then
+            data.historyWinnerFonts[i] = FontManager.destroy(data.historyWinnerFonts[i]);
+        end
+    end
+
     -- Destroy per-slot fonts
     for slot = 0, data.MAX_POOL_SLOTS - 1 do
         if data.itemNameFonts[slot] then
@@ -355,6 +411,8 @@ function M.Cleanup()
     data.lotItemFonts = {};
     data.passItemFonts = {};
     data.memberFonts = {};
+    data.historyItemFonts = {};
+    data.historyWinnerFonts = {};
 
     -- Cleanup display and data layers
     display.Cleanup();
