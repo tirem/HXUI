@@ -184,6 +184,7 @@ function M.createUserSettingsDefaults()
         showTargetBarLockOnBorder = true,
         showTargetBarCastBar = true,
         showEnemyId = false,
+        showEnemyIdHex = true,
         targetBarHideDuringEvents = true,
         splitTargetOfTarget = false,
         totBarScaleX = 1,

@@ -280,8 +280,10 @@ targetbar.DrawWindow = function(settings)
 			local entity = GetEntitySafe();
 			if entity ~= nil then
 				local targetServerId = entity:GetServerId(targetIndex);
-				local targetServerIdHex = string.format('0x%X', targetServerId);
-				targetNameText = targetNameText .. " [".. string.sub(targetServerIdHex, -3) .."]";
+				if (gConfig.showEnemyIdHex) then
+					targetServerId = string.format('0x%X', targetServerId);
+				end
+				targetNameText = targetNameText .. " [".. string.sub(targetServerId, -3) .."]";
 			end
 		end
 

@@ -72,6 +72,11 @@ local function DrawTargetBarSettingsContent()
         components.DrawCheckbox('Hide During Events', 'targetBarHideDuringEvents');
         components.DrawCheckbox('Show Enemy Id', 'showEnemyId');
         imgui.ShowHelp('Display the internal ID of the monster next to its name.');
+        if gConfig.showEnemyId then
+            imgui.SameLine();
+            components.DrawCheckbox('Convert to hex', 'showEnemyIdHex');
+            imgui.ShowHelp('Converts the internal ID of the monster to hexadecimal format.');
+        end
 
         components.DrawCheckbox('Split Target Bars', 'splitTargetOfTarget');
         imgui.ShowHelp('Separate the Target of Target bar into its own window that can be moved independently.');
