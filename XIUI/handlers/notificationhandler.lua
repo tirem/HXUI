@@ -22,9 +22,10 @@ M.ZONING_GRACE_PERIOD = 5.0;  -- Ignore inventory updates for 5 seconds after zo
 function M.HandleZonePacket()
     M.zoningTimestamp = os.clock();
 
-    -- Clear party invite notifications (invites are invalid after zoning)
+    -- Clear party and trade invite notifications (invites are invalid after zoning)
     if M.dataModule and M.dataModule.RemoveByType and M.dataModule.NOTIFICATION_TYPE then
         M.dataModule.RemoveByType(M.dataModule.NOTIFICATION_TYPE.PARTY_INVITE);
+        M.dataModule.RemoveByType(M.dataModule.NOTIFICATION_TYPE.TRADE_INVITE);
     end
 
     -- Clear toast tracking so items in new zone get fresh toasts
