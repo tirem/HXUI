@@ -62,6 +62,7 @@ local petBar = uiMods.petbar;
 local castCost = uiMods.castcost;
 local notifications = uiMods.notifications;
 local treasurePool = uiMods.treasurepool;
+local hotbar = uiMods.hotbar;
 local configMenu = require('config');
 local debuffHandler = require('handlers.debuffhandler');
 local actionTracker = require('handlers.actiontracker');
@@ -78,6 +79,7 @@ local _XIUI_DEV_HOT_RELOADING_ENABLED = false;
 local _XIUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS = 1;
 local _XIUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME;
 local _XIUI_DEV_HOT_RELOAD_FILES = {};
+local _XIUI_DEV_ALPHA_HOTBAR = false;
 
 -- Local split function for hot reload (avoids monkeypatching string metatable)
 local function _split_string(str, sep)
@@ -235,6 +237,15 @@ uiModules.Register('treasurePool', {
     configKey = 'treasurePoolEnabled',
     hasSetHidden = true,
 });
+if _XIUI_DEV_ALPHA_HOTBAR == true then
+    uiModules.Register('hotbar', {
+        module = hotbar,
+        settingsKey = 'hotbarSettings',
+        configKey = 'showhotbar',
+        hideOnEventKey = 'hotbarHideDuringEvents',
+        hasSetHidden = true,
+    });
+end
 
 -- Initialize settings from defaults
 local user_settings_container = T{
@@ -662,4 +673,35 @@ ashita.events.register('packet_out', 'packet_out_cb', function (e)
             notifications.HandlePartyInviteResponse(e);
         end
     end
+end);
+
+-- ============================================
+--Key Handler
+-- ============================================
+
+--[[ Valid Arguments
+
+    e.wparam     - (ReadOnly) The wparam of the event.
+    e.lparam     - (ReadOnly) The lparam of the event.
+    e.blocked    - (Writable) Flag that states if the key has been, or should be, blocked.
+
+    See the following article for how to process and use wparam/lparam values:
+    https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ms644984(v=vs.85)
+
+    Note: Key codes used here are considered 'virtual key codes'.
+--]]
+
+--[[ Note
+
+        The game uses WNDPROC keyboard information to process keyboard input for chat and other
+        user-inputted text prompts. (Bazaar comment, search comment, etc.)
+
+        Blocking a press here will only block it during inputs of those types. It will not block
+        in-game button handling for things such as movement, menu interactions, etc.
+--]]
+ashita.events.register('key', 'key_cb', function (event)
+    if(_XIUI_DEV_ALPHA_HOTBAR == true) then
+        hotbar.HandleKey(event);
+    end
+   
 end);
