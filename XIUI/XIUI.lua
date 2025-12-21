@@ -703,4 +703,5 @@ ashita.events.register('key', 'key_cb', function (event)
     if(_XIUI_DEV_ALPHA_HOTBAR == true) then
         hotbar.HandleKey(event);
     end
+   
 end);

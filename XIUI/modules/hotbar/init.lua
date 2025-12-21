@@ -28,6 +28,8 @@ M.visible = true;
 function M.Initialize(settings)
     if M.initialized then return; end
 
+    print('[XIUI hotbar] Initialising...');
+
     -- Ensure treasure pool settings have defaults BEFORE creating fonts
     if gConfig then
         -- Clear any stale preview state
