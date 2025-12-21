@@ -66,7 +66,7 @@ local selectedTab = 1;
 local drawing = require('libs.drawing');
 
 function M.DrawWindow(settings)
-    -- Render a themed hotbar with three primitive buttons
+    -- Render a themed hotbar with twelve primitive buttons using an imgui window
 
     -- Validate primitive
     if not bgPrimHandle then
@@ -82,17 +82,23 @@ function M.DrawWindow(settings)
     local padding = PADDING;
 
     -- Button layout
-    local buttonSize = iconSize;
-    local buttonGap = 6;
-    local buttonCount = 3;
+    local buttonGap = 12; -- increased spacing between buttons
+    local buttonCount = 10;
 
-    -- Compute content size to fit buttons + padding
+    local sampleLabel = 'Sample';
+    local sampleLabelW = imgui.CalcTextSize(sampleLabel) or 0;
+    local labelPadding = 12;
+    local baseButtonSize = math.max(iconSize, math.ceil(sampleLabelW + labelPadding));
+    local button_scale = gConfig.hotbarButtonScale or 0.75; 
+    local buttonSize = math.max(8, math.floor(baseButtonSize * button_scale));
+
+    -- Label spacing and heights
+    local labelGap = 4;
+    local textHeight = imgui.GetTextLineHeight();
+
+    -- Compute content size to fit buttons + padding + label
     local contentWidth = (padding * 2) + (buttonSize * buttonCount) + (buttonGap * (buttonCount - 1));
-    local contentHeight = (padding * 2) + buttonSize + 4 + imgui.GetTextLineHeight();
-
-    -- Position (default top-left offset)
-    local winX = 100;
-    local winY = 100;
+    local contentHeight = (padding * 2) + buttonSize + labelGap + textHeight;
 
     -- Background options (use theme settings like partylist)
     local bgTheme = gConfig.hotbarBackgroundTheme or 'Plain';
@@ -100,6 +106,34 @@ function M.DrawWindow(settings)
     local borderScale = gConfig.hotbarBorderScale or 1.0;
     local bgOpacity = gConfig.hotbarBackgroundOpacity or 0.87;
     local borderOpacity = gConfig.hotbarBorderOpacity or 1.0;
+
+    -- Apply theme change safely
+    if loadedBgTheme ~= bgTheme and bgPrimHandle then
+        loadedBgTheme = bgTheme;
+        pcall(function()
+            windowBg.setTheme(bgPrimHandle, bgTheme, bgScale, borderScale);
+        end);
+    end
+
+    -- Determine colors: prefer user color customization for hotbar, else fall back to theme sensible defaults
+    local hotbarColors = gConfig and gConfig.colorCustomization and gConfig.colorCustomization.hotbar;
+    local bgColor = hotbarColors and hotbarColors.bgColor or nil;
+    local borderColor = hotbarColors and hotbarColors.borderColor or nil;
+
+    if not bgColor then
+        if bgTheme == 'Plain' then
+            bgColor = 0xFF1A1A1A; -- dark tint for plain
+        else
+            bgColor = 0xFFFFFFFF; -- white (no tint) for themed textures
+        end
+    end
+    if not borderColor then
+        borderColor = 0xFFFFFFFF;
+    end
+
+    -- Use saved state if present (for drag-to-move later)
+    local savedX = (gConfig.hotbarState and gConfig.hotbarState.x) or 1000;
+    local savedY = (gConfig.hotbarState and gConfig.hotbarState.y) or 1000;
 
     local bgOptions = {
         theme = bgTheme,
@@ -109,54 +143,76 @@ function M.DrawWindow(settings)
         borderScale = borderScale,
         bgOpacity = bgOpacity,
         borderOpacity = borderOpacity,
+        bgColor = bgColor,
+        borderColor = borderColor,
     };
 
-    -- Update background primitive
-    windowBg.update(bgPrimHandle, winX, winY, contentWidth, contentHeight, bgOptions);
+    -- Use an imgui window (no decoration / no background) to get a consistent position/size like PartyWindow
+    local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoBringToFrontOnFocus, ImGuiWindowFlags_NoDocking);
+    if (gConfig.lockPositions) then
+        windowFlags = bit.bor(windowFlags, ImGuiWindowFlags_NoMove);
+    end
 
-    -- Foreground draw list for text and overlays
-    local drawList = drawing.GetUIDrawList();
+    local windowName = 'Hotbar';
 
-    -- Draw title above the hotbar
-    local title = 'Hotbar';
-    local titleWidth = imgui.CalcTextSize(title) or 0;
-    local titleX = winX + (contentWidth / 2) - (titleWidth / 2);
-    local titleY = winY - imgui.GetTextLineHeight() - 6;
-    drawList:AddText({titleX, titleY}, imgui.GetColorU32({0.9, 0.9, 0.9, 1.0}), title);
+    imgui.PushStyleVar(ImGuiStyleVar_FramePadding, {0,0});
+    imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, { buttonGap, 0 });
+    imgui.SetNextWindowPos({savedX, savedY});
 
-    -- Draw buttons inside the background using button.Draw
-    local btnX = winX + padding;
-    local btnY = winY + padding;
+    local imguiPosX, imguiPosY;
+    if (imgui.Begin(windowName, true, windowFlags)) then
+        imguiPosX, imguiPosY = imgui.GetWindowPos();
 
-    for i = 1, buttonCount do
-        local id = 'hotbar_btn_' .. i;
-        local clicked, hovered = button.Draw(id, btnX, btnY, buttonSize, buttonSize, {
-            colors = button.COLORS_NEUTRAL,
-            rounding = 4,
-            borderThickness = 1,
-            tooltip = 'Hotbar Button #' .. i,
-        });
+        -- Foreground draw list for text and overlays
+        local drawList = drawing.GetUIDrawList();
 
-        -- Draw a simple numeric label beneath each button
-        local label = tostring(i);
-        local labelW = imgui.CalcTextSize(label) or 0;
-        local labelX = btnX + (buttonSize / 2) - (labelW / 2);
-        local labelY = btnY + buttonSize + 4;
-        drawList:AddText({labelX, labelY}, imgui.GetColorU32({0.9, 0.9, 0.9, 1.0}), label);
+        -- Draw title above the hotbar (centered)
+        local title = 'Hotbar';
+        local titleWidth = imgui.CalcTextSize(title) or 0;
+        local titleX = imguiPosX + (contentWidth / 2) - (titleWidth / 2);
+        local titleY = imguiPosY - imgui.GetTextLineHeight() - 6;
+        drawList:AddText({titleX, titleY}, imgui.GetColorU32({0.9, 0.9, 0.9, 1.0}), title);
 
-        -- Demo actions for each button (replace with configurable actions later)
-        if clicked then
-            if i == 1 then
-                AshitaCore:GetChatManager():QueueCommand(-1, '/ma "Cure" <t>');
-            elseif i == 2 then
-                AshitaCore:GetChatManager():QueueCommand(-1, '/ma "Cure II" <t>');
-            elseif i == 3 then
-                AshitaCore:GetChatManager():QueueCommand(-1, '/ma "Protect" <t>');
+        -- Draw buttons inside the background using button.Draw
+        local btnX = imguiPosX + padding;
+        local btnY = imguiPosY + padding;
+
+        for i = 1, buttonCount do
+            local id = 'hotbar_btn_' .. i;
+            local labelText = (i == 1) and 'Cure' or 'Sample';
+            local clicked, hovered = button.Draw(id, btnX, btnY, buttonSize, buttonSize, {
+                colors = button.COLORS_NEUTRAL,
+                rounding = 4,
+                borderThickness = 1,
+                tooltip = labelText,
+            });
+
+            -- Draw label beneath each button
+            local labelW = imgui.CalcTextSize(labelText) or 0;
+            local labelX = btnX + (buttonSize / 2) - (labelW / 2);
+            local labelY = btnY + buttonSize + labelGap;
+            drawList:AddText({labelX, labelY}, imgui.GetColorU32({0.9, 0.9, 0.9, 1.0}), labelText);
+
+            -- Demo action for the first button
+            if clicked then
+                if i == 1 then
+                    AshitaCore:GetChatManager():QueueCommand(-1, '/ma "Cure" <t>');
+                end
             end
+
+            btnX = btnX + buttonSize + buttonGap;
         end
 
-        btnX = btnX + buttonSize + buttonGap;
+        -- Force window content size so the window background primitive matches
+        imgui.Dummy({contentWidth, contentHeight});
+
+        -- Update background primitive using imgui window position
+        pcall(function()
+            windowBg.update(bgPrimHandle, imguiPosX, imguiPosY, contentWidth, contentHeight, bgOptions);
+        end);
     end
+
+    imgui.PopStyleVar(2);
 end
 
 function M.HideWindow()
@@ -165,9 +221,9 @@ function M.HideWindow()
     end
 
     -- Hide primitive-backed buttons
-    button.HidePrim('hotbar_btn_1');
-    button.HidePrim('hotbar_btn_2');
-    button.HidePrim('hotbar_btn_3');
+    for i = 1, 10 do
+        button.HidePrim('hotbar_btn_' .. i);
+    end
 end
 
 -- ============================================
@@ -216,9 +272,9 @@ function M.Cleanup()
     end
 
     -- Destroy primitive-backed buttons
-    button.DestroyPrim('hotbar_btn_1');
-    button.DestroyPrim('hotbar_btn_2');
-    button.DestroyPrim('hotbar_btn_3');
+    for i = 1, 10 do
+        button.DestroyPrim('hotbar_btn_' .. i);
+    end
 end
 
 return M;
