@@ -75,7 +75,7 @@ HzLimitedMode = false;
 -- =================
 -- = XIUI DEV ONLY =
 -- =================
-local _XIUI_DEV_HOT_RELOADING_ENABLED = true;
+local _XIUI_DEV_HOT_RELOADING_ENABLED = false;
 local _XIUI_DEV_HOT_RELOAD_POLL_TIME_SECONDS = 1;
 local _XIUI_DEV_HOT_RELOAD_LAST_RELOAD_TIME;
 local _XIUI_DEV_HOT_RELOAD_FILES = {};
