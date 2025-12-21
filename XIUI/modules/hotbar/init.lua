@@ -26,6 +26,7 @@ M.visible = true;
 
 -- Initialize the hotbar module
 function M.Initialize(settings)
+    if _XIUI_DEV_ALPHA_HOTBAR == false then return; end
     if M.initialized then return; end
 
     print('[XIUI hotbar] Initialising...');

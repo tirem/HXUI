@@ -26,6 +26,9 @@ local ICON_TEXT_GAP = 6;
 local ROW_SPACING = 4;
 local BAR_HEIGHT = 3;
 
+local COLUMNS = 10; -- buttons per row
+local ROWS = 2; -- number of ROWS
+
 -- ============================================
 -- State
 -- ============================================
@@ -66,7 +69,7 @@ local selectedTab = 1;
 local drawing = require('libs.drawing');
 
 function M.DrawWindow(settings)
-    -- Render a themed hotbar with twelve primitive buttons using an imgui window
+    -- Render a themed hotbar with two ROWS of buttons (10 per row, 20 total) using an imgui window
 
     -- Validate primitive
     if not bgPrimHandle then
@@ -82,23 +85,24 @@ function M.DrawWindow(settings)
     local padding = PADDING;
 
     -- Button layout
-    local buttonGap = 12; -- increased spacing between buttons
-    local buttonCount = 10;
+    local buttonGap = 12; -- increased horizontal spacing between buttons
 
-    local sampleLabel = 'Sample';
+    -- Determine button size to fit text ("Button Text") plus padding, then apply configured button scale
+    local sampleLabel = 'Button Text';
     local sampleLabelW = imgui.CalcTextSize(sampleLabel) or 0;
-    local labelPadding = 12;
+    local labelPadding = 12; -- horizontal padding to give breathing room for text
     local baseButtonSize = math.max(iconSize, math.ceil(sampleLabelW + labelPadding));
-    local button_scale = gConfig.hotbarButtonScale or 0.75; 
+    local button_scale = gConfig.hotbarButtonScale or 0.56; -- final scale (default ~56%)
     local buttonSize = math.max(8, math.floor(baseButtonSize * button_scale));
 
     -- Label spacing and heights
     local labelGap = 4;
     local textHeight = imgui.GetTextLineHeight();
+    local rowGap = 6; -- vertical gap between ROWS
 
-    -- Compute content size to fit buttons + padding + label
-    local contentWidth = (padding * 2) + (buttonSize * buttonCount) + (buttonGap * (buttonCount - 1));
-    local contentHeight = (padding * 2) + buttonSize + labelGap + textHeight;
+    -- Compute content size to fit buttons + padding + labels and inter-row gap
+    local contentWidth = (padding * 2) + (buttonSize * COLUMNS) + (buttonGap * (COLUMNS - 1));
+    local contentHeight = (padding * 2) + (buttonSize + labelGap + textHeight) * ROWS + (rowGap * (ROWS - 1));
 
     -- Background options (use theme settings like partylist)
     local bgTheme = gConfig.hotbarBackgroundTheme or 'Plain';
@@ -173,34 +177,37 @@ function M.DrawWindow(settings)
         local titleY = imguiPosY - imgui.GetTextLineHeight() - 6;
         drawList:AddText({titleX, titleY}, imgui.GetColorU32({0.9, 0.9, 0.9, 1.0}), title);
 
-        -- Draw buttons inside the background using button.Draw
-        local btnX = imguiPosX + padding;
-        local btnY = imguiPosY + padding;
+        -- Draw buttons inside the background using button.Draw in a ROWS x COLUMNS grid
+        local idx = 1;
+        for r = 1, ROWS do
+            local btnX = imguiPosX + padding;
+            local btnY = imguiPosY + padding + (r - 1) * (buttonSize + labelGap + textHeight + rowGap);
+            for c = 1, COLUMNS do
+                local id = 'hotbar_btn_' .. idx;
+                local labelText = (idx == 1) and 'Cure' or 'Sample';
+                local clicked, hovered = button.Draw(id, btnX, btnY, buttonSize, buttonSize, {
+                    colors = button.COLORS_NEUTRAL,
+                    rounding = 4,
+                    borderThickness = 1,
+                    tooltip = labelText,
+                });
 
-        for i = 1, buttonCount do
-            local id = 'hotbar_btn_' .. i;
-            local labelText = (i == 1) and 'Cure' or 'Sample';
-            local clicked, hovered = button.Draw(id, btnX, btnY, buttonSize, buttonSize, {
-                colors = button.COLORS_NEUTRAL,
-                rounding = 4,
-                borderThickness = 1,
-                tooltip = labelText,
-            });
+                -- Draw label beneath each button
+                local labelW = imgui.CalcTextSize(labelText) or 0;
+                local labelX = btnX + (buttonSize / 2) - (labelW / 2);
+                local labelY = btnY + buttonSize + labelGap;
+                drawList:AddText({labelX, labelY}, imgui.GetColorU32({0.9, 0.9, 0.9, 1.0}), labelText);
 
-            -- Draw label beneath each button
-            local labelW = imgui.CalcTextSize(labelText) or 0;
-            local labelX = btnX + (buttonSize / 2) - (labelW / 2);
-            local labelY = btnY + buttonSize + labelGap;
-            drawList:AddText({labelX, labelY}, imgui.GetColorU32({0.9, 0.9, 0.9, 1.0}), labelText);
-
-            -- Demo action for the first button
-            if clicked then
-                if i == 1 then
-                    AshitaCore:GetChatManager():QueueCommand(-1, '/ma "Cure" <t>');
+                -- Demo action for the first button
+                if clicked then
+                    if idx == 1 then
+                        AshitaCore:GetChatManager():QueueCommand(-1, '/ma "Cure" <t>');
+                    end
                 end
-            end
 
-            btnX = btnX + buttonSize + buttonGap;
+                btnX = btnX + buttonSize + buttonGap;
+                idx = idx + 1;
+            end
         end
 
         -- Force window content size so the window background primitive matches
@@ -221,7 +228,7 @@ function M.HideWindow()
     end
 
     -- Hide primitive-backed buttons
-    for i = 1, 10 do
+    for i = 1, ROWS * COLUMNS do
         button.HidePrim('hotbar_btn_' .. i);
     end
 end
@@ -272,7 +279,7 @@ function M.Cleanup()
     end
 
     -- Destroy primitive-backed buttons
-    for i = 1, 10 do
+    for i = 1, ROWS * COLUMNS do
         button.DestroyPrim('hotbar_btn_' .. i);
     end
 end
