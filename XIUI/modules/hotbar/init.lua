@@ -95,12 +95,14 @@ function M.Initialize(settings)
 
 
     --//@TODO: 
-    data.SetAllFontsVisible(false);
+    --data.SetAllFontsVisible(false);
 
     -- Initialize display layer (creates background primitive)
     display.Initialize(settings);
 
+    print('[XIUI hotbar] Initialized');
     M.initialized = true;
+    
 end
 
 --//@TODO:
@@ -125,6 +127,8 @@ end
 function M.DrawWindow(settings)
     if not M.initialized then return; end
     if not M.visible then return; end
+
+    display.DrawWindow(settings);
 
     --//@TODO:
     -- -- Read pool state from memory (skip in preview mode)

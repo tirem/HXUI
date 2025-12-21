@@ -660,6 +660,34 @@ function M.createModuleDefaults()
             },
         },
 
+        -- settings for hotbar (dev-only)
+        hotbarSettings = T{
+            font_settings = T{
+                font_alignment = gdi.Alignment.Center,
+                font_family = 'Consolas',
+                font_height = 10,
+                font_color = 0xFFFFFFFF,
+                font_flags = gdi.FontFlags.None,
+                outline_color = 0xFF000000,
+                outline_width = 2,
+            },
+            title_font_settings = T{
+                font_alignment = gdi.Alignment.Center,
+                font_family = 'Consolas',
+                font_height = 12,
+                font_color = 0xFFFFFFFF,
+                font_flags = gdi.FontFlags.Bold,
+                outline_color = 0xFF000000,
+                outline_width = 2,
+            },
+            scaleX = 1.0,
+            scaleY = 1.0,
+            bgScale = 1.0,
+            borderScale = 1.0,
+            background_opacity = 0.87,
+            border_opacity = 1.0,
+        },
+
         -- settings for treasure pool module
         treasurePoolSettings = T{
             font_settings = T{
