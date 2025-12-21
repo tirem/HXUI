@@ -120,7 +120,7 @@ function M.DrawWindow(settings)
     local squareBottom = squareTop + iconSize;
 
     -- Colors (simple neutral colors)
-    local squareColor = imgui.GetColorU32({0.18, 0.55, 0.34, 1.0});
+    local squareColor = imgui.GetColorU32({0.32, 0.45, 0.34, 1.0});
     local outlineColor = imgui.GetColorU32({0, 0, 0, 1.0});
     local textColor = imgui.GetColorU32({0.9, 0.9, 0.9, 1.0});
 

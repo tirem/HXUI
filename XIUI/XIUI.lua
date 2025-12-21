@@ -673,3 +673,35 @@ ashita.events.register('packet_out', 'packet_out_cb', function (e)
         end
     end
 end);
+
+-- ============================================
+--Key Handler
+-- ============================================
+
+--[[ Valid Arguments
+
+    e.wparam     - (ReadOnly) The wparam of the event.
+    e.lparam     - (ReadOnly) The lparam of the event.
+    e.blocked    - (Writable) Flag that states if the key has been, or should be, blocked.
+
+    See the following article for how to process and use wparam/lparam values:
+    https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ms644984(v=vs.85)
+
+    Note: Key codes used here are considered 'virtual key codes'.
+--]]
+
+--[[ Note
+
+        The game uses WNDPROC keyboard information to process keyboard input for chat and other
+        user-inputted text prompts. (Bazaar comment, search comment, etc.)
+
+        Blocking a press here will only block it during inputs of those types. It will not block
+        in-game button handling for things such as movement, menu interactions, etc.
+--]]
+ashita.events.register('key', 'key_cb', function (e)
+    print("Key pressed wparam: " .. tostring(e.wparam) .. " lparam: " .. tostring(e.lparam)); 
+    if (e.wparam == 49) then
+        e.blocked = true;
+        AshitaCore:GetChatManager():QueueCommand(-1, '/ma Cure <t>')
+    end
+end);

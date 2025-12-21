@@ -152,9 +152,10 @@ end
 -- Set module visibility
 function M.SetHidden(hidden)
     M.visible = not hidden;
-    if hidden then
-        data.SetAllFontsVisible(false);
-    end
+    --//@TODO: 
+    -- if hidden then
+    --     data.SetAllFontsVisible(false);
+    -- end
     display.SetHidden(hidden);
 end
 
