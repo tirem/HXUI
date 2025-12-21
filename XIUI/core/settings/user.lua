@@ -126,10 +126,10 @@ function M.createUserSettingsDefaults()
         enemyListMaxColumns = 1,
         enemyListRowSpacing = 5,
         enemyListColumnSpacing = 10,
-        enemyListDebuffOffsetX = 131,
+        enemyListDebuffOffsetX = 5,
         enemyListDebuffOffsetY = 0,
         showEnemyListDebuffs = true,
-        enemyListDebuffsRightAlign = false,
+        enemyListDebuffsAnchor = 'right', -- 'left' or 'right' - which side of enemy entry to anchor debuffs
         showEnemyListTargets = true,
         enableEnemyListClickTarget = true,
         enemyListPreview = true,

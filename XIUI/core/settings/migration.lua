@@ -493,6 +493,18 @@ function M.MigrateIndividualSettings(gConfig, defaults)
         gConfig.alwaysShowHealthPercent = nil;
     end
 
+    -- Migrate old enemyListDebuffsRightAlign boolean to enemyListDebuffsAnchor string
+    if gConfig.enemyListDebuffsRightAlign ~= nil then
+        -- Convert old boolean to new anchor string
+        -- Old true meant "right-aligned" (icons on right), old false meant "left-aligned" (icons on left)
+        -- New anchor is which side of the entry to position debuffs
+        gConfig.enemyListDebuffsAnchor = gConfig.enemyListDebuffsRightAlign and 'right' or 'left';
+        gConfig.enemyListDebuffsRightAlign = nil;
+    end
+    if gConfig.enemyListDebuffsAnchor == nil then
+        gConfig.enemyListDebuffsAnchor = defaults.enemyListDebuffsAnchor;
+    end
+
     -- Migrate new mob info settings (add missing fields for existing users)
     if gConfig.mobInfoShowJob == nil then
         gConfig.mobInfoShowJob = defaults.mobInfoShowJob;

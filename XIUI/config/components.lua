@@ -567,6 +567,32 @@ function components.DrawAlignmentDropdown(label, parentTable, configKey, helpTex
     end
 end
 
+-- Anchor dropdown (left/right only, no center)
+-- Use for positioning elements relative to a container edge
+function components.DrawAnchorDropdown(label, parentTable, configKey, helpText)
+    local anchorLabels = {
+        left = 'Left',
+        right = 'Right'
+    };
+
+    local labelToAnchor = {
+        ['Left'] = 'left',
+        ['Right'] = 'right'
+    };
+
+    local currentAnchor = parentTable[configKey] or 'right';
+    local currentLabel = anchorLabels[currentAnchor] or 'Right';
+
+    components.DrawComboBox(label, currentLabel, {'Left', 'Right'}, function(newLabel)
+        parentTable[configKey] = labelToAnchor[newLabel];
+        SaveSettingsOnly();
+    end);
+
+    if helpText then
+        imgui.ShowHelp(helpText);
+    end
+end
+
 -- Tab Styling Constants
 components.TAB_STYLE = {
     height = 24,
