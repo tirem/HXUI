@@ -1,7 +1,5 @@
 --[[
 * XIUI hotbar - Data Module
-* Reads hotbar state from Ashita memory API
-* Memory is single source of truth - no packet handling for pool state
 ]]--
 
 require('common');
