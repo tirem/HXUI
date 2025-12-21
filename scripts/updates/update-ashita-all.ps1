@@ -1,5 +1,5 @@
 # Update both Ashita v4beta branches (main and 4.3)
-# Run from XIUI project root: .\.claude\scripts\update-ashita-all.ps1
+# Run from XIUI project root: .\scripts\updates\update-ashita-all.ps1
 
 $ErrorActionPreference = "Stop"
 

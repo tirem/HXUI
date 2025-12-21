@@ -196,6 +196,7 @@ function M.MigratePerPartySettings(gConfig, defaults)
         minRows = getOld('partyListMinRows', 1),
         entrySpacing = getOld('partyListEntrySpacing', 0),
         selectionBoxScaleY = getOld('selectionBoxScaleY', 1),
+        selectionBoxOffsetY = 0,
         scaleX = getOld('partyListScaleX', 1),
         scaleY = getOld('partyListScaleY', 1),
         fontSize = getOld('partyListFontSize', 12),
@@ -239,6 +240,7 @@ function M.MigratePerPartySettings(gConfig, defaults)
         minRows = 1,
         entrySpacing = getOld('partyList2EntrySpacing', 6),
         selectionBoxScaleY = 1,
+        selectionBoxOffsetY = 0,
         scaleX = getOld('partyList2ScaleX', 0.7),
         scaleY = getOld('partyList2ScaleY', 0.7),
         fontSize = getOld('partyList2FontSize', 12),
@@ -282,6 +284,7 @@ function M.MigratePerPartySettings(gConfig, defaults)
         minRows = 1,
         entrySpacing = getOld('partyList3EntrySpacing', 6),
         selectionBoxScaleY = 1,
+        selectionBoxOffsetY = 0,
         scaleX = getOld('partyList3ScaleX', 0.7),
         scaleY = getOld('partyList3ScaleY', 0.7),
         fontSize = getOld('partyList3FontSize', 12),
@@ -490,6 +493,18 @@ function M.MigrateIndividualSettings(gConfig, defaults)
         gConfig.alwaysShowHealthPercent = nil;
     end
 
+    -- Migrate old enemyListDebuffsRightAlign boolean to enemyListDebuffsAnchor string
+    if gConfig.enemyListDebuffsRightAlign ~= nil then
+        -- Convert old boolean to new anchor string
+        -- Old true meant "right-aligned" (icons on right), old false meant "left-aligned" (icons on left)
+        -- New anchor is which side of the entry to position debuffs
+        gConfig.enemyListDebuffsAnchor = gConfig.enemyListDebuffsRightAlign and 'right' or 'left';
+        gConfig.enemyListDebuffsRightAlign = nil;
+    end
+    if gConfig.enemyListDebuffsAnchor == nil then
+        gConfig.enemyListDebuffsAnchor = defaults.enemyListDebuffsAnchor;
+    end
+
     -- Migrate new mob info settings (add missing fields for existing users)
     if gConfig.mobInfoShowJob == nil then
         gConfig.mobInfoShowJob = defaults.mobInfoShowJob;
@@ -640,6 +655,40 @@ function M.MigrateCastCostSettings(gConfig, defaults)
     end
 end
 
+-- Migrate gil tracker settings (add missing fields for existing users)
+function M.MigrateGilTrackerSettings(gConfig, defaults)
+    -- Gil tracker display settings
+    if gConfig.gilTrackerShowGilPerHour == nil then
+        gConfig.gilTrackerShowGilPerHour = defaults.gilTrackerShowGilPerHour;
+    end
+
+    -- Gil tracker offset settings
+    if gConfig.gilTrackerTextOffsetX == nil then
+        gConfig.gilTrackerTextOffsetX = defaults.gilTrackerTextOffsetX or 0;
+    end
+    if gConfig.gilTrackerTextOffsetY == nil then
+        gConfig.gilTrackerTextOffsetY = defaults.gilTrackerTextOffsetY or 0;
+    end
+    if gConfig.gilTrackerGilPerHourOffsetX == nil then
+        gConfig.gilTrackerGilPerHourOffsetX = defaults.gilTrackerGilPerHourOffsetX or 0;
+    end
+    if gConfig.gilTrackerGilPerHourOffsetY == nil then
+        gConfig.gilTrackerGilPerHourOffsetY = defaults.gilTrackerGilPerHourOffsetY or 0;
+    end
+
+    -- Gil tracker color settings
+    if gConfig.colorCustomization and gConfig.colorCustomization.gilTracker then
+        local gilColors = gConfig.colorCustomization.gilTracker;
+        local defaultColors = defaults.colorCustomization.gilTracker;
+        if gilColors.positiveColor == nil then
+            gilColors.positiveColor = defaultColors.positiveColor;
+        end
+        if gilColors.negativeColor == nil then
+            gilColors.negativeColor = defaultColors.negativeColor;
+        end
+    end
+end
+
 -- Run structure migrations (called AFTER settings.load())
 -- These handle migrating old settings structures to new ones
 function M.RunStructureMigrations(gConfig, defaults)
@@ -649,6 +698,7 @@ function M.RunStructureMigrations(gConfig, defaults)
     M.MigrateColorSettings(gConfig, defaults);
     M.MigratePerPetTypeColorSettings(gConfig, defaults);
     M.MigrateIndividualSettings(gConfig, defaults);
+    M.MigrateGilTrackerSettings(gConfig, defaults);
     M.MigrateCastCostSettings(gConfig, defaults);
 end
 

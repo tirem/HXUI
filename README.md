@@ -7,10 +7,14 @@ Contains the following elements:
 * Party List (w/ Buffs & Debuffs)
 * Enemy List (w/ Buffs & Debuffs)
 * Cast Bar
+* Cast Cost Display
 * Pet Bar
 * Exp Bar
 * Inventory Tracker
 * Gil Tracker
+* Mob Info
+* Treasure Pool
+* Notifications
 * Configuration UI for all elements
 
 <img width="1913" height="1072" alt="image" src="https://github.com/user-attachments/assets/c0c3e8db-d0bd-4522-87ff-ebafafcfe8d8" />

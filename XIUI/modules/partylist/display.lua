@@ -202,11 +202,12 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
 
         local selectionWidth = allBarsLengths + settings.cursorPaddingX1 + settings.cursorPaddingX2;
         local selectionScaleY = cache.selectionBoxScaleY or 1;
+        local selectionOffsetY = cache.selectionBoxOffsetY or 0;
         local unscaledHeight = entrySize + settings.cursorPaddingY1 + settings.cursorPaddingY2;
         local selectionHeight = unscaledHeight * selectionScaleY;
         local topOfMember = hpStartY - nameRefHeight - settings.nameTextOffsetY;
         local centerOffsetY = (selectionHeight - unscaledHeight) / 2;
-        local selectionTL = {hpStartX - settings.cursorPaddingX1, topOfMember - settings.cursorPaddingY1 - centerOffsetY};
+        local selectionTL = {hpStartX - settings.cursorPaddingX1, topOfMember - settings.cursorPaddingY1 - centerOffsetY + selectionOffsetY};
         local selectionBR = {selectionTL[1] + selectionWidth, selectionTL[2] + selectionHeight};
 
         local selectionGradient;
@@ -271,13 +272,20 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     local namePosX = hpStartX;
     if cache.showJobIcon then
         local offsetStartY = hpStartY - jobIconSize - settings.nameTextOffsetY;
-        imgui.SetCursorScreenPos({namePosX, offsetStartY});
         local jobIcon = statusHandler.GetJobIcon(memInfo.job);
         if (jobIcon ~= nil) then
             namePosX = namePosX + jobIconSize + settings.nameTextOffsetX;
-            imgui.Image(jobIcon, {jobIconSize, jobIconSize});
+            -- Use background draw list to render outside window clipping
+            local jobIconPtr = tonumber(ffi.cast("uint32_t", jobIcon));
+            local draw_list = imgui.GetBackgroundDrawList();
+            draw_list:AddImage(
+                jobIconPtr,
+                {hpStartX, offsetStartY},
+                {hpStartX + jobIconSize, offsetStartY + jobIconSize},
+                {0, 0}, {1, 1},
+                IM_COL32_WHITE
+            );
         end
-        imgui.SetCursorScreenPos({hpStartX, hpStartY});
     end
 
     -- Update HP text color
@@ -967,12 +975,13 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
                 local cursorHeight = cursorTexture.height * settings.arrowSize;
 
                 local selectionScaleY = cache.selectionBoxScaleY or 1;
+                local selectionOffsetY = cache.selectionBoxOffsetY or 0;
                 local unscaledHeight = entrySize + settings.cursorPaddingY1 + settings.cursorPaddingY2;
                 local selectionHeight = unscaledHeight * selectionScaleY;
                 local topOfMember = hpStartY - nameRefHeight - settings.nameTextOffsetY;
                 local centerOffsetY = (selectionHeight - unscaledHeight) / 2;
                 local selectionTL_X = hpStartX - settings.cursorPaddingX1;
-                local selectionTL_Y = topOfMember - settings.cursorPaddingY1 - centerOffsetY;
+                local selectionTL_Y = topOfMember - settings.cursorPaddingY1 - centerOffsetY + selectionOffsetY;
 
                 local cursorX = selectionTL_X - cursorWidth;
                 local cursorY = selectionTL_Y + (selectionHeight / 2) - (cursorHeight / 2);

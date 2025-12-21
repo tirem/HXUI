@@ -458,7 +458,7 @@ enemylist.DrawWindow = function(settings)
 				end
 
 				-- ===== DEBUFF ICONS =====
-				-- Positioned at top-left or top-right of entry (offset by user settings)
+				-- Positioned at left or right of entry based on anchor setting (offset by user settings)
 				if (gConfig.showEnemyListDebuffs) then
 					local buffIds = nil;
 					if isPreviewMode then
@@ -471,16 +471,17 @@ enemylist.DrawWindow = function(settings)
 					if (buffIds ~= nil and #buffIds > 0) then
 						local debuffX;
 						local debuffY = entryStartY + settings.debuffOffsetY;
+						local anchor = gConfig.enemyListDebuffsAnchor or 'right';
 
-						if (gConfig.enemyListDebuffsRightAlign) then
-							-- Right-aligned: calculate width of debuff icons and position from right edge
+						if (anchor == 'right') then
+							-- Right anchor: position to the right of the entry
+							debuffX = entryStartX + entryWidth + settings.debuffOffsetX;
+						else
+							-- Left anchor: calculate width of debuff icons and position to the left of entry
 							local numIcons = math.min(#buffIds, settings.maxIcons);
 							local iconSpacing = 1; -- matches ImGuiStyleVar_ItemSpacing
 							local debuffWidth = (numIcons * settings.iconSize) + ((numIcons - 1) * iconSpacing);
-							debuffX = entryStartX + entryWidth - debuffWidth - settings.debuffOffsetX;
-						else
-							-- Left-aligned: position from left edge
-							debuffX = entryStartX + settings.debuffOffsetX;
+							debuffX = entryStartX - debuffWidth - settings.debuffOffsetX;
 						end
 
 						imgui.SetNextWindowPos({debuffX, debuffY});

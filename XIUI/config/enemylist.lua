@@ -56,10 +56,10 @@ function M.DrawSettings()
     if components.CollapsingSection('Debuffs##enemyList') then
         components.DrawCheckbox('Show Debuffs', 'showEnemyListDebuffs');
         if (gConfig.showEnemyListDebuffs) then
-            components.DrawCheckbox('Right Align Debuffs', 'enemyListDebuffsRightAlign');
-            imgui.ShowHelp('When enabled, debuff icons align to the right edge of each enemy entry instead of the left.');
+            components.DrawAnchorDropdown('Debuff Anchor', gConfig, 'enemyListDebuffsAnchor',
+                'Which side of the enemy entry to anchor debuff icons.');
             components.DrawSlider('Debuff Offset X', 'enemyListDebuffOffsetX', -100, 200);
-            imgui.ShowHelp('Horizontal offset for debuff icons. Offsets from left edge (or right edge if right-aligned).');
+            imgui.ShowHelp('Horizontal offset for debuff icons from the anchor edge.');
             components.DrawSlider('Debuff Offset Y', 'enemyListDebuffOffsetY', -100, 200);
             imgui.ShowHelp('Vertical offset for debuff icons from top of entry.');
             components.DrawSlider('Status Effect Icon Size', 'enemyListIconScale', 0.1, 3.0, '%.1f');

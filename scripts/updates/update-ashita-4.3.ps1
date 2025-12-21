@@ -1,10 +1,10 @@
 # Update Ashita v4beta 4.3 branch (2025_q3_update)
-# Run from XIUI project root: .\.claude\scripts\update-ashita-4.3.ps1
+# Run from XIUI project root: .\scripts\updates\update-ashita-4.3.ps1
 
 $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoDir = Join-Path $scriptDir ".." "Ashita-v4beta-4.3"
+$repoDir = Join-Path $scriptDir ".." ".." "ai-docs" "Ashita-v4beta-4.3"
 
 Write-Host "Updating Ashita v4beta 4.3 (2025_q3_update branch)..." -ForegroundColor Cyan
 
