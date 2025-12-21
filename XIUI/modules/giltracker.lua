@@ -64,12 +64,32 @@ giltracker.DrawWindow = function(settings)
 
 	local currentGil = gilAmount.Count;
 
+	-- Skip invalid reads during zoning (inventory returns 0 or garbage)
+	-- This preserves tracking state so we continue where we left off after zoning
+	if currentGil == 0 then
+		SetFontsVisible(allFonts, false);
+		return;
+	end
+
+	-- Detect invalid reads: if gil changes by millions in a single frame, it's likely
+	-- garbage data from zoning - skip this frame but don't reset tracking
+	if lastKnownGil ~= nil and lastKnownGil > 0 then
+		local frameDiff = math.abs(currentGil - lastKnownGil);
+		-- If changed by more than 10 million in one frame, skip (likely zone garbage)
+		if frameDiff > 10000000 then
+			SetFontsVisible(allFonts, false);
+			return;
+		end
+	end
+
 	-- Initialize tracking on first valid read (login reset)
 	if trackingStartGil == nil then
 		trackingStartGil = currentGil;
 		trackingStartTime = os.clock();
-		lastKnownGil = currentGil;
 	end
+
+	-- Update last known gil with valid reads only
+	lastKnownGil = currentGil;
 
 	-- Calculate gil per hour
 	local showGilPerHour = gConfig.gilTrackerShowGilPerHour ~= false;
